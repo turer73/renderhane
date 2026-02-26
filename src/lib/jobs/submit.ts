@@ -64,15 +64,31 @@ export async function submitJob(input: SubmitJobInput) {
   } catch (error) {
     // Refund credits and mark job as failed
     await refundCredits(txId);
+
+    // Extract meaningful error from fal.ai response
+    const falError = error as { status?: number; body?: { detail?: string } };
+    let errorMessage = "Failed to submit to processing queue";
+    if (falError.status === 403) {
+      errorMessage = "AI processing service temporarily unavailable";
+    } else if (falError.body?.detail) {
+      errorMessage = falError.body.detail;
+    }
+
+    console.error("fal.ai submit error:", {
+      model: model.id,
+      status: falError.status,
+      detail: falError.body?.detail,
+    });
+
     await supabase
       .from("jobs")
       .update({
         status: "failed",
-        error_message: "Failed to submit to processing queue",
+        error_message: errorMessage,
         completed_at: new Date().toISOString(),
       })
       .eq("id", job.id);
-    throw new Error("Failed to submit job to processing queue");
+    throw new Error(errorMessage);
   }
 
   // 5. Update job with fal request ID
