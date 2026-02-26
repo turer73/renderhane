@@ -193,5 +193,90 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER
    SET search_path = public;
 
+-- Atomic credit refund (prevents race condition on balance)
+CREATE OR REPLACE FUNCTION public.refund_credits(p_tx_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  v_user_id UUID;
+  v_amount INTEGER;
+BEGIN
+  -- Lock the transaction row
+  SELECT user_id, amount INTO v_user_id, v_amount
+    FROM public.credit_transactions
+    WHERE id = p_tx_id AND status = 'reserved'
+    FOR UPDATE;
+
+  IF v_user_id IS NULL THEN
+    RETURN; -- Already processed, no-op
+  END IF;
+
+  -- Restore balance atomically
+  UPDATE public.profiles
+    SET credit_balance = credit_balance + ABS(v_amount),
+        updated_at = now()
+    WHERE id = v_user_id;
+
+  -- Mark as refunded
+  UPDATE public.credit_transactions
+    SET status = 'refunded'
+    WHERE id = p_tx_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Atomic credit addition after purchase (prevents race condition on balance)
+CREATE OR REPLACE FUNCTION public.add_credits(
+  p_user_id UUID,
+  p_amount INTEGER,
+  p_payment_id TEXT,
+  p_description TEXT
+) RETURNS UUID AS $$
+DECLARE
+  v_tx_id UUID;
+  v_balance INTEGER;
+BEGIN
+  -- Lock the profile row
+  SELECT credit_balance INTO v_balance
+    FROM public.profiles
+    WHERE id = p_user_id
+    FOR UPDATE;
+
+  IF v_balance IS NULL THEN
+    RAISE EXCEPTION 'user_not_found';
+  END IF;
+
+  -- Add balance atomically
+  UPDATE public.profiles
+    SET credit_balance = credit_balance + p_amount,
+        updated_at = now()
+    WHERE id = p_user_id;
+
+  -- Create purchase transaction
+  INSERT INTO public.credit_transactions
+    (user_id, amount, type, status, description, payment_id)
+  VALUES
+    (p_user_id, p_amount, 'purchase', 'completed', p_description, p_payment_id)
+  RETURNING id INTO v_tx_id;
+
+  RETURN v_tx_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Atomic confirm spend (marks reserved transaction as completed)
+CREATE OR REPLACE FUNCTION public.confirm_spend(
+  p_tx_id UUID,
+  p_job_id UUID
+) RETURNS BOOLEAN AS $$
+DECLARE
+  v_updated INTEGER;
+BEGIN
+  UPDATE public.credit_transactions
+    SET status = 'completed', job_id = p_job_id
+    WHERE id = p_tx_id AND status = 'reserved';
+
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN v_updated > 0;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Enable realtime for jobs table (for live status updates)
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;

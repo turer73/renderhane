@@ -44,84 +44,69 @@ export async function reserveCredits(
 
 /**
  * Confirm the spend after job succeeds.
+ * Uses atomic RPC to mark transaction as completed and link to job.
  */
 export async function confirmSpend(txId: string, jobId: string): Promise<void> {
   const supabase = await createClient();
 
-  await supabase
-    .from("credit_transactions")
-    .update({ status: "completed", job_id: jobId })
-    .eq("id", txId)
-    .eq("status", "reserved");
+  const { data, error } = await supabase.rpc("confirm_spend", {
+    p_tx_id: txId,
+    p_job_id: jobId,
+  });
+
+  if (error) {
+    throw new Error(`Failed to confirm spend: ${error.message}`);
+  }
+
+  if (data === false) {
+    throw new CreditError(
+      "Transaction already processed or not found",
+      "ALREADY_PROCESSED"
+    );
+  }
 }
 
 /**
  * Refund credits after job fails.
+ * Uses atomic RPC with row-level locking to prevent race conditions.
  */
 export async function refundCredits(txId: string): Promise<void> {
   const supabase = await createClient();
 
-  // Get the transaction
-  const { data: tx } = await supabase
-    .from("credit_transactions")
-    .select("user_id, amount")
-    .eq("id", txId)
-    .eq("status", "reserved")
-    .single();
+  const { error } = await supabase.rpc("refund_credits", {
+    p_tx_id: txId,
+  });
 
-  if (!tx) return; // Already processed
-
-  // Refund balance
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("credit_balance")
-    .eq("id", tx.user_id)
-    .single();
-
-  if (profile) {
-    await supabase
-      .from("profiles")
-      .update({ credit_balance: profile.credit_balance + Math.abs(tx.amount) })
-      .eq("id", tx.user_id);
+  if (error) {
+    throw new Error(`Failed to refund credits: ${error.message}`);
   }
-
-  // Mark as refunded
-  await supabase
-    .from("credit_transactions")
-    .update({ status: "refunded" })
-    .eq("id", txId);
 }
 
 /**
  * Add credits after purchase.
+ * Uses atomic RPC with row-level locking to prevent race conditions.
  */
 export async function addCredits(
   userId: string,
   amount: number,
   paymentId: string,
   description: string
-): Promise<void> {
+): Promise<string> {
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("credit_balance")
-    .eq("id", userId)
-    .single();
-
-  if (!profile) throw new CreditError("User not found", "NOT_FOUND");
-
-  await supabase
-    .from("profiles")
-    .update({ credit_balance: profile.credit_balance + amount })
-    .eq("id", userId);
-
-  await supabase.from("credit_transactions").insert({
-    user_id: userId,
-    amount,
-    type: "purchase",
-    status: "completed",
-    description,
-    payment_id: paymentId,
+  const { data, error } = await supabase.rpc("add_credits", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_payment_id: paymentId,
+    p_description: description,
   });
+
+  if (error) {
+    if (error.message.includes("user_not_found")) {
+      throw new CreditError("User not found", "NOT_FOUND");
+    }
+    throw new Error(`Failed to add credits: ${error.message}`);
+  }
+
+  return data as string;
 }

@@ -12,11 +12,18 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("credit_balance")
     .eq("id", user.id)
     .single();
+
+  if (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch balance" },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ balance: profile?.credit_balance ?? 0 });
 }
