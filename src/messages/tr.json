@@ -29,6 +29,15 @@
     "cost": "{count} kredi",
     "free": "Ücretsiz"
   },
+  "auth": {
+    "googleLogin": "Google ile Giriş Yap",
+    "or": "veya",
+    "emailLabel": "E-posta",
+    "emailPlaceholder": "ornek@email.com",
+    "sendMagicLink": "Magic Link Gönder",
+    "sending": "Gönderiliyor...",
+    "checkEmail": "E-postanızı kontrol edin!"
+  },
   "landing": {
     "hero": "E-Ticaret Mağazanız İçin AI Stüdyosu",
     "heroSub": "Tek fotoğraftan 3D model, profesyonel ürün görseli ve video — dakikalar içinde.",

@@ -29,6 +29,15 @@
     "cost": "{count} credits",
     "free": "Free"
   },
+  "auth": {
+    "googleLogin": "Sign in with Google",
+    "or": "or",
+    "emailLabel": "Email",
+    "emailPlaceholder": "example@email.com",
+    "sendMagicLink": "Send Magic Link",
+    "sending": "Sending...",
+    "checkEmail": "Check your email for the login link!"
+  },
   "landing": {
     "hero": "AI Studio for Your E-Commerce Store",
     "heroSub": "3D models, professional product images, and videos from a single photo — in minutes.",
