@@ -94,7 +94,7 @@ export function DemoSection() {
               </div>
               <div className="relative aspect-square bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800">
                 <Image
-                  src="/demo/renderhane.png"
+                  src="/demo/original.png"
                   alt="Original product photo"
                   fill
                   className="object-contain p-4"
