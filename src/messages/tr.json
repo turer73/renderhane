@@ -63,6 +63,7 @@
     "urlConfirm": "Tamam"
   },
   "landing": {
+    "badge": "Yapay Zeka Destekli",
     "hero": "E-Ticaret Mağazanız İçin AI Stüdyosu",
     "heroSub": "Tek fotoğraftan 3D model, profesyonel ürün görseli ve video — dakikalar içinde.",
     "stat1": "%94-250 dönüşüm artışı",
@@ -147,7 +148,7 @@
         "feature3": "Dedike hesap yöneticisi",
         "feature4": "SLA garantisi"
       },
-      "perCredit": "kredi başına",
+      "perCreditFormat": "₺{amount} / kredi",
       "buyNow": "Şimdi Satın Al",
       "contactUs": "Bize Ulaşın",
       "mostPopular": "En Popüler"

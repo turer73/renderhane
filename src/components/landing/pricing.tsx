@@ -63,7 +63,9 @@ export function PricingSection() {
             const isEnterprise = pkg.key === "enterprise";
             const perCredit =
               pkg.priceValue > 0
-                ? `₺${(pkg.priceValue / pkg.credits).toFixed(2)} ${t("pricing.perCredit")}`
+                ? t("pricing.perCreditFormat", {
+                    amount: (pkg.priceValue / pkg.credits).toFixed(2),
+                  })
                 : null;
 
             return (

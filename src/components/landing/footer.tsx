@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
 import { Box, Globe } from "lucide-react";
@@ -17,8 +18,7 @@ export function Footer() {
   const otherLocale = locale === "tr" ? "en" : "tr";
 
   function switchLanguage() {
-    const newPath = pathname.replace(`/${locale}`, `/${otherLocale}`);
-    router.push(newPath);
+    router.replace(pathname, { locale: otherLocale });
   }
 
   function scrollTo(id: string) {

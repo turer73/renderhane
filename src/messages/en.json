@@ -63,6 +63,7 @@
     "urlConfirm": "OK"
   },
   "landing": {
+    "badge": "AI-Powered",
     "hero": "AI Studio for Your E-Commerce Store",
     "heroSub": "3D models, professional product images, and videos from a single photo — in minutes.",
     "stat1": "94-250% conversion boost",
@@ -147,7 +148,7 @@
         "feature3": "Dedicated account manager",
         "feature4": "SLA guarantee"
       },
-      "perCredit": "per credit",
+      "perCreditFormat": "₺{amount} per credit",
       "buyNow": "Buy Now",
       "contactUs": "Contact Us",
       "mostPopular": "Most Popular"

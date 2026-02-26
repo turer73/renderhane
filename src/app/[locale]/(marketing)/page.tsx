@@ -5,13 +5,7 @@ import { PricingSection } from "@/components/landing/pricing";
 import { DemoSection } from "@/components/landing/demo";
 import { Footer } from "@/components/landing/footer";
 
-export default async function MarketingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  await params;
-
+export default function MarketingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <LandingHeader />

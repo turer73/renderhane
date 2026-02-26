@@ -56,7 +56,7 @@ export function HeroSection() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
             </span>
-            <span>AI-Powered</span>
+            <span>{t("badge")}</span>
           </div>
 
           {/* Title */}
