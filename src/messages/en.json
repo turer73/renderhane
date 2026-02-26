@@ -39,6 +39,28 @@
     "checkEmail": "Check your email for the login link!",
     "errorGeneric": "An error occurred. Please try again."
   },
+  "dashboard": {
+    "dragDrop": "Drag & Drop or click",
+    "orPasteUrl": "or paste URL",
+    "urlPlaceholder": "https://example.com/product.jpg",
+    "imageSelected": "Image selected",
+    "changeImage": "Change",
+    "selectTool": "Select a tool",
+    "submit": "Start Processing",
+    "submitting": "Submitting...",
+    "jobStarted": "Job started!",
+    "recentJobs": "Recent Jobs",
+    "statusPending": "Pending",
+    "statusProcessing": "Processing",
+    "statusCompleted": "Completed",
+    "statusFailed": "Failed",
+    "viewResult": "View Result",
+    "noJobs": "No jobs yet",
+    "comingSoon": "Coming Soon",
+    "uploadError": "Upload error. Please try again.",
+    "insufficientCredits": "Insufficient credits",
+    "jobError": "Failed to start job. Please try again."
+  },
   "landing": {
     "hero": "AI Studio for Your E-Commerce Store",
     "heroSub": "3D models, professional product images, and videos from a single photo — in minutes.",

@@ -39,6 +39,28 @@
     "checkEmail": "E-postanızı kontrol edin!",
     "errorGeneric": "Bir hata oluştu. Lütfen tekrar deneyin."
   },
+  "dashboard": {
+    "dragDrop": "Sürükle & Bırak veya tıkla",
+    "orPasteUrl": "veya URL yapıştır",
+    "urlPlaceholder": "https://example.com/product.jpg",
+    "imageSelected": "Görsel seçildi",
+    "changeImage": "Değiştir",
+    "selectTool": "Araç seçin",
+    "submit": "İşlemi Başlat",
+    "submitting": "Gönderiliyor...",
+    "jobStarted": "İş başlatıldı!",
+    "recentJobs": "Son İşlemler",
+    "statusPending": "Bekliyor",
+    "statusProcessing": "İşleniyor",
+    "statusCompleted": "Tamamlandı",
+    "statusFailed": "Başarısız",
+    "viewResult": "Sonucu Gör",
+    "noJobs": "Henüz işlem yok",
+    "comingSoon": "Yakında",
+    "uploadError": "Yükleme hatası. Tekrar deneyin.",
+    "insufficientCredits": "Kredi yetersiz",
+    "jobError": "İşlem başlatılamadı. Tekrar deneyin."
+  },
   "landing": {
     "hero": "E-Ticaret Mağazanız İçin AI Stüdyosu",
     "heroSub": "Tek fotoğraftan 3D model, profesyonel ürün görseli ve video — dakikalar içinde.",
