@@ -116,7 +116,7 @@ export function DemoSection() {
               <div className="relative aspect-square bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-800">
                 <Suspense fallback={<MiniLoader />}>
                   <Canvas
-                    camera={{ position: [0, 1, 3], fov: 45 }}
+                    camera={{ position: [0, 0.6, 1.8], fov: 40 }}
                     className="!absolute inset-0"
                     gl={{ antialias: true, alpha: true }}
                     dpr={[1, 1.5]}
