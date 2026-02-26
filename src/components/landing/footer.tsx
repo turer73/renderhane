@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
-import { Box, Globe } from "lucide-react";
+import { Box, Globe, Mail } from "lucide-react";
 
 export function Footer() {
   const t = useTranslations("landing");
@@ -38,12 +38,13 @@ export function Footer() {
     { label: t("footer.about"), href: "#" },
     { label: t("footer.blog"), href: `/${locale}/blog` },
     { label: t("footer.careers"), href: "#" },
-    { label: t("footer.contact"), href: "#" },
+    { label: t("footer.contact"), href: "mailto:info@renderhane.com" },
   ];
 
   const legalLinks = [
-    { label: t("footer.privacy"), href: "#" },
-    { label: t("footer.terms"), href: "#" },
+    { label: t("footer.privacy"), href: `/${locale}/privacy` },
+    { label: t("footer.terms"), href: `/${locale}/terms` },
+    { label: t("footer.kvkk"), href: `/${locale}/kvkk` },
   ];
 
   return (
@@ -62,6 +63,13 @@ export function Footer() {
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
               {t("footer.description")}
             </p>
+            <a
+              href="mailto:info@renderhane.com"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Mail className="size-3.5" />
+              info@renderhane.com
+            </a>
           </div>
 
           {/* Product */}

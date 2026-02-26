@@ -89,27 +89,33 @@
       "subtitle": "Take your product visuals to the next level — no studio or photographer needed.",
       "3dModel": {
         "description": "Create high-quality 3D models from a single photo. Showcase your products in 360 degrees.",
-        "credits": "10 credits"
+        "credits": "10 credits",
+        "tip": "Use a white or plain background with clear lighting and a single product. Avoid complex backgrounds."
       },
       "bgRemove": {
         "description": "Remove backgrounds instantly. Get clean, professional product images.",
-        "credits": "1 credit"
+        "credits": "1 credit",
+        "tip": "Ensure product edges are sharp. High-contrast photos yield better results."
       },
       "enhance": {
         "description": "Enhance low-resolution images with AI. Improve details and sharpness.",
-        "credits": "2 credits"
+        "credits": "2 credits",
+        "tip": "Use images at least 256×256 pixels. Very blurry images may have limited improvement."
       },
       "scene": {
         "description": "Create professional scenes and environments for your products. Generate lifestyle images.",
-        "credits": "3 credits"
+        "credits": "3 credits",
+        "tip": "Products with clean backgrounds work best. We recommend using 'Remove Background' first."
       },
       "video": {
         "description": "Create stunning promotional videos from static product photos.",
-        "credits": "10 credits"
+        "credits": "10 credits",
+        "tip": "Sharp, high-resolution photos produce smoother videos. Minimum 512×512 pixels recommended."
       },
       "aplus": {
         "description": "Generate A+ quality product content and visuals for marketplaces.",
-        "credits": "5 credits"
+        "credits": "5 credits",
+        "tip": "Prepare photos from multiple angles. Keep product features prominent."
       }
     },
     "pricing": {
@@ -180,6 +186,8 @@
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
       "contact": "Contact",
+      "kvkk": "Data Protection",
+      "email": "info@renderhane.com",
       "allRights": "All rights reserved.",
       "language": "Language"
     }
@@ -242,5 +250,63 @@
     "cancelReply": "Cancel",
     "question": "Question",
     "relatedArticles": "Related Articles"
+  },
+  "legal": {
+    "lastUpdated": "Last updated: {date}",
+    "backToHome": "Home",
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "At Renderhane, we take the protection of your personal data very seriously. This privacy policy explains what data is collected when you use our services, how it is used, and how it is protected.",
+      "section1Title": "Data We Collect",
+      "section1Content": "The following personal data may be collected during your use of our services:\n\n• Identity information: Name, surname, email address\n• Account information: Google account details (when signing in via OAuth)\n• Usage data: Uploaded images, generated 3D models, processing history\n• Payment information: Payment transactions are processed through Iyzico; your credit card details are not stored by us\n• Technical data: IP address, browser information, device information",
+      "section2Title": "How We Use Your Data",
+      "section2Content": "Collected data is used for the following purposes:\n\n• Providing and improving our services\n• Account management and authentication\n• Processing payments\n• Providing customer support\n• Fulfilling legal obligations",
+      "section3Title": "Data Storage and Security",
+      "section3Content": "Your data is securely stored using industry-standard encryption methods on Supabase (PostgreSQL) and Cloudflare R2 infrastructure. Your uploaded images and generated outputs are hosted with encryption on Cloudflare R2.",
+      "section4Title": "Third-Party Services",
+      "section4Content": "We work with the following third-party service providers to deliver our services:\n\n• Google (OAuth authentication)\n• Supabase (database and authentication)\n• Cloudflare (content delivery and file storage)\n• fal.ai (AI model processing)\n• Iyzico (payment infrastructure)",
+      "section5Title": "Your Rights",
+      "section5Content": "You have the following rights regarding your personal data:\n\n• Learn whether your personal data is being processed\n• Request information about the processing of your data\n• Learn the purpose of data processing and whether it is used accordingly\n• Request correction or deletion of your personal data\n\nTo exercise these rights, please contact us at info@renderhane.com.",
+      "section6Title": "Contact",
+      "section6Content": "For questions about our privacy policy, please contact us:\n\nEmail: info@renderhane.com"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "intro": "These terms of service establish the rules and conditions governing your use of the Renderhane platform. By using our platform, you agree to these terms.",
+      "section1Title": "Service Description",
+      "section1Content": "Renderhane is an AI-powered visual production platform offering background removal, 3D model generation, image enhancement, scene generation, video creation, and A+ content generation services.",
+      "section2Title": "Account Responsibilities",
+      "section2Content": "• You are responsible for the security of your account\n• You are responsible for all activities performed through your account\n• You must not share your account credentials with third parties\n• You must be at least 18 years old",
+      "section3Title": "Credit System and Pricing",
+      "section3Content": "• Services operate on a credit-based system\n• Purchased credits are non-refundable\n• Credit prices may change without prior notice\n• Each new account receives 20 free credits\n• Credits do not have an expiration date",
+      "section4Title": "Intellectual Property",
+      "section4Content": "• You retain copyright of the images you upload\n• You have usage rights to outputs generated by the platform (3D models, edited images, etc.)\n• The Renderhane brand, logo, and platform design belong to Renderhane\n• You may use content generated through the platform for commercial purposes",
+      "section5Title": "Prohibited Use",
+      "section5Content": "The following uses are prohibited:\n\n• Uploading or generating illegal content\n• Violating the intellectual property rights of others\n• Actions that compromise platform security\n• Using automated bots or scraping tools\n• Bulk operations that negatively affect other users' service",
+      "section6Title": "Limitation of Liability",
+      "section6Content": "• Renderhane does not guarantee the accuracy of AI-generated content\n• The platform is provided \"as is\"\n• We are not liable for indirect damages caused by service interruptions\n• We are not responsible for issues arising from third-party services",
+      "section7Title": "Changes",
+      "section7Content": "We reserve the right to modify these terms of service with prior notice. Updated terms take effect on the date they are published on the platform.",
+      "section8Title": "Contact",
+      "section8Content": "For questions about terms of service:\n\nEmail: info@renderhane.com"
+    },
+    "kvkk": {
+      "title": "Data Protection Notice (KVKK)",
+      "intro": "In accordance with the Turkish Personal Data Protection Law No. 6698 (\"KVKK\"), Renderhane, as the data controller, processes your personal data within the scope described below.",
+      "section1Title": "Data Controller",
+      "section1Content": "The Renderhane platform serves as the data controller.\n\nContact: info@renderhane.com",
+      "section2Title": "Personal Data Processed",
+      "section2Content": "The following personal data is processed through our platform:\n\n• Identity information: Name, surname\n• Contact information: Email address\n• Account information: Google account ID, profile photo\n• Transaction information: Uploaded images, AI processing results, credit usage history\n• Payment information: Payment history (credit card details are processed by Iyzico)\n• Technical data: IP address, browser and device information, cookie data",
+      "section3Title": "Processing Purposes and Legal Basis",
+      "section3Content": "Your personal data is processed for the following purposes and legal bases:\n\n• Performance of contract: Service delivery, account management, payment processing\n• Legitimate interest: Improving service quality, security measures, statistical analysis\n• Legal obligation: Tax legislation, regulatory notifications\n• Explicit consent: Marketing communications (if applicable)",
+      "section4Title": "Data Transfers",
+      "section4Content": "Your personal data may be transferred to the following parties for service delivery:\n\n• Supabase Inc. (USA) — Database and authentication services\n• Cloudflare Inc. (USA) — Content delivery and file storage\n• fal.ai (USA) — AI model processing services\n• Google LLC (USA) — OAuth authentication\n• Iyzico (Turkey) — Payment infrastructure\n\nCross-border data transfers are carried out with adequate protection under KVKK Article 9.",
+      "section5Title": "Data Retention Periods",
+      "section5Content": "• Account information: As long as the account is active\n• Transaction history: Until account deletion\n• Uploaded images and outputs: Until account deletion\n• Payment records: 10 years as required by law\n• Technical logs: 6 months",
+      "section6Title": "Data Subject Rights (KVKK Art. 11)",
+      "section6Content": "Under Article 11 of KVKK, you have the following rights:\n\na) Learn whether your personal data is being processed\nb) Request information if your personal data has been processed\nc) Learn the purpose of processing and whether data is used accordingly\nd) Know the third parties to whom your personal data has been transferred domestically or abroad\ne) Request correction of incomplete or inaccurate personal data\nf) Request deletion or destruction of personal data under KVKK Art. 7\ng) Request notification of correction and deletion operations to third parties\nh) Object to results arising from automated analysis of processed data\ni) Claim compensation for damages caused by unlawful processing of personal data",
+      "section7Title": "How to Apply",
+      "section7Content": "To exercise the rights listed above, you may apply through the following methods:\n\n• Email: Send your application with identity verification documents to info@renderhane.com.\n\nApplications will be concluded free of charge within 30 days at the latest. If the process requires additional costs, fees may be charged according to the tariff determined by the Personal Data Protection Board."
+    }
   }
 }

@@ -89,27 +89,33 @@
       "subtitle": "Ürün görsellerinizi profesyonel seviyeye taşıyın — stüdyo veya fotoğrafçıya gerek yok.",
       "3dModel": {
         "description": "Tek bir fotoğraftan yüksek kaliteli 3D model oluşturun. Ürünlerinizi 360 derece sergileyin.",
-        "credits": "10 kredi"
+        "credits": "10 kredi",
+        "tip": "Beyaz veya düz arka plan, net ışıklandırma ve tek ürün ile en iyi sonucu alırsınız. Karmaşık arka planlardan kaçının."
       },
       "bgRemove": {
         "description": "Arka planı anında kaldırın. Temiz, profesyonel ürün görselleri elde edin.",
-        "credits": "1 kredi"
+        "credits": "1 kredi",
+        "tip": "Ürün kenarları net olsun. Yüksek kontrastlı fotoğraflar daha iyi sonuç verir."
       },
       "enhance": {
         "description": "Düşük çözünürlüklü görselleri AI ile iyileştirin. Detayları ve netliği artırın.",
-        "credits": "2 kredi"
+        "credits": "2 kredi",
+        "tip": "En az 256×256 piksel boyutunda görseller kullanın. Çok bulanık görsellerde sonuç sınırlı kalabilir."
       },
       "scene": {
         "description": "Ürününüz için profesyonel sahneler ve ortamlar oluşturun. Yaşam tarzı görselleri üretin.",
-        "credits": "3 kredi"
+        "credits": "3 kredi",
+        "tip": "Arka planı temiz ürünler en iyi sonucu verir. Önce 'Arka Plan Kaldır' kullanmanızı öneririz."
       },
       "video": {
         "description": "Statik ürün fotoğraflarından etkileyici tanıtım videoları oluşturun.",
-        "credits": "10 kredi"
+        "credits": "10 kredi",
+        "tip": "Net ve yüksek çözünürlüklü fotoğraflar daha akıcı video üretir. Minimum 512×512 piksel önerilir."
       },
       "aplus": {
         "description": "Pazaryerleri için A+ kalitesinde ürün içerikleri ve görseller üretin.",
-        "credits": "5 kredi"
+        "credits": "5 kredi",
+        "tip": "Birden fazla açıdan fotoğraf hazırlayın. Ürün özelliklerini belirgin tutun."
       }
     },
     "pricing": {
@@ -180,6 +186,8 @@
       "privacy": "Gizlilik Politikası",
       "terms": "Kullanım Koşulları",
       "contact": "İletişim",
+      "kvkk": "KVKK Aydınlatma",
+      "email": "info@renderhane.com",
       "allRights": "Tüm hakları saklıdır.",
       "language": "Dil"
     }
@@ -242,5 +250,63 @@
     "cancelReply": "İptal",
     "question": "Soru",
     "relatedArticles": "İlgili Yazılar"
+  },
+  "legal": {
+    "lastUpdated": "Son güncelleme: {date}",
+    "backToHome": "Ana Sayfa",
+    "privacy": {
+      "title": "Gizlilik Politikası",
+      "intro": "Renderhane olarak kişisel verilerinizin korunmasına büyük önem veriyoruz. Bu gizlilik politikası, hizmetlerimizi kullanırken hangi verilerin toplandığını, nasıl kullanıldığını ve nasıl korunduğunu açıklamaktadır.",
+      "section1Title": "Toplanan Veriler",
+      "section1Content": "Hizmetlerimizi kullanmanız sırasında aşağıdaki kişisel veriler toplanabilir:\n\n• Kimlik bilgileri: Ad, soyad, e-posta adresi\n• Hesap bilgileri: Google hesap bilgileri (OAuth ile giriş yapılması halinde)\n• Kullanım verileri: Yüklenen görseller, oluşturulan 3D modeller, işlem geçmişi\n• Ödeme bilgileri: Ödeme işlemleri Iyzico altyapısı üzerinden gerçekleştirilir; kredi kartı bilgileriniz tarafımızca saklanmaz\n• Teknik veriler: IP adresi, tarayıcı bilgileri, cihaz bilgileri",
+      "section2Title": "Verilerin Kullanım Amaçları",
+      "section2Content": "Toplanan veriler aşağıdaki amaçlarla kullanılmaktadır:\n\n• Hizmetlerin sunulması ve iyileştirilmesi\n• Hesap yönetimi ve kimlik doğrulama\n• Ödeme işlemlerinin gerçekleştirilmesi\n• Müşteri desteği sağlanması\n• Yasal yükümlülüklerin yerine getirilmesi",
+      "section3Title": "Veri Saklama ve Güvenlik",
+      "section3Content": "Verileriniz Supabase (PostgreSQL) ve Cloudflare R2 altyapılarında, endüstri standardı şifreleme yöntemleriyle güvenli bir şekilde saklanmaktadır. Yüklediğiniz görseller ve oluşturulan çıktılar Cloudflare R2 üzerinde şifreli olarak barındırılır.",
+      "section4Title": "Üçüncü Taraf Hizmetler",
+      "section4Content": "Hizmetlerimizin sunulması için aşağıdaki üçüncü taraf hizmet sağlayıcılarla çalışmaktayız:\n\n• Google (OAuth kimlik doğrulama)\n• Supabase (veritabanı ve kimlik doğrulama)\n• Cloudflare (içerik dağıtım ve dosya depolama)\n• fal.ai (AI model işleme)\n• Iyzico (ödeme altyapısı)",
+      "section5Title": "Kullanıcı Hakları",
+      "section5Content": "KVKK kapsamında aşağıdaki haklara sahipsiniz:\n\n• Kişisel verilerinizin işlenip işlenmediğini öğrenme\n• Kişisel verileriniz işlenmişse buna ilişkin bilgi talep etme\n• Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme\n• Kişisel verilerinizin düzeltilmesini veya silinmesini isteme\n\nBu haklarınızı kullanmak için info@renderhane.com adresine başvurabilirsiniz.",
+      "section6Title": "İletişim",
+      "section6Content": "Gizlilik politikamızla ilgili sorularınız için bizimle iletişime geçebilirsiniz:\n\nE-posta: info@renderhane.com"
+    },
+    "terms": {
+      "title": "Kullanım Koşulları",
+      "intro": "Bu kullanım koşulları, Renderhane platformunu kullanımınıza ilişkin kuralları ve koşulları belirlemektedir. Platformumuzu kullanarak bu koşulları kabul etmiş sayılırsınız.",
+      "section1Title": "Hizmet Tanımı",
+      "section1Content": "Renderhane, yapay zeka destekli bir görsel üretim platformudur. Arka plan kaldırma, 3D model oluşturma, görsel iyileştirme, sahne üretimi, video oluşturma ve A+ içerik üretimi hizmetleri sunmaktadır.",
+      "section2Title": "Hesap Sorumlulukları",
+      "section2Content": "• Hesabınızın güvenliğinden siz sorumlusunuz\n• Hesabınız üzerinden gerçekleştirilen tüm işlemlerden siz sorumlusunuz\n• Hesap bilgilerinizi üçüncü kişilerle paylaşmamalısınız\n• 18 yaşından büyük olmanız gerekmektedir",
+      "section3Title": "Kredi Sistemi ve Ücretlendirme",
+      "section3Content": "• Hizmetler kredi tabanlı bir sistemle çalışır\n• Satın alınan krediler iade edilemez\n• Kredi fiyatları önceden bildirilmeksizin değişebilir\n• Her yeni hesaba 20 ücretsiz kredi tanımlanır\n• Kredilerin son kullanma tarihi yoktur",
+      "section4Title": "Fikri Mülkiyet",
+      "section4Content": "• Yüklediğiniz görsellerin telif hakkı size aittir\n• Platform tarafından üretilen çıktılar (3D modeller, düzenlenmiş görseller vb.) üzerindeki kullanım hakkı size aittir\n• Renderhane markası, logosu ve platform tasarımı Renderhane'ye aittir\n• Platformu kullanarak ürettiğiniz içerikleri ticari amaçla kullanabilirsiniz",
+      "section5Title": "Kabul Edilemez Kullanım",
+      "section5Content": "Aşağıdaki kullanımlar yasaktır:\n\n• Yasa dışı içerik yükleme veya üretme\n• Başkalarının fikri mülkiyet haklarını ihlal etme\n• Platformun güvenliğini tehlikeye atacak eylemler\n• Otomatik botlar veya scraping araçları kullanma\n• Diğer kullanıcıların hizmetini olumsuz etkileyecek toplu işlemler",
+      "section6Title": "Sorumluluk Sınırları",
+      "section6Content": "• Renderhane, AI tarafından üretilen içeriklerin doğruluğunu garanti etmez\n• Platform \"olduğu gibi\" sunulmaktadır\n• Hizmet kesintilerinden kaynaklanan dolaylı zararlardan sorumlu değiliz\n• Üçüncü taraf hizmetlerden kaynaklanan sorunlardan sorumlu değiliz",
+      "section7Title": "Değişiklikler",
+      "section7Content": "Bu kullanım koşullarını önceden bildirimde bulunarak değiştirme hakkımız saklıdır. Güncellenmiş koşullar platformda yayınlandığı tarihte yürürlüğe girer.",
+      "section8Title": "İletişim",
+      "section8Content": "Kullanım koşullarıyla ilgili sorularınız için:\n\nE-posta: info@renderhane.com"
+    },
+    "kvkk": {
+      "title": "KVKK Aydınlatma Metni",
+      "intro": "6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") uyarınca, Renderhane olarak veri sorumlusu sıfatıyla kişisel verilerinizi aşağıda açıklanan kapsamda işlemekteyiz.",
+      "section1Title": "Veri Sorumlusu",
+      "section1Content": "Renderhane platformu veri sorumlusu olarak hizmet vermektedir.\n\nİletişim: info@renderhane.com",
+      "section2Title": "İşlenen Kişisel Veriler",
+      "section2Content": "Platformumuz aracılığıyla aşağıdaki kişisel verileriniz işlenmektedir:\n\n• Kimlik bilgileri: Ad, soyad\n• İletişim bilgileri: E-posta adresi\n• Hesap bilgileri: Google hesap kimliği, profil fotoğrafı\n• İşlem bilgileri: Yüklenen görseller, AI işlem sonuçları, kredi kullanım geçmişi\n• Ödeme bilgileri: Ödeme geçmişi (kredi kartı bilgileri Iyzico tarafından işlenir)\n• Teknik veriler: IP adresi, tarayıcı ve cihaz bilgileri, çerez verileri",
+      "section3Title": "İşleme Amaçları ve Hukuki Dayanaklar",
+      "section3Content": "Kişisel verileriniz aşağıdaki amaçlarla ve hukuki dayanaklarla işlenmektedir:\n\n• Sözleşmenin ifası: Hizmetlerin sunulması, hesap yönetimi, ödeme işlemleri\n• Meşru menfaat: Hizmet kalitesinin artırılması, güvenlik önlemleri, istatistiksel analizler\n• Yasal yükümlülük: Vergi mevzuatı, düzenleyici kurumlara bildirim\n• Açık rıza: Pazarlama iletişimleri (varsa)",
+      "section4Title": "Veri Aktarımı",
+      "section4Content": "Kişisel verileriniz, hizmetin sunulabilmesi amacıyla aşağıdaki taraflara aktarılabilmektedir:\n\n• Supabase Inc. (ABD) — Veritabanı ve kimlik doğrulama hizmetleri\n• Cloudflare Inc. (ABD) — İçerik dağıtım ve dosya depolama\n• fal.ai (ABD) — AI model işleme hizmetleri\n• Google LLC (ABD) — OAuth kimlik doğrulama\n• Iyzico (Türkiye) — Ödeme altyapısı\n\nYurt dışına veri aktarımı, KVKK m.9 kapsamında yeterli koruma sağlanarak gerçekleştirilmektedir.",
+      "section5Title": "Veri Saklama Süreleri",
+      "section5Content": "• Hesap bilgileri: Hesap aktif olduğu sürece\n• İşlem geçmişi: Hesap silinene kadar\n• Yüklenen görseller ve çıktılar: Hesap silinene kadar\n• Ödeme kayıtları: Yasal zorunluluk gereği 10 yıl\n• Teknik loglar: 6 ay",
+      "section6Title": "İlgili Kişi Hakları (KVKK m.11)",
+      "section6Content": "KVKK'nın 11. maddesi kapsamında aşağıdaki haklara sahipsiniz:\n\na) Kişisel verilerinizin işlenip işlenmediğini öğrenme\nb) Kişisel verileriniz işlenmişse buna ilişkin bilgi talep etme\nc) Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme\nd) Yurt içinde veya yurt dışında kişisel verilerinizin aktarıldığı üçüncü kişileri bilme\ne) Kişisel verilerinizin eksik veya yanlış işlenmiş olması halinde bunların düzeltilmesini isteme\nf) KVKK m.7 kapsamında kişisel verilerinizin silinmesini veya yok edilmesini isteme\ng) Düzeltme ve silme işlemlerinin kişisel verilerinizin aktarıldığı üçüncü kişilere bildirilmesini isteme\nh) İşlenen verilerinizin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme\nı) Kişisel verilerinizin kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme",
+      "section7Title": "Başvuru Yöntemi",
+      "section7Content": "Yukarıda belirtilen haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:\n\n• E-posta: info@renderhane.com adresine kimliğinizi doğrulayıcı belgelerle birlikte başvuru yapabilirsiniz.\n\nBaşvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır. İşlemin ayrıca bir maliyet gerektirmesi halinde Kişisel Verileri Koruma Kurulu tarafından belirlenen tarife üzerinden ücretlendirme yapılabilecektir."
+    }
   }
 }
