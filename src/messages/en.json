@@ -1,0 +1,43 @@
+{
+  "common": {
+    "appName": "3d-labx",
+    "tagline": "Upload your product photo, let AI do the rest",
+    "login": "Log In",
+    "signup": "Sign Up",
+    "logout": "Log Out",
+    "credits": "Credits",
+    "settings": "Settings",
+    "projects": "My Projects",
+    "upload": "Upload Photo",
+    "processing": "Processing...",
+    "download": "Download",
+    "tryIt": "Try Free"
+  },
+  "tools": {
+    "3dModel": "Generate 3D Model",
+    "bgRemove": "Remove Background",
+    "enhance": "Enhance Image",
+    "scene": "Generate Scene",
+    "video": "Create Video",
+    "aplus": "Generate A+ Content",
+    "doAll": "Do Everything"
+  },
+  "credits": {
+    "balance": "Balance",
+    "buy": "Buy Credits",
+    "insufficient": "Insufficient credits",
+    "cost": "{count} credits",
+    "free": "Free"
+  },
+  "landing": {
+    "hero": "AI Studio for Your E-Commerce Store",
+    "heroSub": "3D models, professional product images, and videos from a single photo — in minutes.",
+    "stat1": "94-250% conversion boost",
+    "stat1Sub": "Proven impact of 3D product visuals",
+    "stat2": "Starting at $0.10",
+    "stat2Sub": "95% less than traditional photography",
+    "stat3": "Ready in 2 minutes",
+    "stat3Sub": "Minutes instead of days",
+    "cta": "Start with 20 Free Credits"
+  }
+}

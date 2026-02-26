@@ -1,0 +1,43 @@
+{
+  "common": {
+    "appName": "3d-labx",
+    "tagline": "Ürün fotoğrafını yükle, gerisini AI yapsın",
+    "login": "Giriş Yap",
+    "signup": "Kayıt Ol",
+    "logout": "Çıkış",
+    "credits": "Kredi",
+    "settings": "Ayarlar",
+    "projects": "Projelerim",
+    "upload": "Fotoğraf Yükle",
+    "processing": "İşleniyor...",
+    "download": "İndir",
+    "tryIt": "Ücretsiz Dene"
+  },
+  "tools": {
+    "3dModel": "3D Model Üret",
+    "bgRemove": "Arka Plan Kaldır",
+    "enhance": "Görseli İyileştir",
+    "scene": "Sahne Üret",
+    "video": "Video Oluştur",
+    "aplus": "A+ İçerik Üret",
+    "doAll": "Hepsini Yap"
+  },
+  "credits": {
+    "balance": "Bakiye",
+    "buy": "Kredi Satın Al",
+    "insufficient": "Kredi yetersiz",
+    "cost": "{count} kredi",
+    "free": "Ücretsiz"
+  },
+  "landing": {
+    "hero": "E-Ticaret Mağazanız İçin AI Stüdyosu",
+    "heroSub": "Tek fotoğraftan 3D model, profesyonel ürün görseli ve video — dakikalar içinde.",
+    "stat1": "%94-250 dönüşüm artışı",
+    "stat1Sub": "3D ürün görsellerinin kanıtlanmış etkisi",
+    "stat2": "₺2'den başlayan fiyat",
+    "stat2Sub": "Geleneksel fotoğrafçılığın %95 altında",
+    "stat3": "2 dakikada hazır",
+    "stat3Sub": "Günler yerine dakikalar",
+    "cta": "20 Ücretsiz Kredi ile Başla"
+  }
+}
