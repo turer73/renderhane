@@ -65,6 +65,13 @@ CREATE TABLE public.outputs (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
+-- Add deferred FK for circular dependency
+ALTER TABLE public.credit_transactions
+  ADD CONSTRAINT fk_credit_transactions_job
+  FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  ON DELETE SET NULL
+  DEFERRABLE INITIALLY DEFERRED;
+
 -- Indexes
 CREATE INDEX idx_credit_transactions_user ON public.credit_transactions(user_id);
 CREATE INDEX idx_projects_user ON public.projects(user_id);
@@ -95,6 +102,31 @@ CREATE POLICY "Users read own jobs" ON public.jobs FOR SELECT USING (auth.uid() 
 
 CREATE POLICY "Users read own outputs" ON public.outputs FOR SELECT USING (auth.uid() = user_id);
 
+-- Service role can manage all tables (for API routes, webhooks)
+CREATE POLICY "Service role full access profiles" ON public.profiles FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access credit_transactions" ON public.credit_transactions FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access jobs" ON public.jobs FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access outputs" ON public.outputs FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- Users can insert their own jobs (when submitting from client)
+CREATE POLICY "Users insert own jobs" ON public.jobs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can insert their own profiles (fallback if trigger fails)
+CREATE POLICY "Users insert own profile" ON public.profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
 -- Auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
@@ -112,11 +144,54 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+   SET search_path = public, auth;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Atomic credit reservation (prevents double-spending race condition)
+CREATE OR REPLACE FUNCTION public.reserve_credits(
+  p_user_id UUID,
+  p_amount INTEGER,
+  p_description TEXT
+) RETURNS UUID AS $$
+DECLARE
+  v_tx_id UUID;
+  v_balance INTEGER;
+BEGIN
+  -- Lock the profile row to prevent concurrent deductions
+  SELECT credit_balance INTO v_balance
+    FROM public.profiles
+    WHERE id = p_user_id
+    FOR UPDATE;
+
+  IF v_balance IS NULL THEN
+    RAISE EXCEPTION 'user_not_found';
+  END IF;
+
+  IF v_balance < p_amount THEN
+    RAISE EXCEPTION 'insufficient_credits';
+  END IF;
+
+  -- Deduct balance atomically
+  UPDATE public.profiles
+    SET credit_balance = credit_balance - p_amount,
+        updated_at = now()
+    WHERE id = p_user_id;
+
+  -- Create reserved transaction
+  INSERT INTO public.credit_transactions
+    (user_id, amount, type, status, description)
+  VALUES
+    (p_user_id, -p_amount, 'spend', 'reserved', p_description)
+  RETURNING id INTO v_tx_id;
+
+  RETURN v_tx_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+   SET search_path = public;
 
 -- Enable realtime for jobs table (for live status updates)
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
