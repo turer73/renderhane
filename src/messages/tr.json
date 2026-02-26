@@ -36,7 +36,8 @@
     "emailPlaceholder": "ornek@email.com",
     "sendMagicLink": "Magic Link Gönder",
     "sending": "Gönderiliyor...",
-    "checkEmail": "E-postanızı kontrol edin!"
+    "checkEmail": "E-postanızı kontrol edin!",
+    "errorGeneric": "Bir hata oluştu. Lütfen tekrar deneyin."
   },
   "landing": {
     "hero": "E-Ticaret Mağazanız İçin AI Stüdyosu",

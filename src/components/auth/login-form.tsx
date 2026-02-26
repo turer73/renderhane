@@ -6,38 +6,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 
 export function LoginForm() {
   const t = useTranslations("common");
   const tAuth = useTranslations("auth");
+  const params = useParams();
+  const locale = (params.locale as string) || "tr";
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   async function handleGoogleLogin() {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const supabase = createClient();
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/${locale}/auth/callback`,
+        },
+      });
+      if (oauthError) {
+        setError(tAuth("errorGeneric"));
+      }
+    } catch {
+      setError(tAuth("errorGeneric"));
+    } finally {
+      setGoogleLoading(false);
+    }
   }
 
   async function handleMagicLink() {
     if (!email) return;
     setLoading(true);
     setMessage("");
-    const supabase = createClient();
-    await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    setMessage(tAuth("checkEmail"));
+    setError("");
+    try {
+      const supabase = createClient();
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/${locale}/auth/callback`,
+        },
+      });
+      if (otpError) {
+        setError(tAuth("errorGeneric"));
+      } else {
+        setMessage(tAuth("checkEmail"));
+      }
+    } catch {
+      setError(tAuth("errorGeneric"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -53,8 +80,9 @@ export function LoginForm() {
           onClick={handleGoogleLogin}
           variant="outline"
           className="w-full"
+          disabled={googleLoading}
         >
-          {tAuth("googleLogin")}
+          {googleLoading ? tAuth("sending") : tAuth("googleLogin")}
         </Button>
 
         <div className="relative">
@@ -85,6 +113,10 @@ export function LoginForm() {
 
         {message && (
           <p className="text-center text-sm text-green-600">{message}</p>
+        )}
+
+        {error && (
+          <p className="text-center text-sm text-red-600">{error}</p>
         )}
       </CardContent>
     </Card>

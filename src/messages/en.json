@@ -36,7 +36,8 @@
     "emailPlaceholder": "example@email.com",
     "sendMagicLink": "Send Magic Link",
     "sending": "Sending...",
-    "checkEmail": "Check your email for the login link!"
+    "checkEmail": "Check your email for the login link!",
+    "errorGeneric": "An error occurred. Please try again."
   },
   "landing": {
     "hero": "AI Studio for Your E-Commerce Store",
