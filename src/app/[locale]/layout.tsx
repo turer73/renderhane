@@ -27,7 +27,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "common" });
   return {
-    title: `3d-labx — ${t("tagline")}`,
+    title: `Renderhane — ${t("tagline")}`,
     description: t("tagline"),
   };
 }

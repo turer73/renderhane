@@ -19,6 +19,10 @@ const nextConfig = {
         protocol: "https" as const,
         hostname: "*.r2.dev",
       },
+      {
+        protocol: "https" as const,
+        hostname: "assets.renderhane.com",
+      },
     ],
   },
 };
