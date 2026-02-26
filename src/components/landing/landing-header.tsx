@@ -32,9 +32,9 @@ export function LandingHeader() {
   }
 
   const navItems = [
+    { label: t("nav.demo"), id: "demo" },
     { label: t("nav.features"), id: "features" },
     { label: t("nav.pricing"), id: "pricing" },
-    { label: t("nav.demo"), id: "demo" },
   ];
 
   return (

@@ -11,9 +11,9 @@ export default function MarketingPage() {
       <LandingHeader />
       <main className="flex-1">
         <HeroSection />
+        <DemoSection />
         <FeaturesSection />
         <PricingSection />
-        <DemoSection />
       </main>
       <Footer />
     </div>
