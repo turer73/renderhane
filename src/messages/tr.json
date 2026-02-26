@@ -71,7 +71,111 @@
     "stat2Sub": "Geleneksel fotoğrafçılığın %95 altında",
     "stat3": "2 dakikada hazır",
     "stat3Sub": "Günler yerine dakikalar",
-    "cta": "20 Ücretsiz Kredi ile Başla"
+    "cta": "20 Ücretsiz Kredi ile Başla",
+    "nav": {
+      "features": "Özellikler",
+      "pricing": "Fiyatlandırma",
+      "demo": "Demo"
+    },
+    "features": {
+      "title": "6 AI Aracı, Tek Platform",
+      "subtitle": "Ürün görsellerinizi profesyonel seviyeye taşıyın — stüdyo veya fotoğrafçıya gerek yok.",
+      "3dModel": {
+        "description": "Tek bir fotoğraftan yüksek kaliteli 3D model oluşturun. Ürünlerinizi 360 derece sergileyin.",
+        "credits": "10 kredi"
+      },
+      "bgRemove": {
+        "description": "Arka planı anında kaldırın. Temiz, profesyonel ürün görselleri elde edin.",
+        "credits": "1 kredi"
+      },
+      "enhance": {
+        "description": "Düşük çözünürlüklü görselleri AI ile iyileştirin. Detayları ve netliği artırın.",
+        "credits": "2 kredi"
+      },
+      "scene": {
+        "description": "Ürününüz için profesyonel sahneler ve ortamlar oluşturun. Yaşam tarzı görselleri üretin.",
+        "credits": "3 kredi"
+      },
+      "video": {
+        "description": "Statik ürün fotoğraflarından etkileyici tanıtım videoları oluşturun.",
+        "credits": "10 kredi"
+      },
+      "aplus": {
+        "description": "Pazaryerleri için A+ kalitesinde ürün içerikleri ve görseller üretin.",
+        "credits": "5 kredi"
+      }
+    },
+    "pricing": {
+      "title": "Basit ve Şeffaf Fiyatlandırma",
+      "subtitle": "İhtiyacınıza uygun paketi seçin. Abonelik yok, sadece kullandığınız kadar ödeyin.",
+      "starter": {
+        "name": "Başlangıç",
+        "credits": "50 Kredi",
+        "price": "₺49",
+        "description": "Platformu keşfetmek isteyenler için ideal.",
+        "feature1": "Tüm AI araçlarına erişim",
+        "feature2": "Standart işlem hızı",
+        "feature3": "E-posta destek"
+      },
+      "standard": {
+        "name": "Standart",
+        "credits": "200 Kredi",
+        "price": "₺149",
+        "description": "Düzenli kullanım için en popüler paket.",
+        "feature1": "Tüm AI araçlarına erişim",
+        "feature2": "Öncelikli işlem hızı",
+        "feature3": "E-posta ve chat destek",
+        "badge": "Popüler"
+      },
+      "pro": {
+        "name": "Profesyonel",
+        "credits": "500 Kredi",
+        "price": "₺299",
+        "description": "Yüksek hacimli mağazalar için güçlü paket.",
+        "feature1": "Tüm AI araçlarına erişim",
+        "feature2": "En yüksek işlem önceliği",
+        "feature3": "Öncelikli destek",
+        "feature4": "API erişimi"
+      },
+      "enterprise": {
+        "name": "Kurumsal",
+        "credits": "Özel",
+        "price": "İletişime Geçin",
+        "description": "Büyük ölçekli operasyonlar için özel çözümler.",
+        "feature1": "Sınırsız AI araç erişimi",
+        "feature2": "Özel API entegrasyonu",
+        "feature3": "Dedike hesap yöneticisi",
+        "feature4": "SLA garantisi"
+      },
+      "perCredit": "kredi başına",
+      "buyNow": "Şimdi Satın Al",
+      "contactUs": "Bize Ulaşın",
+      "mostPopular": "En Popüler"
+    },
+    "demo": {
+      "title": "Nasıl Çalışır?",
+      "subtitle": "Tek bir ürün fotoğrafından profesyonel içeriklere dönüşümü görün.",
+      "before": "Orijinal Fotoğraf",
+      "after": "AI Sonucu",
+      "step1": "Ürün fotoğrafını yükleyin",
+      "step2": "AI aracını seçin",
+      "step3": "Saniyeler içinde sonucu alın",
+      "tryNow": "Şimdi Dene"
+    },
+    "footer": {
+      "description": "E-ticaret mağazanız için AI destekli görsel üretim platformu.",
+      "product": "Ürün",
+      "company": "Şirket",
+      "legal": "Yasal",
+      "about": "Hakkımızda",
+      "blog": "Blog",
+      "careers": "Kariyer",
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Koşulları",
+      "contact": "İletişim",
+      "allRights": "Tüm hakları saklıdır.",
+      "language": "Dil"
+    }
   },
   "viewer": {
     "stopRotation": "Dönüşü Durdur",

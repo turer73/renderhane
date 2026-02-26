@@ -71,7 +71,111 @@
     "stat2Sub": "95% less than traditional photography",
     "stat3": "Ready in 2 minutes",
     "stat3Sub": "Minutes instead of days",
-    "cta": "Start with 20 Free Credits"
+    "cta": "Start with 20 Free Credits",
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "demo": "Demo"
+    },
+    "features": {
+      "title": "6 AI Tools, One Platform",
+      "subtitle": "Take your product visuals to the next level — no studio or photographer needed.",
+      "3dModel": {
+        "description": "Create high-quality 3D models from a single photo. Showcase your products in 360 degrees.",
+        "credits": "10 credits"
+      },
+      "bgRemove": {
+        "description": "Remove backgrounds instantly. Get clean, professional product images.",
+        "credits": "1 credit"
+      },
+      "enhance": {
+        "description": "Enhance low-resolution images with AI. Improve details and sharpness.",
+        "credits": "2 credits"
+      },
+      "scene": {
+        "description": "Create professional scenes and environments for your products. Generate lifestyle images.",
+        "credits": "3 credits"
+      },
+      "video": {
+        "description": "Create stunning promotional videos from static product photos.",
+        "credits": "10 credits"
+      },
+      "aplus": {
+        "description": "Generate A+ quality product content and visuals for marketplaces.",
+        "credits": "5 credits"
+      }
+    },
+    "pricing": {
+      "title": "Simple & Transparent Pricing",
+      "subtitle": "Choose the package that fits your needs. No subscriptions, pay only for what you use.",
+      "starter": {
+        "name": "Starter",
+        "credits": "50 Credits",
+        "price": "₺49",
+        "description": "Perfect for exploring the platform.",
+        "feature1": "Access to all AI tools",
+        "feature2": "Standard processing speed",
+        "feature3": "Email support"
+      },
+      "standard": {
+        "name": "Standard",
+        "credits": "200 Credits",
+        "price": "₺149",
+        "description": "Most popular package for regular use.",
+        "feature1": "Access to all AI tools",
+        "feature2": "Priority processing speed",
+        "feature3": "Email and chat support",
+        "badge": "Popular"
+      },
+      "pro": {
+        "name": "Professional",
+        "credits": "500 Credits",
+        "price": "₺299",
+        "description": "Powerful package for high-volume stores.",
+        "feature1": "Access to all AI tools",
+        "feature2": "Highest processing priority",
+        "feature3": "Priority support",
+        "feature4": "API access"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "credits": "Custom",
+        "price": "Contact Us",
+        "description": "Custom solutions for large-scale operations.",
+        "feature1": "Unlimited AI tool access",
+        "feature2": "Custom API integration",
+        "feature3": "Dedicated account manager",
+        "feature4": "SLA guarantee"
+      },
+      "perCredit": "per credit",
+      "buyNow": "Buy Now",
+      "contactUs": "Contact Us",
+      "mostPopular": "Most Popular"
+    },
+    "demo": {
+      "title": "How It Works",
+      "subtitle": "See the transformation from a single product photo to professional content.",
+      "before": "Original Photo",
+      "after": "AI Result",
+      "step1": "Upload your product photo",
+      "step2": "Choose an AI tool",
+      "step3": "Get results in seconds",
+      "tryNow": "Try Now"
+    },
+    "footer": {
+      "description": "AI-powered visual production platform for your e-commerce store.",
+      "product": "Product",
+      "company": "Company",
+      "legal": "Legal",
+      "about": "About Us",
+      "blog": "Blog",
+      "careers": "Careers",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "contact": "Contact",
+      "allRights": "All rights reserved.",
+      "language": "Language"
+    }
   },
   "viewer": {
     "stopRotation": "Stop Rotation",
