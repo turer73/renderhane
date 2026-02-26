@@ -77,6 +77,9 @@
     "stopRotation": "Stop Rotation",
     "startRotation": "Start Rotation",
     "modelNotFound": "Model not found",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "loadError": "Failed to load 3D model",
+    "downloadError": "Download failed",
+    "downloading": "Downloading..."
   }
 }

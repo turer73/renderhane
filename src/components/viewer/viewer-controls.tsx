@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ModelViewer } from "./model-viewer";
+import { toast } from "sonner";
 
 interface ViewerControlsProps {
   url: string;
@@ -17,8 +18,10 @@ export function ViewerWithControls({
   const t = useTranslations("common");
   const tViewer = useTranslations("viewer");
   const [autoRotate, setAutoRotate] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   async function handleDownload() {
+    setDownloading(true);
     try {
       const response = await fetch(url);
       const blob = await response.blob();
@@ -31,7 +34,9 @@ export function ViewerWithControls({
       document.body.removeChild(a);
       URL.revokeObjectURL(downloadUrl);
     } catch {
-      // Download failed silently
+      toast.error(tViewer("downloadError"));
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -49,8 +54,8 @@ export function ViewerWithControls({
             {autoRotate ? tViewer("stopRotation") : tViewer("startRotation")}
           </Button>
         </div>
-        <Button type="button" size="sm" onClick={handleDownload}>
-          {t("download")} GLB
+        <Button type="button" size="sm" onClick={handleDownload} disabled={downloading}>
+          {downloading ? tViewer("downloading") : `${t("download")} GLB`}
         </Button>
       </div>
     </div>

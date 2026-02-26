@@ -1,5 +1,6 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { ModelViewer } from "@/components/viewer/model-viewer";
+import { getTranslations } from "next-intl/server";
 
 // Use service role to bypass RLS for public embed
 function getServiceClient() {
@@ -14,7 +15,8 @@ export default async function EmbedPage({
 }: {
   params: Promise<{ id: string; locale: string }>;
 }) {
-  const { id } = await params;
+  const { id, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "viewer" });
   const supabase = getServiceClient();
 
   const { data: output } = await supabase
@@ -27,7 +29,7 @@ export default async function EmbedPage({
   if (!output?.fal_url) {
     return (
       <div className="flex h-screen items-center justify-center bg-black">
-        <p className="text-sm text-white">Model not found</p>
+        <p className="text-sm text-white">{t("modelNotFound")}</p>
       </div>
     );
   }

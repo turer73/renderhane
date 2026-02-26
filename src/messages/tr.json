@@ -77,6 +77,9 @@
     "stopRotation": "Dönüşü Durdur",
     "startRotation": "Dönüşü Başlat",
     "modelNotFound": "Model bulunamadı",
-    "loading": "Yükleniyor..."
+    "loading": "Yükleniyor...",
+    "loadError": "3D model yüklenemedi",
+    "downloadError": "İndirme başarısız oldu",
+    "downloading": "İndiriliyor..."
   }
 }

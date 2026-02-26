@@ -7,6 +7,12 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
+
+  // Embed pages are public — skip auth session refresh
+  if (request.nextUrl.pathname.includes("/embed/")) {
+    return response;
+  }
+
   return await updateSession(request, response);
 }
 
