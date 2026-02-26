@@ -6,6 +6,9 @@ import { routing } from "@/i18n/routing";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/app/globals.css";
 
+// Validates all required env vars at startup — fails fast if any are missing
+import "@/lib/env";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

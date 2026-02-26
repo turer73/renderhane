@@ -24,11 +24,19 @@ export const env = {
 
   // fal.ai
   falKey: requireEnv("FAL_KEY"),
+  falWebhookSecret: requireEnv("FAL_WEBHOOK_SECRET"),
 
   // iyzico
   iyzicoApiKey: requireEnv("IYZICO_API_KEY"),
   iyzicoSecretKey: requireEnv("IYZICO_SECRET_KEY"),
-  iyzicoBaseUrl: process.env.IYZICO_BASE_URL || "https://sandbox-api.iyzipay.com",
+  iyzicoBaseUrl: requireEnv("IYZICO_BASE_URL"),
+
+  // Cloudflare R2
+  r2AccountId: requireEnv("R2_ACCOUNT_ID"),
+  r2AccessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
+  r2SecretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
+  r2BucketName: requireEnv("R2_BUCKET_NAME"),
+  r2PublicUrl: requireEnv("R2_PUBLIC_URL"),
 
   // App
   appUrl: requireEnv("NEXT_PUBLIC_APP_URL"),
