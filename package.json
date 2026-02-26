@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.999.0",
     "@fal-ai/client": "^1.9.3",
     "@fal-ai/server-proxy": "^1.2.1",
     "@react-three/drei": "^10.7.7",

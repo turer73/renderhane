@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
@@ -16,6 +17,8 @@ interface Job {
   created_at: string;
   completed_at: string | null;
   error_message: string | null;
+  output_url: string | null;
+  output_type: "glb" | "image" | "video" | null;
 }
 
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -106,9 +109,39 @@ export function JobStatus() {
               return (
                 <div
                   key={job.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
+                  className="flex items-center gap-3 rounded-lg border p-3"
                 >
-                  <div className="flex flex-col gap-1">
+                  {/* Thumbnail for completed image jobs */}
+                  {job.status === "completed" && job.output_url && job.output_type === "image" ? (
+                    <a
+                      href={`/api/jobs/${job.id}/result`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
+                    >
+                      <Image
+                        src={job.output_url}
+                        alt={tTools(toolKey)}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                      />
+                    </a>
+                  ) : job.status === "completed" && job.output_url ? (
+                    <a
+                      href={`/api/jobs/${job.id}/result`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      </svg>
+                    </a>
+                  ) : null}
+
+                  {/* Job info */}
+                  <div className="flex flex-1 flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">
                         {tTools(toolKey)}
@@ -130,9 +163,20 @@ export function JobStatus() {
                     </div>
                   </div>
 
-                  {job.status === "completed" && (
+                  {/* Action buttons */}
+                  {job.status === "completed" && job.output_url && (
                     <Button type="button" variant="outline" size="sm" asChild>
-                      <a href={`/api/jobs/${job.id}/result`} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={job.output_url}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
                         {tDash("viewResult")}
                       </a>
                     </Button>

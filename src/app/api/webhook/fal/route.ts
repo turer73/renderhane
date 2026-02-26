@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { confirmSpend, refundCredits } from "@/lib/credits/engine";
+import { uploadToR2 } from "@/lib/r2/upload";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", jobId);
 
-    // Create output record
+    // Create output record + upload to R2 for permanent storage
     if (outputUrl) {
       const { data: job } = await supabase
         .from("jobs")
@@ -62,12 +63,26 @@ export async function POST(request: NextRequest) {
 
       if (job) {
         const outputType = getOutputType(job.tool);
+
+        // Upload to R2 (non-blocking — output record is created regardless)
+        let r2Url: string | null = null;
+        let fileSize: number | null = null;
+        try {
+          const r2Result = await uploadToR2(outputUrl, job.user_id, outputType);
+          r2Url = r2Result.r2Url;
+          fileSize = r2Result.fileSize;
+        } catch (err) {
+          console.error("R2 upload failed (fal_url still available):", err);
+        }
+
         await supabase.from("outputs").insert({
           job_id: jobId,
           user_id: job.user_id,
           project_id: job.project_id,
           type: outputType,
           fal_url: outputUrl,
+          r2_url: r2Url,
+          file_size: fileSize,
           metadata: payload,
         });
       }

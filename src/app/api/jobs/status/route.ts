@@ -14,7 +14,7 @@ export async function GET() {
   const { data: jobs, error } = await supabase
     .from("jobs")
     .select(
-      "id, tool, status, credit_cost, created_at, completed_at, error_message"
+      "id, tool, status, credit_cost, created_at, completed_at, error_message, outputs(r2_url, fal_url, type)"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
@@ -27,5 +27,21 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({ jobs: jobs ?? [] });
+  // Flatten: attach output_url to each job for easy client access
+  const enrichedJobs = (jobs ?? []).map((job) => {
+    const output = Array.isArray(job.outputs) ? job.outputs[0] : null;
+    return {
+      id: job.id,
+      tool: job.tool,
+      status: job.status,
+      credit_cost: job.credit_cost,
+      created_at: job.created_at,
+      completed_at: job.completed_at,
+      error_message: job.error_message,
+      output_url: output?.r2_url || output?.fal_url || null,
+      output_type: output?.type || null,
+    };
+  });
+
+  return NextResponse.json({ jobs: enrichedJobs });
 }

@@ -13,17 +13,22 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get the output for this job
+  // Get the output for this job — prefer permanent R2 URL
   const { data: output, error } = await supabase
     .from("outputs")
-    .select("fal_url")
+    .select("r2_url, fal_url")
     .eq("job_id", id)
     .eq("user_id", user.id)
     .single();
 
-  if (error || !output?.fal_url) {
+  if (error || !output) {
     return NextResponse.json({ error: "Result not found" }, { status: 404 });
   }
 
-  return NextResponse.redirect(output.fal_url);
+  const url = output.r2_url || output.fal_url;
+  if (!url) {
+    return NextResponse.json({ error: "Result not found" }, { status: 404 });
+  }
+
+  return NextResponse.redirect(url);
 }
