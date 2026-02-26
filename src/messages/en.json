@@ -72,5 +72,11 @@
     "stat3": "Ready in 2 minutes",
     "stat3Sub": "Minutes instead of days",
     "cta": "Start with 20 Free Credits"
+  },
+  "viewer": {
+    "stopRotation": "Stop Rotation",
+    "startRotation": "Start Rotation",
+    "modelNotFound": "Model not found",
+    "loading": "Loading..."
   }
 }

@@ -72,5 +72,11 @@
     "stat3": "2 dakikada hazır",
     "stat3Sub": "Günler yerine dakikalar",
     "cta": "20 Ücretsiz Kredi ile Başla"
+  },
+  "viewer": {
+    "stopRotation": "Dönüşü Durdur",
+    "startRotation": "Dönüşü Başlat",
+    "modelNotFound": "Model bulunamadı",
+    "loading": "Yükleniyor..."
   }
 }
