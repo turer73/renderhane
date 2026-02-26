@@ -20,7 +20,6 @@ interface ProjectCardProps {
   sourceImageUrl: string | null;
   outputCount: number;
   createdAt: string;
-  updatedAt: string;
 }
 
 export function ProjectCard({

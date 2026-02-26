@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
@@ -37,7 +37,7 @@ export default async function ProjectDetailPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return null;
+    redirect(`/${locale}/login`);
   }
 
   // Fetch the project
