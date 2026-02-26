@@ -220,5 +220,27 @@
     "createdAt": "Oluşturulma: {date}",
     "fileSize": "Boyut: {size}",
     "creditCost": "{count} kredi"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "AI destekli görsel üretim, 3D modelleme ve e-ticaret dünyasından teknik yazılar",
+    "backToBlog": "Blog'a Dön",
+    "readMore": "Devamını Oku",
+    "commentsTitle": "Yorumlar ve Soru-Cevap",
+    "leaveComment": "Yorum Yaz veya Soru Sor",
+    "commentPlaceholder": "Düşüncelerinizi paylaşın veya bir soru sorun...",
+    "markAsQuestion": "Soru olarak işaretle",
+    "submitComment": "Gönder",
+    "commentPosted": "Yorumunuz eklendi!",
+    "commentError": "Yorum gönderilemedi",
+    "loginRequired": "Yorum yapmak için giriş yapmalısınız",
+    "questions": "Sorular",
+    "discussions": "Tartışmalar",
+    "noComments": "Henüz yorum yok. İlk yorumu siz yapın!",
+    "reply": "Yanıtla",
+    "replyingTo": "Yanıt yazıyorsunuz —",
+    "cancelReply": "İptal",
+    "question": "Soru",
+    "relatedArticles": "İlgili Yazılar"
   }
 }

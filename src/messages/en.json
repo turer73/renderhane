@@ -220,5 +220,27 @@
     "createdAt": "Created: {date}",
     "fileSize": "Size: {size}",
     "creditCost": "{count} credits"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Technical articles on AI-powered visual production, 3D modeling, and e-commerce",
+    "backToBlog": "Back to Blog",
+    "readMore": "Read More",
+    "commentsTitle": "Comments & Q&A",
+    "leaveComment": "Leave a Comment or Ask a Question",
+    "commentPlaceholder": "Share your thoughts or ask a question...",
+    "markAsQuestion": "Mark as question",
+    "submitComment": "Submit",
+    "commentPosted": "Your comment has been posted!",
+    "commentError": "Failed to post comment",
+    "loginRequired": "Please log in to comment",
+    "questions": "Questions",
+    "discussions": "Discussions",
+    "noComments": "No comments yet. Be the first to comment!",
+    "reply": "Reply",
+    "replyingTo": "Replying to —",
+    "cancelReply": "Cancel",
+    "question": "Question",
+    "relatedArticles": "Related Articles"
   }
 }
