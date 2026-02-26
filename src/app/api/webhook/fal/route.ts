@@ -14,6 +14,15 @@ export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("jobId");
   const txId = searchParams.get("txId");
+  const secret = searchParams.get("secret");
+
+  // Verify webhook secret
+  if (!secret || secret !== process.env.FAL_WEBHOOK_SECRET) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
   if (!jobId || !txId) {
     return NextResponse.json(
@@ -26,6 +35,17 @@ export async function POST(request: NextRequest) {
   const { status, payload } = body;
 
   const supabase = getServiceClient();
+
+  // Idempotency check: skip if job is already in a terminal state
+  const { data: existingJob } = await supabase
+    .from("jobs")
+    .select("status")
+    .eq("id", jobId)
+    .single();
+
+  if (existingJob?.status === "completed" || existingJob?.status === "failed") {
+    return NextResponse.json({ received: true });
+  }
 
   if (status === "OK" && payload) {
     // Job succeeded

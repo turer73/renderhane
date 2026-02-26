@@ -1,6 +1,6 @@
 import { fal } from "@fal-ai/client";
 import { createClient } from "@/lib/supabase/server";
-import { reserveCredits } from "@/lib/credits/engine";
+import { reserveCredits, refundCredits } from "@/lib/credits/engine";
 import { routeRequest } from "@/lib/fal/smart-router";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 
@@ -48,18 +48,32 @@ export async function submitJob(input: SubmitJobInput) {
 
   if (jobError || !job) {
     // Refund if job creation fails
-    const { refundCredits } = await import("@/lib/credits/engine");
     await refundCredits(txId);
     throw new Error("Failed to create job");
   }
 
   // 4. Submit to fal.ai queue with webhook
-  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}&txId=${txId}`;
+  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}&txId=${txId}&secret=${process.env.FAL_WEBHOOK_SECRET}`;
 
-  const result = await fal.queue.submit(model.id, {
-    input: falInput,
-    webhookUrl,
-  });
+  let result;
+  try {
+    result = await fal.queue.submit(model.id, {
+      input: falInput,
+      webhookUrl,
+    });
+  } catch (error) {
+    // Refund credits and mark job as failed
+    await refundCredits(txId);
+    await supabase
+      .from("jobs")
+      .update({
+        status: "failed",
+        error_message: "Failed to submit to processing queue",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", job.id);
+    throw new Error("Failed to submit job to processing queue");
+  }
 
   // 5. Update job with fal request ID
   await supabase

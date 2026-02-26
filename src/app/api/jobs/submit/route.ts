@@ -2,6 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { NextRequest, NextResponse } from "next/server";
+import type { ToolType, ModelTier } from "@/lib/fal/models";
+
+const VALID_TOOLS: ToolType[] = [
+  "3d-model",
+  "bg-remove",
+  "enhance",
+  "scene",
+  "video",
+  "aplus",
+];
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -14,7 +24,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 }
+    );
+  }
+
   const { tool, tier, imageUrl, projectId } = body;
 
   if (!tool || !imageUrl) {
@@ -24,13 +43,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!VALID_TOOLS.includes(tool as ToolType)) {
+    return NextResponse.json(
+      { error: `Invalid tool type. Must be one of: ${VALID_TOOLS.join(", ")}` },
+      { status: 400 }
+    );
+  }
+
   try {
     const result = await submitJob({
       userId: user.id,
-      projectId,
-      tool,
-      tier,
-      imageUrl,
+      projectId: projectId as string | undefined,
+      tool: tool as ToolType,
+      tier: tier as ModelTier | undefined,
+      imageUrl: imageUrl as string,
     });
 
     return NextResponse.json(result);
