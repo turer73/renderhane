@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DownloadMenu } from "@/components/app/download-menu";
+import { proxyUrl } from "@/lib/proxy-url";
 
 interface Output {
   id: string;
@@ -162,7 +163,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                 )}
                 {url && (
                   <DownloadMenu
-                    url={url}
+                    url={proxyUrl(url)}
                     outputType={output.type}
                     compact
                   />

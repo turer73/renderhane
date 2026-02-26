@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DownloadMenu } from "@/components/app/download-menu";
+import { proxyUrl } from "@/lib/proxy-url";
 
 // Lazy-load the 3D viewer — heavy Three.js bundle loaded only when needed
 const ModelViewer = dynamic(
@@ -225,7 +226,7 @@ export function JobStatus() {
                       {/* Download with format selection */}
                       {job.status === "completed" && job.output_url && (
                         <DownloadMenu
-                          url={job.output_url}
+                          url={proxyUrl(job.output_url)}
                           outputType={job.output_type ?? "image"}
                         />
                       )}
@@ -240,7 +241,7 @@ export function JobStatus() {
                   {is3dExpanded && job.output_url && (
                     <div className="rounded-b-lg border border-t-0 bg-black/5 p-2">
                       <ModelViewer
-                        url={job.output_url}
+                        url={proxyUrl(job.output_url)}
                         className="h-[350px] w-full"
                         autoRotate={true}
                       />

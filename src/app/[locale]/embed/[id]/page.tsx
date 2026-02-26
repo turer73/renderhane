@@ -1,6 +1,7 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { ModelViewer } from "@/components/viewer/model-viewer";
 import { getTranslations } from "next-intl/server";
+import { proxyUrl } from "@/lib/proxy-url";
 
 // Use service role to bypass RLS for public embed
 function getServiceClient() {
@@ -38,7 +39,7 @@ export default async function EmbedPage({
 
   return (
     <div className="h-screen w-screen bg-black">
-      <ModelViewer url={modelUrl} className="h-full w-full" />
+      <ModelViewer url={proxyUrl(modelUrl)} className="h-full w-full" />
     </div>
   );
 }
