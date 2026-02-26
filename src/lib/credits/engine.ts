@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export class CreditError extends Error {
   constructor(
@@ -21,7 +21,7 @@ export async function reserveCredits(
   amount: number,
   description: string
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("reserve_credits", {
     p_user_id: userId,
@@ -47,7 +47,7 @@ export async function reserveCredits(
  * Uses atomic RPC to mark transaction as completed and link to job.
  */
 export async function confirmSpend(txId: string, jobId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("confirm_spend", {
     p_tx_id: txId,
@@ -71,7 +71,7 @@ export async function confirmSpend(txId: string, jobId: string): Promise<void> {
  * Uses atomic RPC with row-level locking to prevent race conditions.
  */
 export async function refundCredits(txId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase.rpc("refund_credits", {
     p_tx_id: txId,
@@ -92,7 +92,7 @@ export async function addCredits(
   paymentId: string,
   description: string
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("add_credits", {
     p_user_id: userId,

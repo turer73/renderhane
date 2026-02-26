@@ -1,14 +1,6 @@
-import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { confirmSpend, refundCredits } from "@/lib/credits/engine";
 import { NextRequest, NextResponse } from "next/server";
-
-// Use service role for webhook (no user context)
-function getServiceClient() {
-  return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -34,7 +26,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { status, payload } = body;
 
-  const supabase = getServiceClient();
+  const supabase = createAdminClient();
 
   // Idempotency check: skip if job is already in a terminal state
   const { data: existingJob } = await supabase

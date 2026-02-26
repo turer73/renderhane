@@ -1,5 +1,5 @@
 import { fal } from "@fal-ai/client";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, refundCredits } from "@/lib/credits/engine";
 import { routeRequest } from "@/lib/fal/smart-router";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
@@ -14,7 +14,7 @@ interface SubmitJobInput {
 
 export async function submitJob(input: SubmitJobInput) {
   const { userId, projectId, tool, tier, imageUrl } = input;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 1. Route to correct model
   const { model, modelKey, input: falInput } = routeRequest({
