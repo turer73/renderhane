@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import { TOOL_KEYS } from "@/lib/fal/models";
+import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,7 +101,7 @@ export function JobStatus() {
         ) : (
           <div className="space-y-3">
             {jobs.map((job) => {
-              const toolKey = TOOL_KEYS[job.tool] || job.tool;
+              const toolKey = (job.tool in TOOL_KEYS ? TOOL_KEYS[job.tool as ToolType] : job.tool);
 
               return (
                 <div
