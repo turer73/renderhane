@@ -21,12 +21,14 @@ export default async function EmbedPage({
 
   const { data: output } = await supabase
     .from("outputs")
-    .select("fal_url, type, job_id")
+    .select("r2_url, fal_url, type, job_id")
     .eq("id", id)
     .eq("type", "glb")
     .single();
 
-  if (!output?.fal_url) {
+  const modelUrl = output?.r2_url || output?.fal_url;
+
+  if (!modelUrl) {
     return (
       <div className="flex h-screen items-center justify-center bg-black">
         <p className="text-sm text-white">{t("modelNotFound")}</p>
@@ -36,7 +38,7 @@ export default async function EmbedPage({
 
   return (
     <div className="h-screen w-screen bg-black">
-      <ModelViewer url={output.fal_url} className="h-full w-full" />
+      <ModelViewer url={modelUrl} className="h-full w-full" />
     </div>
   );
 }
