@@ -170,6 +170,9 @@ export default async function ProjectDetailPage({
                   { tool: "3d-model", icon: "cube" },
                   { tool: "bg-remove", icon: "eraser" },
                   { tool: "enhance", icon: "sparkles" },
+                  { tool: "scene", icon: "image" },
+                  { tool: "video", icon: "video" },
+                  { tool: "aplus", icon: "star" },
                 ]}
                 creditCosts={TOOL_CREDITS}
               />

@@ -120,9 +120,16 @@ function extractOutputUrl(payload: Record<string, unknown>): string | null {
   const modelGlb = payload.model_glb as { url?: string } | undefined;
   if (modelGlb?.url) return modelGlb.url;
 
+  // Videos (e.g. Wan image-to-video)
+  const video = payload.video as { url?: string } | undefined;
+  if (video?.url) return video.url;
+
   // Images
   const image = payload.image as { url?: string } | undefined;
   if (image?.url) return image.url;
+
+  // Bria product-shot returns result_url at top level
+  if (typeof payload.result_url === "string") return payload.result_url;
 
   // Arrays
   const images = payload.images as { url?: string }[] | undefined;

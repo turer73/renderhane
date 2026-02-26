@@ -9,10 +9,13 @@ export interface ModelConfig {
   creditCost: number;
   estimatedTime: string;
   imageParamKey: string;
+  /** Key used for the optional text prompt (e.g. scene_description, prompt) */
+  promptParamKey?: string;
   defaultParams: Record<string, unknown>;
 }
 
 export const MODELS: Record<string, ModelConfig> = {
+  /* ── 3D Model ─────────────────────────────── */
   "trellis-v1": {
     id: "fal-ai/trellis",
     displayName: { tr: "TRELLIS v1 — Hızlı", en: "TRELLIS v1 — Fast" },
@@ -41,6 +44,8 @@ export const MODELS: Record<string, ModelConfig> = {
       remesh: true,
     },
   },
+
+  /* ── Arka Plan Kaldır ─────────────────────── */
   "birefnet": {
     id: "fal-ai/birefnet/v2",
     displayName: { tr: "Arka Plan Kaldır", en: "Remove Background" },
@@ -50,6 +55,8 @@ export const MODELS: Record<string, ModelConfig> = {
     imageParamKey: "image_url",
     defaultParams: {},
   },
+
+  /* ── Görseli İyileştir ────────────────────── */
   "aura-sr": {
     id: "fal-ai/aura-sr",
     displayName: { tr: "Görseli İyileştir", en: "Enhance Image" },
@@ -59,15 +66,61 @@ export const MODELS: Record<string, ModelConfig> = {
     imageParamKey: "image_url",
     defaultParams: {},
   },
+
+  /* ── Sahne Üret ───────────────────────────── */
+  "bria-product-shot": {
+    id: "fal-ai/bria/product-shot",
+    displayName: { tr: "Sahne Üretici", en: "Scene Generator" },
+    tier: "fast",
+    creditCost: 3,
+    estimatedTime: "~10s",
+    imageParamKey: "image_url",
+    promptParamKey: "scene_description",
+    defaultParams: {
+      scene_description:
+        "professional product photography on a clean marble surface with soft natural lighting",
+    },
+  },
+
+  /* ── Video Oluştur ────────────────────────── */
+  "wan-i2v": {
+    id: "fal-ai/wan/v2.1/image-to-video",
+    displayName: { tr: "Wan 2.1 Video", en: "Wan 2.1 Video" },
+    tier: "standard",
+    creditCost: 10,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      prompt: "A smooth product showcase with gentle camera movement, professional lighting",
+      resolution: "480p",
+      num_frames: 81,
+    },
+  },
+
+  /* ── A+ İçerik ────────────────────────────── */
+  "bria-product-shot-hd": {
+    id: "fal-ai/bria/product-shot",
+    displayName: { tr: "A+ Sahne Üretici", en: "A+ Scene Generator" },
+    tier: "standard",
+    creditCost: 5,
+    estimatedTime: "~15s",
+    imageParamKey: "image_url",
+    promptParamKey: "scene_description",
+    defaultParams: {
+      scene_description:
+        "premium e-commerce product photography, lifestyle setting with elegant props, professional studio lighting, high-end catalog quality",
+    },
+  },
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
   "3d-model": ["trellis-v1", "trellis-2"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
-  "scene": [],
-  "video": [],
-  "aplus": [],
+  "scene": ["bria-product-shot"],
+  "video": ["wan-i2v"],
+  "aplus": ["bria-product-shot-hd"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -87,3 +140,6 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
   "video": 10,
   "aplus": 5,
 };
+
+/** Tools that accept a text prompt from the user */
+export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "aplus"];

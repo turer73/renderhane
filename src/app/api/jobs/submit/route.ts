@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { tool, tier, imageUrl, projectId } = body;
+  const { tool, tier, imageUrl, projectId, prompt } = body;
 
   if (!tool || !imageUrl) {
     return NextResponse.json(
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       tool: tool as ToolType,
       tier: tier as ModelTier | undefined,
       imageUrl: imageUrl as string,
+      prompt: typeof prompt === "string" ? prompt : undefined,
     });
 
     return NextResponse.json(result);

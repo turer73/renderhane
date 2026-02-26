@@ -5,9 +5,10 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
-import type { ToolType } from "@/lib/fal/models";
+import { TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
 
 export function PhotoUpload() {
   const t = useTranslations("common");
@@ -18,11 +19,14 @@ export function PhotoUpload() {
   const [urlInput, setUrlInput] = useState("");
   const [imageSource, setImageSource] = useState<"file" | "url" | null>(null);
   const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
+  const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const needsPrompt = selectedTool && TOOLS_WITH_PROMPT.includes(selectedTool);
 
   const handleFile = useCallback((f: File) => {
     if (!f.type.startsWith("image/")) return;
@@ -92,6 +96,7 @@ export function PhotoUpload() {
     setUrlInput("");
     setImageSource(null);
     setSelectedTool(null);
+    setPrompt("");
     setMessage(null);
   }
 
@@ -146,10 +151,20 @@ export function PhotoUpload() {
         return;
       }
 
+      const payload: Record<string, unknown> = {
+        tool: selectedTool,
+        imageUrl,
+      };
+
+      // Include prompt for tools that support it
+      if (needsPrompt && prompt.trim()) {
+        payload.prompt = prompt.trim();
+      }
+
       const res = await fetch("/api/jobs/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool: selectedTool, imageUrl }),
+        body: JSON.stringify(payload),
       });
 
       if (res.status === 402) {
@@ -173,6 +188,19 @@ export function PhotoUpload() {
       setMessage({ type: "error", text: tDash("jobError") });
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function getPromptPlaceholder(): string {
+    switch (selectedTool) {
+      case "scene":
+        return tDash("promptPlaceholderScene");
+      case "video":
+        return tDash("promptPlaceholderVideo");
+      case "aplus":
+        return tDash("promptPlaceholderAplus");
+      default:
+        return "";
     }
   }
 
@@ -294,6 +322,25 @@ export function PhotoUpload() {
               {tDash("selectTool")}
             </h3>
             <ToolSelector selectedTool={selectedTool} onSelect={setSelectedTool} />
+          </div>
+        )}
+
+        {/* Prompt Input — shown for scene, video, aplus tools */}
+        {preview && needsPrompt && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              {tDash("promptLabel")}
+            </label>
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={getPromptPlaceholder()}
+              rows={2}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              {tDash("promptHint")}
+            </p>
           </div>
         )}
 

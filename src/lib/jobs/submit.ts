@@ -10,10 +10,12 @@ interface SubmitJobInput {
   tool: ToolType;
   tier?: ModelTier;
   imageUrl: string;
+  /** Optional user-provided text prompt (scene description, video prompt, etc.) */
+  prompt?: string;
 }
 
 export async function submitJob(input: SubmitJobInput) {
-  const { userId, projectId, tool, tier, imageUrl } = input;
+  const { userId, projectId, tool, tier, imageUrl, prompt } = input;
   const supabase = createAdminClient();
 
   // 1. Route to correct model
@@ -21,6 +23,7 @@ export async function submitJob(input: SubmitJobInput) {
     tool,
     tier,
     imageUrl,
+    prompt,
   });
 
   // 2. Reserve credits

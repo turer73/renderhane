@@ -4,6 +4,8 @@ interface RouteRequest {
   tool: ToolType;
   tier?: ModelTier;
   imageUrl: string;
+  /** Optional user-provided text prompt (scene description, video prompt, etc.) */
+  prompt?: string;
   locale?: string;
 }
 
@@ -14,7 +16,7 @@ interface RouteResult {
 }
 
 export function routeRequest(request: RouteRequest): RouteResult {
-  const { tool, tier = "standard", imageUrl } = request;
+  const { tool, tier = "standard", imageUrl, prompt } = request;
 
   const modelKey = selectModel(tool, tier);
   const model = MODELS[modelKey];
@@ -23,6 +25,11 @@ export function routeRequest(request: RouteRequest): RouteResult {
     [model.imageParamKey]: imageUrl,
     ...model.defaultParams,
   };
+
+  // Override the prompt param if user provided one and model supports it
+  if (prompt && model.promptParamKey) {
+    input[model.promptParamKey] = prompt;
+  }
 
   return { model, modelKey, input };
 }
@@ -38,6 +45,15 @@ function selectModel(tool: ToolType, tier: ModelTier): string {
 
     case "enhance":
       return "aura-sr";
+
+    case "scene":
+      return "bria-product-shot";
+
+    case "video":
+      return "wan-i2v";
+
+    case "aplus":
+      return "bria-product-shot-hd";
 
     default:
       throw new Error(`Tool "${tool}" is not yet available`);

@@ -66,7 +66,12 @@
     "uploadError": "Upload error. Please try again.",
     "insufficientCredits": "Insufficient credits",
     "jobError": "Failed to start job. Please try again.",
-    "urlConfirm": "OK"
+    "urlConfirm": "OK",
+    "promptLabel": "Scene / Prompt Description (optional)",
+    "promptHint": "Leave empty to use the default professional scene.",
+    "promptPlaceholderScene": "e.g. Professional product photo on marble surface with natural lighting",
+    "promptPlaceholderVideo": "e.g. Smooth product showcase with gentle camera movement",
+    "promptPlaceholderAplus": "e.g. Premium e-commerce photography, lifestyle setting with studio lighting"
   },
   "landing": {
     "badge": "AI-Powered",

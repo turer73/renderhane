@@ -66,7 +66,12 @@
     "uploadError": "Yükleme hatası. Tekrar deneyin.",
     "insufficientCredits": "Kredi yetersiz",
     "jobError": "İşlem başlatılamadı. Tekrar deneyin.",
-    "urlConfirm": "Tamam"
+    "urlConfirm": "Tamam",
+    "promptLabel": "Sahne / Prompt Açıklaması (isteğe bağlı)",
+    "promptHint": "Boş bırakırsanız varsayılan profesyonel sahne kullanılır.",
+    "promptPlaceholderScene": "Örn: Mermer yüzeyde, doğal ışıkla profesyonel ürün fotoğrafı",
+    "promptPlaceholderVideo": "Örn: Yumuşak kamera hareketi ile ürün tanıtım videosu",
+    "promptPlaceholderAplus": "Örn: Premium e-ticaret fotoğrafı, yaşam tarzı sahnesi, stüdyo ışıkları"
   },
   "landing": {
     "badge": "Yapay Zeka Destekli",

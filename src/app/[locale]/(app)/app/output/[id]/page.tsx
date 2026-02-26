@@ -61,11 +61,14 @@ export default async function OutputDetailPage({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  // Tools that accept images as input (active tools with models)
+  // Tools that accept images as input
   const imageTools: { tool: ToolType; icon: string }[] = [
     { tool: "3d-model", icon: "cube" },
     { tool: "bg-remove", icon: "eraser" },
     { tool: "enhance", icon: "sparkles" },
+    { tool: "scene", icon: "image" },
+    { tool: "video", icon: "video" },
+    { tool: "aplus", icon: "star" },
   ];
 
   return (
