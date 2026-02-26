@@ -70,6 +70,15 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "aplus": [],
 };
 
+export const TOOL_KEYS: Record<ToolType, string> = {
+  "3d-model": "3dModel",
+  "bg-remove": "bgRemove",
+  enhance: "enhance",
+  scene: "scene",
+  video: "video",
+  aplus: "aplus",
+};
+
 export const TOOL_CREDITS: Record<ToolType, number> = {
   "3d-model": 10,
   "bg-remove": 1,

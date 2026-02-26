@@ -59,7 +59,8 @@
     "comingSoon": "Yakında",
     "uploadError": "Yükleme hatası. Tekrar deneyin.",
     "insufficientCredits": "Kredi yetersiz",
-    "jobError": "İşlem başlatılamadı. Tekrar deneyin."
+    "jobError": "İşlem başlatılamadı. Tekrar deneyin.",
+    "urlConfirm": "Tamam"
   },
   "landing": {
     "hero": "E-Ticaret Mağazanız İçin AI Stüdyosu",

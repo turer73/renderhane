@@ -26,13 +26,17 @@ export function PhotoUpload() {
 
   const handleFile = useCallback((f: File) => {
     if (!f.type.startsWith("image/")) return;
+    // Revoke previous blob URL to prevent memory leak
+    if (preview && imageSource === "file") {
+      URL.revokeObjectURL(preview);
+    }
     setFile(f);
     setImageSource("file");
     setUrlInput("");
     setMessage(null);
     const objectUrl = URL.createObjectURL(f);
     setPreview(objectUrl);
-  }, []);
+  }, [preview, imageSource]);
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -61,10 +65,21 @@ export function PhotoUpload() {
   }
 
   function handleUrlSubmit() {
-    if (!urlInput.trim()) return;
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    try {
+      const parsed = new URL(trimmed);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        setMessage({ type: "error", text: tDash("uploadError") });
+        return;
+      }
+    } catch {
+      setMessage({ type: "error", text: tDash("uploadError") });
+      return;
+    }
     setFile(null);
     setImageSource("url");
-    setPreview(urlInput.trim());
+    setPreview(trimmed);
     setMessage(null);
   }
 
@@ -104,11 +119,14 @@ export function PhotoUpload() {
         return null;
       }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("uploads").getPublicUrl(path);
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from("uploads")
+        .createSignedUrl(path, 3600);
 
-      return publicUrl;
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        return null;
+      }
+      return signedUrlData.signedUrl;
     }
 
     return null;
@@ -236,7 +254,7 @@ export function PhotoUpload() {
                 onClick={handleUrlSubmit}
                 disabled={!urlInput.trim()}
               >
-                OK
+                {tDash("urlConfirm")}
               </Button>
             </div>
           </div>

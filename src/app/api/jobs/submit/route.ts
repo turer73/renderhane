@@ -43,6 +43,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (typeof imageUrl !== "string" || !imageUrl) {
+    return NextResponse.json(
+      { error: "imageUrl must be a string" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const parsed = new URL(imageUrl as string);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return NextResponse.json(
+        { error: "Invalid imageUrl protocol" },
+        { status: 400 }
+      );
+    }
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid imageUrl format" },
+      { status: 400 }
+    );
+  }
+
   if (!VALID_TOOLS.includes(tool as ToolType)) {
     return NextResponse.json(
       { error: `Invalid tool type. Must be one of: ${VALID_TOOLS.join(", ")}` },

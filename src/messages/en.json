@@ -59,7 +59,8 @@
     "comingSoon": "Coming Soon",
     "uploadError": "Upload error. Please try again.",
     "insufficientCredits": "Insufficient credits",
-    "jobError": "Failed to start job. Please try again."
+    "jobError": "Failed to start job. Please try again.",
+    "urlConfirm": "OK"
   },
   "landing": {
     "hero": "AI Studio for Your E-Commerce Store",

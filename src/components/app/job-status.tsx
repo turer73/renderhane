@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
+import { TOOL_KEYS } from "@/lib/fal/models";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,15 +18,6 @@ interface Job {
   error_message: string | null;
 }
 
-const TOOL_KEYS: Record<string, string> = {
-  "3d-model": "3dModel",
-  "bg-remove": "bgRemove",
-  enhance: "enhance",
-  scene: "scene",
-  video: "video",
-  aplus: "aplus",
-};
-
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   pending: "secondary",
   processing: "default",
@@ -36,10 +29,11 @@ export function JobStatus() {
   const tDash = useTranslations("dashboard");
   const tTools = useTranslations("tools");
   const tCredits = useTranslations("credits");
+  const params = useParams<{ locale: string }>();
+  const locale = params.locale || "tr";
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -64,19 +58,10 @@ export function JobStatus() {
     const hasActiveJobs = jobs.some(
       (j) => j.status === "pending" || j.status === "processing"
     );
+    if (!hasActiveJobs) return;
 
-    if (hasActiveJobs) {
-      intervalRef.current = setInterval(fetchJobs, 3000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
+    const id = setInterval(fetchJobs, 3000);
+    return () => clearInterval(id);
   }, [jobs, fetchJobs]);
 
   function getStatusLabel(status: Job["status"]): string {
@@ -96,7 +81,7 @@ export function JobStatus() {
 
   function formatTime(dateStr: string): string {
     const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   }
 
   if (loading) {

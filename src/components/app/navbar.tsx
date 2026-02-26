@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
@@ -20,6 +21,18 @@ export function Navbar() {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const router = useRouter();
+  const [userInitial, setUserInitial] = useState("U");
+
+  useEffect(() => {
+    async function fetchUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserInitial(user.email[0].toUpperCase());
+      }
+    }
+    fetchUser();
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -55,7 +68,7 @@ export function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">U</AvatarFallback>
+                  <AvatarFallback className="text-xs">{userInitial}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

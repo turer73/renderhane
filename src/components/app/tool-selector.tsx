@@ -1,19 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { TOOL_CREDITS, TOOL_MODELS, type ToolType } from "@/lib/fal/models";
+import { TOOL_CREDITS, TOOL_KEYS, TOOL_MODELS, type ToolType } from "@/lib/fal/models";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const TOOL_KEYS: Record<ToolType, string> = {
-  "3d-model": "3dModel",
-  "bg-remove": "bgRemove",
-  enhance: "enhance",
-  scene: "scene",
-  video: "video",
-  aplus: "aplus",
-};
 
 const TOOL_ORDER: ToolType[] = [
   "3d-model",
