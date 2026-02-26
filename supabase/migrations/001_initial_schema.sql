@@ -224,6 +224,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Atomic credit addition after purchase (prevents race condition on balance)
+-- NOTE: This function is superseded by migration 002_payment_id_unique.sql
+-- which adds ON CONFLICT (payment_id) DO NOTHING for true idempotency.
 CREATE OR REPLACE FUNCTION public.add_credits(
   p_user_id UUID,
   p_amount INTEGER,

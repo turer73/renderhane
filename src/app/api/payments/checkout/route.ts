@@ -48,15 +48,15 @@ export async function POST(request: NextRequest) {
     // Fetch user profile for name/email/locale
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, email, locale")
+      .select("display_name, locale")
       .eq("id", user.id)
       .single();
 
-    const fullName = profile?.full_name || user.email?.split("@")[0] || "User";
+    const fullName = profile?.display_name || user.email?.split("@")[0] || "User";
     const nameParts = fullName.split(" ");
     const firstName = nameParts[0] || "User";
     const lastName = nameParts.slice(1).join(" ") || "User";
-    const email = profile?.email || user.email || "user@example.com";
+    const email = user.email || "user@example.com";
 
     // basketId encodes userId:packageKey:locale, signed with HMAC to
     // prevent forgery. The locale is included so the callback can redirect
