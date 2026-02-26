@@ -27,7 +27,13 @@
     "buy": "Buy Credits",
     "insufficient": "Insufficient credits",
     "cost": "{count} credits",
-    "free": "Free"
+    "free": "Free",
+    "purchaseTitle": "Buy Credits",
+    "purchaseSubtitle": "Choose the package that fits your needs",
+    "currentBalance": "Current Balance",
+    "purchaseSuccess": "Payment successful! Credits have been added.",
+    "purchaseError": "Payment failed. Please try again.",
+    "processing": "Preparing payment..."
   },
   "auth": {
     "googleLogin": "Sign in with Google",

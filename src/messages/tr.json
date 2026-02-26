@@ -27,7 +27,13 @@
     "buy": "Kredi Satın Al",
     "insufficient": "Kredi yetersiz",
     "cost": "{count} kredi",
-    "free": "Ücretsiz"
+    "free": "Ücretsiz",
+    "purchaseTitle": "Kredi Satın Al",
+    "purchaseSubtitle": "İhtiyacınıza uygun paketi seçin",
+    "currentBalance": "Mevcut Bakiye",
+    "purchaseSuccess": "Ödeme başarılı! Kredileriniz eklendi.",
+    "purchaseError": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
+    "processing": "Ödeme hazırlanıyor..."
   },
   "auth": {
     "googleLogin": "Google ile Giriş Yap",
