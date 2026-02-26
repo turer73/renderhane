@@ -196,7 +196,7 @@
   "projects": {
     "title": "Projelerim",
     "empty": "Henüz projeniz yok. İlk fotoğrafınızı yükleyerek başlayın!",
-    "outputs": "{count} çıktı",
+    "outputs": "{count, plural, one {# çıktı} other {# çıktı}}",
     "noOutputs": "Henüz çıktı yok",
     "created": "Oluşturulma",
     "jobs": "İşler",

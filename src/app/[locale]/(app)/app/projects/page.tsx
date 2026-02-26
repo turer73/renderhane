@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { ProjectCard } from "@/components/projects/project-card";
@@ -16,7 +17,7 @@ export default async function ProjectsPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return null;
+    redirect(`/${locale}/login`);
   }
 
   // Fetch projects with output counts, sorted by most recently updated
@@ -29,7 +30,6 @@ export default async function ProjectsPage({
       thumbnail_url,
       source_image_url,
       created_at,
-      updated_at,
       outputs:outputs(count)
     `
     )
@@ -46,7 +46,6 @@ export default async function ProjectsPage({
         ? (p.outputs[0] as { count: number }).count
         : 0,
     createdAt: p.created_at as string,
-    updatedAt: p.updated_at as string,
   }));
 
   return (
@@ -84,7 +83,6 @@ export default async function ProjectsPage({
               sourceImageUrl={project.sourceImageUrl}
               outputCount={project.outputCount}
               createdAt={project.createdAt}
-              updatedAt={project.updatedAt}
             />
           ))}
         </div>
