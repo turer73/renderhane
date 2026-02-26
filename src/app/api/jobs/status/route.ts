@@ -14,7 +14,7 @@ export async function GET() {
   const { data: jobs, error } = await supabase
     .from("jobs")
     .select(
-      "id, tool, status, credit_cost, created_at, completed_at, error_message, outputs(r2_url, fal_url, type)"
+      "id, tool, status, credit_cost, created_at, completed_at, error_message, outputs(id, r2_url, fal_url, type)"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
@@ -38,6 +38,7 @@ export async function GET() {
       created_at: job.created_at,
       completed_at: job.completed_at,
       error_message: job.error_message,
+      output_id: output?.id || null,
       output_url: output?.r2_url || output?.fal_url || null,
       output_type: output?.type || null,
     };

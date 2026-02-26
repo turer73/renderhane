@@ -208,5 +208,17 @@
       "image": "Image",
       "video": "Video"
     }
+  },
+  "output": {
+    "title": "Output Detail",
+    "processWith": "Process this image",
+    "processing": "Starting job...",
+    "started": "Job started!",
+    "errorSubmit": "Failed to start job",
+    "errorLoad": "Failed to load output",
+    "backToProject": "Back to Project",
+    "createdAt": "Created: {date}",
+    "fileSize": "Size: {size}",
+    "creditCost": "{count} credits"
   }
 }

@@ -208,5 +208,17 @@
       "image": "Görsel",
       "video": "Video"
     }
+  },
+  "output": {
+    "title": "Çıktı Detayı",
+    "processWith": "Bu görselle işlem yap",
+    "processing": "İşlem başlatılıyor...",
+    "started": "İşlem başlatıldı!",
+    "errorSubmit": "İşlem başlatılamadı",
+    "errorLoad": "Çıktı yüklenemedi",
+    "backToProject": "Projeye Dön",
+    "createdAt": "Oluşturulma: {date}",
+    "fileSize": "Boyut: {size}",
+    "creditCost": "{count} kredi"
   }
 }

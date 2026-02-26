@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
@@ -35,6 +36,7 @@ interface Job {
   created_at: string;
   completed_at: string | null;
   error_message: string | null;
+  output_id: string | null;
   output_url: string | null;
   output_type: "glb" | "image" | "video" | null;
 }
@@ -141,10 +143,8 @@ export function JobStatus() {
                   <div className="flex items-center gap-3 rounded-lg border p-3">
                     {/* Thumbnail for completed image jobs */}
                     {job.status === "completed" && job.output_url && job.output_type === "image" ? (
-                      <a
-                        href={`/api/jobs/${job.id}/result`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
                         className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
                       >
                         <Image
@@ -154,7 +154,7 @@ export function JobStatus() {
                           className="object-cover"
                           sizes="56px"
                         />
-                      </a>
+                      </Link>
                     ) : job.status === "completed" && job.output_url && job.output_type === "glb" ? (
                       <button
                         type="button"
@@ -169,16 +169,14 @@ export function JobStatus() {
                         </svg>
                       </button>
                     ) : job.status === "completed" && job.output_url ? (
-                      <a
-                        href={`/api/jobs/${job.id}/result`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
                         className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
                           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                         </svg>
-                      </a>
+                      </Link>
                     ) : null}
 
                     {/* Job info */}

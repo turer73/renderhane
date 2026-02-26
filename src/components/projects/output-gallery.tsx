@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,10 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
 
         return (
           <Card key={output.id} className="overflow-hidden p-0">
-            <div className="relative aspect-square w-full overflow-hidden bg-muted">
+            <Link
+              href={`/${locale}/app/output/${output.id}`}
+              className="relative block aspect-square w-full overflow-hidden bg-muted hover:opacity-90 transition-opacity"
+            >
               {output.type === "image" && url ? (
                 <Image
                   src={url}
@@ -125,7 +129,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                   </span>
                 </div>
               )}
-            </div>
+            </Link>
 
             <div className="flex items-center justify-between gap-2 p-3">
               <div className="flex items-center gap-2 overflow-hidden">
