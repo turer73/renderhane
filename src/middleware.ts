@@ -7,9 +7,21 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
+  const isEmbed = request.nextUrl.pathname.includes("/embed/");
+
+  // Security headers — set CSP conditionally for embed vs non-embed routes
+  response.headers.set(
+    "Content-Security-Policy",
+    isEmbed ? "frame-ancestors 'self'" : "frame-ancestors 'none'"
+  );
+  if (!isEmbed) {
+    response.headers.set("X-Frame-Options", "DENY");
+  } else {
+    response.headers.set("X-Frame-Options", "SAMEORIGIN");
+  }
 
   // Embed pages are public — skip auth session refresh
-  if (request.nextUrl.pathname.includes("/embed/")) {
+  if (isEmbed) {
     return response;
   }
 

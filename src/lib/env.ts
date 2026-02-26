@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Runtime environment validation.
  * Import this in layout.tsx or a server component to fail fast
