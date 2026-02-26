@@ -165,6 +165,8 @@ export function PhotoUpload() {
       }
 
       setMessage({ type: "success", text: tDash("jobStarted") });
+      // Notify JobStatus to refetch immediately
+      window.dispatchEvent(new CustomEvent("job-submitted"));
       // Reset form after successful submission
       handleReset();
     } catch {

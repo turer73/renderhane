@@ -56,6 +56,15 @@ export function JobStatus() {
     fetchJobs();
   }, [fetchJobs]);
 
+  // Listen for new job submissions from PhotoUpload
+  useEffect(() => {
+    const handleNewJob = () => {
+      fetchJobs();
+    };
+    window.addEventListener("job-submitted", handleNewJob);
+    return () => window.removeEventListener("job-submitted", handleNewJob);
+  }, [fetchJobs]);
+
   // Poll every 3 seconds if there are active jobs
   useEffect(() => {
     const hasActiveJobs = jobs.some(
