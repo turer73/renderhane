@@ -4,6 +4,7 @@ import {
   PACKAGES,
   isValidPackageKey,
   retrieveCheckoutFormResult,
+  verifyBasketId,
 } from "@/lib/payments/iyzico";
 
 function getServiceClient() {
@@ -15,24 +16,54 @@ function getServiceClient() {
 
 /**
  * iyzico webhook handler — backup confirmation mechanism.
+ *
  * The primary flow is through the callback URL, but iyzico also sends
  * webhook notifications for payment events.
+ *
+ * AUTHENTICATION: iyzico checkout form webhooks do not use a shared
+ * secret or signature header. Instead, authentication is performed by
+ * calling `retrieveCheckoutFormResult(token)` which makes a server-to-
+ * server API call to iyzico using our API credentials. If the token is
+ * invalid or forged, iyzico's API will reject the request — this IS the
+ * standard authentication mechanism for checkout form webhooks.
+ *
+ * IDEMPOTENCY: The `add_credits` RPC uses INSERT ... ON CONFLICT
+ * (payment_id) DO NOTHING at the database level, so even if both the
+ * callback and webhook fire simultaneously, only one will succeed.
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate Content-Type — iyzico sends webhook notifications as JSON
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      console.warn("Webhook: unexpected Content-Type:", contentType);
+      return NextResponse.json({ status: "ok" });
+    }
+
     const body = await request.json();
-    const { token, paymentConversationId } = body;
+
+    // Validate that the webhook payload has the expected structure
+    if (!body || typeof body !== "object") {
+      console.warn("Webhook: invalid payload structure");
+      return NextResponse.json({ status: "ok" });
+    }
+
+    const { token, paymentConversationId, iyziEventType, status } = body;
 
     console.log("iyzico webhook received:", {
       token: token ? "present" : "missing",
       paymentConversationId,
+      iyziEventType: iyziEventType || "not_provided",
+      status: status || "not_provided",
     });
 
     if (!token) {
       return NextResponse.json({ status: "ok" });
     }
 
-    // Verify payment with iyzico
+    // Verify payment with iyzico — this is the authentication step.
+    // retrieveCheckoutFormResult makes a server-to-server call using our
+    // API credentials. A forged or invalid token will be rejected by iyzico.
     const result = await retrieveCheckoutFormResult(token);
 
     if (result.paymentStatus !== "SUCCESS") {
@@ -40,33 +71,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: "ok" });
     }
 
-    // Decode basketId
-    const [userId, packageKey] = (result.basketId || "").split(":");
+    // Verify HMAC-signed basketId → { userId, packageKey, locale }
+    const basketData = verifyBasketId(result.basketId);
 
-    if (!userId || !packageKey || !isValidPackageKey(packageKey)) {
-      console.error("Webhook: invalid basketId:", result.basketId);
+    if (!basketData || !isValidPackageKey(basketData.packageKey)) {
+      console.error("Webhook: invalid or tampered basketId:", result.basketId);
       return NextResponse.json({ status: "ok" });
     }
 
+    const { userId, packageKey } = basketData;
     const pkg = PACKAGES[packageKey];
     const paymentId = result.paymentId;
 
-    // Idempotency check
+    // Add credits — the DB-level ON CONFLICT guard ensures idempotency.
+    // If add_credits returns NULL, it means this payment was already
+    // processed (e.g. by the callback), and no duplicate credits were added.
     const supabase = getServiceClient();
 
-    const { data: existingTx } = await supabase
-      .from("credit_transactions")
-      .select("id")
-      .eq("payment_id", paymentId)
-      .maybeSingle();
-
-    if (existingTx) {
-      console.log("Webhook: payment already processed, skipping");
-      return NextResponse.json({ status: "ok" });
-    }
-
-    // Add credits
-    const { error } = await supabase.rpc("add_credits", {
+    const { data, error } = await supabase.rpc("add_credits", {
       p_user_id: userId,
       p_amount: pkg.credits,
       p_payment_id: paymentId,
@@ -75,6 +97,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Webhook: failed to add credits:", error.message);
+    } else if (data === null) {
+      console.log(
+        `Webhook: payment already processed (duplicate), paymentId=${paymentId}`
+      );
     } else {
       console.log(
         `Webhook: credits added: ${pkg.credits} to user ${userId}, paymentId=${paymentId}`

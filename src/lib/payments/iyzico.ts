@@ -17,6 +17,65 @@ export function isValidPackageKey(key: string): key is PackageKey {
 }
 
 // ---------------------------------------------------------------------------
+// BasketId HMAC signing / verification
+// ---------------------------------------------------------------------------
+// The basketId is sent to iyzico and returned in callbacks/webhooks.
+// We sign it with HMAC-SHA256 using the iyzico secret key to prevent
+// an attacker from forging a different userId or packageKey.
+// Format: "userId:packageKey:locale:hmac"
+
+/**
+ * Signs a basketId payload (userId:packageKey:locale) with HMAC-SHA256.
+ * Returns "userId:packageKey:locale:hmac".
+ */
+export function signBasketId(
+  userId: string,
+  packageKey: string,
+  locale: string
+): string {
+  const { secretKey } = getConfig();
+  const payload = `${userId}:${packageKey}:${locale}`;
+  const hmac = crypto
+    .createHmac("sha256", secretKey)
+    .update(payload)
+    .digest("hex");
+  return `${payload}:${hmac}`;
+}
+
+/**
+ * Verifies an HMAC-signed basketId and returns the decoded fields,
+ * or null if the signature is invalid.
+ */
+export function verifyBasketId(
+  signedBasketId: string
+): { userId: string; packageKey: string; locale: string } | null {
+  const parts = (signedBasketId || "").split(":");
+  if (parts.length !== 4) return null;
+
+  const [userId, packageKey, locale, receivedHmac] = parts;
+  if (!userId || !packageKey || !locale || !receivedHmac) return null;
+
+  const { secretKey } = getConfig();
+  const payload = `${userId}:${packageKey}:${locale}`;
+  const expectedHmac = crypto
+    .createHmac("sha256", secretKey)
+    .update(payload)
+    .digest("hex");
+
+  // Use timingSafeEqual to prevent timing attacks
+  try {
+    const expected = Buffer.from(expectedHmac, "hex");
+    const received = Buffer.from(receivedHmac, "hex");
+    if (expected.length !== received.length) return null;
+    if (!crypto.timingSafeEqual(expected, received)) return null;
+  } catch {
+    return null;
+  }
+
+  return { userId, packageKey, locale };
+}
+
+// ---------------------------------------------------------------------------
 // Config helpers
 // ---------------------------------------------------------------------------
 
@@ -156,7 +215,7 @@ export async function initializeCheckoutForm(
   };
 
   const result = await iyzicoPost<CheckoutFormInitResult>(
-    "/payment/ixica/checkout/token",
+    "/payment/iyzipos/checkoutform/initialize/auth/ecom",
     body
   );
 
@@ -199,7 +258,7 @@ export async function retrieveCheckoutFormResult(
   };
 
   const result = await iyzicoPost<CheckoutFormResult>(
-    "/payment/ixica/checkout/auth/ecom/detail",
+    "/payment/iyzipos/checkoutform/auth/ecom/detail",
     body
   );
 

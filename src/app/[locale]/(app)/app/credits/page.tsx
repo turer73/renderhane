@@ -46,7 +46,8 @@ export default function CreditsPage() {
     fetchBalance();
   }, []);
 
-  // Show toast based on URL search params
+  // Show toast based on URL search params, then clear them so
+  // the toast does not re-fire on browser refresh.
   useEffect(() => {
     const status = searchParams.get("status");
     if (status === "success") {
@@ -58,6 +59,13 @@ export default function CreditsPage() {
         .catch(() => {});
     } else if (status === "error") {
       toast.error(t("purchaseError"));
+    }
+
+    // Remove the status param from the URL without triggering a navigation
+    if (status) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("status");
+      window.history.replaceState({}, "", url.toString());
     }
   }, [searchParams, t]);
 

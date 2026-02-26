@@ -4,6 +4,7 @@ import {
   PACKAGES,
   isValidPackageKey,
   initializeCheckoutForm,
+  signBasketId,
 } from "@/lib/payments/iyzico";
 import { headers } from "next/headers";
 import crypto from "crypto";
@@ -44,10 +45,10 @@ export async function POST(request: NextRequest) {
       headersList.get("x-real-ip") ||
       "127.0.0.1";
 
-    // Fetch user profile for name/email
+    // Fetch user profile for name/email/locale
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, email")
+      .select("full_name, email, locale")
       .eq("id", user.id)
       .single();
 
@@ -57,8 +58,11 @@ export async function POST(request: NextRequest) {
     const lastName = nameParts.slice(1).join(" ") || "User";
     const email = profile?.email || user.email || "user@example.com";
 
-    // basketId encodes userId:packageKey for the callback to decode
-    const basketId = `${user.id}:${packageKey}`;
+    // basketId encodes userId:packageKey:locale, signed with HMAC to
+    // prevent forgery. The locale is included so the callback can redirect
+    // back to the correct language version of the credits page.
+    const userLocale = profile?.locale || "tr";
+    const basketId = signBasketId(user.id, packageKey, userLocale);
 
     const result = await initializeCheckoutForm({
       conversationId,
@@ -71,6 +75,9 @@ export async function POST(request: NextRequest) {
         name: firstName,
         surname: lastName,
         email,
+        // identityNumber is a required field for Turkish payment regulations.
+        // "11111111111" is the industry-standard placeholder for virtual/digital
+        // product purchases where real identity verification is not required.
         identityNumber: "11111111111",
         registrationAddress: "Istanbul, Turkey",
         ip,
