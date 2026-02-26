@@ -174,6 +174,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       title={t("view3d")}
+                      aria-label={t("view3d")}
                     >
                       <GlbIcon className="h-3 w-3" />
                     </a>
@@ -187,6 +188,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       title={t("download")}
+                      aria-label={t("download")}
                     >
                       <DownloadIcon className="h-3 w-3" />
                     </a>

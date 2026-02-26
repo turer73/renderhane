@@ -196,7 +196,7 @@
   "projects": {
     "title": "My Projects",
     "empty": "No projects yet. Upload your first photo to get started!",
-    "outputs": "{count} outputs",
+    "outputs": "{count, plural, one {# output} other {# outputs}}",
     "noOutputs": "No outputs yet",
     "created": "Created",
     "jobs": "Jobs",
