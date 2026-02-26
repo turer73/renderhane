@@ -210,6 +210,7 @@
     "created": "Created",
     "jobs": "Jobs",
     "sourceImage": "Source Image",
+    "whatNext": "What would you like to do with this image?",
     "download": "Download",
     "view3d": "View in 3D",
     "outputTypes": {

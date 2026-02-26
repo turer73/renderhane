@@ -69,7 +69,7 @@ export default async function OutputDetailPage({
   ];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       {/* Back navigation */}
       <div className="flex items-center gap-3">
         {projectId && (
@@ -98,14 +98,14 @@ export default async function OutputDetailPage({
       <Card className="overflow-hidden">
         <CardContent className="flex flex-col items-center p-0">
           {outputType === "image" && url ? (
-            <div className="relative w-full bg-[repeating-conic-gradient(#f3f3f3_0%_25%,#ffffff_0%_50%)] bg-[length:20px_20px]">
-              <div className="relative mx-auto aspect-square max-h-[520px] w-full max-w-[520px]">
+            <div className="flex w-full justify-center bg-[repeating-conic-gradient(#f3f3f3_0%_25%,#ffffff_0%_50%)] bg-[length:20px_20px] p-6">
+              <div className="relative aspect-square w-full max-w-md">
                 <Image
                   src={url}
                   alt={t("title")}
                   fill
                   className="object-contain"
-                  sizes="(max-width: 768px) 100vw, 520px"
+                  sizes="(max-width: 768px) 100vw, 448px"
                   priority
                 />
               </div>

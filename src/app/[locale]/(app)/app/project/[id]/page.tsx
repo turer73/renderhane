@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
-import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
+import { TOOL_KEYS, TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { OutputGallery } from "@/components/projects/output-gallery";
+import { OutputActions } from "@/components/output/output-actions";
 
 const STATUS_VARIANTS: Record<
   string,
@@ -141,20 +142,36 @@ export default async function ProjectDetailPage({
         {t("created")}: {formatDate(project.created_at)}
       </p>
 
-      {/* Source Image */}
+      {/* Source Image + Next Actions */}
       {project.source_image_url && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("sourceImage")}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="relative aspect-video max-w-md overflow-hidden rounded-lg bg-muted">
+          <CardContent className="space-y-6">
+            <div className="relative mx-auto aspect-square max-w-sm overflow-hidden rounded-lg bg-muted">
               <Image
                 src={project.source_image_url}
                 alt={project.name}
                 fill
                 className="object-contain"
-                sizes="(max-width: 768px) 100vw, 448px"
+                sizes="(max-width: 768px) 100vw, 384px"
+              />
+            </div>
+
+            {/* What do you want to do? */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("whatNext")}
+              </h3>
+              <OutputActions
+                imageUrl={project.source_image_url}
+                tools={[
+                  { tool: "3d-model", icon: "cube" },
+                  { tool: "bg-remove", icon: "eraser" },
+                  { tool: "enhance", icon: "sparkles" },
+                ]}
+                creditCosts={TOOL_CREDITS}
               />
             </div>
           </CardContent>
