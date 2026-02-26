@@ -192,5 +192,21 @@
     "loadError": "Failed to load 3D model",
     "downloadError": "Download failed",
     "downloading": "Downloading..."
+  },
+  "projects": {
+    "title": "My Projects",
+    "empty": "No projects yet. Upload your first photo to get started!",
+    "outputs": "{count} outputs",
+    "noOutputs": "No outputs yet",
+    "created": "Created",
+    "jobs": "Jobs",
+    "sourceImage": "Source Image",
+    "download": "Download",
+    "view3d": "View in 3D",
+    "outputTypes": {
+      "glb": "3D Model",
+      "image": "Image",
+      "video": "Video"
+    }
   }
 }

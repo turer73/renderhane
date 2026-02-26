@@ -192,5 +192,21 @@
     "loadError": "3D model yüklenemedi",
     "downloadError": "İndirme başarısız oldu",
     "downloading": "İndiriliyor..."
+  },
+  "projects": {
+    "title": "Projelerim",
+    "empty": "Henüz projeniz yok. İlk fotoğrafınızı yükleyerek başlayın!",
+    "outputs": "{count} çıktı",
+    "noOutputs": "Henüz çıktı yok",
+    "created": "Oluşturulma",
+    "jobs": "İşler",
+    "sourceImage": "Kaynak Görsel",
+    "download": "İndir",
+    "view3d": "3D Görüntüle",
+    "outputTypes": {
+      "glb": "3D Model",
+      "image": "Görsel",
+      "video": "Video"
+    }
   }
 }
