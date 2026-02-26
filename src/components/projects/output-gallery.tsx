@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { DownloadMenu } from "@/components/app/download-menu";
 
 interface Output {
   id: string;
@@ -57,27 +58,6 @@ function VideoIcon({ className }: { className?: string }) {
     >
       <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
       <rect x="2" y="6" width="14" height="12" rx="2" />
-    </svg>
-  );
-}
-
-function DownloadIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   );
 }
@@ -181,18 +161,11 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                   </Button>
                 )}
                 {url && (
-                  <Button type="button" variant="ghost" size="icon-xs" asChild>
-                    <a
-                      href={url}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={t("download")}
-                      aria-label={t("download")}
-                    >
-                      <DownloadIcon className="h-3 w-3" />
-                    </a>
-                  </Button>
+                  <DownloadMenu
+                    url={url}
+                    outputType={output.type}
+                    compact
+                  />
                 )}
               </div>
             </div>
