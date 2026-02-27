@@ -168,6 +168,7 @@
         "feature4": "SLA guarantee"
       },
       "perCreditFormat": "₺{amount} per credit",
+      "vatIncluded": "VAT included",
       "buyNow": "Buy Now",
       "contactUs": "Contact Us",
       "mostPopular": "Most Popular"

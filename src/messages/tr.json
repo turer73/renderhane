@@ -168,6 +168,7 @@
         "feature4": "SLA garantisi"
       },
       "perCreditFormat": "₺{amount} / kredi",
+      "vatIncluded": "KDV dahil",
       "buyNow": "Şimdi Satın Al",
       "contactUs": "Bize Ulaşın",
       "mostPopular": "En Popüler"

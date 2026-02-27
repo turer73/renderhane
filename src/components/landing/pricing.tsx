@@ -101,6 +101,11 @@ export function PricingSection() {
                   <span className={`text-3xl font-extrabold ${isPopular ? "text-white" : "text-foreground"} md:text-4xl`}>
                     {t(`pricing.${pkg.key}.price`)}
                   </span>
+                  {!isEnterprise && (
+                    <span className={`ml-2 text-xs ${isPopular ? "text-indigo-300" : "text-muted-foreground"}`}>
+                      {t("pricing.vatIncluded")}
+                    </span>
+                  )}
                 </div>
 
                 {/* Credits + Per-credit */}
