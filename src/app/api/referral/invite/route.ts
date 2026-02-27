@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resend, FROM_EMAIL } from "@/lib/email/resend";
+import { getResend, FROM_EMAIL } from "@/lib/email/resend";
 import { buildReferralInviteEmail } from "@/lib/email/templates/referral-invite";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       locale,
     });
 
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
