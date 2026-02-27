@@ -84,8 +84,8 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── Video Oluştur ────────────────────────── */
   "wan-i2v": {
-    id: "fal-ai/wan/v2.1/image-to-video",
-    displayName: { tr: "Wan 2.1 Video", en: "Wan 2.1 Video" },
+    id: "wan/v2.6/image-to-video",
+    displayName: { tr: "Wan 2.6 Video", en: "Wan 2.6 Video" },
     tier: "standard",
     creditCost: 10,
     estimatedTime: "~2min",
@@ -93,8 +93,8 @@ export const MODELS: Record<string, ModelConfig> = {
     promptParamKey: "prompt",
     defaultParams: {
       prompt: "A smooth product showcase with gentle camera movement, professional lighting",
-      resolution: "480p",
-      num_frames: 81,
+      resolution: "720p",
+      duration: "5",
     },
   },
 
