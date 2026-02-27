@@ -32,7 +32,7 @@ export function FeaturesSection() {
   const tt = useTranslations("tools");
 
   return (
-    <section id="features" className="scroll-mt-20 py-20 sm:py-28">
+    <section id="features" className="scroll-mt-20 border-t border-border/40 bg-background py-20 transition-colors sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -50,16 +50,16 @@ export function FeaturesSection() {
             {tools.map((tool, i) => (
               <div
                 key={tool.key}
-                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50/50 dark:hover:border-indigo-800 dark:hover:shadow-indigo-900/20 sm:p-8"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
                 {/* Subtle gradient accent on hover */}
-                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-500/[0.03] via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
                 {/* Icon + Tip */}
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/15">
-                    <tool.icon className="size-6" />
+                  <div className="flex size-14 items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-transform duration-300 group-hover:scale-110">
+                    <tool.icon className="size-7 text-indigo-600 dark:text-indigo-400" />
                   </div>
 
                   {/* Tip tooltip */}
@@ -86,20 +86,20 @@ export function FeaturesSection() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className="text-xl font-bold text-foreground">
                   {tt(tool.toolKey)}
                 </h3>
 
                 {/* Description */}
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
                   {t(`features.${tool.key}.description`)}
                 </p>
 
-                {/* Credits badge — teal tinted */}
+                {/* Credits badge */}
                 <div className="mt-4">
                   <Badge
                     variant="secondary"
-                    className="bg-primary/10 text-primary border-0 text-xs"
+                    className="bg-indigo-50 text-indigo-700 border-0 text-xs dark:bg-indigo-500/10 dark:text-indigo-300"
                   >
                     {t(`features.${tool.key}.credits`)}
                   </Badge>

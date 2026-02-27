@@ -48,7 +48,7 @@ function DemoModel({ url }: { url: string }) {
 function MiniLoader() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-      <RotateCcw className="size-6 animate-spin text-primary/60" />
+      <RotateCcw className="size-6 animate-spin text-indigo-500/60" />
       <span className="text-xs text-muted-foreground">3D Model</span>
     </div>
   );
@@ -71,8 +71,8 @@ export function DemoSection() {
       id="demo"
       className="relative scroll-mt-20 py-20 sm:py-28"
     >
-      {/* Subtle radial gradient background */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,oklch(0.7_0.15_180_/_0.04)_0%,transparent_70%)]" />
+      {/* Subtle radial gradient — indigo tint */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_oklch(0.55_0.2_275_/_0.04)_0%,transparent_70%)]" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -107,9 +107,9 @@ export function DemoSection() {
             </div>
 
             {/* After — Interactive 3D Model */}
-            <div className="overflow-hidden rounded-2xl border border-primary/30 bg-card shadow-lg shadow-primary/5">
-              <div className="flex items-center justify-between border-b border-primary/20 bg-primary/5 px-4 py-2.5">
-                <span className="text-sm font-medium text-primary">
+            <div className="overflow-hidden rounded-2xl border border-indigo-300/50 bg-card shadow-lg shadow-indigo-100/30 dark:border-indigo-500/30 dark:shadow-indigo-900/10">
+              <div className="flex items-center justify-between border-b border-indigo-200/50 bg-indigo-50/50 px-4 py-2.5 dark:border-indigo-500/20 dark:bg-indigo-500/10">
+                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
                   {t("demo.after")}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
@@ -156,10 +156,10 @@ export function DemoSection() {
         <div className="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3">
           {steps.map((step) => (
             <div key={step.num} className="flex flex-col items-center text-center">
-              <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                 <step.icon className="size-5" />
               </div>
-              <div className="mb-1 text-sm font-bold text-primary">
+              <div className="mb-1 text-sm font-bold text-indigo-600 dark:text-indigo-400">
                 {step.num}
               </div>
               <p className="text-sm text-muted-foreground">{step.text}</p>
@@ -172,7 +172,7 @@ export function DemoSection() {
           <Button
             size="lg"
             asChild
-            className="h-12 px-8 text-base bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
+            className="h-12 px-8 text-base bg-indigo-600 text-white shadow-xl shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300/50 dark:shadow-indigo-900/30 transition-all"
           >
             <Link href={`/${locale}/login`}>
               {t("demo.tryNow")}

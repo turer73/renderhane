@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Star } from "lucide-react";
 
 const packages = [
   {
@@ -44,10 +44,7 @@ export function PricingSection() {
   const locale = params.locale as string;
 
   return (
-    <section id="pricing" className="relative scroll-mt-20 py-20 sm:py-28">
-      {/* Subtle glow behind pricing */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.7_0.15_180_/_0.03)_0%,transparent_60%)]" />
-
+    <section id="pricing" className="relative scroll-mt-20 bg-muted/50 py-20 transition-colors sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -74,59 +71,59 @@ export function PricingSection() {
             return (
               <div
                 key={pkg.key}
-                className={`relative flex flex-col overflow-hidden rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg ${
+                className={`relative flex flex-col overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
                   isPopular
-                    ? "border-primary/50 bg-card ring-2 ring-primary/20 shadow-lg shadow-primary/5"
-                    : "border-border bg-card hover:shadow-primary/5"
+                    ? "bg-indigo-900 text-white shadow-2xl shadow-indigo-900/20 z-10 md:scale-105"
+                    : "border border-border bg-card text-foreground shadow-sm hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg"
                 }`}
               >
                 {/* Popular badge */}
                 {isPopular && (
-                  <div className="absolute right-4 top-4">
-                    <Badge className="bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white border-0 text-xs">
+                  <div className="absolute -top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <Badge className="bg-gradient-to-r from-indigo-400 to-purple-400 text-white border-0 text-xs font-bold uppercase tracking-wide whitespace-nowrap">
                       {t("pricing.mostPopular")}
                     </Badge>
                   </div>
                 )}
 
                 {/* Package name */}
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className={`text-lg font-semibold ${isPopular ? "text-indigo-200 mt-2" : "text-muted-foreground"}`}>
                   {t(`pricing.${pkg.key}.name`)}
                 </h3>
 
-                {/* Credits */}
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t(`pricing.${pkg.key}.credits`)}
-                </p>
-
                 {/* Price */}
-                <div className="mt-4">
-                  <span className="text-3xl font-bold text-foreground">
+                <div className="mt-2">
+                  <span className={`text-3xl font-extrabold ${isPopular ? "text-white" : "text-foreground"} md:text-4xl`}>
                     {t(`pricing.${pkg.key}.price`)}
                   </span>
                 </div>
 
-                {/* Per-credit price */}
-                {perCredit && (
-                  <p className="mt-1 text-xs text-primary">
-                    {perCredit}
-                  </p>
-                )}
-
-                {/* Description */}
-                <p className="mt-3 text-sm text-muted-foreground">
-                  {t(`pricing.${pkg.key}.description`)}
-                </p>
+                {/* Credits + Per-credit */}
+                <div className={`mt-4 border-y py-4 ${isPopular ? "border-indigo-800" : "border-border"}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className={`size-5 ${isPopular ? "text-yellow-400" : "text-indigo-600 dark:text-indigo-400"}`} fill="currentColor" />
+                    <span className="text-xl font-bold">
+                      {t(`pricing.${pkg.key}.credits`)}
+                    </span>
+                  </div>
+                  {perCredit && (
+                    <p className={`text-sm ${isPopular ? "text-indigo-300" : "text-muted-foreground"}`}>
+                      {perCredit}
+                    </p>
+                  )}
+                </div>
 
                 {/* Features */}
                 <ul className="mt-6 flex-1 space-y-3">
                   {pkg.features.map((feature) => (
                     <li
                       key={feature}
-                      className="flex items-start gap-2 text-sm text-muted-foreground"
+                      className="flex items-start gap-2 text-sm"
                     >
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                      <span>{t(`pricing.${pkg.key}.${feature}`)}</span>
+                      <Check className={`mt-0.5 size-5 shrink-0 ${isPopular ? "text-indigo-400" : "text-indigo-600 dark:text-indigo-500"}`} />
+                      <span className={isPopular ? "text-indigo-100" : "text-muted-foreground"}>
+                        {t(`pricing.${pkg.key}.${feature}`)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -146,7 +143,7 @@ export function PricingSection() {
                   ) : isPopular ? (
                     <Button
                       asChild
-                      className="w-full bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white shadow-sm shadow-primary/20"
+                      className="w-full bg-white text-indigo-900 hover:bg-slate-100 font-medium"
                     >
                       <Link href={`/${locale}/login`}>
                         {t("pricing.buyNow")}
