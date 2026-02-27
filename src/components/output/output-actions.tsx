@@ -5,7 +5,17 @@ import { useTranslations } from "next-intl";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ScenePresets } from "@/components/app/scene-presets";
+import { TOOL_KEYS, TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
 
 interface ToolOption {
   tool: ToolType;
@@ -22,19 +32,30 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
   const t = useTranslations("output");
   const tTools = useTranslations("tools");
   const tCredits = useTranslations("credits");
+  const tDash = useTranslations("dashboard");
   const router = useRouter();
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
 
   const [submitting, setSubmitting] = useState<string | null>(null);
 
-  async function handleSubmit(tool: ToolType) {
+  // Dialog state for tools that need a prompt
+  const [dialogTool, setDialogTool] = useState<ToolType | null>(null);
+  const [dialogPrompt, setDialogPrompt] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+
+  async function handleSubmit(tool: ToolType, prompt?: string) {
     setSubmitting(tool);
     try {
+      const payload: Record<string, unknown> = { tool, imageUrl };
+      if (prompt?.trim()) {
+        payload.prompt = prompt.trim();
+      }
+
       const res = await fetch("/api/jobs/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool, imageUrl }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -58,41 +79,136 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
       toast.error(t("errorSubmit"));
     } finally {
       setSubmitting(null);
+      setDialogTool(null);
+      setDialogPrompt("");
+      setSelectedPresetId(null);
     }
   }
 
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {tools.map(({ tool, icon }) => {
-        const toolKey = TOOL_KEYS[tool];
-        const cost = creditCosts[tool];
-        const isActive = submitting === tool;
-        const isDisabled = submitting !== null;
+  function handleToolClick(tool: ToolType) {
+    if (TOOLS_WITH_PROMPT.includes(tool)) {
+      // Open prompt dialog for scene/video/aplus
+      setDialogTool(tool);
+      setDialogPrompt("");
+      setSelectedPresetId(null);
+    } else {
+      // Direct submit for bg-remove, enhance, 3d-model
+      handleSubmit(tool);
+    }
+  }
 
-        return (
-          <Button
-            key={tool}
-            type="button"
-            variant="outline"
-            className="flex h-auto flex-col items-center gap-2 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/5 transition-colors"
-            onClick={() => handleSubmit(tool)}
-            disabled={isDisabled}
-          >
-            {isActive ? (
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
-            ) : (
-              <ToolIcon name={icon} className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+  function getPlaceholder(): string {
+    switch (dialogTool) {
+      case "scene":
+        return tDash("promptPlaceholderScene");
+      case "aplus":
+        return tDash("promptPlaceholderAplus");
+      case "video":
+        return tDash("promptPlaceholderVideo");
+      default:
+        return "";
+    }
+  }
+
+  const showPresets = dialogTool === "scene" || dialogTool === "aplus";
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {tools.map(({ tool, icon }) => {
+          const toolKey = TOOL_KEYS[tool];
+          const cost = creditCosts[tool];
+          const isActive = submitting === tool;
+          const isDisabled = submitting !== null;
+
+          return (
+            <Button
+              key={tool}
+              type="button"
+              variant="outline"
+              className="flex h-auto flex-col items-center gap-2 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/5 transition-colors"
+              onClick={() => handleToolClick(tool)}
+              disabled={isDisabled}
+            >
+              {isActive ? (
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
+              ) : (
+                <ToolIcon name={icon} className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+              )}
+              <span className="text-sm font-medium">
+                {tTools(toolKey)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {tCredits("cost", { count: cost })}
+              </span>
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Prompt Dialog for scene/video/aplus tools */}
+      <Dialog
+        open={dialogTool !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialogTool(null);
+            setDialogPrompt("");
+            setSelectedPresetId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{tDash("presetDialogTitle")}</DialogTitle>
+            <DialogDescription>
+              {tDash("promptLabel")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {/* Scene Presets for scene & aplus */}
+            {showPresets && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  {tDash("presetHint")}
+                </p>
+                <ScenePresets
+                  selectedPresetId={selectedPresetId}
+                  onSelect={(presetPrompt, presetId) => {
+                    setDialogPrompt(presetPrompt);
+                    setSelectedPresetId(presetId);
+                  }}
+                />
+              </div>
             )}
-            <span className="text-sm font-medium">
-              {tTools(toolKey)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {tCredits("cost", { count: cost })}
-            </span>
-          </Button>
-        );
-      })}
-    </div>
+
+            <Textarea
+              value={dialogPrompt}
+              onChange={(e) => {
+                setDialogPrompt(e.target.value);
+                setSelectedPresetId(null);
+              }}
+              placeholder={getPlaceholder()}
+              rows={2}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              {tDash("promptHint")}
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              className="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm sm:w-auto"
+              onClick={() => dialogTool && handleSubmit(dialogTool, dialogPrompt)}
+              disabled={submitting !== null}
+            >
+              {submitting ? tDash("submitting") : tDash("presetDialogSubmit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -125,7 +241,6 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
         </svg>
       );
     case "image":
-      // Scene / landscape icon
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
@@ -141,7 +256,6 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
         </svg>
       );
     case "star":
-      // A+ content / premium icon
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />

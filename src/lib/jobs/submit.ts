@@ -26,12 +26,29 @@ export async function submitJob(input: SubmitJobInput) {
     prompt,
   });
 
-  // 2. Reserve credits
-  const txId = await reserveCredits(
-    userId,
-    model.creditCost,
-    `${tool} — ${model.displayName.en}`
-  );
+  // 2. Check free bg-remove eligibility BEFORE reserving credits
+  let txId: string | null = null;
+  let creditCost = model.creditCost;
+
+  if (tool === "bg-remove") {
+    const { data: isFree, error: freeCheckError } = await supabase.rpc(
+      "check_free_bg_remove",
+      { p_user_id: userId }
+    );
+
+    if (!freeCheckError && isFree === true) {
+      // Free usage — skip credit reservation, set cost to 0
+      creditCost = 0;
+    }
+  }
+
+  if (creditCost > 0) {
+    txId = await reserveCredits(
+      userId,
+      creditCost,
+      `${tool} — ${model.displayName.en}`
+    );
+  }
 
   // 3. Create job record
   const { data: job, error: jobError } = await supabase
@@ -43,20 +60,20 @@ export async function submitJob(input: SubmitJobInput) {
       model_id: model.id,
       status: "pending",
       input_params: falInput,
-      credit_cost: model.creditCost,
+      credit_cost: creditCost,
       credit_tx_id: txId,
     })
     .select("id")
     .single();
 
   if (jobError || !job) {
-    // Refund if job creation fails
-    await refundCredits(txId);
+    // Refund if job creation fails (only if credits were reserved)
+    if (txId) await refundCredits(txId);
     throw new Error("Failed to create job");
   }
 
   // 4. Submit to fal.ai queue with webhook
-  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}&txId=${txId}&secret=${process.env.FAL_WEBHOOK_SECRET}`;
+  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}${txId ? `&txId=${txId}` : ""}&secret=${process.env.FAL_WEBHOOK_SECRET}`;
 
   let result;
   try {
@@ -65,8 +82,8 @@ export async function submitJob(input: SubmitJobInput) {
       webhookUrl,
     });
   } catch (error) {
-    // Refund credits and mark job as failed
-    await refundCredits(txId);
+    // Refund credits and mark job as failed (only if credits were reserved)
+    if (txId) await refundCredits(txId);
 
     // Extract meaningful error from fal.ai response
     const falError = error as { status?: number; body?: { detail?: string } };
@@ -107,7 +124,7 @@ export async function submitJob(input: SubmitJobInput) {
   return {
     jobId: job.id,
     requestId: result.request_id,
-    creditCost: model.creditCost,
+    creditCost,
     estimatedTime: model.estimatedTime,
   };
 }

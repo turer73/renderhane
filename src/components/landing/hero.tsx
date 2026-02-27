@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, TrendingUp, DollarSign, Clock } from "lucide-react";
+import { FreeBgBanner } from "@/components/app/free-bg-banner";
 
 export function HeroSection() {
   const t = useTranslations("landing");
@@ -69,17 +70,42 @@ export function HeroSection() {
           </p>
 
           {/* CTA */}
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <div className="mt-10 flex flex-col items-center gap-5">
             <Button
               size="lg"
               asChild
-              className="group h-12 px-8 text-base bg-indigo-600 text-white shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-indigo-500/30 hover:shadow-2xl dark:shadow-indigo-900/40 dark:hover:shadow-indigo-800/50 transition-all duration-300"
+              className="group h-14 px-10 text-base font-semibold bg-indigo-600 text-white shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-indigo-500/30 hover:shadow-2xl dark:shadow-indigo-900/40 dark:hover:shadow-indigo-800/50 transition-all duration-300 animate-pulse-subtle"
             >
               <Link href={`/${locale}/login`}>
                 {t("cta")}
-                <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="ml-2 size-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
+
+            {/* Social proof */}
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex -space-x-2">
+                {[
+                  "bg-indigo-500",
+                  "bg-purple-500",
+                  "bg-emerald-500",
+                  "bg-amber-500",
+                ].map((color, i) => (
+                  <div
+                    key={i}
+                    className={`flex size-7 items-center justify-center rounded-full border-2 border-background text-[10px] font-bold text-white ${color}`}
+                  >
+                    {["A", "M", "E", "K"][i]}
+                  </div>
+                ))}
+              </div>
+              <span>{t("socialProof")}</span>
+            </div>
+
+            {/* Free BG-Remove Banner */}
+            <div className="mt-6 w-full max-w-2xl">
+              <FreeBgBanner />
+            </div>
           </div>
         </div>
 

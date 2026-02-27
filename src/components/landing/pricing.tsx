@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star } from "lucide-react";
+import { Check, Star, Calculator } from "lucide-react";
+import { TOOL_CREDITS, TOOL_KEYS, type ToolType } from "@/lib/fal/models";
 
 const packages = [
   {
@@ -175,7 +177,140 @@ export function PricingSection() {
             );
           })}
         </div>
+
+        {/* Credit Calculator */}
+        <CreditCalculator />
       </div>
     </section>
+  );
+}
+
+/* ── Credit Calculator ── */
+
+const CALC_TOOLS: { tool: ToolType; icon: string }[] = [
+  { tool: "bg-remove", icon: "🧹" },
+  { tool: "enhance", icon: "✨" },
+  { tool: "scene", icon: "🎬" },
+  { tool: "3d-model", icon: "📦" },
+  { tool: "video", icon: "🎥" },
+  { tool: "aplus", icon: "⭐" },
+];
+
+function CreditCalculator() {
+  const t = useTranslations("landing");
+  const tTools = useTranslations("tools");
+  const tCredits = useTranslations("credits");
+
+  const [counts, setCounts] = useState<Record<ToolType, number>>(
+    Object.fromEntries(CALC_TOOLS.map(({ tool }) => [tool, 0])) as Record<
+      ToolType,
+      number
+    >
+  );
+
+  const totalCredits = Object.entries(counts).reduce(
+    (sum, [tool, count]) => sum + count * TOOL_CREDITS[tool as ToolType],
+    0
+  );
+
+  // Find recommended package
+  function getRecommendedPackage(): string {
+    if (totalCredits === 0) return "";
+    if (totalCredits <= 50) return "starter";
+    if (totalCredits <= 200) return "standard";
+    return "pro";
+  }
+
+  const recommended = getRecommendedPackage();
+
+  return (
+    <div className="mx-auto mt-20 max-w-2xl">
+      <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm backdrop-blur-sm dark:border-border/40 sm:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10">
+            <Calculator className="size-5 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold">{t("pricing.calculator.title")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("pricing.calculator.subtitle")}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {CALC_TOOLS.map(({ tool, icon }) => {
+            const toolKey = TOOL_KEYS[tool];
+            const cost = TOOL_CREDITS[tool];
+            const count = counts[tool];
+
+            return (
+              <div
+                key={tool}
+                className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-4 py-3"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-lg">{icon}</span>
+                  <span className="text-sm font-medium truncate">
+                    {tTools(toolKey)}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                    {tCredits("cost", { count: cost })}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() =>
+                      setCounts((prev) => ({
+                        ...prev,
+                        [tool]: Math.max(0, prev[tool] - 1),
+                      }))
+                    }
+                    disabled={count === 0}
+                    className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-sm font-bold transition-colors hover:bg-muted disabled:opacity-30"
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold tabular-nums">
+                    {count}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCounts((prev) => ({
+                        ...prev,
+                        [tool]: Math.min(100, prev[tool] + 1),
+                      }))
+                    }
+                    className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-sm font-bold transition-colors hover:bg-muted"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Total */}
+        <div className="mt-6 flex items-center justify-between rounded-xl bg-indigo-50 px-5 py-4 dark:bg-indigo-500/10">
+          <span className="text-sm font-semibold text-muted-foreground">
+            {t("pricing.calculator.totalNeeded")}
+          </span>
+          <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+            {totalCredits} {tCredits("cost", { count: "" }).replace(/^\d*\s*/, "")}
+          </span>
+        </div>
+
+        {/* Recommendation */}
+        {recommended && (
+          <p className="mt-3 text-center text-sm text-muted-foreground">
+            {t("pricing.calculator.recommendation", {
+              package: t(`pricing.${recommended}.name`),
+            })}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

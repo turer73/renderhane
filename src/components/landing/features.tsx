@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,6 +18,7 @@ import {
   Video,
   FileText,
   Lightbulb,
+  ArrowRight,
 } from "lucide-react";
 
 const tools = [
@@ -30,6 +33,8 @@ const tools = [
 export function FeaturesSection() {
   const t = useTranslations("landing");
   const tt = useTranslations("tools");
+  const params = useParams();
+  const locale = params.locale as string;
 
   return (
     <section id="features" className="scroll-mt-20 border-t border-border/30 bg-background py-20 transition-colors sm:py-28">
@@ -95,14 +100,21 @@ export function FeaturesSection() {
                   {t(`features.${tool.key}.description`)}
                 </p>
 
-                {/* Credits badge */}
-                <div className="mt-4">
+                {/* Credits badge + CTA */}
+                <div className="mt-4 flex items-center justify-between">
                   <Badge
                     variant="secondary"
                     className="bg-indigo-50 text-indigo-700 border-0 text-xs dark:bg-indigo-500/10 dark:text-indigo-300"
                   >
                     {t(`features.${tool.key}.credits`)}
                   </Badge>
+                  <Link
+                    href={`/${locale}/login`}
+                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 transition-all duration-300 group-hover:opacity-100 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    {t("demo.tryNow")}
+                    <ArrowRight className="size-3" />
+                  </Link>
                 </div>
               </div>
             ))}

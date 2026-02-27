@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
+import { ScenePresets } from "@/components/app/scene-presets";
 import { TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
 
 /* ── Auto-resize images exceeding optimal input size ── */
@@ -71,7 +72,11 @@ async function resizeImageIfNeeded(file: File): Promise<File> {
   });
 }
 
-export function PhotoUpload() {
+interface PhotoUploadProps {
+  defaultTool?: ToolType | null;
+}
+
+export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const t = useTranslations("common");
   const tDash = useTranslations("dashboard");
 
@@ -79,13 +84,21 @@ export function PhotoUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [imageSource, setImageSource] = useState<"file" | "url" | null>(null);
-  const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolType | null>(defaultTool ?? null);
   const [prompt, setPrompt] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync external defaultTool prop into internal state
+  useEffect(() => {
+    if (defaultTool) {
+      setSelectedTool(defaultTool);
+    }
+  }, [defaultTool]);
 
   const needsPrompt = selectedTool && TOOLS_WITH_PROMPT.includes(selectedTool);
 
@@ -168,6 +181,7 @@ export function PhotoUpload() {
     setImageSource(null);
     setSelectedTool(null);
     setPrompt("");
+    setSelectedPresetId(null);
     setMessage(null);
   }
 
@@ -414,13 +428,34 @@ export function PhotoUpload() {
 
         {/* Prompt Input — shown for scene, video, aplus tools */}
         {preview && needsPrompt && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="text-sm font-medium text-muted-foreground">
               {tDash("promptLabel")}
             </label>
+
+            {/* Scene Presets — only for scene & aplus tools */}
+            {(selectedTool === "scene" || selectedTool === "aplus") && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  {tDash("presetHint")}
+                </p>
+                <ScenePresets
+                  selectedPresetId={selectedPresetId}
+                  onSelect={(presetPrompt, presetId) => {
+                    setPrompt(presetPrompt);
+                    setSelectedPresetId(presetId);
+                  }}
+                />
+              </div>
+            )}
+
             <Textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                // Clear preset highlight when user types manually
+                setSelectedPresetId(null);
+              }}
               placeholder={getPromptPlaceholder()}
               rows={2}
               className="resize-none"

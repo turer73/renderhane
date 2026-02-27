@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!jobId || !txId) {
+  if (!jobId) {
     return NextResponse.json(
-      { error: "Missing jobId or txId" },
+      { error: "Missing jobId" },
       { status: 400 }
     );
   }
@@ -98,8 +98,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Confirm credit spend
-    await confirmSpend(txId, jobId);
+    // Confirm credit spend (only if credits were reserved)
+    if (txId) {
+      await confirmSpend(txId, jobId);
+    }
   } else {
     // Job failed — refund credits
     const errorMsg =
@@ -114,7 +116,9 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", jobId);
 
-    await refundCredits(txId);
+    if (txId) {
+      await refundCredits(txId);
+    }
   }
 
   return NextResponse.json({ received: true });

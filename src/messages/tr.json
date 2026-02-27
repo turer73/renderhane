@@ -73,7 +73,29 @@
     "promptHint": "Boş bırakırsanız varsayılan profesyonel sahne kullanılır.",
     "promptPlaceholderScene": "Örn: Mermer yüzeyde, doğal ışıkla profesyonel ürün fotoğrafı",
     "promptPlaceholderVideo": "Örn: Yumuşak kamera hareketi ile ürün tanıtım videosu",
-    "promptPlaceholderAplus": "Örn: Premium e-ticaret fotoğrafı, yaşam tarzı sahnesi, stüdyo ışıkları"
+    "promptPlaceholderAplus": "Örn: Premium e-ticaret fotoğrafı, yaşam tarzı sahnesi, stüdyo ışıkları",
+    "presetHint": "Hazır sahne seçin veya aşağıya kendi açıklamanızı yazın:",
+    "presetDialogTitle": "Sahne Seçin",
+    "presetDialogSubmit": "Bu sahneyle işlemi başlat"
+  },
+  "batch": {
+    "title": "Toplu İşlem",
+    "subtitle": "Birden fazla ürün fotoğrafını aynı anda işleyin",
+    "dragDropMulti": "Görselleri sürükle & bırak veya tıkla (çoklu seçim)",
+    "addMore": "Daha Fazla Ekle",
+    "removeImage": "Kaldır",
+    "selectToolAll": "Tüm görseller için araç seçin",
+    "totalCost": "Toplam Maliyet",
+    "startBatch": "Toplu İşlemi Başlat",
+    "processing": "İşleniyor... ({current}/{total})",
+    "completed": "Tüm işlemler tamamlandı!",
+    "partialError": "{success}/{total} işlem başarılı, {failed} başarısız",
+    "insufficientCredits": "Yeterli krediniz yok. Gereken: {required}, Mevcut: {balance}",
+    "maxImages": "En fazla {max} görsel yükleyebilirsiniz",
+    "noImages": "Lütfen en az bir görsel yükleyin",
+    "noTool": "Lütfen bir araç seçin",
+    "imageCount": "{count} görsel seçildi",
+    "clear": "Tümünü Temizle"
   },
   "landing": {
     "badge": "Yapay Zeka Destekli",
@@ -86,6 +108,7 @@
     "stat3": "2 dakikada hazır",
     "stat3Sub": "Günler yerine dakikalar",
     "cta": "20 Ücretsiz Kredi ile Başla",
+    "socialProof": "500+ mağaza sahibi AI ile ürün görseli üretiyor",
     "nav": {
       "features": "Özellikler",
       "pricing": "Fiyatlandırma",
@@ -171,7 +194,13 @@
       "vatIncluded": "KDV dahil",
       "buyNow": "Şimdi Satın Al",
       "contactUs": "Bize Ulaşın",
-      "mostPopular": "En Popüler"
+      "mostPopular": "En Popüler",
+      "calculator": {
+        "title": "Kredi Hesaplayıcı",
+        "subtitle": "Kaç ürün işleyeceğinizi girin, gereken krediyi görün",
+        "totalNeeded": "Toplam Gereken Kredi",
+        "recommendation": "Önerilen paket: {package}"
+      }
     },
     "demo": {
       "title": "Nasıl Çalışır?",
@@ -247,7 +276,9 @@
     "backToProject": "Projeye Dön",
     "createdAt": "Oluşturulma: {date}",
     "fileSize": "Boyut: {size}",
-    "creditCost": "{count} kredi"
+    "creditCost": "{count} kredi",
+    "original": "Orijinal",
+    "result": "Sonuç"
   },
   "blog": {
     "title": "Blog",
@@ -328,5 +359,32 @@
       "section7Title": "Başvuru Yöntemi",
       "section7Content": "Yukarıda belirtilen haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:\n\n• E-posta: info@renderhane.com adresine kimliğinizi doğrulayıcı belgelerle birlikte başvuru yapabilirsiniz.\n\nBaşvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır. İşlemin ayrıca bir maliyet gerektirmesi halinde Kişisel Verileri Koruma Kurulu tarafından belirlenen tarife üzerinden ücretlendirme yapılabilecektir."
     }
+  },
+  "referral": {
+    "title": "Arkadaşını Davet Et",
+    "subtitle": "Arkadaşını davet et, ikimiz de kazanalım!",
+    "yourLink": "Davet Linkin",
+    "copied": "Kopyalandı!",
+    "copyLink": "Linki Kopyala",
+    "inviteByEmail": "E-posta ile Davet Et",
+    "emailPlaceholder": "arkadas@email.com",
+    "sendInvite": "Davet Gönder",
+    "sending": "Gönderiliyor...",
+    "inviteSent": "Davet gönderildi!",
+    "progress": "{count}/{max} davet tamamlandı",
+    "creditsEarned": "Kazanılan kredi: {total}",
+    "reward": "Her davet: +10 kredi",
+    "unlimitedBgRemove": "Sınırsız ücretsiz arka plan silme",
+    "dailyFree": "Bugün {remaining} ücretsiz arka plan silme hakkınız var",
+    "dailyFreeUnlimited": "Sınırsız ücretsiz arka plan silme aktif!",
+    "unlockUnlimited": "1 arkadaşını davet et → sınırsız ücretsiz",
+    "statusPending": "Bekliyor",
+    "statusCompleted": "Tamamlandı",
+    "errorAlreadyInvited": "Bu e-posta zaten davet edilmiş",
+    "errorInvalidEmail": "Geçerli bir e-posta adresi girin",
+    "errorMaxReached": "Maksimum davet sayısına ulaştınız",
+    "errorSelf": "Kendinizi davet edemezsiniz",
+    "freeBgBanner": "Arka plan silme ÜCRETSİZ!",
+    "freeBgBannerSub": "Kayıt ol, günde 3 ücretsiz hak kazan. Arkadaşını davet et → sınırsız!"
   }
 }

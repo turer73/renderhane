@@ -73,7 +73,29 @@
     "promptHint": "Leave empty to use the default professional scene.",
     "promptPlaceholderScene": "e.g. Professional product photo on marble surface with natural lighting",
     "promptPlaceholderVideo": "e.g. Smooth product showcase with gentle camera movement",
-    "promptPlaceholderAplus": "e.g. Premium e-commerce photography, lifestyle setting with studio lighting"
+    "promptPlaceholderAplus": "e.g. Premium e-commerce photography, lifestyle setting with studio lighting",
+    "presetHint": "Pick a ready-made scene or write your own description below:",
+    "presetDialogTitle": "Choose a Scene",
+    "presetDialogSubmit": "Start with this scene"
+  },
+  "batch": {
+    "title": "Batch Processing",
+    "subtitle": "Process multiple product photos at once",
+    "dragDropMulti": "Drag & drop images or click (multiple selection)",
+    "addMore": "Add More",
+    "removeImage": "Remove",
+    "selectToolAll": "Select tool for all images",
+    "totalCost": "Total Cost",
+    "startBatch": "Start Batch Processing",
+    "processing": "Processing... ({current}/{total})",
+    "completed": "All jobs completed!",
+    "partialError": "{success}/{total} succeeded, {failed} failed",
+    "insufficientCredits": "Insufficient credits. Required: {required}, Balance: {balance}",
+    "maxImages": "You can upload up to {max} images",
+    "noImages": "Please upload at least one image",
+    "noTool": "Please select a tool",
+    "imageCount": "{count} images selected",
+    "clear": "Clear All"
   },
   "landing": {
     "badge": "AI-Powered",
@@ -86,6 +108,7 @@
     "stat3": "Ready in 2 minutes",
     "stat3Sub": "Minutes instead of days",
     "cta": "Start with 20 Free Credits",
+    "socialProof": "500+ store owners create product visuals with AI",
     "nav": {
       "features": "Features",
       "pricing": "Pricing",
@@ -171,7 +194,13 @@
       "vatIncluded": "VAT included",
       "buyNow": "Buy Now",
       "contactUs": "Contact Us",
-      "mostPopular": "Most Popular"
+      "mostPopular": "Most Popular",
+      "calculator": {
+        "title": "Credit Calculator",
+        "subtitle": "Enter how many products you'll process to see required credits",
+        "totalNeeded": "Total Credits Needed",
+        "recommendation": "Recommended package: {package}"
+      }
     },
     "demo": {
       "title": "How It Works",
@@ -247,7 +276,9 @@
     "backToProject": "Back to Project",
     "createdAt": "Created: {date}",
     "fileSize": "Size: {size}",
-    "creditCost": "{count} credits"
+    "creditCost": "{count} credits",
+    "original": "Original",
+    "result": "Result"
   },
   "blog": {
     "title": "Blog",
@@ -328,5 +359,32 @@
       "section7Title": "How to Apply",
       "section7Content": "To exercise the rights listed above, you may apply through the following methods:\n\n• Email: Send your application with identity verification documents to info@renderhane.com.\n\nApplications will be concluded free of charge within 30 days at the latest. If the process requires additional costs, fees may be charged according to the tariff determined by the Personal Data Protection Board."
     }
+  },
+  "referral": {
+    "title": "Invite Friends",
+    "subtitle": "Invite friends and both of you earn rewards!",
+    "yourLink": "Your Invite Link",
+    "copied": "Copied!",
+    "copyLink": "Copy Link",
+    "inviteByEmail": "Invite by Email",
+    "emailPlaceholder": "friend@email.com",
+    "sendInvite": "Send Invite",
+    "sending": "Sending...",
+    "inviteSent": "Invite sent!",
+    "progress": "{count}/{max} invites completed",
+    "creditsEarned": "Credits earned: {total}",
+    "reward": "Each invite: +10 credits",
+    "unlimitedBgRemove": "Unlimited free background removal",
+    "dailyFree": "You have {remaining} free background removals today",
+    "dailyFreeUnlimited": "Unlimited free background removal active!",
+    "unlockUnlimited": "Invite 1 friend → unlimited free",
+    "statusPending": "Pending",
+    "statusCompleted": "Completed",
+    "errorAlreadyInvited": "This email has already been invited",
+    "errorInvalidEmail": "Enter a valid email address",
+    "errorMaxReached": "Maximum invite limit reached",
+    "errorSelf": "You cannot invite yourself",
+    "freeBgBanner": "Background Removal is FREE!",
+    "freeBgBannerSub": "Sign up and get 3 free uses daily. Invite a friend → unlimited!"
   }
 }

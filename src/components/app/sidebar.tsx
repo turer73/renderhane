@@ -13,6 +13,7 @@ import {
   FolderOpen,
   Layers,
   CreditCard,
+  Gift,
   Settings,
   Plus,
   LogOut,
@@ -28,6 +29,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   const t = useTranslations("common");
   const tSidebar = useTranslations("sidebar");
   const tDash = useTranslations("dashboard");
+  const tRef = useTranslations("referral");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
@@ -85,15 +87,21 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       disabled: false,
     },
     {
-      href: "#",
+      href: `/${locale}/app/batch`,
       label: tSidebar("batchProcessing"),
       icon: Layers,
-      disabled: true,
+      disabled: false,
     },
     {
       href: `/${locale}/app/credits`,
       label: tSidebar("creditsAndInvoices"),
       icon: CreditCard,
+      disabled: false,
+    },
+    {
+      href: `/${locale}/app#referral`,
+      label: tRef("title"),
+      icon: Gift,
       disabled: false,
     },
     {
