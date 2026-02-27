@@ -71,16 +71,16 @@ export function PricingSection() {
             return (
               <div
                 key={pkg.key}
-                className={`relative flex flex-col overflow-hidden rounded-3xl p-6 transition-all duration-300 ${
+                className={`relative flex flex-col rounded-3xl p-6 transition-all duration-300 ${
                   isPopular
-                    ? "bg-gradient-to-b from-indigo-800 to-indigo-950 text-white shadow-2xl shadow-indigo-900/30 z-10 md:scale-105 ring-1 ring-indigo-500/30"
-                    : "border border-border/60 bg-card text-foreground shadow-sm hover:border-indigo-300/60 hover:shadow-lg hover:shadow-indigo-100/30 dark:border-border/40 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/20"
+                    ? "overflow-visible bg-gradient-to-b from-indigo-800 to-indigo-950 text-white shadow-2xl shadow-indigo-900/30 z-10 md:scale-105 ring-1 ring-indigo-500/30"
+                    : "overflow-hidden border border-border/60 bg-card text-foreground shadow-sm hover:border-indigo-300/60 hover:shadow-lg hover:shadow-indigo-100/30 dark:border-border/40 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/20"
                 }`}
               >
                 {/* Popular badge */}
                 {isPopular && (
-                  <div className="absolute -top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Badge className="bg-gradient-to-r from-indigo-400 to-purple-400 text-white border-0 text-xs font-bold uppercase tracking-wide whitespace-nowrap shadow-lg shadow-indigo-500/30">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                    <Badge className="bg-gradient-to-r from-indigo-400 to-purple-400 text-white border-0 px-4 py-1 text-xs font-bold uppercase tracking-wide whitespace-nowrap shadow-lg shadow-indigo-500/30">
                       {t("pricing.mostPopular")}
                     </Badge>
                   </div>
