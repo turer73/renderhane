@@ -110,7 +110,10 @@ export function PhotoUpload() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) {
+        console.error("[upload] Auth failed — user is null");
+        return null;
+      }
 
       const timestamp = Date.now();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -121,6 +124,7 @@ export function PhotoUpload() {
         .upload(path, file, { contentType: file.type });
 
       if (error) {
+        console.error("[upload] Storage upload failed:", error.message, error);
         return null;
       }
 
@@ -129,11 +133,13 @@ export function PhotoUpload() {
         .createSignedUrl(path, 3600);
 
       if (signedUrlError || !signedUrlData?.signedUrl) {
+        console.error("[upload] Signed URL failed:", signedUrlError?.message, signedUrlError);
         return null;
       }
       return signedUrlData.signedUrl;
     }
 
+    console.error("[upload] No file or URL source available");
     return null;
   }
 
