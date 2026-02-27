@@ -200,6 +200,15 @@
       "language": "Dil"
     }
   },
+  "sidebar": {
+    "newProduction": "Yeni Üretim",
+    "menu": "MENÜ",
+    "batchProcessing": "Toplu İşlem",
+    "creditsAndInvoices": "Kredi & Faturalar",
+    "remainingCredits": "Kalan Kredi",
+    "loadCredits": "Kredi Yükle",
+    "backToHome": "Ana Sayfaya Dön"
+  },
   "viewer": {
     "stopRotation": "Dönüşü Durdur",
     "startRotation": "Dönüşü Başlat",

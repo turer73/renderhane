@@ -200,6 +200,15 @@
       "language": "Language"
     }
   },
+  "sidebar": {
+    "newProduction": "New Production",
+    "menu": "MENU",
+    "batchProcessing": "Batch Processing",
+    "creditsAndInvoices": "Credits & Invoices",
+    "remainingCredits": "Remaining Credits",
+    "loadCredits": "Buy Credits",
+    "backToHome": "Back to Home"
+  },
   "viewer": {
     "stopRotation": "Stop Rotation",
     "startRotation": "Start Rotation",

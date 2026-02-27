@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Navbar } from "@/components/app/navbar";
+import { AppShell } from "@/components/app/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 
 export default async function AppLayout({
@@ -21,12 +21,9 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {children}
-      </main>
+    <>
+      <AppShell>{children}</AppShell>
       <Toaster />
-    </div>
+    </>
   );
 }
