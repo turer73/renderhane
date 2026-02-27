@@ -230,6 +230,7 @@
     "whatNext": "What would you like to do with this image?",
     "download": "Download",
     "view3d": "View in 3D",
+    "imageExpired": "Image expired",
     "outputTypes": {
       "glb": "3D Model",
       "image": "Image",

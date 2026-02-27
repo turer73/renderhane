@@ -230,6 +230,7 @@
     "whatNext": "Bu görselle ne yapmak istersiniz?",
     "download": "İndir",
     "view3d": "3D Görüntüle",
+    "imageExpired": "Görsel süresi dolmuş",
     "outputTypes": {
       "glb": "3D Model",
       "image": "Görsel",

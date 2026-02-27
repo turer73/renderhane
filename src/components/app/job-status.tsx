@@ -59,6 +59,7 @@ export function JobStatus() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded3d, setExpanded3d] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -149,7 +150,7 @@ export function JobStatus() {
                     {/* Top row: thumbnail + info */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       {/* Thumbnail for completed image jobs */}
-                      {job.status === "completed" && job.output_url && job.output_type === "image" ? (
+                      {job.status === "completed" && job.output_url && job.output_type === "image" && !failedImages.has(job.id) ? (
                         <Link
                           href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
                           className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors sm:h-14 sm:w-14"
@@ -158,8 +159,10 @@ export function JobStatus() {
                             src={job.output_url}
                             alt={tTools(toolKey)}
                             fill
+                            unoptimized
                             className="object-cover"
                             sizes="56px"
+                            onError={() => setFailedImages((prev) => new Set(prev).add(job.id))}
                           />
                         </Link>
                       ) : job.status === "completed" && job.output_url && job.output_type === "glb" ? (

@@ -85,6 +85,16 @@ export async function POST(request: NextRequest) {
           file_size: fileSize,
           metadata: payload,
         });
+
+        // Update project thumbnail with the permanent R2 URL
+        // so it doesn't rely on expired Supabase signed URLs
+        const permanentUrl = r2Url || outputUrl;
+        if (job.project_id && permanentUrl) {
+          await supabase
+            .from("projects")
+            .update({ thumbnail_url: permanentUrl })
+            .eq("id", job.project_id);
+        }
       }
     }
 

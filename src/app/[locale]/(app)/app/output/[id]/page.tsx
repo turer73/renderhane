@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OutputActions } from "@/components/output/output-actions";
+import { OutputImage } from "@/components/output/output-image";
 import { proxyUrl } from "@/lib/proxy-url";
 
 export default async function OutputDetailPage({
@@ -103,14 +103,7 @@ export default async function OutputDetailPage({
           {outputType === "image" && url ? (
             <div className="flex w-full justify-center bg-[repeating-conic-gradient(#f3f3f3_0%_25%,#ffffff_0%_50%)] dark:bg-[repeating-conic-gradient(#1e1e2e_0%_25%,#2a2a3e_0%_50%)] bg-[length:20px_20px] p-6">
               <div className="relative aspect-square w-full max-w-md">
-                <Image
-                  src={url}
-                  alt={t("title")}
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 100vw, 448px"
-                  priority
-                />
+                <OutputImage src={url} alt={t("title")} />
               </div>
             </div>
           ) : outputType === "glb" && url ? (

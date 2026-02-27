@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -68,6 +69,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
   const t = useTranslations("projects");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   if (outputs.length === 0) {
     return (
@@ -100,13 +102,15 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
               href={`/${locale}/app/output/${output.id}`}
               className="relative block aspect-square w-full overflow-hidden bg-muted hover:opacity-90 transition-opacity"
             >
-              {output.type === "image" && url ? (
+              {output.type === "image" && url && !failedImages.has(output.id) ? (
                 <Image
                   src={url}
                   alt={typeLabel}
                   fill
+                  unoptimized
                   className="object-cover"
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  onError={() => setFailedImages((prev) => new Set(prev).add(output.id))}
                 />
               ) : output.type === "glb" ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2">

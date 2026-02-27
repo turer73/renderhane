@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OutputGallery } from "@/components/projects/output-gallery";
 import { OutputActions } from "@/components/output/output-actions";
+import { SourceImage } from "@/components/projects/source-image";
 
 const STATUS_VARIANTS: Record<
   string,
@@ -149,12 +149,9 @@ export default async function ProjectDetailPage({
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="relative mx-auto aspect-square max-w-sm overflow-hidden rounded-lg bg-muted">
-              <Image
+              <SourceImage
                 src={project.source_image_url}
                 alt={project.name}
-                fill
-                className="object-contain"
-                sizes="(max-width: 768px) 100vw, 384px"
               />
             </div>
 

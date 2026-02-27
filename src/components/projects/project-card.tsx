@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
@@ -35,6 +36,7 @@ export function ProjectCard({
   const locale = params.locale || "tr";
 
   const imageUrl = thumbnailUrl || sourceImageUrl;
+  const [imgError, setImgError] = useState(false);
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
@@ -49,16 +51,18 @@ export function ProjectCard({
     <Link href={`/${locale}/app/project/${id}`} className="block group">
       <Card className="overflow-hidden border-border/50 shadow-sm transition-all hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50/50 dark:hover:border-indigo-800 dark:hover:shadow-indigo-900/20">
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
-          {imageUrl ? (
+          {imageUrl && !imgError ? (
             <Image
               src={imageUrl}
               alt={name}
               fill
+              unoptimized
               className="object-cover transition-transform group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full flex-col items-center justify-center gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="48"
@@ -75,6 +79,11 @@ export function ProjectCard({
                 <circle cx="9" cy="9" r="2" />
                 <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
               </svg>
+              {imageUrl && imgError && (
+                <span className="text-[10px] text-muted-foreground/50">
+                  {t("imageExpired")}
+                </span>
+              )}
             </div>
           )}
         </div>

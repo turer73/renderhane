@@ -13,6 +13,10 @@ const nextConfig = {
       },
       {
         protocol: "https" as const,
+        hostname: "fal.media",
+      },
+      {
+        protocol: "https" as const,
         hostname: "*.r2.cloudflarestorage.com",
       },
       {
@@ -22,6 +26,10 @@ const nextConfig = {
       {
         protocol: "https" as const,
         hostname: "assets.renderhane.com",
+      },
+      {
+        protocol: "https" as const,
+        hostname: "*.supabase.co",
       },
     ],
   },
