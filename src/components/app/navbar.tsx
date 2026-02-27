@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CreditBadge } from "@/components/app/credit-badge";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Home,
   Upload,
@@ -114,6 +115,7 @@ export function Navbar() {
         {/* Right: Credits + User menu */}
         <div className="flex items-center gap-2 sm:gap-3">
           <CreditBadge />
+          <ThemeToggle />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

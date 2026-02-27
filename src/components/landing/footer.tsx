@@ -48,14 +48,14 @@ export function Footer() {
   ];
 
   return (
-    <footer className="border-t border-border/40 bg-muted/20">
+    <footer className="border-t border-border/40 bg-card/50">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
           {/* Brand */}
           <div className="col-span-2 sm:col-span-4 lg:col-span-1">
             <Link
               href={`/${locale}`}
-              className="flex items-center gap-2 font-bold text-lg tracking-tight"
+              className="flex items-center gap-2 font-bold text-lg tracking-tight text-foreground"
             >
               <Box className="size-5 text-primary" />
               <span>{tc("appName")}</span>
@@ -65,7 +65,7 @@ export function Footer() {
             </p>
             <a
               href="mailto:info@renderhane.com"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary/80"
             >
               <Mail className="size-3.5" />
               info@renderhane.com
@@ -82,7 +82,7 @@ export function Footer() {
                 <li key={link.label}>
                   <button
                     onClick={link.action}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
                   >
                     {link.label}
                   </button>
@@ -101,7 +101,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
                   >
                     {link.label}
                   </Link>
@@ -120,7 +120,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
                   >
                     {link.label}
                   </Link>
@@ -130,7 +130,7 @@ export function Footer() {
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-8 bg-border/50" />
 
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">

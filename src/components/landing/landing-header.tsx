@@ -43,7 +43,7 @@ export function LandingHeader() {
         {/* Logo */}
         <Link
           href={`/${locale}`}
-          className="flex items-center gap-2 font-bold text-lg tracking-tight"
+          className="flex items-center gap-2 font-bold text-lg tracking-tight text-foreground"
         >
           <Box className="size-6 text-primary" />
           <span>{tc("appName")}</span>
@@ -73,11 +73,15 @@ export function LandingHeader() {
             <span className="uppercase">{otherLocale}</span>
           </button>
 
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
             <Link href={`/${locale}/login`}>{tc("login")}</Link>
           </Button>
 
-          <Button size="sm" asChild>
+          <Button
+            size="sm"
+            asChild
+            className="bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white shadow-sm shadow-primary/20 hover:shadow-md hover:shadow-primary/30 transition-shadow"
+          >
             <Link href={`/${locale}/login`}>{tc("tryIt")}</Link>
           </Button>
         </div>
@@ -120,7 +124,11 @@ export function LandingHeader() {
             <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={`/${locale}/login`}>{tc("login")}</Link>
             </Button>
-            <Button size="sm" asChild className="w-full">
+            <Button
+              size="sm"
+              asChild
+              className="w-full bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white"
+            >
               <Link href={`/${locale}/login`}>{tc("tryIt")}</Link>
             </Button>
           </div>

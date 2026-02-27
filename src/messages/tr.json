@@ -11,7 +11,9 @@
     "upload": "Fotoğraf Yükle",
     "processing": "İşleniyor...",
     "download": "İndir",
-    "tryIt": "Ücretsiz Dene"
+    "tryIt": "Ücretsiz Dene",
+    "darkMode": "Koyu Tema",
+    "lightMode": "Açık Tema"
   },
   "tools": {
     "3dModel": "3D Model Üret",

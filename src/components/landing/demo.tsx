@@ -69,8 +69,11 @@ export function DemoSection() {
   return (
     <section
       id="demo"
-      className="scroll-mt-20 bg-muted/30 py-20 sm:py-28"
+      className="relative scroll-mt-20 py-20 sm:py-28"
     >
+      {/* Subtle radial gradient background */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,oklch(0.7_0.15_180_/_0.04)_0%,transparent_70%)]" />
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -86,13 +89,13 @@ export function DemoSection() {
         <div className="mx-auto mt-16 max-w-3xl">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {/* Before — Original photo */}
-            <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
-              <div className="border-b border-border/50 px-4 py-2.5">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="border-b border-border px-4 py-2.5">
                 <span className="text-sm font-medium text-muted-foreground">
                   {t("demo.before")}
                 </span>
               </div>
-              <div className="relative aspect-square bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800">
+              <div className="relative aspect-square bg-muted/30">
                 <Image
                   src="/demo/original.png"
                   alt="Original product photo"
@@ -105,7 +108,7 @@ export function DemoSection() {
 
             {/* After — Interactive 3D Model */}
             <div className="overflow-hidden rounded-2xl border border-primary/30 bg-card shadow-lg shadow-primary/5">
-              <div className="flex items-center justify-between border-b border-primary/20 bg-primary/[0.03] px-4 py-2.5">
+              <div className="flex items-center justify-between border-b border-primary/20 bg-primary/5 px-4 py-2.5">
                 <span className="text-sm font-medium text-primary">
                   {t("demo.after")}
                 </span>
@@ -113,7 +116,7 @@ export function DemoSection() {
                   {t("demo.interact")}
                 </span>
               </div>
-              <div className="relative aspect-square bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-800">
+              <div className="relative aspect-square bg-muted/20">
                 <Suspense fallback={<MiniLoader />}>
                   <Canvas
                     camera={{ position: [0, 0.6, 1.8], fov: 40 }}
@@ -137,8 +140,8 @@ export function DemoSection() {
                   </Canvas>
                 </Suspense>
 
-                {/* Gradient overlay bottom for polish */}
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white/60 to-transparent dark:from-zinc-900/60" />
+                {/* Gradient overlay bottom */}
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/60 to-transparent" />
               </div>
             </div>
           </div>
@@ -166,7 +169,11 @@ export function DemoSection() {
 
         {/* CTA */}
         <div className="mt-12 text-center">
-          <Button size="lg" asChild className="h-12 px-8 text-base">
+          <Button
+            size="lg"
+            asChild
+            className="h-12 px-8 text-base bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
+          >
             <Link href={`/${locale}/login`}>
               {t("demo.tryNow")}
               <ArrowRight className="ml-2 size-4" />

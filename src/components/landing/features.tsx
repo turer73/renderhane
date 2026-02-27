@@ -50,15 +50,15 @@ export function FeaturesSection() {
             {tools.map((tool, i) => (
               <div
                 key={tool.key}
-                className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 transition-all duration-300 hover:border-border hover:shadow-lg"
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
                 {/* Subtle gradient accent on hover */}
-                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/[0.02] via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
                 {/* Icon + Tip */}
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary/5 text-primary transition-colors duration-300 group-hover:bg-primary/10">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/15">
                     <tool.icon className="size-6" />
                   </div>
 
@@ -75,7 +75,7 @@ export function FeaturesSection() {
                     </TooltipTrigger>
                     <TooltipContent
                       side="top"
-                      className="max-w-[260px] bg-card text-foreground border border-border shadow-lg px-3 py-2.5 text-xs leading-relaxed"
+                      className="max-w-[260px] bg-popover text-popover-foreground border border-border shadow-lg px-3 py-2.5 text-xs leading-relaxed"
                     >
                       <div className="flex items-start gap-2">
                         <Lightbulb className="mt-0.5 size-3.5 flex-shrink-0 text-amber-500" />
@@ -95,9 +95,12 @@ export function FeaturesSection() {
                   {t(`features.${tool.key}.description`)}
                 </p>
 
-                {/* Credits badge */}
+                {/* Credits badge — teal tinted */}
                 <div className="mt-4">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="bg-primary/10 text-primary border-0 text-xs"
+                  >
                     {t(`features.${tool.key}.credits`)}
                   </Badge>
                 </div>

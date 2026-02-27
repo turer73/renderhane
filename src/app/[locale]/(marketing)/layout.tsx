@@ -3,5 +3,5 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <div className="dark">{children}</div>;
 }

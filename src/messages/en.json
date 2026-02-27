@@ -11,7 +11,9 @@
     "upload": "Upload Photo",
     "processing": "Processing...",
     "download": "Download",
-    "tryIt": "Try Free"
+    "tryIt": "Try Free",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
   },
   "tools": {
     "3dModel": "Generate 3D Model",

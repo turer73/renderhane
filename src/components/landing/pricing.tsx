@@ -44,7 +44,10 @@ export function PricingSection() {
   const locale = params.locale as string;
 
   return (
-    <section id="pricing" className="scroll-mt-20 py-20 sm:py-28">
+    <section id="pricing" className="relative scroll-mt-20 py-20 sm:py-28">
+      {/* Subtle glow behind pricing */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.7_0.15_180_/_0.03)_0%,transparent_60%)]" />
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -73,14 +76,16 @@ export function PricingSection() {
                 key={pkg.key}
                 className={`relative flex flex-col overflow-hidden rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg ${
                   isPopular
-                    ? "border-primary bg-card shadow-md"
-                    : "border-border/50 bg-card"
+                    ? "border-primary/50 bg-card ring-2 ring-primary/20 shadow-lg shadow-primary/5"
+                    : "border-border bg-card hover:shadow-primary/5"
                 }`}
               >
                 {/* Popular badge */}
                 {isPopular && (
                   <div className="absolute right-4 top-4">
-                    <Badge className="text-xs">{t("pricing.mostPopular")}</Badge>
+                    <Badge className="bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white border-0 text-xs">
+                      {t("pricing.mostPopular")}
+                    </Badge>
                   </div>
                 )}
 
@@ -103,7 +108,7 @@ export function PricingSection() {
 
                 {/* Per-credit price */}
                 {perCredit && (
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-primary">
                     {perCredit}
                   </p>
                 )}
@@ -120,7 +125,7 @@ export function PricingSection() {
                       key={feature}
                       className="flex items-start gap-2 text-sm text-muted-foreground"
                     >
-                      <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                       <span>{t(`pricing.${pkg.key}.${feature}`)}</span>
                     </li>
                   ))}
@@ -138,9 +143,18 @@ export function PricingSection() {
                         {t("pricing.contactUs")}
                       </Link>
                     </Button>
+                  ) : isPopular ? (
+                    <Button
+                      asChild
+                      className="w-full bg-gradient-to-r from-[oklch(0.65_0.15_180)] to-[oklch(0.6_0.16_195)] text-white shadow-sm shadow-primary/20"
+                    >
+                      <Link href={`/${locale}/login`}>
+                        {t("pricing.buyNow")}
+                      </Link>
+                    </Button>
                   ) : (
                     <Button
-                      variant={isPopular ? "default" : "outline"}
+                      variant="outline"
                       className="w-full"
                       asChild
                     >
