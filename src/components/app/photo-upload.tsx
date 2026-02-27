@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
 import { TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
 
-/* ── Auto-resize images exceeding API limits ── */
-const MAX_DIMENSION = 4096;
+/* ── Auto-resize images exceeding optimal input size ── */
+const MAX_DIMENSION = 2048;
 
 /**
  * Resize an image File if either dimension exceeds MAX_DIMENSION.
