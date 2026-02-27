@@ -10,6 +10,67 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
 import { TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
 
+/* ── Auto-resize images exceeding API limits ── */
+const MAX_DIMENSION = 4096;
+
+/**
+ * Resize an image File if either dimension exceeds MAX_DIMENSION.
+ * Uses the browser Canvas API — zero server cost.
+ * Returns the original file untouched when no resize is needed.
+ */
+async function resizeImageIfNeeded(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+
+      // No resize needed
+      if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
+        resolve(file);
+        return;
+      }
+
+      // Calculate new dimensions preserving aspect ratio
+      const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+      const newW = Math.round(width * scale);
+      const newH = Math.round(height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = newW;
+      canvas.height = newH;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, newW, newH);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas toBlob failed"));
+            return;
+          }
+          // Preserve original filename
+          const resized = new File([blob], file.name, {
+            type: file.type || "image/png",
+            lastModified: Date.now(),
+          });
+          resolve(resized);
+        },
+        file.type || "image/png",
+        0.92
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Image load failed"));
+    };
+
+    img.src = url;
+  });
+}
+
 export function PhotoUpload() {
   const t = useTranslations("common");
   const tDash = useTranslations("dashboard");
@@ -28,18 +89,28 @@ export function PhotoUpload() {
 
   const needsPrompt = selectedTool && TOOLS_WITH_PROMPT.includes(selectedTool);
 
-  const handleFile = useCallback((f: File) => {
+  const handleFile = useCallback(async (f: File) => {
     if (!f.type.startsWith("image/")) return;
     // Revoke previous blob URL to prevent memory leak
     if (preview && imageSource === "file") {
       URL.revokeObjectURL(preview);
     }
-    setFile(f);
+    setMessage(null);
     setImageSource("file");
     setUrlInput("");
-    setMessage(null);
-    const objectUrl = URL.createObjectURL(f);
-    setPreview(objectUrl);
+
+    try {
+      // Auto-resize if exceeds 4096×4096 (fal.ai limit)
+      const resized = await resizeImageIfNeeded(f);
+      setFile(resized);
+      const objectUrl = URL.createObjectURL(resized);
+      setPreview(objectUrl);
+    } catch {
+      // Fallback: use original file if resize fails
+      setFile(f);
+      const objectUrl = URL.createObjectURL(f);
+      setPreview(objectUrl);
+    }
   }, [preview, imageSource]);
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -102,6 +173,8 @@ export function PhotoUpload() {
 
   async function uploadToSupabase(): Promise<string | null> {
     if (imageSource === "url" && preview) {
+      // For URL images, we can't easily resize — let the API handle it.
+      // The server-side will receive the original URL as-is.
       return preview;
     }
 
