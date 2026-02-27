@@ -145,70 +145,73 @@ export function JobStatus() {
 
               return (
                 <div key={job.id} className="space-y-0">
-                  <div className="flex items-center gap-3 rounded-xl border border-border/50 p-3 transition-colors hover:bg-muted/30">
-                    {/* Thumbnail for completed image jobs */}
-                    {job.status === "completed" && job.output_url && job.output_type === "image" ? (
-                      <Link
-                        href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
-                        className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
-                      >
-                        <Image
-                          src={job.output_url}
-                          alt={tTools(toolKey)}
-                          fill
-                          className="object-cover"
-                          sizes="56px"
-                        />
-                      </Link>
-                    ) : job.status === "completed" && job.output_url && job.output_type === "glb" ? (
-                      <button
-                        type="button"
-                        onClick={() => setExpanded3d(is3dExpanded ? null : job.id)}
-                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
-                        title={tViewer("loading")}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={is3dExpanded ? "text-primary" : "text-muted-foreground"}>
-                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                          <line x1="12" y1="22.08" x2="12" y2="12" />
-                        </svg>
-                      </button>
-                    ) : job.status === "completed" && job.output_url ? (
-                      <Link
-                        href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
-                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                        </svg>
-                      </Link>
-                    ) : null}
+                  <div className="flex flex-col gap-2 rounded-xl border border-border/50 p-3 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:gap-3">
+                    {/* Top row: thumbnail + info */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Thumbnail for completed image jobs */}
+                      {job.status === "completed" && job.output_url && job.output_type === "image" ? (
+                        <Link
+                          href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
+                          className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors sm:h-14 sm:w-14"
+                        >
+                          <Image
+                            src={job.output_url}
+                            alt={tTools(toolKey)}
+                            fill
+                            className="object-cover"
+                            sizes="56px"
+                          />
+                        </Link>
+                      ) : job.status === "completed" && job.output_url && job.output_type === "glb" ? (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded3d(is3dExpanded ? null : job.id)}
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors sm:h-14 sm:w-14"
+                          title={tViewer("loading")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={is3dExpanded ? "text-primary" : "text-muted-foreground"}>
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                            <line x1="12" y1="22.08" x2="12" y2="12" />
+                          </svg>
+                        </button>
+                      ) : job.status === "completed" && job.output_url ? (
+                        <Link
+                          href={job.output_id ? `/${locale}/app/output/${job.output_id}` : `/api/jobs/${job.id}/result`}
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted ring-1 ring-border hover:ring-primary transition-colors sm:h-14 sm:w-14"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                          </svg>
+                        </Link>
+                      ) : null}
 
-                    {/* Job info */}
-                    <div className="flex flex-1 flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {tTools(toolKey)}
-                        </span>
-                        <Badge variant={STATUS_VARIANTS[job.status] ?? "secondary"}>
-                          {getStatusLabel(job.status)}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{tCredits("cost", { count: job.credit_cost })}</span>
-                        <span>&middot;</span>
-                        <span>{formatTime(job.created_at)}</span>
-                        {job.error_message && (
-                          <>
-                            <span>&middot;</span>
-                            <span className="text-red-500">{job.error_message}</span>
-                          </>
-                        )}
+                      {/* Job info */}
+                      <div className="flex flex-1 flex-col gap-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="text-sm font-medium truncate">
+                            {tTools(toolKey)}
+                          </span>
+                          <Badge variant={STATUS_VARIANTS[job.status] ?? "secondary"} className="text-[10px] sm:text-xs">
+                            {getStatusLabel(job.status)}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground sm:gap-2 sm:text-xs">
+                          <span>{tCredits("cost", { count: job.credit_cost })}</span>
+                          <span>&middot;</span>
+                          <span>{formatTime(job.created_at)}</span>
+                          {job.error_message && (
+                            <>
+                              <span>&middot;</span>
+                              <span className="text-red-500 break-all">{job.error_message}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2">
+                    {/* Action buttons — wrap to own row on mobile */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       {/* 3D viewer toggle button */}
                       {job.status === "completed" && job.output_url && job.output_type === "glb" && (
                         <Button
@@ -216,6 +219,7 @@ export function JobStatus() {
                           variant={is3dExpanded ? "default" : "outline"}
                           size="sm"
                           onClick={() => setExpanded3d(is3dExpanded ? null : job.id)}
+                          className="h-8 text-xs sm:h-9 sm:text-sm"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />

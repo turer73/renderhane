@@ -137,28 +137,26 @@ export default async function OutputDetailPage({
           )}
 
           {/* Metadata bar */}
-          <div className="flex w-full items-center justify-between gap-4 border-t px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Badge
-                variant={
-                  outputType === "glb"
-                    ? "default"
-                    : outputType === "video"
-                      ? "secondary"
-                      : "outline"
-                }
-              >
-                {tProjects(`outputTypes.${outputType}`)}
-              </Badge>
-              {output.file_size && (
-                <span className="text-xs text-muted-foreground">
-                  {formatFileSize(output.file_size)}
-                </span>
-              )}
+          <div className="flex w-full flex-wrap items-center gap-2 border-t px-4 py-3 sm:gap-3">
+            <Badge
+              variant={
+                outputType === "glb"
+                  ? "default"
+                  : outputType === "video"
+                    ? "secondary"
+                    : "outline"
+              }
+            >
+              {tProjects(`outputTypes.${outputType}`)}
+            </Badge>
+            {output.file_size && (
               <span className="text-xs text-muted-foreground">
-                {formatDate(output.created_at)}
+                {formatFileSize(output.file_size)}
               </span>
-            </div>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {formatDate(output.created_at)}
+            </span>
           </div>
         </CardContent>
       </Card>

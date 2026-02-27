@@ -271,32 +271,35 @@ export function PhotoUpload() {
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="space-y-2">
               <span className="text-xs text-muted-foreground">
                 {tDash("orPasteUrl")}
               </span>
-              <Input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder={tDash("urlPlaceholder")}
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleUrlSubmit();
-                  }
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleUrlSubmit}
-                disabled={!urlInput.trim()}
-              >
-                {tDash("urlConfirm")}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder={tDash("urlPlaceholder")}
+                  className="flex-1 min-w-0"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleUrlSubmit();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUrlSubmit}
+                  disabled={!urlInput.trim()}
+                  className="shrink-0"
+                >
+                  {tDash("urlConfirm")}
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
