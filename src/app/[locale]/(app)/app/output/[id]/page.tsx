@@ -98,10 +98,10 @@ export default async function OutputDetailPage({
       </div>
 
       {/* Output preview — centered in a card frame */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-border/50 shadow-sm">
         <CardContent className="flex flex-col items-center p-0">
           {outputType === "image" && url ? (
-            <div className="flex w-full justify-center bg-[repeating-conic-gradient(#f3f3f3_0%_25%,#ffffff_0%_50%)] bg-[length:20px_20px] p-6">
+            <div className="flex w-full justify-center bg-[repeating-conic-gradient(#f3f3f3_0%_25%,#ffffff_0%_50%)] dark:bg-[repeating-conic-gradient(#1e1e2e_0%_25%,#2a2a3e_0%_50%)] bg-[length:20px_20px] p-6">
               <div className="relative aspect-square w-full max-w-md">
                 <Image
                   src={url}
@@ -165,9 +165,9 @@ export default async function OutputDetailPage({
 
       {/* Action buttons — only for image outputs */}
       {outputType === "image" && url && (
-        <Card>
+        <Card className="border-border/50 shadow-sm">
           <CardContent className="space-y-4 p-5">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            <h2 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
               {t("processWith")}
             </h2>
             <OutputActions

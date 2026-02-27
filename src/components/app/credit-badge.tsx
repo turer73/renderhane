@@ -34,7 +34,7 @@ export function CreditBadge() {
 
   return (
     <div className="flex items-center gap-2">
-      <Badge variant="secondary" className="gap-1.5 px-2.5 py-1">
+      <Badge variant="secondary" className="gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 border-0 dark:bg-indigo-500/10 dark:text-indigo-300">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="14"

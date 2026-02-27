@@ -99,7 +99,7 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
         {compact ? (
           <Button type="button" variant="ghost" size="icon-xs" disabled={downloading !== null} title={t("viewResult")}>
             {downloading ? (
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
             ) : (
               <DownloadIcon className="h-3 w-3" />
             )}
@@ -107,7 +107,7 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
         ) : (
           <Button type="button" variant="outline" size="sm" disabled={downloading !== null}>
             {downloading ? (
-              <div className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
             ) : (
               <DownloadIcon />
             )}

@@ -51,8 +51,9 @@ export function ToolSelector({ selectedTool, onSelect }: ToolSelectorProps) {
               }
             }}
             className={cn(
-              "relative cursor-pointer p-4 transition-colors",
-              isSelected && "border-primary ring-2 ring-primary/20",
+              "relative cursor-pointer p-4 transition-all border-border/50 shadow-sm hover:shadow-md",
+              isSelected && "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/5",
+              !isSelected && isAvailable && "hover:border-indigo-300 dark:hover:border-indigo-700",
               !isAvailable && "cursor-not-allowed opacity-50"
             )}
           >

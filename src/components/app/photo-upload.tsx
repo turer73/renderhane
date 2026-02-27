@@ -211,9 +211,14 @@ export function PhotoUpload() {
   }
 
   return (
-    <Card>
+    <Card className="border-border/50 shadow-sm">
       <CardHeader>
-        <CardTitle>{t("upload")}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 dark:text-indigo-400"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          </div>
+          {t("upload")}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Upload Area */}
@@ -232,10 +237,10 @@ export function PhotoUpload() {
                   fileInputRef.current?.click();
                 }
               }}
-              className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
+              className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-all ${
                 dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/50"
+                  ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/5"
+                  : "border-muted-foreground/25 hover:border-indigo-400/50 hover:bg-muted/30"
               }`}
             >
               <svg
@@ -354,7 +359,7 @@ export function PhotoUpload() {
         {preview && selectedTool && (
           <Button
             type="button"
-            className="w-full"
+            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
             onClick={handleSubmit}
             disabled={submitting}
           >

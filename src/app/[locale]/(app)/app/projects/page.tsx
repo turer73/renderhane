@@ -53,7 +53,7 @@ export default async function ProjectsPage({
       <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
 
       {projectList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/50 py-16">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="48"

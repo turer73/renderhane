@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { Box } from "lucide-react";
 
 export function LoginForm() {
   const t = useTranslations("common");
@@ -68,10 +69,13 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-center">{t("appName")}</CardTitle>
-        <p className="text-center text-muted-foreground text-sm">
+    <Card className="w-full max-w-md border-border/50 shadow-xl shadow-indigo-100/20 dark:shadow-indigo-900/10">
+      <CardHeader className="text-center space-y-3">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10">
+          <Box className="size-6 text-indigo-600 dark:text-indigo-400" />
+        </div>
+        <CardTitle className="text-xl">{t("appName")}</CardTitle>
+        <p className="text-muted-foreground text-sm">
           {t("tagline")}
         </p>
       </CardHeader>
@@ -107,7 +111,7 @@ export function LoginForm() {
           />
         </div>
 
-        <Button onClick={handleMagicLink} className="w-full" disabled={loading}>
+        <Button onClick={handleMagicLink} className="w-full bg-indigo-600 text-white hover:bg-indigo-700" disabled={loading}>
           {loading ? tAuth("sending") : tAuth("sendMagicLink")}
         </Button>
 

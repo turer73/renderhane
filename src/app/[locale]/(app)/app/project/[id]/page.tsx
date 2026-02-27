@@ -7,7 +7,6 @@ import { TOOL_KEYS, TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { OutputGallery } from "@/components/projects/output-gallery";
 import { OutputActions } from "@/components/output/output-actions";
 
@@ -144,7 +143,7 @@ export default async function ProjectDetailPage({
 
       {/* Source Image + Next Actions */}
       {project.source_image_url && (
-        <Card>
+        <Card className="border-border/50 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">{t("sourceImage")}</CardTitle>
           </CardHeader>
@@ -161,7 +160,7 @@ export default async function ProjectDetailPage({
 
             {/* What do you want to do? */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                 {t("whatNext")}
               </h3>
               <OutputActions
@@ -181,10 +180,10 @@ export default async function ProjectDetailPage({
         </Card>
       )}
 
-      <Separator />
+      <div className="h-px bg-border/50" />
 
       {/* Jobs Section */}
-      <Card>
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">{t("jobs")}</CardTitle>
         </CardHeader>
@@ -202,7 +201,7 @@ export default async function ProjectDetailPage({
                 return (
                   <div
                     key={job.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
+                    className="flex items-center justify-between rounded-xl border border-border/50 p-3 hover:bg-muted/30 transition-colors"
                   >
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
@@ -236,7 +235,7 @@ export default async function ProjectDetailPage({
 
                     {(job.status === "pending" ||
                       job.status === "processing") && (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
                     )}
                   </div>
                 );
@@ -246,7 +245,7 @@ export default async function ProjectDetailPage({
         </CardContent>
       </Card>
 
-      <Separator />
+      <div className="h-px bg-border/50" />
 
       {/* Outputs Gallery */}
       <div className="space-y-4">

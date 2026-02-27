@@ -95,7 +95,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
         const typeLabel = t(`outputTypes.${output.type}`);
 
         return (
-          <Card key={output.id} className="overflow-hidden p-0">
+          <Card key={output.id} className="overflow-hidden border-border/50 shadow-sm hover:border-indigo-200 hover:shadow-md dark:hover:border-indigo-800 transition-all p-0">
             <Link
               href={`/${locale}/app/output/${output.id}`}
               className="relative block aspect-square w-full overflow-hidden bg-muted hover:opacity-90 transition-opacity"

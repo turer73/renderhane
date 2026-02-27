@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CreditBadge } from "@/components/app/credit-badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
-  Home,
+  Box,
   Upload,
   FolderOpen,
   Coins,
@@ -76,21 +75,21 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-14 items-center justify-between px-4">
+    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-md transition-colors">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-4 sm:gap-6">
           {/* Logo → Landing page */}
           <Link
             href={`/${locale}`}
-            className="flex items-center gap-2 text-lg font-bold tracking-tight transition-colors hover:text-primary"
+            className="flex items-center gap-2 text-lg font-bold tracking-tight transition-opacity hover:opacity-80"
             title={t("appName")}
           >
-            <Home className="size-4 text-muted-foreground" />
+            <Box className="size-5 text-indigo-600 dark:text-indigo-400" />
             <span className="hidden sm:inline">{t("appName")}</span>
           </Link>
 
-          <Separator orientation="vertical" className="hidden h-6 sm:block" />
+          <div className="hidden h-6 w-px bg-border/60 sm:block" />
 
           {/* Nav Links */}
           <nav className="flex items-center gap-1">
@@ -99,9 +98,9 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                   isActive(link.href, link.exact)
-                    ? "bg-primary/10 font-medium text-primary"
+                    ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
@@ -126,7 +125,7 @@ export function Navbar() {
                 className="rounded-full"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">
+                  <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs font-semibold dark:bg-indigo-500/20 dark:text-indigo-300">
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>

@@ -122,9 +122,9 @@ export default function CreditsPage() {
             {t("purchaseSubtitle")}
           </p>
         </div>
-        <Card className="sm:min-w-[200px]">
+        <Card className="sm:min-w-[200px] border-indigo-200/50 bg-indigo-50/30 dark:border-indigo-500/20 dark:bg-indigo-500/5">
           <CardContent className="flex items-center gap-3 py-3 px-4">
-            <Coins className="h-5 w-5 text-yellow-500" />
+            <Coins className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             <div>
               <p className="text-xs text-muted-foreground">
                 {t("currentBalance")}
@@ -147,10 +147,10 @@ export default function CreditsPage() {
           return (
             <Card
               key={key}
-              className={`relative flex flex-col ${
+              className={`relative flex flex-col transition-all ${
                 isPopular
-                  ? "border-primary shadow-md ring-1 ring-primary/20"
-                  : ""
+                  ? "border-indigo-500 shadow-lg shadow-indigo-100/50 ring-1 ring-indigo-500/20 dark:shadow-indigo-900/20"
+                  : "border-border/50 hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-700"
               }`}
             >
               {isPopular && (
@@ -188,7 +188,7 @@ export default function CreditsPage() {
                 <ul className="space-y-2">
                   {getFeatures(key).map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                      <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}
@@ -197,7 +197,7 @@ export default function CreditsPage() {
 
               <CardFooter>
                 <Button
-                  className="w-full"
+                  className={`w-full ${isPopular ? "bg-indigo-600 text-white hover:bg-indigo-700" : ""}`}
                   size="lg"
                   variant={isPopular ? "default" : "outline"}
                   onClick={() => handleBuy(key)}

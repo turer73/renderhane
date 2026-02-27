@@ -123,9 +123,14 @@ export function JobStatus() {
   }
 
   return (
-    <Card>
+    <Card className="border-border/50 shadow-sm">
       <CardHeader>
-        <CardTitle>{tDash("recentJobs")}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 dark:text-indigo-400"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          {tDash("recentJobs")}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {jobs.length === 0 ? (
@@ -140,7 +145,7 @@ export function JobStatus() {
 
               return (
                 <div key={job.id} className="space-y-0">
-                  <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className="flex items-center gap-3 rounded-xl border border-border/50 p-3 transition-colors hover:bg-muted/30">
                     {/* Thumbnail for completed image jobs */}
                     {job.status === "completed" && job.output_url && job.output_type === "image" ? (
                       <Link
@@ -230,7 +235,7 @@ export function JobStatus() {
                       )}
 
                       {(job.status === "pending" || job.status === "processing") && (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
                       )}
                     </div>
                   </div>

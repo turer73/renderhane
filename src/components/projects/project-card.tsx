@@ -47,7 +47,7 @@ export function ProjectCard({
 
   return (
     <Link href={`/${locale}/app/project/${id}`} className="block group">
-      <Card className="overflow-hidden transition-shadow hover:shadow-md">
+      <Card className="overflow-hidden border-border/50 shadow-sm transition-all hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50/50 dark:hover:border-indigo-800 dark:hover:shadow-indigo-900/20">
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {imageUrl ? (
             <Image

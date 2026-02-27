@@ -74,14 +74,14 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
             key={tool}
             type="button"
             variant="outline"
-            className="flex h-auto flex-col items-center gap-2 p-4 hover:border-primary hover:bg-primary/5 transition-colors"
+            className="flex h-auto flex-col items-center gap-2 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/5 transition-colors"
             onClick={() => handleSubmit(tool)}
             disabled={isDisabled}
           >
             {isActive ? (
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
             ) : (
-              <ToolIcon name={icon} className="h-8 w-8 text-primary" />
+              <ToolIcon name={icon} className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             )}
             <span className="text-sm font-medium">
               {tTools(toolKey)}
