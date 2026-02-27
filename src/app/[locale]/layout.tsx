@@ -66,9 +66,6 @@ export async function generateMetadata({
       follow: true,
       googleBot: { index: true, follow: true },
     },
-    verification: {
-      google: "GOOGLE_SITE_VERIFICATION", // Search Console'dan alınacak
-    },
   };
 }
 
