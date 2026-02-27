@@ -69,10 +69,10 @@ export function DemoSection() {
   return (
     <section
       id="demo"
-      className="relative scroll-mt-20 py-20 sm:py-28"
+      className="relative scroll-mt-20 py-20 sm:py-28 bg-gradient-to-b from-slate-50/50 to-background dark:from-slate-900/30 dark:to-background"
     >
-      {/* Subtle radial gradient — indigo tint */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_oklch(0.55_0.2_275_/_0.04)_0%,transparent_70%)]" />
+      {/* Radial gradient glow — indigo tint */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_oklch(0.55_0.2_275_/_0.06)_0%,transparent_60%)]" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -89,8 +89,8 @@ export function DemoSection() {
         <div className="mx-auto mt-16 max-w-3xl">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {/* Before — Original photo */}
-            <div className="overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="border-b border-border px-4 py-2.5">
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-lg">
+              <div className="border-b border-border/60 px-4 py-2.5">
                 <span className="text-sm font-medium text-muted-foreground">
                   {t("demo.before")}
                 </span>
@@ -107,8 +107,8 @@ export function DemoSection() {
             </div>
 
             {/* After — Interactive 3D Model */}
-            <div className="overflow-hidden rounded-2xl border border-indigo-300/50 bg-card shadow-lg shadow-indigo-100/30 dark:border-indigo-500/30 dark:shadow-indigo-900/10">
-              <div className="flex items-center justify-between border-b border-indigo-200/50 bg-indigo-50/50 px-4 py-2.5 dark:border-indigo-500/20 dark:bg-indigo-500/10">
+            <div className="overflow-hidden rounded-2xl border border-indigo-300/60 bg-card shadow-xl shadow-indigo-200/30 dark:border-indigo-500/30 dark:shadow-indigo-900/20">
+              <div className="flex items-center justify-between border-b border-indigo-200/50 bg-gradient-to-r from-indigo-50/80 to-purple-50/40 px-4 py-2.5 dark:from-indigo-500/10 dark:to-purple-500/5">
                 <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
                   {t("demo.after")}
                 </span>
@@ -155,8 +155,8 @@ export function DemoSection() {
         {/* Steps */}
         <div className="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3">
           {steps.map((step) => (
-            <div key={step.num} className="flex flex-col items-center text-center">
-              <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+            <div key={step.num} className="group flex flex-col items-center text-center">
+              <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-indigo-100/50 dark:bg-indigo-500/10 dark:text-indigo-400 dark:group-hover:shadow-indigo-900/30">
                 <step.icon className="size-5" />
               </div>
               <div className="mb-1 text-sm font-bold text-indigo-600 dark:text-indigo-400">
@@ -172,11 +172,11 @@ export function DemoSection() {
           <Button
             size="lg"
             asChild
-            className="h-12 px-8 text-base bg-indigo-600 text-white shadow-xl shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300/50 dark:shadow-indigo-900/30 transition-all"
+            className="group h-12 px-8 text-base bg-indigo-600 text-white shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-indigo-500/30 hover:shadow-2xl dark:shadow-indigo-900/40 transition-all duration-300"
           >
             <Link href={`/${locale}/login`}>
               {t("demo.tryNow")}
-              <ArrowRight className="ml-2 size-4" />
+              <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </Button>
         </div>

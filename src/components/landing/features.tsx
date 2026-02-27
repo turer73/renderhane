@@ -32,7 +32,7 @@ export function FeaturesSection() {
   const tt = useTranslations("tools");
 
   return (
-    <section id="features" className="scroll-mt-20 border-t border-border/40 bg-background py-20 transition-colors sm:py-28">
+    <section id="features" className="scroll-mt-20 border-t border-border/30 bg-background py-20 transition-colors sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -50,7 +50,7 @@ export function FeaturesSection() {
             {tools.map((tool, i) => (
               <div
                 key={tool.key}
-                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50/50 dark:hover:border-indigo-800 dark:hover:shadow-indigo-900/20 sm:p-8"
+                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-6 backdrop-blur-sm transition-all duration-300 hover:border-indigo-300/60 hover:bg-card hover:shadow-xl hover:shadow-indigo-100/40 dark:border-border/40 dark:bg-card/60 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/30 sm:p-8"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
                 {/* Subtle gradient accent on hover */}
@@ -58,7 +58,7 @@ export function FeaturesSection() {
 
                 {/* Icon + Tip */}
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex size-14 items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-transform duration-300 group-hover:scale-110">
+                  <div className="flex size-14 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50/80 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-indigo-100/50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:group-hover:shadow-indigo-900/30">
                     <tool.icon className="size-7 text-indigo-600 dark:text-indigo-400" />
                   </div>
 

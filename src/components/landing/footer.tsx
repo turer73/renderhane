@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Separator } from "@/components/ui/separator";
 import { Box, Globe, Mail } from "lucide-react";
 
 export function Footer() {
@@ -48,7 +47,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-900 dark:bg-slate-950">
+    <footer className="border-t border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950 dark:from-slate-950 dark:to-black">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
           {/* Brand */}
@@ -130,7 +129,7 @@ export function Footer() {
           </div>
         </div>
 
-        <Separator className="my-8 bg-slate-800" />
+        <div className="my-8 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
 
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
