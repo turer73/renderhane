@@ -237,7 +237,8 @@
     "creditsAndInvoices": "Credits & Invoices",
     "remainingCredits": "Remaining Credits",
     "loadCredits": "Buy Credits",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "admin": "Admin"
   },
   "viewer": {
     "stopRotation": "Stop Rotation",
@@ -386,5 +387,33 @@
     "errorSelf": "You cannot invite yourself",
     "freeBgBanner": "Background Removal is FREE!",
     "freeBgBannerSub": "Sign up and get 3 free uses daily. Invite a friend → unlimited!"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "overview": "Overview",
+    "users": "Users",
+    "totalUsers": "Total Users",
+    "totalJobs": "Total Jobs",
+    "creditsSpent": "Credits Spent",
+    "activeUsers7d": "Active Users (7d)",
+    "searchPlaceholder": "Search by name or email...",
+    "email": "Email",
+    "displayName": "Display Name",
+    "creditBalance": "Credits",
+    "referralCode": "Referral Code",
+    "referralCount": "Referrals",
+    "jobCount": "Jobs",
+    "createdAt": "Joined",
+    "edit": "Edit",
+    "editUser": "Edit User",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Changes saved",
+    "saveError": "Save failed",
+    "unlimitedBgRemove": "Unlimited BG Remove",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {current} of {total}",
+    "noUsers": "No users found"
   }
 }

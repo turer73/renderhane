@@ -15,6 +15,7 @@ import {
   CreditCard,
   Gift,
   Settings,
+  Shield,
   Plus,
   LogOut,
 } from "lucide-react";
@@ -37,6 +38,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userInitial, setUserInitial] = useState("U");
   const [balance, setBalance] = useState<number | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const maxCredits = 500; // For progress bar scaling
 
   useEffect(() => {
@@ -55,6 +57,17 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         if (res.ok) {
           const data = await res.json();
           setBalance(data.balance ?? 0);
+        }
+      } catch {
+        // silently fail
+      }
+
+      // Check admin status
+      try {
+        const adminRes = await fetch("/api/admin/check");
+        if (adminRes.ok) {
+          const adminData = await adminRes.json();
+          setIsAdminUser(adminData.isAdmin === true);
         }
       } catch {
         // silently fail
@@ -104,6 +117,16 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       icon: Gift,
       disabled: false,
     },
+    ...(isAdminUser
+      ? [
+          {
+            href: `/${locale}/app/admin`,
+            label: tSidebar("admin"),
+            icon: Shield,
+            disabled: false,
+          },
+        ]
+      : []),
     {
       href: "#",
       label: t("settings"),

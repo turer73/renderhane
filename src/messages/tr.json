@@ -237,7 +237,8 @@
     "creditsAndInvoices": "Kredi & Faturalar",
     "remainingCredits": "Kalan Kredi",
     "loadCredits": "Kredi Yükle",
-    "backToHome": "Ana Sayfaya Dön"
+    "backToHome": "Ana Sayfaya Dön",
+    "admin": "Yönetim"
   },
   "viewer": {
     "stopRotation": "Dönüşü Durdur",
@@ -386,5 +387,33 @@
     "errorSelf": "Kendinizi davet edemezsiniz",
     "freeBgBanner": "Arka plan silme ÜCRETSİZ!",
     "freeBgBannerSub": "Kayıt ol, günde 3 ücretsiz hak kazan. Arkadaşını davet et → sınırsız!"
+  },
+  "admin": {
+    "title": "Yönetim Paneli",
+    "overview": "Genel Bakış",
+    "users": "Kullanıcılar",
+    "totalUsers": "Toplam Kullanıcı",
+    "totalJobs": "Toplam İş",
+    "creditsSpent": "Harcanan Kredi",
+    "activeUsers7d": "Aktif Kullanıcı (7g)",
+    "searchPlaceholder": "Ad veya e-posta ile ara...",
+    "email": "E-posta",
+    "displayName": "Görünen Ad",
+    "creditBalance": "Kredi",
+    "referralCode": "Referans Kodu",
+    "referralCount": "Referans",
+    "jobCount": "İş Sayısı",
+    "createdAt": "Katılım",
+    "edit": "Düzenle",
+    "editUser": "Kullanıcıyı Düzenle",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor...",
+    "saved": "Değişiklikler kaydedildi",
+    "saveError": "Kaydetme başarısız",
+    "unlimitedBgRemove": "Sınırsız Arka Plan Kaldırma",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "page": "Sayfa {current} / {total}",
+    "noUsers": "Kullanıcı bulunamadı"
   }
 }

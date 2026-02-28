@@ -17,6 +17,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const tProjects = useTranslations("projects");
   const tCredits = useTranslations("credits");
   const tOutput = useTranslations("output");
+  const tAdmin = useTranslations("admin");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
@@ -39,6 +40,9 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     }
     if (pathname.startsWith(`${base}/output/`)) {
       return tOutput("title");
+    }
+    if (pathname === `${base}/admin`) {
+      return tAdmin("title");
     }
     return t("appName");
   }
