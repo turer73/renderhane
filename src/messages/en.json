@@ -422,6 +422,7 @@
     "completedTitle": "Completed!",
     "failedTitle": "Processing Failed",
     "viewDetail": "View Details",
-    "close": "Close"
+    "close": "Close",
+    "outputLoading": "Preparing your result..."
   }
 }

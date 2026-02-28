@@ -422,6 +422,7 @@
     "completedTitle": "Tamamlandı!",
     "failedTitle": "İşlem Başarısız",
     "viewDetail": "Detayları Gör",
-    "close": "Kapat"
+    "close": "Kapat",
+    "outputLoading": "Sonucunuz hazırlanıyor..."
   }
 }

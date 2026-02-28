@@ -111,11 +111,13 @@ export async function POST(request: NextRequest) {
         { status: 402 }
       );
     }
-    console.error("Job submission failed:", error);
-    return NextResponse.json(
-      { error: "Job submission failed" },
-      { status: 500 }
-    );
+
+    // Pass through the actual error message so the client can show it
+    const message =
+      error instanceof Error ? error.message : "Job submission failed";
+    console.error("Job submission failed:", message, error);
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

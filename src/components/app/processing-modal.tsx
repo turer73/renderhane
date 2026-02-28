@@ -313,6 +313,7 @@ export function ProcessingModal() {
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const messageRef = useRef<NodeJS.Timeout | null>(null);
+  const outputRetries = useRef(0);
 
   const messages =
     tool
@@ -338,6 +339,7 @@ export function ProcessingModal() {
       setMessageIndex(0);
       setJob(null);
       setShowConfetti(false);
+      outputRetries.current = 0;
       setOpen(true);
     }
 
@@ -390,6 +392,14 @@ export function ProcessingModal() {
         if (!found) return;
 
         if (found.status === "completed") {
+          // Race condition guard: webhook marks job "completed" BEFORE
+          // the output record is created (R2 upload takes time).
+          // Keep polling until output_url is available (max ~12 retries = 30s).
+          if (!found.output_url && outputRetries.current < 12) {
+            outputRetries.current += 1;
+            return; // stay in "processing" state, poll again
+          }
+
           setJob(found);
           setProgress(100);
           setState("completed");
@@ -559,6 +569,15 @@ export function ProcessingModal() {
                     loop
                     className="h-auto w-full max-h-[300px] bg-black"
                   />
+                </div>
+              )}
+
+              {/* Fallback when output hasn't arrived yet */}
+              {!job.output_url && (
+                <div className="flex h-[120px] w-full items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/20">
+                  <p className="text-sm text-muted-foreground animate-pulse">
+                    {tProc("outputLoading")}
+                  </p>
                 </div>
               )}
 

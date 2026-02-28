@@ -267,7 +267,17 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       }
 
       if (!res.ok) {
-        setMessage({ type: "error", text: tDash("jobError") });
+        // Try to extract the actual error message from the API response
+        let errorText = tDash("jobError");
+        try {
+          const errBody = await res.json();
+          if (errBody?.error && typeof errBody.error === "string") {
+            errorText = errBody.error;
+          }
+        } catch {
+          // Ignore parse errors — use the generic message
+        }
+        setMessage({ type: "error", text: errorText });
         setSubmitting(false);
         return;
       }
