@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,7 +33,6 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
   const tTools = useTranslations("tools");
   const tCredits = useTranslations("credits");
   const tDash = useTranslations("dashboard");
-  const router = useRouter();
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
 
@@ -58,8 +57,9 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         if (data?.error === "insufficient_credits") {
           toast.error(tCredits("insufficient"));
         } else {
@@ -70,11 +70,16 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
 
       toast.success(t("started"));
 
-      // Signal dashboard to refresh & navigate
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("job-submitted"));
+      // Signal ProcessingModal to open with job tracking info.
+      // The modal + provider live in the app layout so this works
+      // from ANY /app/* page (dashboard, project detail, output…).
+      if (typeof window !== "undefined" && data?.jobId) {
+        window.dispatchEvent(
+          new CustomEvent("job-submitted", {
+            detail: { jobId: data.jobId, tool },
+          })
+        );
       }
-      router.push(`/${locale}/app`);
     } catch {
       toast.error(t("errorSubmit"));
     } finally {
