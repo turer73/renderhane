@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DownloadMenu } from "@/components/app/download-menu";
 import { proxyUrl } from "@/lib/proxy-url";
+import { useJobPolling, type PolledJob } from "@/hooks/use-job-polling";
 
 // Lazy-load the 3D viewer — heavy Three.js bundle loaded only when needed
 const ModelViewer = dynamic(
@@ -28,19 +29,6 @@ const ModelViewer = dynamic(
   }
 );
 
-interface Job {
-  id: string;
-  tool: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  credit_cost: number;
-  created_at: string;
-  completed_at: string | null;
-  error_message: string | null;
-  output_id: string | null;
-  output_url: string | null;
-  output_type: "glb" | "image" | "video" | null;
-}
-
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   pending: "secondary",
   processing: "default",
@@ -56,50 +44,12 @@ export function JobStatus() {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
 
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Shared polling — fetch + interval + event listener handled by provider
+  const { jobs, loading } = useJobPolling();
   const [expanded3d, setExpanded3d] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
-  const fetchJobs = useCallback(async () => {
-    try {
-      const res = await fetch("/api/jobs/status");
-      if (res.ok) {
-        const data = await res.json();
-        setJobs(data.jobs ?? []);
-      }
-    } catch {
-      // Silently fail — will retry on next poll
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
-
-  // Listen for new job submissions from PhotoUpload
-  useEffect(() => {
-    const handleNewJob = () => {
-      fetchJobs();
-    };
-    window.addEventListener("job-submitted", handleNewJob);
-    return () => window.removeEventListener("job-submitted", handleNewJob);
-  }, [fetchJobs]);
-
-  // Poll every 3 seconds if there are active jobs
-  useEffect(() => {
-    const hasActiveJobs = jobs.some(
-      (j) => j.status === "pending" || j.status === "processing"
-    );
-    if (!hasActiveJobs) return;
-
-    const id = setInterval(fetchJobs, 3000);
-    return () => clearInterval(id);
-  }, [jobs, fetchJobs]);
-
-  function getStatusLabel(status: Job["status"]): string {
+  function getStatusLabel(status: PolledJob["status"]): string {
     switch (status) {
       case "pending":
         return tDash("statusPending");

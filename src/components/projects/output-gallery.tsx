@@ -137,6 +137,25 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                     {typeLabel}
                   </span>
                 </div>
+              ) : output.type === "video" && url ? (
+                <div className="relative h-full w-full bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-800">
+                  {/* Video poster frame — preload="metadata" loads only the first frame */}
+                  <video
+                    src={proxyUrl(url)}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full object-cover"
+                    onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                    onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                  />
+                  <div className="absolute bottom-2 left-2">
+                    <span className="flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                      <VideoIcon className="h-2.5 w-2.5" />
+                      Video
+                    </span>
+                  </div>
+                </div>
               ) : output.type === "video" ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2">
                   <VideoIcon className="h-12 w-12 text-muted-foreground/60" />

@@ -36,8 +36,9 @@ const IMAGE_FORMATS: FormatOption[] = [
   { label: "WebP", ext: "webp", mime: "image/webp" },
 ];
 
+// GLB label uses a translation key resolved inside the component
 const MODEL_FORMATS: FormatOption[] = [
-  { label: "GLB (Orijinal)", ext: "glb", mime: "model/gltf-binary" },
+  { label: "$$glbOriginal$$", ext: "glb", mime: "model/gltf-binary" },
   { label: "STL", ext: "stl", mime: "model/stl" },
   { label: "OBJ", ext: "obj", mime: "text/plain" },
   { label: "GLTF", ext: "gltf", mime: "model/gltf+json" },
@@ -87,7 +88,7 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
       }
     } catch (err) {
       console.error("Download error:", err);
-      toast.error("İndirme başarısız oldu");
+      toast.error(t("downloadFailed"));
     } finally {
       setDownloading(null);
     }
@@ -118,7 +119,7 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Format Seçin
+          {t("formatSelect")}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {formats.map((format) => (
@@ -131,7 +132,9 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
             <span className="font-mono text-xs font-medium w-12">
               .{format.ext}
             </span>
-            <span className="text-sm">{format.label}</span>
+            <span className="text-sm">
+              {format.label.startsWith("$$") ? t("glbOriginal") : format.label}
+            </span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

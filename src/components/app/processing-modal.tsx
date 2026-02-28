@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DownloadMenu } from "@/components/app/download-menu";
 import { TOOL_KEYS, type ToolType } from "@/lib/fal/models";
 import { proxyUrl } from "@/lib/proxy-url";
+import { useJobPolling } from "@/hooks/use-job-polling";
 
 // Lazy-load 3D viewer for completed 3D model results
 const ModelViewer = dynamic(
@@ -286,7 +287,7 @@ type ModalState = "idle" | "processing" | "completed" | "failed";
 
 interface ProcessingJob {
   id: string;
-  tool: ToolType;
+  tool: string;
   status: "pending" | "processing" | "completed" | "failed";
   output_url: string | null;
   output_type: "glb" | "image" | "video" | null;
@@ -295,6 +296,8 @@ interface ProcessingJob {
 }
 
 export function ProcessingModal() {
+  // Shared polling — reads from the same data as JobStatus
+  const { jobs: polledJobs } = useJobPolling();
   const tDash = useTranslations("dashboard");
   const tTools = useTranslations("tools");
   const tProc = useTranslations("processingModal");
@@ -310,7 +313,6 @@ export function ProcessingModal() {
   const [job, setJob] = useState<ProcessingJob | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const messageRef = useRef<NodeJS.Timeout | null>(null);
   const outputRetries = useRef(0);
@@ -377,51 +379,33 @@ export function ProcessingModal() {
     };
   }, [state, messages.length]);
 
-  // Poll for job status
+  // Watch shared polling data for this specific job's status changes.
+  // The provider handles fetch intervals — we just react to new data.
   useEffect(() => {
     if (state !== "processing" || !jobId) return;
 
-    async function poll() {
-      try {
-        const res = await fetch("/api/jobs/status");
-        if (!res.ok) return;
-        const data = await res.json();
-        const found = (data.jobs ?? []).find(
-          (j: ProcessingJob) => j.id === jobId
-        );
-        if (!found) return;
+    const found = polledJobs.find((j) => j.id === jobId);
+    if (!found) return;
 
-        if (found.status === "completed") {
-          // Webhook now creates the output record BEFORE marking
-          // the job as completed, so output_url should be available.
-          // Keep a small safety buffer (3 extra polls = ~7.5s) in case
-          // of eventual consistency delays.
-          if (!found.output_url && outputRetries.current < 3) {
-            outputRetries.current += 1;
-            return; // stay in "processing" state, poll again
-          }
-
-          setJob(found);
-          setProgress(100);
-          setState("completed");
-          // Trigger confetti after a tiny delay
-          setTimeout(() => setShowConfetti(true), 300);
-        } else if (found.status === "failed") {
-          setJob(found);
-          setState("failed");
-        }
-      } catch {
-        // Silently ignore — will retry
+    if (found.status === "completed") {
+      // Webhook creates the output record BEFORE marking the job as
+      // completed, but keep a small safety buffer (3 poll cycles ≈ 7.5s)
+      // in case of eventual consistency delays.
+      if (!found.output_url && outputRetries.current < 3) {
+        outputRetries.current += 1;
+        return; // stay in "processing" state, wait for next poll
       }
+
+      setJob(found);
+      setProgress(100);
+      setState("completed");
+      // Trigger confetti after a tiny delay
+      setTimeout(() => setShowConfetti(true), 300);
+    } else if (found.status === "failed") {
+      setJob(found);
+      setState("failed");
     }
-
-    poll(); // Initial immediate check
-    pollRef.current = setInterval(poll, 2500);
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [state, jobId]);
+  }, [polledJobs, state, jobId]);
 
   // Cleanup on close
   function handleClose() {

@@ -78,7 +78,10 @@
     "presetDialogTitle": "Sahne Seçin",
     "presetDialogSubmit": "Bu sahneyle işlemi başlat",
     "maintenanceTitle": "Servis Bakımda",
-    "maintenanceMessage": "AI işleme servisi şu anda geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin."
+    "maintenanceMessage": "AI işleme servisi şu anda geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+    "formatSelect": "Format Seçin",
+    "downloadFailed": "İndirme başarısız oldu",
+    "glbOriginal": "GLB (Orijinal)"
   },
   "batch": {
     "title": "Toplu İşlem",

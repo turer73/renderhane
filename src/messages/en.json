@@ -78,7 +78,10 @@
     "presetDialogTitle": "Choose a Scene",
     "presetDialogSubmit": "Start with this scene",
     "maintenanceTitle": "Service Maintenance",
-    "maintenanceMessage": "The AI processing service is temporarily unavailable. Please try again later."
+    "maintenanceMessage": "The AI processing service is temporarily unavailable. Please try again later.",
+    "formatSelect": "Select Format",
+    "downloadFailed": "Download failed",
+    "glbOriginal": "GLB (Original)"
   },
   "batch": {
     "title": "Batch Processing",
