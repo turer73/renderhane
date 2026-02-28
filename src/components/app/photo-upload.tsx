@@ -272,9 +272,14 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         return;
       }
 
-      setMessage({ type: "success", text: tDash("jobStarted") });
-      // Notify JobStatus to refetch immediately
-      window.dispatchEvent(new CustomEvent("job-submitted"));
+      const result = await res.json();
+
+      // Notify JobStatus to refetch + ProcessingModal to open
+      window.dispatchEvent(
+        new CustomEvent("job-submitted", {
+          detail: { jobId: result.jobId, tool: selectedTool },
+        })
+      );
       // Reset form after successful submission
       handleReset();
     } catch {

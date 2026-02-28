@@ -415,5 +415,13 @@
     "next": "Sonraki",
     "page": "Sayfa {current} / {total}",
     "noUsers": "Kullanıcı bulunamadı"
+  },
+  "processingModal": {
+    "processingTitle": "İşleminiz Hazırlanıyor",
+    "pleaseWait": "Lütfen bekleyin, bu işlem biraz zaman alabilir...",
+    "completedTitle": "Tamamlandı!",
+    "failedTitle": "İşlem Başarısız",
+    "viewDetail": "Detayları Gör",
+    "close": "Kapat"
   }
 }

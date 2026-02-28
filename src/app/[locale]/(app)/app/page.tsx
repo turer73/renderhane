@@ -1,5 +1,6 @@
 import { DashboardContent } from "@/components/app/dashboard-content";
 import { JobStatus } from "@/components/app/job-status";
+import { ProcessingModal } from "@/components/app/processing-modal";
 import { ReferralCard } from "@/components/app/referral-card";
 
 export default function AppDashboard() {
@@ -8,6 +9,7 @@ export default function AppDashboard() {
       <DashboardContent />
       <ReferralCard />
       <JobStatus />
+      <ProcessingModal />
     </div>
   );
 }

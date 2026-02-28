@@ -415,5 +415,13 @@
     "next": "Next",
     "page": "Page {current} of {total}",
     "noUsers": "No users found"
+  },
+  "processingModal": {
+    "processingTitle": "Processing Your Request",
+    "pleaseWait": "Please wait, this may take a moment...",
+    "completedTitle": "Completed!",
+    "failedTitle": "Processing Failed",
+    "viewDetail": "View Details",
+    "close": "Close"
   }
 }
