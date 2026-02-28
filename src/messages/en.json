@@ -76,7 +76,9 @@
     "promptPlaceholderAplus": "e.g. Premium e-commerce photography, lifestyle setting with studio lighting",
     "presetHint": "Pick a ready-made scene or write your own description below:",
     "presetDialogTitle": "Choose a Scene",
-    "presetDialogSubmit": "Start with this scene"
+    "presetDialogSubmit": "Start with this scene",
+    "maintenanceTitle": "Service Maintenance",
+    "maintenanceMessage": "The AI processing service is temporarily unavailable. Please try again later."
   },
   "batch": {
     "title": "Batch Processing",

@@ -76,7 +76,9 @@
     "promptPlaceholderAplus": "Örn: Premium e-ticaret fotoğrafı, yaşam tarzı sahnesi, stüdyo ışıkları",
     "presetHint": "Hazır sahne seçin veya aşağıya kendi açıklamanızı yazın:",
     "presetDialogTitle": "Sahne Seçin",
-    "presetDialogSubmit": "Bu sahneyle işlemi başlat"
+    "presetDialogSubmit": "Bu sahneyle işlemi başlat",
+    "maintenanceTitle": "Servis Bakımda",
+    "maintenanceMessage": "AI işleme servisi şu anda geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin."
   },
   "batch": {
     "title": "Toplu İşlem",

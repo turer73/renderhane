@@ -90,6 +90,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [maintenance, setMaintenance] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +100,20 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       setSelectedTool(defaultTool);
     }
   }, [defaultTool]);
+
+  // Check fal.ai service health on mount
+  useEffect(() => {
+    fetch("/api/health/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.healthy === false) {
+          setMaintenance(true);
+        }
+      })
+      .catch(() => {
+        // If health endpoint itself fails, don't block users
+      });
+  }, []);
 
   const needsPrompt = selectedTool && TOOLS_WITH_PROMPT.includes(selectedTool);
 
@@ -237,6 +252,20 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
     setMessage(null);
 
     try {
+      // Defense-in-depth: re-check service health before submitting
+      try {
+        const healthRes = await fetch("/api/health/status");
+        const healthData = await healthRes.json();
+        if (healthData?.healthy === false) {
+          setMaintenance(true);
+          setMessage({ type: "error", text: tDash("maintenanceMessage") });
+          setSubmitting(false);
+          return;
+        }
+      } catch {
+        // Health check failed — proceed anyway (fail-open)
+      }
+
       const imageUrl = await uploadToSupabase();
       if (!imageUrl) {
         setMessage({ type: "error", text: tDash("uploadError") });
@@ -323,6 +352,23 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Maintenance Banner */}
+        {maintenance && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+            <div className="flex items-start gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  {tDash("maintenanceTitle")}
+                </p>
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                  {tDash("maintenanceMessage")}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Upload Area */}
         {!preview ? (
           <div className="space-y-4">
@@ -487,7 +533,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
             type="button"
             className="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || maintenance}
           >
             {submitting ? tDash("submitting") : tDash("submit")}
           </Button>
