@@ -15,61 +15,10 @@ import {
   TOOLS_WITH_PROMPT,
   type ToolType,
 } from "@/lib/fal/models";
+import { resizeImageIfNeeded } from "@/lib/resize-image";
 
 /* ── Constants ── */
 const MAX_IMAGES = 20;
-const MAX_DIMENSION = 2048;
-
-/* ── Resize helper (same as photo-upload) ── */
-async function resizeImageIfNeeded(file: File): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const { width, height } = img;
-
-      if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-        resolve(file);
-        return;
-      }
-
-      const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
-      const newW = Math.round(width * scale);
-      const newH = Math.round(height * scale);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = newW;
-      canvas.height = newH;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, newW, newH);
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("Canvas toBlob failed"));
-            return;
-          }
-          const resized = new File([blob], file.name, {
-            type: file.type || "image/png",
-            lastModified: Date.now(),
-          });
-          resolve(resized);
-        },
-        file.type || "image/png",
-        0.92
-      );
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Image load failed"));
-    };
-
-    img.src = url;
-  });
-}
 
 interface BatchImage {
   id: string;
@@ -325,7 +274,9 @@ export function BatchUpload() {
       });
     }
 
-    // Notify JobStatus to refetch
+    // Notify JobStatus to refetch active jobs.
+    // Intentionally dispatched WITHOUT detail — batch jobs should NOT open
+    // ProcessingModal (which listens for detail.jobId on single submissions).
     window.dispatchEvent(new CustomEvent("job-submitted"));
   }
 

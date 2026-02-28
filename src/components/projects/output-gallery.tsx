@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -10,6 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DownloadMenu } from "@/components/app/download-menu";
 import { proxyUrl } from "@/lib/proxy-url";
+
+const ModelThumbnail = dynamic(
+  () =>
+    import("@/components/viewer/model-thumbnail").then(
+      (mod) => mod.ModelThumbnail
+    ),
+  { ssr: false }
+);
 
 interface Output {
   id: string;
@@ -91,7 +100,7 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
       {outputs.map((output) => {
         const url = getOutputUrl(output);
         const typeLabel = t(`outputTypes.${output.type}`);
@@ -109,9 +118,18 @@ export function OutputGallery({ outputs }: OutputGalleryProps) {
                   fill
                   unoptimized
                   className="object-cover"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  sizes="(max-width: 640px) 50vw, 33vw"
                   onError={() => setFailedImages((prev) => new Set(prev).add(output.id))}
                 />
+              ) : output.type === "glb" && url ? (
+                <div className="relative h-full w-full bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-800">
+                  <ModelThumbnail url={proxyUrl(url)} />
+                  <div className="absolute bottom-2 left-2">
+                    <span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                      3D
+                    </span>
+                  </div>
+                </div>
               ) : output.type === "glb" ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2">
                   <GlbIcon className="h-12 w-12 text-muted-foreground/60" />
