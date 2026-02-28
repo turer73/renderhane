@@ -392,10 +392,11 @@ export function ProcessingModal() {
         if (!found) return;
 
         if (found.status === "completed") {
-          // Race condition guard: webhook marks job "completed" BEFORE
-          // the output record is created (R2 upload takes time).
-          // Keep polling until output_url is available (max ~12 retries = 30s).
-          if (!found.output_url && outputRetries.current < 12) {
+          // Webhook now creates the output record BEFORE marking
+          // the job as completed, so output_url should be available.
+          // Keep a small safety buffer (3 extra polls = ~7.5s) in case
+          // of eventual consistency delays.
+          if (!found.output_url && outputRetries.current < 3) {
             outputRetries.current += 1;
             return; // stay in "processing" state, poll again
           }
