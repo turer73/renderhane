@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { OutputGallery } from "@/components/projects/output-gallery";
 import { OutputActions } from "@/components/output/output-actions";
 import { SourceImage } from "@/components/projects/source-image";
+import { refreshSignedUrl } from "@/lib/supabase/refresh-url";
 
 const STATUS_VARIANTS: Record<
   string,
@@ -71,6 +72,13 @@ export default async function ProjectDetailPage({
 
   const { data: jobs } = jobsResult;
   const { data: outputs } = outputsResult;
+
+  // Re-sign Supabase Storage URL if expired (1-hour TTL).
+  // This ensures the source image works for both display and new job submissions.
+  const freshSourceUrl = await refreshSignedUrl(
+    supabase,
+    project.source_image_url
+  );
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
@@ -156,25 +164,25 @@ export default async function ProjectDetailPage({
       )}
 
       {/* ── Source Image + Tool Actions — compact side-by-side ── */}
-      {project.source_image_url && (
+      {freshSourceUrl && (
         <Card className="border-border/50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex gap-4">
               {/* Small source thumbnail */}
               <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:w-32">
                 <SourceImage
-                  src={project.source_image_url}
+                  src={freshSourceUrl}
                   alt={project.name}
                 />
               </div>
 
-              {/* Tool actions */}
+              {/* Tool actions — uses fresh URL so fal.ai can access the image */}
               <div className="flex min-w-0 flex-1 flex-col gap-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                   {t("whatNext")}
                 </h3>
                 <OutputActions
-                  imageUrl={project.source_image_url}
+                  imageUrl={freshSourceUrl}
                   tools={[
                     { tool: "3d-model", icon: "cube" },
                     { tool: "bg-remove", icon: "eraser" },

@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { ProjectCard } from "@/components/projects/project-card";
 
+interface OutputRow {
+  id: string;
+  type: string;
+  fal_url: string | null;
+  r2_url: string | null;
+  created_at: string;
+}
+
 export default async function ProjectsPage({
   params,
 }: {
@@ -20,7 +28,8 @@ export default async function ProjectsPage({
     redirect(`/${locale}/login`);
   }
 
-  // Fetch projects with output counts, sorted by most recently updated
+  // Fetch projects WITH their outputs so we can pick the best thumbnail.
+  // Output URLs from fal.media never expire — unlike Supabase signed URLs.
   const { data: projects } = await supabase
     .from("projects")
     .select(
@@ -30,23 +39,44 @@ export default async function ProjectsPage({
       thumbnail_url,
       source_image_url,
       created_at,
-      outputs:outputs(count)
+      outputs(id, type, fal_url, r2_url, created_at)
     `
     )
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
-  const projectList = (projects ?? []).map((p) => ({
-    id: p.id as string,
-    name: p.name as string,
-    thumbnailUrl: (p.thumbnail_url as string) || null,
-    sourceImageUrl: (p.source_image_url as string) || null,
-    outputCount:
-      Array.isArray(p.outputs) && p.outputs.length > 0
-        ? (p.outputs[0] as { count: number }).count
-        : 0,
-    createdAt: p.created_at as string,
-  }));
+  const projectList = (projects ?? []).map((p) => {
+    const allOutputs = ((p.outputs ?? []) as OutputRow[]).sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    // Best thumbnail: prefer an image/video output (fal.media URL — never expires)
+    const imageOutput = allOutputs.find(
+      (o) =>
+        (o.type === "image" || o.type === "video") && (o.fal_url || o.r2_url)
+    );
+    const bestImageUrl = imageOutput
+      ? imageOutput.fal_url || imageOutput.r2_url
+      : null;
+
+    // If the project has a GLB output, pass its URL for the 3D thumbnail
+    const glbOutput = allOutputs.find(
+      (o) => o.type === "glb" && (o.fal_url || o.r2_url)
+    );
+    const glbUrl = glbOutput ? glbOutput.fal_url || glbOutput.r2_url : null;
+
+    return {
+      id: p.id as string,
+      name: p.name as string,
+      // Priority: output image > source image (may be expired, card handles error)
+      thumbnailUrl: bestImageUrl || (p.thumbnail_url as string) || null,
+      sourceImageUrl: (p.source_image_url as string) || null,
+      outputCount: allOutputs.length,
+      createdAt: p.created_at as string,
+      glbUrl,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -83,6 +113,7 @@ export default async function ProjectsPage({
               sourceImageUrl={project.sourceImageUrl}
               outputCount={project.outputCount}
               createdAt={project.createdAt}
+              glbUrl={project.glbUrl}
             />
           ))}
         </div>
