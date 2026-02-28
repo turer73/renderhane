@@ -141,55 +141,59 @@ export default async function ProjectDetailPage({
         {t("created")}: {formatDate(project.created_at)}
       </p>
 
-      {/* Source Image + Next Actions */}
+      {/* ── Outputs — shown first (the user came here to see results) ── */}
+      {outputList.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">
+            {t("outputs", { count: outputList.length })}
+          </h2>
+          <OutputGallery outputs={outputList} />
+        </div>
+      )}
+
+      {/* ── Source Image + Tool Actions — compact side-by-side ── */}
       {project.source_image_url && (
         <Card className="border-border/50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">{t("sourceImage")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="relative mx-auto aspect-square max-w-sm overflow-hidden rounded-lg bg-muted">
-              <SourceImage
-                src={project.source_image_url}
-                alt={project.name}
-              />
-            </div>
+          <CardContent className="p-4">
+            <div className="flex gap-4">
+              {/* Small source thumbnail */}
+              <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:w-32">
+                <SourceImage
+                  src={project.source_image_url}
+                  alt={project.name}
+                />
+              </div>
 
-            {/* What do you want to do? */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                {t("whatNext")}
-              </h3>
-              <OutputActions
-                imageUrl={project.source_image_url}
-                tools={[
-                  { tool: "3d-model", icon: "cube" },
-                  { tool: "bg-remove", icon: "eraser" },
-                  { tool: "enhance", icon: "sparkles" },
-                  { tool: "scene", icon: "image" },
-                  { tool: "video", icon: "video" },
-                  { tool: "aplus", icon: "star" },
-                ]}
-                creditCosts={TOOL_CREDITS}
-              />
+              {/* Tool actions */}
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  {t("whatNext")}
+                </h3>
+                <OutputActions
+                  imageUrl={project.source_image_url}
+                  tools={[
+                    { tool: "3d-model", icon: "cube" },
+                    { tool: "bg-remove", icon: "eraser" },
+                    { tool: "enhance", icon: "sparkles" },
+                    { tool: "scene", icon: "image" },
+                    { tool: "video", icon: "video" },
+                    { tool: "aplus", icon: "star" },
+                  ]}
+                  creditCosts={TOOL_CREDITS}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="h-px bg-border/50" />
-
-      {/* Jobs Section */}
-      <Card className="border-border/50 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">{t("jobs")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {jobList.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              {tDash("noJobs")}
-            </p>
-          ) : (
+      {/* ── Jobs Section — only shown when there are jobs ── */}
+      {jobList.length > 0 && (
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">{t("jobs")}</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3">
               {jobList.map((job) => {
                 const toolKey =
@@ -238,19 +242,9 @@ export default async function ProjectDetailPage({
                 );
               })}
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="h-px bg-border/50" />
-
-      {/* Outputs Gallery */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">
-          {t("outputs", { count: outputList.length })}
-        </h2>
-        <OutputGallery outputs={outputList} />
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
