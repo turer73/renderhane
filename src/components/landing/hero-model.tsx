@@ -104,9 +104,9 @@ export function HeroModel() {
           dpr={[1, 2]}
           style={{ background: "transparent" }}
         >
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[5, 5, 5]} intensity={1} />
-          <directionalLight position={[-3, 2, -2]} intensity={0.3} />
+          <ambientLight intensity={0.35} />
+          <directionalLight position={[5, 5, 5]} intensity={0.5} />
+          <directionalLight position={[-3, 2, -2]} intensity={0.15} />
           <Suspense fallback={null}>
             <FloatingModel url="/hero/renderhane.glb" />
             <Environment preset="studio" />
