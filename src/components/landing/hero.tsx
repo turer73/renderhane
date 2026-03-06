@@ -4,8 +4,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, TrendingUp, DollarSign, Clock } from "lucide-react";
+import { ArrowRight, TrendingUp, DollarSign, Clock } from "lucide-react";
 import { FreeBgBanner } from "@/components/app/free-bg-banner";
+import dynamic from "next/dynamic";
+
+const HeroModel = dynamic(
+  () => import("@/components/landing/hero-model").then((m) => m.HeroModel),
+  { ssr: false }
+);
 
 export function HeroSection() {
   const t = useTranslations("landing");
@@ -51,10 +57,9 @@ export function HeroSection() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          {/* Badge */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-200/60 bg-indigo-50/80 px-4 py-2 text-xs font-semibold text-indigo-700 shadow-sm backdrop-blur-sm dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300 sm:text-sm">
-            <Sparkles className="size-4" />
-            <span>{t("badge")}</span>
+          {/* Floating 3D Model */}
+          <div className="mb-4">
+            <HeroModel />
           </div>
 
           {/* Title — gradient text for premium feel */}
