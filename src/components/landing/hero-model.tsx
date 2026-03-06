@@ -18,7 +18,24 @@ function FloatingModel({ url }: { url: string }) {
   const { scene } = useGLTF(url, undefined, undefined, (loader) => {
     loader.setMeshoptDecoder(MeshoptDecoder);
   });
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+  const cloned = useMemo(() => {
+    const c = scene.clone(true);
+    // Apply dark tint — multiply original colors by a darker tone
+    const tint = new THREE.Color(0.55, 0.55, 0.6);
+    c.traverse((obj: THREE.Object3D) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const mats = Array.isArray(mesh.material)
+        ? mesh.material
+        : [mesh.material];
+      mats.forEach((mat) => {
+        if ("color" in mat && mat.color instanceof THREE.Color) {
+          mat.color.multiply(tint);
+        }
+      });
+    });
+    return c;
+  }, [scene]);
   const groupRef = useRef<THREE.Group>(null);
   const timeRef = useRef(0);
 
