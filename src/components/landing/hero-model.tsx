@@ -10,11 +10,14 @@ import {
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Center, useGLTF, Environment } from "@react-three/drei";
+import { MeshoptDecoder } from "meshoptimizer";
 import * as THREE from "three";
 
 /* ── Floating rotating model — no controls, pure auto-rotate ── */
 function FloatingModel({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
+  const { scene } = useGLTF(url, undefined, undefined, (loader) => {
+    loader.setMeshoptDecoder(MeshoptDecoder);
+  });
   const cloned = useMemo(() => scene.clone(true), [scene]);
   const groupRef = useRef<THREE.Group>(null);
   const timeRef = useRef(0);
