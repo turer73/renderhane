@@ -12,14 +12,19 @@ export async function middleware(request: NextRequest) {
   const isEmbed = /^\/[a-z]{2}\/embed\//.test(request.nextUrl.pathname);
 
   // Security headers — CSP with XSS protection directives
+  // Three.js needs 'unsafe-eval' for shader compilation and blob: for workers
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.fal.media https://assets.renderhane.com https://*.supabase.co",
-    "font-src 'self'",
-    "connect-src 'self' https://*.supabase.co https://*.fal.media https://www.google-analytics.com",
+    "img-src 'self' data: blob: https://*.fal.media https://assets.renderhane.com https://*.supabase.co https://*.r2.dev",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://*.r2.dev https://*.r2.cloudflarestorage.com",
     "media-src 'self' blob: https://assets.renderhane.com https://*.fal.media",
+    "worker-src 'self' blob:",
+    "child-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
     `frame-ancestors ${isEmbed ? "'self'" : "'none'"}`,
   ].join("; ");
 
