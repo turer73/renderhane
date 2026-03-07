@@ -39,7 +39,7 @@ export default function OGImage() {
             lineHeight: 1.4,
           }}
         >
-          E-Ticaret Mağazanız İçin AI Stüdyosu
+          AI Studio for Your E-Commerce Store
         </div>
         <div
           style={{
@@ -50,10 +50,10 @@ export default function OGImage() {
             gap: 24,
           }}
         >
-          <span>🎨 Ürün Görseli</span>
+          <span>🎨 Product Visuals</span>
           <span>📦 3D Model</span>
           <span>🎬 Video</span>
-          <span>✂️ Arka Plan Silme</span>
+          <span>✂️ BG Remove</span>
         </div>
       </div>
     ),

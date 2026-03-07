@@ -10,7 +10,15 @@ export async function generateMetadata({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "common" });
-  return { title: `${t("login")} — ${t("appName")}` };
+  const description =
+    locale === "tr"
+      ? "Renderhane hesabınıza giriş yapın. AI destekli ürün görseli, 3D model ve video üretimine başlayın."
+      : "Sign in to your Renderhane account. Start generating AI-powered product visuals, 3D models and videos.";
+  return {
+    title: `${t("login")} — ${t("appName")}`,
+    description,
+    robots: { index: true, follow: true },
+  };
 }
 
 export default async function LoginPage({

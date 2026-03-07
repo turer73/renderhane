@@ -5,6 +5,36 @@ import { Footer } from "@/components/landing/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getAllArticles } from "@/lib/blog/articles";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const title =
+    locale === "tr"
+      ? "Blog | Renderhane"
+      : "Blog | Renderhane";
+  const description =
+    locale === "tr"
+      ? "E-ticaret, ürün fotoğrafçılığı, 3D modelleme ve yapay zeka hakkında rehberler ve ipuçları."
+      : "Guides and tips on e-commerce, product photography, 3D modeling and AI.";
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/${locale}/blog`,
+      languages: { tr: "/tr/blog", en: "/en/blog" },
+    },
+    keywords:
+      locale === "tr"
+        ? ["e-ticaret blog", "ürün fotoğrafı", "3D model", "yapay zeka", "AI görsel"]
+        : ["e-commerce blog", "product photography", "3D model", "AI", "AI visuals"],
+  };
+}
 
 export default async function BlogPage({
   params,

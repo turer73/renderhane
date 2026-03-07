@@ -15,6 +15,8 @@ interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, locale } = await params;
   const article = getArticleBySlug(slug);
@@ -27,12 +29,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${title} | Renderhane Blog`,
     description,
+    alternates: {
+      canonical: `/${locale}/blog/${slug}`,
+      languages: { tr: `/tr/blog/${slug}`, en: `/en/blog/${slug}` },
+    },
     openGraph: {
       title,
       description,
       type: "article",
       publishedTime: article.date,
       authors: [article.author],
+      url: `${BASE_URL}/${locale}/blog/${slug}`,
     },
   };
 }
@@ -53,8 +60,57 @@ export default async function BlogArticlePage({ params }: PageProps) {
   // Get other articles for "Related" section
   const otherArticles = getAllArticles().filter((a) => a.slug !== slug);
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description,
+    datePublished: article.date,
+    author: { "@type": "Organization", name: article.author },
+    publisher: {
+      "@type": "Organization",
+      name: "Renderhane",
+      logo: { "@type": "ImageObject", url: `${BASE_URL}/icon.png` },
+    },
+    mainEntityOfPage: `${BASE_URL}/${locale}/blog/${slug}`,
+    inLanguage: locale === "tr" ? "tr-TR" : "en-US",
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Renderhane",
+        item: `${BASE_URL}/${locale}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: `${BASE_URL}/${locale}/blog`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: title,
+        item: `${BASE_URL}/${locale}/blog/${slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <LandingHeader />
       <main className="flex-1">
         <article className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
