@@ -162,6 +162,7 @@
     "pricing": {
       "title": "Basit ve Şeffaf Fiyatlandırma",
       "subtitle": "İhtiyacınıza uygun paketi seçin. Abonelik yok, sadece kullandığınız kadar ödeyin.",
+      "comingSoon": "Çok Yakında",
       "starter": {
         "name": "Başlangıç",
         "credits": "50 Kredi",

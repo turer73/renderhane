@@ -162,6 +162,7 @@
     "pricing": {
       "title": "Simple & Transparent Pricing",
       "subtitle": "Choose the package that fits your needs. No subscriptions, pay only for what you use.",
+      "comingSoon": "Coming Soon",
       "starter": {
         "name": "Starter",
         "credits": "50 Credits",

@@ -58,8 +58,19 @@ export function PricingSection() {
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Coming Soon Banner */}
+        <div className="mx-auto mt-10 flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30">
+            <span className="relative flex size-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex size-2.5 rounded-full bg-white" />
+            </span>
+            {t("pricing.comingSoon")}
+          </div>
+        </div>
+
+        {/* Cards — dimmed until payment goes live */}
+        <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 opacity-60 pointer-events-none select-none sm:grid-cols-2 lg:grid-cols-4">
           {packages.map((pkg) => {
             const isPopular = pkg.popular;
             const isEnterprise = pkg.key === "enterprise";
@@ -178,8 +189,10 @@ export function PricingSection() {
           })}
         </div>
 
-        {/* Credit Calculator */}
-        <CreditCalculator />
+        {/* Credit Calculator — dimmed until payment goes live */}
+        <div className="opacity-60 pointer-events-none select-none">
+          <CreditCalculator />
+        </div>
       </div>
     </section>
   );
