@@ -45,7 +45,9 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const [maintenance, setMaintenance] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
+  const multiCameraInputRef = useRef<HTMLInputElement>(null);
 
   const isMultiImageTool = selectedTool ? TOOLS_MULTI_IMAGE.includes(selectedTool) : false;
 
@@ -194,6 +196,18 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       addMultiFiles(e.target.files);
       e.target.value = "";
     }
+  }
+
+  function handleCameraInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const captured = e.target.files?.[0];
+    if (captured) {
+      if (isMultiImageTool) {
+        addMultiFiles([captured]);
+      } else {
+        handleFile(captured);
+      }
+    }
+    e.target.value = "";
   }
 
   function handleUrlSubmit() {
@@ -417,6 +431,20 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
             </div>
 
+            {/* Camera button — visible on mobile */}
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-indigo-400/50 hover:bg-muted/30 sm:hidden"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+              {tDash("takePhoto")}
+            </button>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCameraInput} />
+
             <div className="space-y-2">
               <span className="text-xs text-muted-foreground">{tDash("orPasteUrl")}</span>
               <div className="flex items-center gap-2">
@@ -525,8 +553,22 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
               </div>
             )}
 
-            {/* Hidden multi-file input */}
+            {/* Camera button — visible on mobile for multi-image */}
+            <button
+              type="button"
+              onClick={() => multiCameraInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-indigo-400/50 hover:bg-muted/30 sm:hidden"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+              {tDash("takePhoto")}
+            </button>
+
+            {/* Hidden multi-file input + camera input */}
             <input ref={multiFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleMultiFileInput} />
+            <input ref={multiCameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCameraInput} />
           </div>
         )}
 

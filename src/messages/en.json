@@ -49,6 +49,7 @@
   },
   "dashboard": {
     "dragDrop": "Drag & Drop or click",
+    "takePhoto": "Take Photo",
     "orPasteUrl": "or paste URL",
     "urlPlaceholder": "https://example.com/product.jpg",
     "imageSelected": "Image selected",

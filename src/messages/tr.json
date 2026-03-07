@@ -49,6 +49,7 @@
   },
   "dashboard": {
     "dragDrop": "Sürükle & Bırak veya tıkla",
+    "takePhoto": "Fotoğraf Çek",
     "orPasteUrl": "veya URL yapıştır",
     "urlPlaceholder": "https://example.com/product.jpg",
     "imageSelected": "Görsel seçildi",
