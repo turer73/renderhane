@@ -14,10 +14,8 @@ const PROXY_HOSTS = ["assets.renderhane.com", "v3b.fal.media", "fal.media"];
 export function proxyUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    const needsProxy = PROXY_HOSTS.some(
-      (host) =>
-        parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)
-    );
+    // Exact hostname match only — no subdomain wildcard
+    const needsProxy = PROXY_HOSTS.includes(parsed.hostname);
     if (needsProxy) {
       return `/api/assets/proxy?url=${encodeURIComponent(url)}`;
     }

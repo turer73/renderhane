@@ -11,32 +11,37 @@ export interface ModelConfig {
   imageParamKey: string;
   /** Key used for the optional text prompt (e.g. scene_description, prompt) */
   promptParamKey?: string;
+  /** When true, imageParamKey accepts a string[] instead of a single string */
+  multiImage?: boolean;
   defaultParams: Record<string, unknown>;
 }
 
 export const MODELS: Record<string, ModelConfig> = {
   /* ── 3D Model ─────────────────────────────── */
   "trellis-v1": {
-    id: "fal-ai/trellis",
+    id: "fal-ai/trellis/multi",
     displayName: { tr: "TRELLIS v1 — Hızlı", en: "TRELLIS v1 — Fast" },
     tier: "fast",
     creditCost: 2,
     estimatedTime: "~15s",
-    imageParamKey: "image_url",
+    imageParamKey: "image_urls",
+    multiImage: true,
     defaultParams: {
       ss_guidance_strength: 7.5,
       slat_guidance_strength: 3,
       mesh_simplify: 0.95,
       texture_size: 1024,
+      multiimage_algo: "stochastic",
     },
   },
   "trellis-2": {
-    id: "fal-ai/trellis-2",
+    id: "fal-ai/trellis-2/multi",
     displayName: { tr: "TRELLIS 2 — Kaliteli", en: "TRELLIS 2 — Quality" },
     tier: "standard",
     creditCost: 10,
     estimatedTime: "~2min",
-    imageParamKey: "image_url",
+    imageParamKey: "image_urls",
+    multiImage: true,
     defaultParams: {
       resolution: 1024,
       ss_guidance_strength: 7.5,
@@ -132,14 +137,22 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   aplus: "aplus",
 };
 
-export const TOOL_CREDITS: Record<ToolType, number> = {
-  "3d-model": 10,
-  "bg-remove": 1,
-  "enhance": 2,
-  "scene": 3,
-  "video": 10,
-  "aplus": 5,
-};
+/**
+ * Credit cost per tool — derived from the first (default) model's creditCost
+ * to stay in sync with MODELS automatically.
+ */
+export const TOOL_CREDITS: Record<ToolType, number> = Object.fromEntries(
+  (Object.keys(TOOL_MODELS) as ToolType[]).map((tool) => [
+    tool,
+    MODELS[TOOL_MODELS[tool][0]].creditCost,
+  ])
+) as Record<ToolType, number>;
 
 /** Tools that accept a text prompt from the user */
 export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "aplus"];
+
+/** Tools that accept multiple images (multi-view) */
+export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];
+
+/** Max images for multi-image tools */
+export const MAX_MULTI_IMAGES = 4;

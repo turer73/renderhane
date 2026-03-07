@@ -42,4 +42,13 @@ export const env = {
 
   // App
   appUrl: requireEnv("NEXT_PUBLIC_APP_URL"),
+
+  // Email
+  resendApiKey: requireEnv("RESEND_API_KEY"),
+
+  // Cron
+  cronSecret: requireEnv("CRON_SECRET"),
+
+  // Admin
+  adminEmails: process.env.ADMIN_EMAILS || "",
 } as const;

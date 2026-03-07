@@ -81,7 +81,13 @@
     "maintenanceMessage": "The AI processing service is temporarily unavailable. Please try again later.",
     "formatSelect": "Select Format",
     "downloadFailed": "Download failed",
-    "glbOriginal": "GLB (Original)"
+    "glbOriginal": "GLB (Original)",
+    "multiViewHint": "Add photos from different angles for a better 3D model: front, back, left, right",
+    "addMoreViews": "Add More Views",
+    "maxViews": "Up to {max} images",
+    "viewCount": "{count}/{max} images",
+    "removeView": "Remove",
+    "multiViewDragDrop": "Drag & drop 3D images or click (1-4 images)"
   },
   "batch": {
     "title": "Batch Processing",

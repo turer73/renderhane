@@ -1,4 +1,5 @@
 import "server-only";
+import crypto from "crypto";
 import { fal } from "@fal-ai/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getResend, FROM_EMAIL } from "@/lib/email/resend";
@@ -23,9 +24,16 @@ const SERVICE_ID = "fal-ai";
  * 4. If status CHANGED → send admin email (down or recovered)
  */
 export async function GET(request: NextRequest) {
-  // Verify cron secret (Vercel sends this automatically)
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verify cron secret with timing-safe comparison
+  const authHeader = request.headers.get("authorization") || "";
+  const expected = `Bearer ${process.env.CRON_SECRET || ""}`;
+  const authBuf = Buffer.from(authHeader);
+  const expectedBuf = Buffer.from(expected);
+  if (
+    !process.env.CRON_SECRET ||
+    authBuf.length !== expectedBuf.length ||
+    !crypto.timingSafeEqual(authBuf, expectedBuf)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

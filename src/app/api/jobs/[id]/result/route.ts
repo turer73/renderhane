@@ -30,5 +30,23 @@ export async function GET(
     return NextResponse.json({ error: "Result not found" }, { status: 404 });
   }
 
+  // Validate redirect URL to prevent open redirect attacks
+  const ALLOWED_REDIRECT_HOSTS = [
+    "assets.renderhane.com",
+    "v3b.fal.media",
+    "fal.media",
+  ];
+  try {
+    const parsed = new URL(url);
+    if (
+      parsed.protocol !== "https:" ||
+      !ALLOWED_REDIRECT_HOSTS.some((h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`))
+    ) {
+      return NextResponse.json({ error: "Invalid result URL" }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid result URL" }, { status: 400 });
+  }
+
   return NextResponse.redirect(url);
 }

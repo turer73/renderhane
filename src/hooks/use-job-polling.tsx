@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -46,8 +47,12 @@ const POLL_INTERVAL_MS = 2500;
 export function JobPollingProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<PolledJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const isFetchingRef = useRef(false);
 
   const fetchJobs = useCallback(async () => {
+    // Guard against overlapping requests
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       const res = await fetch("/api/jobs/status");
       if (res.ok) {
@@ -58,6 +63,7 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
       // Silently fail — will retry on next poll
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 
@@ -67,22 +73,35 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
   }, [fetchJobs]);
 
   // Immediate refetch when a new job is submitted (PhotoUpload / BatchUpload).
-  // Both dispatch a "job-submitted" CustomEvent — detail content varies but
-  // the refetch is unconditional.
   useEffect(() => {
     const handle = () => fetchJobs();
     window.addEventListener("job-submitted", handle);
     return () => window.removeEventListener("job-submitted", handle);
   }, [fetchJobs]);
 
-  // Auto-poll while there are active jobs
+  // Pause polling when tab is hidden to save bandwidth/battery
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchJobs(); // Refetch immediately when tab becomes visible
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchJobs]);
+
+  // Auto-poll while there are active jobs (only when tab is visible)
   useEffect(() => {
     const hasActive = jobs.some(
       (j) => j.status === "pending" || j.status === "processing"
     );
     if (!hasActive) return;
 
-    const id = setInterval(fetchJobs, POLL_INTERVAL_MS);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchJobs();
+      }
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [jobs, fetchJobs]);
 

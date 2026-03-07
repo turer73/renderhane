@@ -32,9 +32,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid url" }, { status: 400 });
   }
 
-  const isAllowed = ALLOWED_HOSTS.some(
-    (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)
-  );
+  // Exact hostname match only — no subdomain wildcard to prevent SSRF
+  const isAllowed = ALLOWED_HOSTS.includes(parsed.hostname);
 
   if (!isAllowed) {
     return NextResponse.json(
@@ -64,7 +63,7 @@ export async function GET(request: NextRequest) {
   const headers: Record<string, string> = {
     "Content-Type": contentType,
     "Cache-Control": "public, max-age=31536000, immutable",
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": request.headers.get("origin") || "https://renderhane.com",
   };
 
   if (contentLength) {

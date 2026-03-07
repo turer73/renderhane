@@ -58,6 +58,19 @@ export function BeforeAfter({
     setDragging(false);
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setPosition((p) => Math.max(0, p - 2));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setPosition((p) => Math.min(100, p + 2));
+      }
+    },
+    []
+  );
+
   return (
     <div
       ref={containerRef}
@@ -66,6 +79,13 @@ export function BeforeAfter({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onKeyDown={handleKeyDown}
+      role="slider"
+      aria-valuenow={Math.round(position)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="Image comparison"
+      tabIndex={0}
     >
       {/* Before (source) — full layer */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -8,7 +8,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import "@/app/globals.css";
 
-const GA_ID = "G-PLZ6ZW54KV";
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
 // Validates all required env vars at startup — fails fast if any are missing
 import "@/lib/env";
@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const BASE_URL = "https://renderhane.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";
 
 export async function generateMetadata({
   params,
@@ -116,18 +116,6 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="ga4-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_ID}');
-          `}
-        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

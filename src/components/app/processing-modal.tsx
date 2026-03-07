@@ -315,6 +315,8 @@ export function ProcessingModal() {
 
   const progressRef = useRef<NodeJS.Timeout | null>(null);
   const messageRef = useRef<NodeJS.Timeout | null>(null);
+  const confettiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const outputRetries = useRef(0);
 
   const messages =
@@ -400,18 +402,27 @@ export function ProcessingModal() {
       setProgress(100);
       setState("completed");
       // Trigger confetti after a tiny delay
-      setTimeout(() => setShowConfetti(true), 300);
+      confettiTimeoutRef.current = setTimeout(() => setShowConfetti(true), 300);
     } else if (found.status === "failed") {
       setJob(found);
       setState("failed");
     }
   }, [polledJobs, state, jobId]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (confettiTimeoutRef.current) clearTimeout(confettiTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
   // Cleanup on close
   function handleClose() {
     setOpen(false);
     // Slight delay before full reset so animation plays out
-    setTimeout(() => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
       setState("idle");
       setTool(null);
       setJobId(null);

@@ -3,7 +3,9 @@ import { MODELS, type ModelConfig, type ToolType, type ModelTier } from "./model
 interface RouteRequest {
   tool: ToolType;
   tier?: ModelTier;
-  imageUrl: string;
+  imageUrl?: string;
+  /** Multiple image URLs for multi-view models (e.g. 3D) */
+  imageUrls?: string[];
   /** Optional user-provided text prompt (scene description, video prompt, etc.) */
   prompt?: string;
   locale?: string;
@@ -16,13 +18,23 @@ interface RouteResult {
 }
 
 export function routeRequest(request: RouteRequest): RouteResult {
-  const { tool, tier = "standard", imageUrl, prompt } = request;
+  const { tool, tier = "standard", imageUrl, imageUrls, prompt } = request;
 
   const modelKey = selectModel(tool, tier);
   const model = MODELS[modelKey];
 
+  // Build the image input based on model type
+  let imageValue: string | string[];
+  if (model.multiImage) {
+    // Multi-image model: use imageUrls array, fallback to wrapping single imageUrl
+    imageValue = imageUrls ?? (imageUrl ? [imageUrl] : []);
+  } else {
+    // Single-image model
+    imageValue = imageUrl ?? "";
+  }
+
   const input: Record<string, unknown> = {
-    [model.imageParamKey]: imageUrl,
+    [model.imageParamKey]: imageValue,
     ...model.defaultParams,
   };
 

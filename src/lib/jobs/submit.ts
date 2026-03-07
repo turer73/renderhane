@@ -1,21 +1,34 @@
 import { fal } from "@fal-ai/client";
+import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, refundCredits } from "@/lib/credits/engine";
 import { routeRequest } from "@/lib/fal/smart-router";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
+
+/**
+ * Generate an HMAC signature for webhook verification.
+ * This replaces passing the raw secret in the URL query string.
+ */
+export function signWebhookPayload(data: string): string {
+  const secret = process.env.FAL_WEBHOOK_SECRET;
+  if (!secret) throw new Error("FAL_WEBHOOK_SECRET is not set");
+  return crypto.createHmac("sha256", secret).update(data).digest("hex");
+}
 
 interface SubmitJobInput {
   userId: string;
   projectId?: string;
   tool: ToolType;
   tier?: ModelTier;
-  imageUrl: string;
+  imageUrl?: string;
+  /** Multiple image URLs for multi-view models (e.g. 3D) */
+  imageUrls?: string[];
   /** Optional user-provided text prompt (scene description, video prompt, etc.) */
   prompt?: string;
 }
 
 export async function submitJob(input: SubmitJobInput) {
-  const { userId, projectId, tool, tier, imageUrl, prompt } = input;
+  const { userId, projectId, tool, tier, imageUrl, imageUrls, prompt } = input;
   const supabase = createAdminClient();
 
   // 1. Route to correct model
@@ -23,6 +36,7 @@ export async function submitJob(input: SubmitJobInput) {
     tool,
     tier,
     imageUrl,
+    imageUrls,
     prompt,
   });
 
@@ -73,7 +87,10 @@ export async function submitJob(input: SubmitJobInput) {
   }
 
   // 4. Submit to fal.ai queue with webhook
-  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}${txId ? `&txId=${txId}` : ""}&secret=${process.env.FAL_WEBHOOK_SECRET}`;
+  // Sign the payload with HMAC instead of passing the raw secret in the URL
+  const webhookPayload = `${job.id}:${txId || ""}`;
+  const signature = signWebhookPayload(webhookPayload);
+  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}${txId ? `&txId=${txId}` : ""}&sig=${signature}`;
 
   let result;
   try {

@@ -1,12 +1,16 @@
 {
-  "name": "3dlabx",
+  "name": "renderhane",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.999.0",

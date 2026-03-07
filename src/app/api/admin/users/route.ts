@@ -33,14 +33,17 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.ilike("display_name", `%${search}%`);
+    // Escape LIKE wildcards to prevent pattern injection
+    const escaped = search.replace(/[%_\\]/g, "\\$&");
+    query = query.ilike("display_name", `%${escaped}%`);
   }
 
   const { data: profiles, count: totalProfiles, error: profilesError } = await query;
 
   if (profilesError) {
+    console.error("[admin/users] profiles query error:", profilesError.message);
     return NextResponse.json(
-      { error: `Failed to fetch profiles: ${profilesError.message}` },
+      { error: "Failed to fetch users" },
       { status: 500 }
     );
   }
@@ -53,8 +56,9 @@ export async function GET(request: NextRequest) {
   } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
 
   if (authError) {
+    console.error("[admin/users] auth users query error:", authError.message);
     return NextResponse.json(
-      { error: `Failed to fetch auth users: ${authError.message}` },
+      { error: "Failed to fetch users" },
       { status: 500 }
     );
   }

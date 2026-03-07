@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const { data: comments, error } = await supabase
     .from("blog_comments")
-    .select("*")
+    .select("id, article_slug, display_name, content, is_question, parent_id, created_at")
     .eq("article_slug", slug)
     .order("created_at", { ascending: true });
 
@@ -51,6 +51,15 @@ export async function POST(request: NextRequest) {
   if (!slug || !content?.trim()) {
     return NextResponse.json(
       { error: "slug and content required" },
+      { status: 400 }
+    );
+  }
+
+  // Limit content length to prevent abuse
+  const MAX_COMMENT_LENGTH = 2000;
+  if (content.trim().length > MAX_COMMENT_LENGTH) {
+    return NextResponse.json(
+      { error: `Comment too long (max ${MAX_COMMENT_LENGTH} characters)` },
       { status: 400 }
     );
   }

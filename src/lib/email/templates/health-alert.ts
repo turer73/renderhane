@@ -1,3 +1,13 @@
+/** Escape HTML special characters to prevent injection in email templates */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 interface HealthAlertProps {
   service: string;
   errorMessage?: string;
@@ -30,7 +40,7 @@ export function buildServiceDownEmail({
           <p style="font-size:16px;line-height:1.6;color:#1f2937;margin:0 0 16px;">
             <strong>${service}</strong> servisi yanıt vermiyor.
           </p>
-          ${errorMessage ? `<p style="font-size:14px;color:#6b7280;background:#f3f4f6;padding:12px;border-radius:8px;margin:0 0 16px;font-family:monospace;">${errorMessage}</p>` : ""}
+          ${errorMessage ? `<p style="font-size:14px;color:#6b7280;background:#f3f4f6;padding:12px;border-radius:8px;margin:0 0 16px;font-family:monospace;">${escapeHtml(errorMessage)}</p>` : ""}
           <p style="font-size:14px;color:#6b7280;margin:0 0 8px;">
             Arka arkaya başarısız kontrol: <strong>${consecutiveFailures ?? 1}</strong>
           </p>
@@ -74,7 +84,7 @@ export function buildServiceRecoveredEmail({
           <p style="font-size:16px;line-height:1.6;color:#1f2937;margin:0 0 16px;">
             <strong>${service}</strong> servisi tekrar çalışıyor.
           </p>
-          ${downSince ? `<p style="font-size:14px;color:#6b7280;margin:0 0 8px;">Kesinti başlangıcı: <strong>${downSince}</strong></p>` : ""}
+          ${downSince ? `<p style="font-size:14px;color:#6b7280;margin:0 0 8px;">Kesinti başlangıcı: <strong>${escapeHtml(downSince)}</strong></p>` : ""}
           <p style="font-size:14px;color:#6b7280;margin:0;">
             Kullanıcılar artık tekrar işlem yapabilir. Otomatik olarak açıldı.
           </p>

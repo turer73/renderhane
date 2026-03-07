@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,14 @@ export function BatchUpload() {
   const [dragOver, setDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Revoke all blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      images.forEach((img) => URL.revokeObjectURL(img.preview));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const needsPrompt = selectedTool && TOOLS_WITH_PROMPT.includes(selectedTool);
 

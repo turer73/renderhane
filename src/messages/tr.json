@@ -81,7 +81,13 @@
     "maintenanceMessage": "AI işleme servisi şu anda geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
     "formatSelect": "Format Seçin",
     "downloadFailed": "İndirme başarısız oldu",
-    "glbOriginal": "GLB (Orijinal)"
+    "glbOriginal": "GLB (Orijinal)",
+    "multiViewHint": "Daha iyi 3D model için farklı açılardan fotoğraf ekleyin: ön, arka, sol, sağ",
+    "addMoreViews": "Daha Fazla Açı Ekle",
+    "maxViews": "En fazla {max} görsel",
+    "viewCount": "{count}/{max} görsel",
+    "removeView": "Kaldır",
+    "multiViewDragDrop": "3D görsellerini sürükle & bırak veya tıkla (1-4 görsel)"
   },
   "batch": {
     "title": "Toplu İşlem",

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { NextRequest, NextResponse } from "next/server";
+import { TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES } from "@/lib/fal/models";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 
 const VALID_TOOLS: ToolType[] = [
@@ -23,6 +24,55 @@ const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
   video: "Video Oluştur",
   aplus: "A+ İçerik",
 };
+
+const ALLOWED_IMAGE_HOSTS = [
+  "assets.renderhane.com",
+  "v3b.fal.media",
+  "fal.media",
+];
+
+/** Validate a single image URL — returns error string or null if valid */
+function validateImageUrl(url: unknown): string | null {
+  if (typeof url !== "string" || !url) {
+    return "imageUrl must be a non-empty string";
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return "Invalid imageUrl protocol";
+    }
+
+    const hostname = parsed.hostname;
+    const isPrivate =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("172.") ||
+      hostname === "169.254.169.254" ||
+      hostname.endsWith(".internal") ||
+      hostname === "[::1]";
+
+    if (isPrivate) {
+      return "Invalid imageUrl: private addresses not allowed";
+    }
+
+    const isSupabaseStorage = hostname.endsWith(".supabase.co");
+    const isAllowedHost = ALLOWED_IMAGE_HOSTS.some(
+      (h) => hostname === h || hostname.endsWith(`.${h}`)
+    );
+
+    if (!isAllowedHost && !isSupabaseStorage) {
+      return "imageUrl must be from a supported domain";
+    }
+  } catch {
+    return "Invalid imageUrl format";
+  }
+
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -45,33 +95,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { tool, tier, imageUrl, projectId, prompt } = body;
+  const { tool, tier, imageUrl, imageUrls, projectId, prompt } = body;
 
-  if (!tool || !imageUrl) {
+  if (!tool) {
     return NextResponse.json(
-      { error: "tool and imageUrl are required" },
-      { status: 400 }
-    );
-  }
-
-  if (typeof imageUrl !== "string" || !imageUrl) {
-    return NextResponse.json(
-      { error: "imageUrl must be a string" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const parsed = new URL(imageUrl as string);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return NextResponse.json(
-        { error: "Invalid imageUrl protocol" },
-        { status: 400 }
-      );
-    }
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid imageUrl format" },
+      { error: "tool is required" },
       { status: 400 }
     );
   }
@@ -83,13 +111,62 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const isMultiImage = TOOLS_MULTI_IMAGE.includes(tool as ToolType);
+
+  // Validate image inputs based on tool type
+  let validatedImageUrl: string | undefined;
+  let validatedImageUrls: string[] | undefined;
+
+  if (isMultiImage) {
+    // Multi-image tools: require imageUrls array
+    if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+      return NextResponse.json(
+        { error: `imageUrls array is required for ${tool} (1-${MAX_MULTI_IMAGES} images)` },
+        { status: 400 }
+      );
+    }
+
+    if (imageUrls.length > MAX_MULTI_IMAGES) {
+      return NextResponse.json(
+        { error: `Maximum ${MAX_MULTI_IMAGES} images allowed` },
+        { status: 400 }
+      );
+    }
+
+    // Validate each URL
+    for (const url of imageUrls) {
+      const urlError = validateImageUrl(url);
+      if (urlError) {
+        return NextResponse.json({ error: urlError }, { status: 400 });
+      }
+    }
+
+    validatedImageUrls = imageUrls as string[];
+  } else {
+    // Single-image tools: require imageUrl
+    if (!imageUrl) {
+      return NextResponse.json(
+        { error: "imageUrl is required" },
+        { status: 400 }
+      );
+    }
+
+    const urlError = validateImageUrl(imageUrl);
+    if (urlError) {
+      return NextResponse.json({ error: urlError }, { status: 400 });
+    }
+
+    validatedImageUrl = imageUrl as string;
+  }
+
   // Resolve or auto-create a project for this job
+  const thumbnailUrl = validatedImageUrl ?? validatedImageUrls?.[0] ?? "";
   let resolvedProjectId = projectId as string | undefined;
   if (!resolvedProjectId) {
     resolvedProjectId = await autoCreateProject(
       user.id,
       tool as ToolType,
-      imageUrl as string
+      thumbnailUrl
     );
   }
 
@@ -99,7 +176,8 @@ export async function POST(request: NextRequest) {
       projectId: resolvedProjectId,
       tool: tool as ToolType,
       tier: tier as ModelTier | undefined,
-      imageUrl: imageUrl as string,
+      imageUrl: validatedImageUrl,
+      imageUrls: validatedImageUrls,
       prompt: typeof prompt === "string" ? prompt : undefined,
     });
 
@@ -112,12 +190,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Pass through the actual error message so the client can show it
-    const message =
+    // Log detailed error server-side, return generic message to client
+    const internalMessage =
       error instanceof Error ? error.message : "Job submission failed";
-    console.error("Job submission failed:", message, error);
+    console.error("Job submission failed:", internalMessage, error);
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Job submission failed. Please try again." },
+      { status: 500 }
+    );
   }
 }
 

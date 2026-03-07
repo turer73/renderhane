@@ -1,26 +1,38 @@
+import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { confirmSpend, refundCredits } from "@/lib/credits/engine";
 import { uploadToR2 } from "@/lib/r2/upload";
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * Verify the HMAC signature from the webhook URL.
+ * Uses timing-safe comparison to prevent timing attacks.
+ */
+function verifySignature(jobId: string, txId: string | null, signature: string): boolean {
+  const secret = process.env.FAL_WEBHOOK_SECRET;
+  if (!secret || !signature) return false;
+
+  const payload = `${jobId}:${txId || ""}`;
+  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expected);
+
+  if (sigBuf.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expectedBuf);
+}
+
 export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("jobId");
   const txId = searchParams.get("txId");
-  const secret = searchParams.get("secret");
+  const signature = searchParams.get("sig");
 
-  // Verify webhook secret
-  if (!secret || secret !== process.env.FAL_WEBHOOK_SECRET) {
+  // Verify webhook HMAC signature (timing-safe)
+  if (!jobId || !signature || !verifySignature(jobId, txId, signature)) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 }
-    );
-  }
-
-  if (!jobId) {
-    return NextResponse.json(
-      { error: "Missing jobId" },
-      { status: 400 }
     );
   }
 

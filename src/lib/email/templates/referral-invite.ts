@@ -1,3 +1,13 @@
+/** Escape HTML special characters to prevent injection in email templates */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 interface ReferralInviteProps {
   referrerName: string;
   referralLink: string;
@@ -25,6 +35,9 @@ const CONTENT = {
 
 export function buildReferralInviteEmail({ referrerName, referralLink, locale }: ReferralInviteProps) {
   const t = CONTENT[locale] || CONTENT.tr;
+  const safeName = escapeHtml(referrerName);
+  // Validate referral link protocol to prevent javascript: injection
+  const safeLink = referralLink.startsWith("https://") ? referralLink : "#";
 
   return {
     subject: t.subject(referrerName),
@@ -44,11 +57,11 @@ export function buildReferralInviteEmail({ referrerName, referralLink, locale }:
         <!-- Body -->
         <tr><td style="padding:32px;">
           <p style="font-size:16px;line-height:1.6;color:#1f2937;margin:0 0 24px;">
-            ${t.body(referrerName)}
+            ${escapeHtml(t.body(referrerName))}
           </p>
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
-              <a href="${referralLink}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
+              <a href="${safeLink}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
                 ${t.cta}
               </a>
             </td></tr>

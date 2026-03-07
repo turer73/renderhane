@@ -1,25 +1,41 @@
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  let body: { referralCode?: string; userId?: string };
+  // Authenticate the user — never trust userId from the request body
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { referralCode?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { referralCode, userId } = body;
+  const { referralCode } = body;
 
-  if (!referralCode || !userId) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  if (!referralCode || typeof referralCode !== "string") {
+    return NextResponse.json({ error: "Missing referralCode" }, { status: 400 });
+  }
+
+  // Validate referral code format (8 hex chars)
+  if (!/^[a-f0-9]{8}$/i.test(referralCode)) {
+    return NextResponse.json({ error: "Invalid referral code format" }, { status: 400 });
   }
 
   const admin = createAdminClient();
 
   const { data, error } = await admin.rpc("complete_referral", {
     p_referral_code: referralCode,
-    p_referee_id: userId,
+    p_referee_id: user.id, // Use authenticated user ID, not client-supplied
   });
 
   if (error) {

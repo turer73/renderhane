@@ -21,6 +21,10 @@ export async function reserveCredits(
   amount: number,
   description: string
 ): Promise<string> {
+  if (amount <= 0 || !Number.isFinite(amount) || !Number.isInteger(amount)) {
+    throw new Error("Credit amount must be a positive integer");
+  }
+
   const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("reserve_credits", {
@@ -92,6 +96,10 @@ export async function addCredits(
   paymentId: string,
   description: string
 ): Promise<string> {
+  if (amount <= 0 || !Number.isFinite(amount) || !Number.isInteger(amount)) {
+    throw new Error("Credit amount must be a positive integer");
+  }
+
   const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("add_credits", {

@@ -9,8 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
 import { ScenePresets } from "@/components/app/scene-presets";
-import { TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
+import { TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES, type ToolType } from "@/lib/fal/models";
 import { resizeImageIfNeeded } from "@/lib/resize-image";
+
+interface MultiImage {
+  id: string;
+  file: File;
+  preview: string;
+  name: string;
+}
 
 interface PhotoUploadProps {
   defaultTool?: ToolType | null;
@@ -20,10 +27,15 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const t = useTranslations("common");
   const tDash = useTranslations("dashboard");
 
+  // Single-image state (for non-3D tools)
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [imageSource, setImageSource] = useState<"file" | "url" | null>(null);
+
+  // Multi-image state (for 3D tools)
+  const [multiImages, setMultiImages] = useState<MultiImage[]>([]);
+
   const [selectedTool, setSelectedTool] = useState<ToolType | null>(defaultTool ?? null);
   const [prompt, setPrompt] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
@@ -33,6 +45,20 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const [maintenance, setMaintenance] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
+
+  const isMultiImageTool = selectedTool ? TOOLS_MULTI_IMAGE.includes(selectedTool) : false;
+
+  // Revoke blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (preview && imageSource === "file") {
+        URL.revokeObjectURL(preview);
+      }
+      multiImages.forEach((img) => URL.revokeObjectURL(img.preview));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync external defaultTool prop into internal state
   useEffect(() => {
@@ -40,6 +66,26 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       setSelectedTool(defaultTool);
     }
   }, [defaultTool]);
+
+  // When switching TO a multi-image tool and a single image exists,
+  // migrate it to the multi-image list
+  useEffect(() => {
+    if (isMultiImageTool && file && imageSource === "file" && multiImages.length === 0) {
+      const newPreview = URL.createObjectURL(file);
+      setMultiImages([{
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file,
+        preview: newPreview,
+        name: file.name,
+      }]);
+      // Clear single-image state
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(null);
+      setFile(null);
+      setImageSource(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMultiImageTool]);
 
   // Check fal.ai service health on mount
   useEffect(() => {
@@ -50,16 +96,17 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           setMaintenance(true);
         }
       })
-      .catch(() => {
-        // If health endpoint itself fails, don't block users
-      });
+      .catch(() => {});
   }, []);
 
   const needsPrompt = selectedTool && TOOLS_WITH_PROMPT.includes(selectedTool);
 
+  // Whether there's any image ready (single or multi)
+  const hasImage = isMultiImageTool ? multiImages.length > 0 : !!preview;
+
+  /* ── Single-image handlers ── */
   const handleFile = useCallback(async (f: File) => {
     if (!f.type.startsWith("image/")) return;
-    // Revoke previous blob URL to prevent memory leak
     if (preview && imageSource === "file") {
       URL.revokeObjectURL(preview);
     }
@@ -68,25 +115,62 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
     setUrlInput("");
 
     try {
-      // Auto-resize if exceeds 4096×4096 (fal.ai limit)
       const resized = await resizeImageIfNeeded(f);
       setFile(resized);
-      const objectUrl = URL.createObjectURL(resized);
-      setPreview(objectUrl);
+      setPreview(URL.createObjectURL(resized));
     } catch {
-      // Fallback: use original file if resize fails
       setFile(f);
-      const objectUrl = URL.createObjectURL(f);
-      setPreview(objectUrl);
+      setPreview(URL.createObjectURL(f));
     }
   }, [preview, imageSource]);
 
+  /* ── Multi-image handlers ── */
+  async function addMultiFiles(files: FileList | File[]) {
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (multiImages.length + fileArray.length > MAX_MULTI_IMAGES) {
+      setMessage({ type: "error", text: tDash("maxViews", { max: MAX_MULTI_IMAGES }) });
+      return;
+    }
+    setMessage(null);
+    const newImages: MultiImage[] = [];
+    for (const f of fileArray) {
+      try {
+        const resized = await resizeImageIfNeeded(f);
+        newImages.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          file: resized,
+          preview: URL.createObjectURL(resized),
+          name: f.name,
+        });
+      } catch {
+        newImages.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          file: f,
+          preview: URL.createObjectURL(f),
+          name: f.name,
+        });
+      }
+    }
+    setMultiImages((prev) => [...prev, ...newImages]);
+  }
+
+  function removeMultiImage(id: string) {
+    setMultiImages((prev) => {
+      const img = prev.find((i) => i.id === id);
+      if (img) URL.revokeObjectURL(img.preview);
+      return prev.filter((i) => i.id !== id);
+    });
+  }
+
+  /* ── Shared handlers ── */
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setDragOver(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      handleFile(droppedFile);
+    if (isMultiImageTool) {
+      if (e.dataTransfer.files.length) addMultiFiles(e.dataTransfer.files);
+    } else {
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile) handleFile(droppedFile);
     }
   }
 
@@ -102,8 +186,13 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
-    if (selected) {
-      handleFile(selected);
+    if (selected) handleFile(selected);
+  }
+
+  function handleMultiFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files?.length) {
+      addMultiFiles(e.target.files);
+      e.target.value = "";
     }
   }
 
@@ -127,72 +216,66 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   }
 
   function handleReset() {
-    if (preview && imageSource === "file") {
-      URL.revokeObjectURL(preview);
-    }
+    if (preview && imageSource === "file") URL.revokeObjectURL(preview);
+    multiImages.forEach((img) => URL.revokeObjectURL(img.preview));
     setPreview(null);
     setFile(null);
     setUrlInput("");
     setImageSource(null);
+    setMultiImages([]);
     setSelectedTool(null);
     setPrompt("");
     setSelectedPresetId(null);
     setMessage(null);
   }
 
-  async function uploadToSupabase(): Promise<string | null> {
-    if (imageSource === "url" && preview) {
-      // For URL images, we can't easily resize — let the API handle it.
-      // The server-side will receive the original URL as-is.
-      return preview;
-    }
+  /* ── Upload helpers ── */
+  async function uploadFileToSupabase(f: File): Promise<string | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
 
-    if (imageSource === "file" && file) {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("[upload] Auth failed — user is null");
-        return null;
-      }
+    const timestamp = Date.now();
+    const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${user.id}/${timestamp}-${safeName}`;
 
-      const timestamp = Date.now();
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${user.id}/${timestamp}-${safeName}`;
+    const { error } = await supabase.storage
+      .from("uploads")
+      .upload(path, f, { contentType: f.type });
+    if (error) return null;
 
-      const { error } = await supabase.storage
-        .from("uploads")
-        .upload(path, file, { contentType: file.type });
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from("uploads")
+      .createSignedUrl(path, 3600);
+    if (signedUrlError || !signedUrlData?.signedUrl) return null;
+    return signedUrlData.signedUrl;
+  }
 
-      if (error) {
-        console.error("[upload] Storage upload failed:", error.message, error);
-        return null;
-      }
-
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from("uploads")
-        .createSignedUrl(path, 3600);
-
-      if (signedUrlError || !signedUrlData?.signedUrl) {
-        console.error("[upload] Signed URL failed:", signedUrlError?.message, signedUrlError);
-        return null;
-      }
-      return signedUrlData.signedUrl;
-    }
-
-    console.error("[upload] No file or URL source available");
+  async function uploadSingleImage(): Promise<string | null> {
+    if (imageSource === "url" && preview) return preview;
+    if (imageSource === "file" && file) return uploadFileToSupabase(file);
     return null;
   }
 
+  async function uploadMultiImages(): Promise<string[] | null> {
+    const urls: string[] = [];
+    for (const img of multiImages) {
+      const url = await uploadFileToSupabase(img.file);
+      if (!url) return null;
+      urls.push(url);
+    }
+    return urls;
+  }
+
+  /* ── Submit ── */
   async function handleSubmit() {
-    if (!preview || !selectedTool) return;
+    if (!hasImage || !selectedTool) return;
 
     setSubmitting(true);
     setMessage(null);
 
     try {
-      // Defense-in-depth: re-check service health before submitting
+      // Health check
       try {
         const healthRes = await fetch("/api/health/status");
         const healthData = await healthRes.json();
@@ -202,23 +285,28 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           setSubmitting(false);
           return;
         }
-      } catch {
-        // Health check failed — proceed anyway (fail-open)
+      } catch { /* fail-open */ }
+
+      const payload: Record<string, unknown> = { tool: selectedTool };
+
+      if (isMultiImageTool) {
+        const imageUrls = await uploadMultiImages();
+        if (!imageUrls) {
+          setMessage({ type: "error", text: tDash("uploadError") });
+          setSubmitting(false);
+          return;
+        }
+        payload.imageUrls = imageUrls;
+      } else {
+        const imageUrl = await uploadSingleImage();
+        if (!imageUrl) {
+          setMessage({ type: "error", text: tDash("uploadError") });
+          setSubmitting(false);
+          return;
+        }
+        payload.imageUrl = imageUrl;
       }
 
-      const imageUrl = await uploadToSupabase();
-      if (!imageUrl) {
-        setMessage({ type: "error", text: tDash("uploadError") });
-        setSubmitting(false);
-        return;
-      }
-
-      const payload: Record<string, unknown> = {
-        tool: selectedTool,
-        imageUrl,
-      };
-
-      // Include prompt for tools that support it
       if (needsPrompt && prompt.trim()) {
         payload.prompt = prompt.trim();
       }
@@ -236,30 +324,24 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       }
 
       if (!res.ok) {
-        // Try to extract the actual error message from the API response
         let errorText = tDash("jobError");
         try {
           const errBody = await res.json();
           if (errBody?.error && typeof errBody.error === "string") {
             errorText = errBody.error;
           }
-        } catch {
-          // Ignore parse errors — use the generic message
-        }
+        } catch { /* use generic */ }
         setMessage({ type: "error", text: errorText });
         setSubmitting(false);
         return;
       }
 
       const result = await res.json();
-
-      // Notify JobStatus to refetch + ProcessingModal to open
       window.dispatchEvent(
         new CustomEvent("job-submitted", {
           detail: { jobId: result.jobId, tool: selectedTool },
         })
       );
-      // Reset form after successful submission
       handleReset();
     } catch {
       setMessage({ type: "error", text: tDash("jobError") });
@@ -270,16 +352,19 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
 
   function getPromptPlaceholder(): string {
     switch (selectedTool) {
-      case "scene":
-        return tDash("promptPlaceholderScene");
-      case "video":
-        return tDash("promptPlaceholderVideo");
-      case "aplus":
-        return tDash("promptPlaceholderAplus");
-      default:
-        return "";
+      case "scene": return tDash("promptPlaceholderScene");
+      case "video": return tDash("promptPlaceholderVideo");
+      case "aplus": return tDash("promptPlaceholderAplus");
+      default: return "";
     }
   }
+
+  /* ── Shared drop zone ── */
+  const dropZoneClasses = `flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-all ${
+    dragOver
+      ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/5"
+      : "border-muted-foreground/25 hover:border-indigo-400/50 hover:bg-muted/30"
+  }`;
 
   return (
     <Card className="border-border/50 shadow-sm">
@@ -298,19 +383,15 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
             <div className="flex items-start gap-3">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
               <div>
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  {tDash("maintenanceTitle")}
-                </p>
-                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                  {tDash("maintenanceMessage")}
-                </p>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{tDash("maintenanceTitle")}</p>
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{tDash("maintenanceMessage")}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Upload Area */}
-        {!preview ? (
+        {/* ── Upload Area: Single-image mode (non-3D tools or no tool selected yet) ── */}
+        {!isMultiImageTool && !preview && (
           <div className="space-y-4">
             <div
               onDrop={handleDrop}
@@ -325,44 +406,19 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                   fileInputRef.current?.click();
                 }
               }}
-              className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-all ${
-                dragOver
-                  ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/5"
-                  : "border-muted-foreground/25 hover:border-indigo-400/50 hover:bg-muted/30"
-              }`}
+              className={dropZoneClasses}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mb-4 text-muted-foreground"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-muted-foreground">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" x2="12" y1="3" y2="15" />
               </svg>
-              <p className="text-sm text-muted-foreground">
-                {tDash("dragDrop")}
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileInput}
-              />
+              <p className="text-sm text-muted-foreground">{tDash("dragDrop")}</p>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">
-                {tDash("orPasteUrl")}
-              </span>
+              <span className="text-xs text-muted-foreground">{tDash("orPasteUrl")}</span>
               <div className="flex items-center gap-2">
                 <Input
                   type="url"
@@ -370,105 +426,144 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder={tDash("urlPlaceholder")}
                   className="flex-1 min-w-0"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleUrlSubmit();
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleUrlSubmit(); } }}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleUrlSubmit}
-                  disabled={!urlInput.trim()}
-                  className="shrink-0"
-                >
+                <Button type="button" variant="outline" size="sm" onClick={handleUrlSubmit} disabled={!urlInput.trim()} className="shrink-0">
                   {tDash("urlConfirm")}
                 </Button>
               </div>
             </div>
           </div>
-        ) : (
-          /* Preview */
+        )}
+
+        {/* ── Single-image preview (non-3D tools) ── */}
+        {!isMultiImageTool && preview && (
           <div className="space-y-3">
             <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={preview}
-                alt={tDash("imageSelected")}
-                className="h-auto w-full object-contain"
-              />
+              <img src={preview} alt={tDash("imageSelected")} className="h-auto w-full object-contain" />
             </div>
             <div className="flex items-center justify-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                {tDash("imageSelected")}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-              >
-                {tDash("changeImage")}
-              </Button>
+              <p className="text-sm text-muted-foreground">{tDash("imageSelected")}</p>
+              <Button type="button" variant="outline" size="sm" onClick={handleReset}>{tDash("changeImage")}</Button>
             </div>
           </div>
         )}
 
+        {/* ── Multi-image mode (3D tools) ── */}
+        {isMultiImageTool && (
+          <div className="space-y-4">
+            {/* Multi-image grid */}
+            {multiImages.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {tDash("viewCount", { count: multiImages.length, max: MAX_MULTI_IMAGES })}
+                  </p>
+                  <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground">
+                    {tDash("changeImage")}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {multiImages.map((img) => (
+                    <div key={img.id} className="group relative">
+                      <div className="relative aspect-square overflow-hidden rounded-lg border border-border/50">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.preview} alt={img.name} className="h-full w-full object-cover" />
+                        <button
+                          onClick={() => removeMultiImage(img.id)}
+                          className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                          aria-label={tDash("removeView")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add more button (inside grid) */}
+                  {multiImages.length < MAX_MULTI_IMAGES && (
+                    <div
+                      onClick={() => multiFileInputRef.current?.click()}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); multiFileInputRef.current?.click(); } }}
+                      className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 transition-all hover:border-indigo-400/50 hover:bg-muted/30"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                        <line x1="12" x2="12" y1="5" y2="19" /><line x1="5" x2="19" y1="12" y2="12" />
+                      </svg>
+                      <span className="mt-1 text-[10px] text-muted-foreground">{tDash("addMoreViews")}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Multi-view hint */}
+                <p className="text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
+              </div>
+            )}
+
+            {/* Drop zone when no images yet */}
+            {multiImages.length === 0 && (
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => multiFileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); multiFileInputRef.current?.click(); } }}
+                className={dropZoneClasses}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-muted-foreground">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+                <p className="text-sm text-muted-foreground">{tDash("multiViewDragDrop")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
+              </div>
+            )}
+
+            {/* Hidden multi-file input */}
+            <input ref={multiFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleMultiFileInput} />
+          </div>
+        )}
+
         {/* Tool Selector */}
-        {preview && (
+        {hasImage && (
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              {tDash("selectTool")}
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{tDash("selectTool")}</h3>
             <ToolSelector selectedTool={selectedTool} onSelect={setSelectedTool} />
           </div>
         )}
 
         {/* Prompt Input — shown for scene, video, aplus tools */}
-        {preview && needsPrompt && (
+        {hasImage && needsPrompt && (
           <div className="space-y-3">
-            <label className="text-sm font-medium text-muted-foreground">
-              {tDash("promptLabel")}
-            </label>
-
-            {/* Scene Presets — only for scene & aplus tools */}
+            <label className="text-sm font-medium text-muted-foreground">{tDash("promptLabel")}</label>
             {(selectedTool === "scene" || selectedTool === "aplus") && (
               <div className="space-y-1.5">
-                <p className="text-xs text-muted-foreground">
-                  {tDash("presetHint")}
-                </p>
+                <p className="text-xs text-muted-foreground">{tDash("presetHint")}</p>
                 <ScenePresets
                   selectedPresetId={selectedPresetId}
-                  onSelect={(presetPrompt, presetId) => {
-                    setPrompt(presetPrompt);
-                    setSelectedPresetId(presetId);
-                  }}
+                  onSelect={(presetPrompt, presetId) => { setPrompt(presetPrompt); setSelectedPresetId(presetId); }}
                 />
               </div>
             )}
-
             <Textarea
               value={prompt}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                // Clear preset highlight when user types manually
-                setSelectedPresetId(null);
-              }}
+              onChange={(e) => { setPrompt(e.target.value); setSelectedPresetId(null); }}
               placeholder={getPromptPlaceholder()}
               rows={2}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              {tDash("promptHint")}
-            </p>
+            <p className="text-xs text-muted-foreground">{tDash("promptHint")}</p>
           </div>
         )}
 
         {/* Submit Button */}
-        {preview && selectedTool && (
+        {hasImage && selectedTool && (
           <Button
             type="button"
             className="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
@@ -481,11 +576,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
 
         {/* Messages */}
         {message && (
-          <p
-            className={`text-center text-sm ${
-              message.type === "success" ? "text-green-600" : "text-red-600"
-            }`}
-          >
+          <p className={`text-center text-sm ${message.type === "success" ? "text-green-600" : "text-red-600"}`}>
             {message.text}
           </p>
         )}
