@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.fal.media https://assets.renderhane.com https://*.supabase.co https://*.r2.dev",
     "font-src 'self' data:",
-    "connect-src 'self' blob: https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://*.r2.dev https://*.r2.cloudflarestorage.com",
+    "connect-src 'self' blob: https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://*.r2.dev https://*.r2.cloudflarestorage.com https://raw.githack.com",
     "media-src 'self' blob: https://assets.renderhane.com https://*.fal.media",
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
