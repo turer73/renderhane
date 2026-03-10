@@ -4,8 +4,8 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { HeroSection } from "@/components/landing/hero";
 import { FeaturesSection } from "@/components/landing/features";
 import { PricingSection } from "@/components/landing/pricing";
-import { DemoSection } from "@/components/landing/demo";
 import { Footer } from "@/components/landing/footer";
+import { DemoSectionLazy } from "@/components/landing/demo-lazy";
 
 export async function generateMetadata({
   params,
@@ -39,7 +39,7 @@ export default function MarketingPage() {
       <LandingHeader />
       <main className="flex-1">
         <HeroSection />
-        <DemoSection />
+        <DemoSectionLazy />
         <FeaturesSection />
         <PricingSection />
       </main>

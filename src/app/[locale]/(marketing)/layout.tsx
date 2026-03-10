@@ -3,5 +3,16 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      {/* Preload hero 3D model so it starts downloading before JS hydrates */}
+      <link
+        rel="preload"
+        href="/hero/renderhane.glb"
+        as="fetch"
+        crossOrigin="anonymous"
+      />
+      {children}
+    </>
+  );
 }

@@ -2,18 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES } from "@/lib/fal/models";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 
-const VALID_TOOLS: ToolType[] = [
-  "3d-model",
-  "bg-remove",
-  "enhance",
-  "scene",
-  "video",
-  "aplus",
-];
+const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus"] as const;
 
 /** Human-readable tool names for auto-created project titles */
 const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
@@ -85,14 +79,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Rate limit: 10 job submissions per minute per user
+  const rl = rateLimit(`job-submit:${user.id}`, RATE_LIMITS.jobSubmit);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const { tool, tier, imageUrl, imageUrls, projectId, prompt } = body;

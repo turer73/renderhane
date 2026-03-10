@@ -34,9 +34,7 @@ export function Footer() {
   ];
 
   const companyLinks = [
-    { label: t("footer.about"), href: "#" },
     { label: t("footer.blog"), href: `/${locale}/blog` },
-    { label: t("footer.careers"), href: "#" },
     { label: t("footer.contact"), href: "mailto:info@renderhane.com" },
   ];
 

@@ -4,27 +4,39 @@ import { getAllArticles } from "@/lib/blog/articles";
 const BASE_URL = "https://renderhane.com";
 const locales = ["tr", "en"] as const;
 
+/**
+ * Static page metadata with stable lastModified dates.
+ * Update dates ONLY when page content actually changes — Google penalises
+ * sitemap entries whose lastModified changes on every crawl.
+ */
+const staticPages: { path: string; lastModified: string; changeFreq: "weekly" | "monthly"; priority: number }[] = [
+  { path: "",         lastModified: "2025-03-01", changeFreq: "weekly",  priority: 1.0 },
+  { path: "/blog",    lastModified: "2025-03-01", changeFreq: "weekly",  priority: 0.8 },
+  { path: "/privacy", lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
+  { path: "/terms",   lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
+  { path: "/kvkk",    lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
+  { path: "/login",   lastModified: "2025-02-01", changeFreq: "monthly", priority: 0.4 },
+];
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date().toISOString();
   const articles = getAllArticles();
 
-  // Static marketing pages
-  const staticPages = ["", "/blog", "/privacy", "/terms", "/kvkk"];
+  // Static marketing pages + login
   const staticEntries: MetadataRoute.Sitemap = staticPages.flatMap((page) =>
     locales.map((locale) => ({
-      url: `${BASE_URL}/${locale}${page}`,
-      lastModified: now,
-      changeFrequency: page === "" ? ("weekly" as const) : ("monthly" as const),
-      priority: page === "" ? 1.0 : 0.6,
+      url: `${BASE_URL}/${locale}${page.path}`,
+      lastModified: page.lastModified,
+      changeFrequency: page.changeFreq,
+      priority: page.priority,
       alternates: {
         languages: Object.fromEntries(
-          locales.map((l) => [l, `${BASE_URL}/${l}${page}`])
+          locales.map((l) => [l, `${BASE_URL}/${l}${page.path}`])
         ),
       },
     }))
   );
 
-  // Dynamic blog posts
+  // Dynamic blog posts — use each article's publish date
   const blogEntries: MetadataRoute.Sitemap = articles.flatMap((article) =>
     locales.map((locale) => ({
       url: `${BASE_URL}/${locale}/blog/${article.slug}`,
@@ -39,18 +51,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   );
 
-  // Login page (indexable for acquisition)
-  const loginEntries: MetadataRoute.Sitemap = locales.map((locale) => ({
-    url: `${BASE_URL}/${locale}/login`,
-    lastModified: now,
-    changeFrequency: "monthly" as const,
-    priority: 0.5,
-    alternates: {
-      languages: Object.fromEntries(
-        locales.map((l) => [l, `${BASE_URL}/${l}/login`])
-      ),
-    },
-  }));
-
-  return [...staticEntries, ...blogEntries, ...loginEntries];
+  return [...staticEntries, ...blogEntries];
 }

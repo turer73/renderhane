@@ -61,6 +61,12 @@ export function LandingHeader() {
               {item.label}
             </button>
           ))}
+          <Link
+            href={`/${locale}/blog`}
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("footer.blog")}
+          </Link>
         </nav>
 
         {/* Desktop actions */}
@@ -125,6 +131,13 @@ export function LandingHeader() {
                 {item.label}
               </button>
             ))}
+            <Link
+              href={`/${locale}/blog`}
+              className="rounded-md px-3 py-2.5 text-left text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              {t("footer.blog")}
+            </Link>
           </nav>
           <div className="mt-3 flex flex-col gap-2 border-t border-border/40 pt-3">
             <Button variant="outline" size="sm" asChild className="w-full">

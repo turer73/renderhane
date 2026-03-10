@@ -67,6 +67,7 @@
     "noJobs": "Henüz işlem yok",
     "comingSoon": "Yakında",
     "uploadError": "Yükleme hatası. Tekrar deneyin.",
+    "fileTooLarge": "Dosya boyutu 10 MB'ı aşamaz.",
     "insufficientCredits": "Kredi yetersiz",
     "jobError": "İşlem başlatılamadı. Tekrar deneyin.",
     "urlConfirm": "Tamam",

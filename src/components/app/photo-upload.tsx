@@ -19,6 +19,9 @@ interface MultiImage {
   name: string;
 }
 
+/** 10 MB — reject anything larger before uploading to Supabase */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 interface PhotoUploadProps {
   defaultTool?: ToolType | null;
 }
@@ -109,6 +112,11 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   /* ── Single-image handlers ── */
   const handleFile = useCallback(async (f: File) => {
     if (!f.type.startsWith("image/")) return;
+    if (f.size > MAX_FILE_SIZE) {
+      setMessage({ type: "error", text: tDash("fileTooLarge") });
+      return;
+    }
+    // Revoke previous blob URL to prevent memory leak
     if (preview && imageSource === "file") {
       URL.revokeObjectURL(preview);
     }

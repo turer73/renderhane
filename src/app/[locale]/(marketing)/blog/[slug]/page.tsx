@@ -9,7 +9,15 @@ import { Separator } from "@/components/ui/separator";
 import { MarkdownRenderer } from "@/components/blog/markdown-renderer";
 import { CommentSection } from "@/components/blog/comment-section";
 import { getArticleBySlug, getAllArticles } from "@/lib/blog/articles";
+import { routing } from "@/i18n/routing";
 import type { Metadata } from "next";
+
+export function generateStaticParams() {
+  const articles = getAllArticles();
+  return routing.locales.flatMap((locale) =>
+    articles.map((article) => ({ locale, slug: article.slug }))
+  );
+}
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
@@ -31,7 +39,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: {
       canonical: `/${locale}/blog/${slug}`,
-      languages: { tr: `/tr/blog/${slug}`, en: `/en/blog/${slug}` },
+      languages: {
+        tr: `/tr/blog/${slug}`,
+        en: `/en/blog/${slug}`,
+      },
     },
     openGraph: {
       title,

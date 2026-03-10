@@ -36,7 +36,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json();
+  let body: { status?: string; payload?: Record<string, unknown> };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const { status, payload } = body;
 
   const supabase = createAdminClient();

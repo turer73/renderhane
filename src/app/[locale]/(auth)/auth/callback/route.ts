@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { completeReferral } from "@/lib/referral/complete";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -29,13 +30,9 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      // Complete referral (non-blocking, fire-and-forget)
+      // Complete referral directly (no HTTP round-trip)
       try {
-        await fetch(`${baseUrl}/api/referral/complete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ referralCode: refCode, userId: user.id }),
-        });
+        await completeReferral(refCode, user.id);
       } catch (err) {
         console.error("Referral completion failed:", err);
       }

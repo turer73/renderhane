@@ -19,6 +19,8 @@ import { resizeImageIfNeeded } from "@/lib/resize-image";
 
 /* ── Constants ── */
 const MAX_IMAGES = 20;
+/** 10 MB per file — reject oversized images early */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 interface BatchImage {
   id: string;
@@ -73,6 +75,12 @@ export function BatchUpload() {
       const fileArray = Array.from(files).filter((f) =>
         f.type.startsWith("image/")
       );
+
+      const oversized = fileArray.filter((f) => f.size > MAX_FILE_SIZE);
+      if (oversized.length > 0) {
+        setMessage({ type: "error", text: tDash("fileTooLarge") });
+        return;
+      }
 
       if (images.length + fileArray.length > MAX_IMAGES) {
         setMessage({ type: "error", text: t("maxImages", { max: MAX_IMAGES }) });

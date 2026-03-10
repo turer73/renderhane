@@ -7,16 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { getAllArticles } from "@/lib/blog/articles";
 import type { Metadata } from "next";
 
-export async function generateMetadata({
-  params,
-}: {
+interface PageProps {
   params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
-  const title =
-    locale === "tr"
-      ? "Blog | Renderhane"
-      : "Blog | Renderhane";
+  const t = await getTranslations({ locale, namespace: "blog" });
+
+  const title = `${t("title")} | Renderhane`;
   const description =
     locale === "tr"
       ? "E-ticaret, ürün fotoğrafçılığı, 3D modelleme ve yapay zeka hakkında rehberler ve ipuçları."
@@ -33,14 +32,18 @@ export async function generateMetadata({
       locale === "tr"
         ? ["e-ticaret blog", "ürün fotoğrafı", "3D model", "yapay zeka", "AI görsel"]
         : ["e-commerce blog", "product photography", "3D model", "AI", "AI visuals"],
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `/${locale}/blog`,
+    },
   };
 }
 
 export default async function BlogPage({
   params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+}: PageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "blog" });
   const articles = getAllArticles();

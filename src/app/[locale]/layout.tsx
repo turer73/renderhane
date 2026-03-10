@@ -15,12 +15,12 @@ import "@/lib/env";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";

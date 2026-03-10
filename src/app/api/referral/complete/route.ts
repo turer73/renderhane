@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * POST /api/referral/complete
+ * Protected: requires authenticated user session.
+ * The caller must be the referee (userId must match session user).
+ */
 export async function POST(request: NextRequest) {
   // Authenticate the user — never trust userId from the request body
   const supabase = await createClient();

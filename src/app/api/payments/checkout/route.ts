@@ -6,6 +6,7 @@ import {
   initializeCheckoutForm,
   signBasketId,
 } from "@/lib/payments/iyzico";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 import crypto from "crypto";
 
@@ -19,6 +20,15 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limit: 5 checkout attempts per minute per user
+    const rl = rateLimit(`payment:${user.id}`, RATE_LIMITS.payment);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429 }
+      );
     }
 
     // Parse and validate request body

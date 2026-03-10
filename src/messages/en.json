@@ -67,6 +67,7 @@
     "noJobs": "No jobs yet",
     "comingSoon": "Coming Soon",
     "uploadError": "Upload error. Please try again.",
+    "fileTooLarge": "File size cannot exceed 10 MB.",
     "insufficientCredits": "Insufficient credits",
     "jobError": "Failed to start job. Please try again.",
     "urlConfirm": "OK",
