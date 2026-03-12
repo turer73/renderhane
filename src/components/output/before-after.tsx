@@ -92,8 +92,14 @@ export function BeforeAfter({
       <img
         src={sourceUrl}
         alt={sourceLabel}
-        className="block h-auto w-full object-contain"
+        className="block h-auto max-h-[70vh] w-full object-contain"
         draggable={false}
+      />
+
+      {/* Checkerboard layer — reveals transparency in the "after" image */}
+      <div
+        className="absolute inset-0 bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] dark:bg-[repeating-conic-gradient(#1e1e2e_0%_25%,#2a2a3e_0%_50%)] bg-[length:16px_16px]"
+        style={{ clipPath: `inset(0 0 0 ${position}%)` }}
       />
 
       {/* After (output) — clipped layer on top */}

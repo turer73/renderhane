@@ -506,7 +506,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           <div className="space-y-3">
             <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt={tDash("imageSelected")} className="h-auto w-full object-contain" />
+              <img src={preview} alt={tDash("imageSelected")} className="h-auto max-h-[60vh] w-full object-contain" />
             </div>
             <div className="flex items-center justify-center gap-3">
               <p className="text-sm text-muted-foreground">{tDash("imageSelected")}</p>
