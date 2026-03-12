@@ -9,8 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
 import { ScenePresets } from "@/components/app/scene-presets";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES, type ToolType } from "@/lib/fal/models";
 import { resizeImageIfNeeded } from "@/lib/resize-image";
+import { extractFrames } from "@/lib/extract-frames";
+import { VideoRecorder } from "@/components/app/video-recorder";
+import { Video, Upload } from "lucide-react";
 
 interface MultiImage {
   id: string;
@@ -47,10 +51,15 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const [dragOver, setDragOver] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
 
+  // Video-to-3D state
+  const [inputMode, setInputMode] = useState<"photo" | "video">("photo");
+  const [showVideoRecorder, setShowVideoRecorder] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
   const multiCameraInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   const isMultiImageTool = selectedTool ? TOOLS_MULTI_IMAGE.includes(selectedTool) : false;
 
@@ -216,6 +225,26 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       }
     }
     e.target.value = "";
+  }
+
+  /* ── Video file handler (desktop) ── */
+  async function handleVideoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const videoFile = e.target.files?.[0];
+    if (!videoFile) return;
+    e.target.value = "";
+    setMessage(null);
+    try {
+      const frames = await extractFrames(videoFile, MAX_MULTI_IMAGES);
+      addMultiFiles(frames);
+    } catch {
+      setMessage({ type: "error", text: tDash("uploadError") });
+    }
+  }
+
+  /* ── Video recorder callback ── */
+  function handleVideoFrames(frames: File[]) {
+    setShowVideoRecorder(false);
+    addMultiFiles(frames);
   }
 
   function handleUrlSubmit() {
@@ -435,15 +464,15 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" x2="12" y1="3" y2="15" />
               </svg>
-              <p className="text-sm text-muted-foreground">{tDash("dragDrop")}</p>
+              <p className="text-base text-muted-foreground sm:text-sm">{tDash("dragDrop")}</p>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
             </div>
 
-            {/* Camera button — visible on mobile */}
+            {/* Camera button — visible on mobile, prominent */}
             <button
               type="button"
               onClick={() => cameraInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-indigo-400/50 hover:bg-muted/30 sm:hidden"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-4 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-500/15 sm:hidden"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
@@ -489,7 +518,23 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         {/* ── Multi-image mode (3D tools) ── */}
         {isMultiImageTool && (
           <div className="space-y-4">
-            {/* Multi-image grid */}
+            {/* Photo / Video input mode tabs */}
+            {multiImages.length === 0 && (
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "photo" | "video")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="photo" className="gap-2">
+                    <Upload className="size-4" />
+                    {tDash("photoMode")}
+                  </TabsTrigger>
+                  <TabsTrigger value="video" className="gap-2">
+                    <Video className="size-4" />
+                    {tDash("videoMode")}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+
+            {/* Multi-image grid (shown regardless of input mode) */}
             {multiImages.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -541,42 +586,82 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
               </div>
             )}
 
-            {/* Drop zone when no images yet */}
-            {multiImages.length === 0 && (
-              <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={() => multiFileInputRef.current?.click()}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); multiFileInputRef.current?.click(); } }}
-                className={dropZoneClasses}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-muted-foreground">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                </svg>
-                <p className="text-sm text-muted-foreground">{tDash("multiViewDragDrop")}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
-              </div>
+            {/* ── PHOTO MODE: Drop zone + camera ── */}
+            {inputMode === "photo" && multiImages.length === 0 && (
+              <>
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={() => multiFileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); multiFileInputRef.current?.click(); } }}
+                  className={dropZoneClasses}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-muted-foreground">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  </svg>
+                  <p className="text-base text-muted-foreground sm:text-sm">{tDash("multiViewDragDrop")}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
+                </div>
+
+                {/* Camera button — visible on mobile, more prominent */}
+                <button
+                  type="button"
+                  onClick={() => multiCameraInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-4 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-500/15 sm:hidden"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                  {tDash("takePhoto")}
+                </button>
+              </>
             )}
 
-            {/* Camera button — visible on mobile for multi-image */}
-            <button
-              type="button"
-              onClick={() => multiCameraInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-indigo-400/50 hover:bg-muted/30 sm:hidden"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                <circle cx="12" cy="13" r="3" />
-              </svg>
-              {tDash("takePhoto")}
-            </button>
+            {/* ── VIDEO MODE: Record or upload video ── */}
+            {inputMode === "video" && multiImages.length === 0 && (
+              <div className="space-y-4">
+                {/* Mobile: Record video button */}
+                <button
+                  type="button"
+                  onClick={() => setShowVideoRecorder(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-4 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-500/15 sm:hidden"
+                >
+                  <Video className="size-5" />
+                  {tDash("recordVideo")}
+                </button>
+
+                {/* Desktop + mobile: Upload video file */}
+                <div
+                  onClick={() => videoFileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); videoFileInputRef.current?.click(); } }}
+                  className={dropZoneClasses}
+                >
+                  <Video className="mb-4 size-12 text-muted-foreground" />
+                  <p className="text-base text-muted-foreground sm:text-sm">{tDash("videoDragDrop")}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{tDash("videoHint")}</p>
+                </div>
+                <input ref={videoFileInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoFile} />
+              </div>
+            )}
 
             {/* Hidden multi-file input + camera input */}
             <input ref={multiFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleMultiFileInput} />
             <input ref={multiCameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCameraInput} />
+
+            {/* Video Recorder overlay */}
+            {showVideoRecorder && (
+              <VideoRecorder
+                onFramesExtracted={handleVideoFrames}
+                onCancel={() => setShowVideoRecorder(false)}
+                maxFrames={MAX_MULTI_IMAGES}
+              />
+            )}
           </div>
         )}
 
@@ -616,7 +701,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         {hasImage && selectedTool && (
           <Button
             type="button"
-            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+            className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
             onClick={handleSubmit}
             disabled={submitting || maintenance}
           >

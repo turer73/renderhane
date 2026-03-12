@@ -53,6 +53,7 @@ export function ToolShowcase({ onSelectTool }: ToolShowcaseProps) {
               className={cn(
                 "group cursor-pointer p-4 transition-all border-border/50 shadow-sm hover:shadow-md",
                 "hover:border-indigo-300 dark:hover:border-indigo-700",
+                "active:scale-[0.98] transition-transform",
                 "bg-gradient-to-br",
                 color
               )}

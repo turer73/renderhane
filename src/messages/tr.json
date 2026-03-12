@@ -13,7 +13,9 @@
     "download": "İndir",
     "tryIt": "Ücretsiz Dene",
     "darkMode": "Koyu Tema",
-    "lightMode": "Açık Tema"
+    "lightMode": "Açık Tema",
+    "dashboard": "Ana Sayfa",
+    "menu": "Menü"
   },
   "tools": {
     "3dModel": "3D Model Üret",
@@ -89,7 +91,24 @@
     "maxViews": "En fazla {max} görsel",
     "viewCount": "{count}/{max} görsel",
     "removeView": "Kaldır",
-    "multiViewDragDrop": "3D görsellerini sürükle & bırak veya tıkla (1-4 görsel)"
+    "multiViewDragDrop": "3D görsellerini sürükle & bırak veya tıkla (1-4 görsel)",
+    "photoMode": "Fotoğraf",
+    "videoMode": "Video",
+    "recordVideo": "Video Kaydet",
+    "recording": "Kaydediliyor...",
+    "stopRecording": "Durdur",
+    "useThisVideo": "Bu Videoyu Kullan",
+    "reRecord": "Tekrar Kaydet",
+    "extractingFrames": "Kareler çıkarılıyor...",
+    "framesExtracted": "4 kare otomatik seçildi",
+    "useFrames": "Bu Kareleri Kullan",
+    "reExtract": "Yeniden Çıkar",
+    "videoUpload": "Video Dosyası Yükle",
+    "videoHint": "Ürününüzün etrafında yavaşça dönerek video çekin",
+    "maxRecordTime": "En fazla 30 saniye",
+    "cameraPermissionDenied": "Kamera izni reddedildi. Lütfen tarayıcı ayarlarından izin verin.",
+    "mediaRecorderNotSupported": "Video kaydı bu tarayıcıda desteklenmiyor.",
+    "videoDragDrop": "Video dosyasını sürükle & bırak veya tıkla"
   },
   "batch": {
     "title": "Toplu İşlem",

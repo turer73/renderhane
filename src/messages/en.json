@@ -13,7 +13,9 @@
     "download": "Download",
     "tryIt": "Try Free",
     "darkMode": "Dark Mode",
-    "lightMode": "Light Mode"
+    "lightMode": "Light Mode",
+    "dashboard": "Home",
+    "menu": "Menu"
   },
   "tools": {
     "3dModel": "Generate 3D Model",
@@ -89,7 +91,24 @@
     "maxViews": "Up to {max} images",
     "viewCount": "{count}/{max} images",
     "removeView": "Remove",
-    "multiViewDragDrop": "Drag & drop 3D images or click (1-4 images)"
+    "multiViewDragDrop": "Drag & drop 3D images or click (1-4 images)",
+    "photoMode": "Photo",
+    "videoMode": "Video",
+    "recordVideo": "Record Video",
+    "recording": "Recording...",
+    "stopRecording": "Stop",
+    "useThisVideo": "Use This Video",
+    "reRecord": "Re-record",
+    "extractingFrames": "Extracting frames...",
+    "framesExtracted": "4 frames auto-selected",
+    "useFrames": "Use These Frames",
+    "reExtract": "Re-extract",
+    "videoUpload": "Upload Video File",
+    "videoHint": "Slowly rotate around your product while recording",
+    "maxRecordTime": "Max 30 seconds",
+    "cameraPermissionDenied": "Camera permission denied. Please allow access in browser settings.",
+    "mediaRecorderNotSupported": "Video recording is not supported in this browser.",
+    "videoDragDrop": "Drag & drop a video file or click"
   },
   "batch": {
     "title": "Batch Processing",

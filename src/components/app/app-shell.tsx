@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/app/top-bar";
+import { BottomNav } from "@/components/app/bottom-nav";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -55,12 +56,15 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main content area — offset by sidebar width on desktop */}
       <div className="flex flex-1 flex-col lg:pl-64">
         <TopBar onMenuClick={() => setMobileOpen((prev) => !prev)} />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 px-4 py-6 pb-20 sm:px-6 lg:px-8 lg:pb-6">
           <div className="mx-auto max-w-6xl">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <BottomNav onMenuClick={() => setMobileOpen((prev) => !prev)} />
     </div>
   );
 }

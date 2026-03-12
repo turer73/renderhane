@@ -79,7 +79,7 @@ export function HeroSection() {
             <Button
               size="lg"
               asChild
-              className="group h-14 px-10 text-base font-semibold bg-indigo-600 text-white shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-indigo-500/30 hover:shadow-2xl dark:shadow-indigo-900/40 dark:hover:shadow-indigo-800/50 transition-all duration-300 animate-pulse-subtle"
+              className="group h-14 w-full sm:w-auto px-10 text-base font-semibold bg-indigo-600 text-white shadow-xl shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-indigo-500/30 hover:shadow-2xl dark:shadow-indigo-900/40 dark:hover:shadow-indigo-800/50 transition-all duration-300 animate-pulse-subtle"
             >
               <Link href={`/${locale}/login`}>
                 {t("cta")}

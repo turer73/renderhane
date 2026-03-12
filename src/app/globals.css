@@ -122,8 +122,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    touch-action: manipulation;
+  }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }
 

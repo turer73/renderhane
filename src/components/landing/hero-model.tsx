@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
@@ -93,15 +94,30 @@ class HeroModelErrorBoundary extends Component<
   }
 }
 
+/* ── Hook to detect mobile viewport for performance tuning ── */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    setMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return mobile;
+}
+
 /* ── Exported hero 3D component ── */
 export function HeroModel() {
+  const isMobile = useIsMobile();
+
   return (
     <div className="mx-auto h-48 w-48 sm:h-56 sm:w-56 lg:h-64 lg:w-64">
       <HeroModelErrorBoundary>
         <Canvas
           camera={{ position: [0, 0.5, 2.2], fov: 36 }}
           gl={{ antialias: true, alpha: true }}
-          dpr={[1, 2]}
+          dpr={isMobile ? [1, 1] : [1, 2]}
           style={{ background: "transparent" }}
         >
           <ambientLight intensity={0.35} />
