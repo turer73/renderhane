@@ -1,9 +1,9 @@
 import "server-only";
 
 /**
- * Runtime environment validation.
- * Import this in layout.tsx or a server component to fail fast
- * if required environment variables are missing.
+ * Runtime environment validation with lazy access.
+ * Variables are validated only when first accessed, not at module load time.
+ * This prevents build failures when env vars are unavailable during SSG.
  */
 
 function requireEnv(key: string): string {
@@ -17,38 +17,38 @@ function requireEnv(key: string): string {
   return value;
 }
 
-/** Validated server-side environment variables */
+/** Lazily validated server-side environment variables */
 export const env = {
   // Supabase
-  supabaseUrl: requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-  supabaseAnonKey: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  supabaseServiceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  get supabaseUrl() { return requireEnv("NEXT_PUBLIC_SUPABASE_URL"); },
+  get supabaseAnonKey() { return requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"); },
+  get supabaseServiceRoleKey() { return requireEnv("SUPABASE_SERVICE_ROLE_KEY"); },
 
   // fal.ai
-  falKey: requireEnv("FAL_KEY"),
-  falWebhookSecret: requireEnv("FAL_WEBHOOK_SECRET"),
+  get falKey() { return requireEnv("FAL_KEY"); },
+  get falWebhookSecret() { return requireEnv("FAL_WEBHOOK_SECRET"); },
 
   // iyzico
-  iyzicoApiKey: requireEnv("IYZICO_API_KEY"),
-  iyzicoSecretKey: requireEnv("IYZICO_SECRET_KEY"),
-  iyzicoBaseUrl: requireEnv("IYZICO_BASE_URL"),
+  get iyzicoApiKey() { return requireEnv("IYZICO_API_KEY"); },
+  get iyzicoSecretKey() { return requireEnv("IYZICO_SECRET_KEY"); },
+  get iyzicoBaseUrl() { return requireEnv("IYZICO_BASE_URL"); },
 
   // Cloudflare R2
-  r2AccountId: requireEnv("R2_ACCOUNT_ID"),
-  r2AccessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
-  r2SecretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
-  r2BucketName: requireEnv("R2_BUCKET_NAME"),
-  r2PublicUrl: requireEnv("R2_PUBLIC_URL"),
+  get r2AccountId() { return requireEnv("R2_ACCOUNT_ID"); },
+  get r2AccessKeyId() { return requireEnv("R2_ACCESS_KEY_ID"); },
+  get r2SecretAccessKey() { return requireEnv("R2_SECRET_ACCESS_KEY"); },
+  get r2BucketName() { return requireEnv("R2_BUCKET_NAME"); },
+  get r2PublicUrl() { return requireEnv("R2_PUBLIC_URL"); },
 
   // App
-  appUrl: requireEnv("NEXT_PUBLIC_APP_URL"),
+  get appUrl() { return requireEnv("NEXT_PUBLIC_APP_URL"); },
 
   // Email
-  resendApiKey: requireEnv("RESEND_API_KEY"),
+  get resendApiKey() { return requireEnv("RESEND_API_KEY"); },
 
   // Cron
-  cronSecret: requireEnv("CRON_SECRET"),
+  get cronSecret() { return requireEnv("CRON_SECRET"); },
 
   // Admin
-  adminEmails: process.env.ADMIN_EMAILS || "",
+  get adminEmails() { return process.env.ADMIN_EMAILS || ""; },
 } as const;

@@ -10,7 +10,7 @@ import "@/app/globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
-// Validates all required env vars at startup — fails fast if any are missing
+// Env module — variables are validated lazily on first access
 import "@/lib/env";
 
 const geistSans = Geist({
