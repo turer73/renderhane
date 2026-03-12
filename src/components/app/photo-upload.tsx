@@ -583,6 +583,21 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
 
                 {/* Multi-view hint */}
                 <p className="text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
+
+                {/* Mobile: prominent "Take Another Photo" button when there's room */}
+                {multiImages.length < MAX_MULTI_IMAGES && (
+                  <button
+                    type="button"
+                    onClick={() => multiCameraInputRef.current?.click()}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-500/15 sm:hidden"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                      <circle cx="12" cy="13" r="3" />
+                    </svg>
+                    {tDash("takeAnotherPhoto")}
+                  </button>
+                )}
               </div>
             )}
 

@@ -52,6 +52,7 @@
   "dashboard": {
     "dragDrop": "Sürükle & Bırak veya tıkla",
     "takePhoto": "Fotoğraf Çek",
+    "takeAnotherPhoto": "Başka Fotoğraf Çek",
     "orPasteUrl": "veya URL yapıştır",
     "urlPlaceholder": "https://example.com/product.jpg",
     "imageSelected": "Görsel seçildi",
@@ -108,7 +109,8 @@
     "maxRecordTime": "En fazla 30 saniye",
     "cameraPermissionDenied": "Kamera izni reddedildi. Lütfen tarayıcı ayarlarından izin verin.",
     "mediaRecorderNotSupported": "Video kaydı bu tarayıcıda desteklenmiyor.",
-    "videoDragDrop": "Video dosyasını sürükle & bırak veya tıkla"
+    "videoDragDrop": "Video dosyasını sürükle & bırak veya tıkla",
+    "goBack": "Geri Dön"
   },
   "batch": {
     "title": "Toplu İşlem",

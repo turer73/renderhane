@@ -52,6 +52,7 @@
   "dashboard": {
     "dragDrop": "Drag & Drop or click",
     "takePhoto": "Take Photo",
+    "takeAnotherPhoto": "Take Another Photo",
     "orPasteUrl": "or paste URL",
     "urlPlaceholder": "https://example.com/product.jpg",
     "imageSelected": "Image selected",
@@ -108,7 +109,8 @@
     "maxRecordTime": "Max 30 seconds",
     "cameraPermissionDenied": "Camera permission denied. Please allow access in browser settings.",
     "mediaRecorderNotSupported": "Video recording is not supported in this browser.",
-    "videoDragDrop": "Drag & drop a video file or click"
+    "videoDragDrop": "Drag & drop a video file or click",
+    "goBack": "Go Back"
   },
   "batch": {
     "title": "Batch Processing",

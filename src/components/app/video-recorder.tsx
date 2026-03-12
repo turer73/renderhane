@@ -224,7 +224,20 @@ export function VideoRecorder({
             <Video className="mr-2 size-5" />
             {tDash("recordVideo")}
           </Button>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && (
+            <div className="mt-2 w-full max-w-sm rounded-xl bg-red-500/10 border border-red-500/20 p-4">
+              <p className="text-sm font-medium text-red-400">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                className="mt-3 border-white/20 text-white hover:bg-white/10"
+              >
+                <X className="mr-2 size-4" />
+                {tDash("goBack")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
