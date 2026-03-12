@@ -38,6 +38,15 @@ export function routeRequest(request: RouteRequest): RouteResult {
     ...model.defaultParams,
   };
 
+  // For multi-image 3D models: use multidiffusion when >1 image provided
+  if (
+    model.multiImage &&
+    Array.isArray(imageValue) &&
+    imageValue.length > 1
+  ) {
+    input.multiimage_algo = "multidiffusion";
+  }
+
   // Override the prompt param if user provided one and model supports it
   if (prompt && model.promptParamKey) {
     input[model.promptParamKey] = prompt;

@@ -581,8 +581,11 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                   )}
                 </div>
 
-                {/* Multi-view hint */}
-                <p className="text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
+                {/* Multi-view guide */}
+                <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2.5 dark:bg-indigo-500/10 dark:border-indigo-800">
+                  <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">{tDash("angleGuideTip")}</p>
+                  <p className="mt-1 text-[11px] text-indigo-600/70 dark:text-indigo-400/70">{tDash("autoBgRemoveNote")}</p>
+                </div>
 
                 {/* Mobile: prominent "Take Another Photo" button when there's room */}
                 {multiImages.length < MAX_MULTI_IMAGES && (
@@ -618,7 +621,8 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                   </svg>
                   <p className="text-base text-muted-foreground sm:text-sm">{tDash("multiViewDragDrop")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{tDash("multiViewHint")}</p>
+                  <p className="mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">{tDash("angleGuideTip")}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{tDash("autoBgRemoveNote")}</p>
                 </div>
 
                 {/* Camera button — visible on mobile, more prominent */}

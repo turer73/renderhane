@@ -47,6 +47,7 @@ export const MODELS: Record<string, ModelConfig> = {
       ss_guidance_strength: 7.5,
       texture_size: 2048,
       remesh: true,
+      multiimage_algo: "stochastic",
     },
   },
 

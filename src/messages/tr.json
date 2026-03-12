@@ -88,6 +88,8 @@
     "downloadFailed": "İndirme başarısız oldu",
     "glbOriginal": "GLB (Orijinal)",
     "multiViewHint": "Daha iyi 3D model için farklı açılardan fotoğraf ekleyin: ön, arka, sol, sağ",
+    "autoBgRemoveNote": "Arka planlar otomatik kaldırılır — temiz arka plan aranmaz",
+    "angleGuideTip": "Ürünü sabit tutun, etrafında 4 farklı açıdan (ön, yan, arka, üst) fotoğraflayın. Tutarlı aydınlatma en iyi sonucu verir.",
     "addMoreViews": "Daha Fazla Açı Ekle",
     "maxViews": "En fazla {max} görsel",
     "viewCount": "{count}/{max} görsel",

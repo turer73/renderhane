@@ -6,6 +6,33 @@ import { routeRequest } from "@/lib/fal/smart-router";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 
 /**
+ * Auto-remove backgrounds from images before 3D model generation.
+ * Uses birefnet (fal.subscribe for synchronous result).
+ * Returns cleaned image URLs from fal.ai CDN.
+ */
+async function removeBackgrounds(imageUrls: string[]): Promise<string[]> {
+  const cleaned: string[] = [];
+  for (const url of imageUrls) {
+    try {
+      const result = await fal.subscribe("fal-ai/birefnet/v2", {
+        input: { image_url: url },
+      });
+      const output = result.data as { image?: { url?: string } };
+      if (output.image?.url) {
+        cleaned.push(output.image.url);
+      } else {
+        // Fallback to original if bg-remove output is unexpected
+        cleaned.push(url);
+      }
+    } catch (err) {
+      console.error("Auto bg-remove failed for URL, using original:", err);
+      cleaned.push(url);
+    }
+  }
+  return cleaned;
+}
+
+/**
  * Generate an HMAC signature for webhook verification.
  * This replaces passing the raw secret in the URL query string.
  */
@@ -28,8 +55,19 @@ interface SubmitJobInput {
 }
 
 export async function submitJob(input: SubmitJobInput) {
-  const { userId, projectId, tool, tier, imageUrl, imageUrls, prompt } = input;
+  const { userId, projectId, tool, tier, prompt } = input;
+  let imageUrl = input.imageUrl;
+  let imageUrls = input.imageUrls;
   const supabase = createAdminClient();
+
+  // 0. Auto bg-remove for 3D models — clean backgrounds improve TRELLIS quality
+  if (tool === "3d-model") {
+    if (imageUrls && imageUrls.length > 0) {
+      imageUrls = await removeBackgrounds(imageUrls);
+    } else if (imageUrl) {
+      [imageUrl] = await removeBackgrounds([imageUrl]);
+    }
+  }
 
   // 1. Route to correct model
   const { model, modelKey, input: falInput } = routeRequest({

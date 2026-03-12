@@ -88,6 +88,8 @@
     "downloadFailed": "Download failed",
     "glbOriginal": "GLB (Original)",
     "multiViewHint": "Add photos from different angles for a better 3D model: front, back, left, right",
+    "autoBgRemoveNote": "Backgrounds are auto-removed — no clean backdrop needed",
+    "angleGuideTip": "Keep the product steady and photograph it from 4 angles (front, side, back, top). Consistent lighting gives the best results.",
     "addMoreViews": "Add More Views",
     "maxViews": "Up to {max} images",
     "viewCount": "{count}/{max} images",
