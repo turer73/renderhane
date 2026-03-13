@@ -103,7 +103,7 @@ export function LandingHeader() {
         <div className="flex items-center gap-2 md:hidden">
           <button
             onClick={switchLanguage}
-            className="flex items-center gap-1 p-2 text-xs font-bold text-muted-foreground"
+            className="flex min-h-[44px] items-center gap-1 p-2 text-xs font-bold text-muted-foreground"
           >
             <Globe className="size-4" /> {otherLocale.toUpperCase()}
           </button>

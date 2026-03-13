@@ -70,7 +70,7 @@ export function PricingSection() {
         </div>
 
         {/* Cards — dimmed until payment goes live */}
-        <div className="mx-auto mt-10 flex gap-4 overflow-x-auto snap-x snap-mandatory px-4 pb-4 opacity-60 pointer-events-none select-none sm:grid sm:max-w-5xl sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:px-0 sm:pb-0 lg:grid-cols-4">
+        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 opacity-60 pointer-events-none select-none sm:max-w-5xl sm:grid-cols-2 lg:grid-cols-4">
           {packages.map((pkg) => {
             const isPopular = pkg.popular;
             const isEnterprise = pkg.key === "enterprise";
@@ -84,7 +84,7 @@ export function PricingSection() {
             return (
               <div
                 key={pkg.key}
-                className={`relative flex min-w-[280px] snap-center flex-col rounded-3xl p-6 transition-all duration-300 sm:min-w-0 sm:snap-align-none ${
+                className={`relative flex flex-col rounded-3xl p-6 transition-all duration-300 ${
                   isPopular
                     ? "overflow-visible bg-gradient-to-b from-indigo-800 to-indigo-950 text-white shadow-2xl shadow-indigo-900/30 z-10 md:scale-105 ring-1 ring-indigo-500/30"
                     : "overflow-hidden border border-border/60 bg-card text-foreground shadow-sm hover:border-indigo-300/60 hover:shadow-lg hover:shadow-indigo-100/30 dark:border-border/40 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/20"

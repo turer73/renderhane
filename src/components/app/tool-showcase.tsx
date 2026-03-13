@@ -30,7 +30,7 @@ export function ToolShowcase({ onSelectTool }: ToolShowcaseProps) {
       <h3 className="text-sm font-medium text-muted-foreground">
         {tFeatures("title")}
       </h3>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x pb-1 sm:grid sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:pb-0">
         {TOOL_ORDER.map(({ tool, icon, color }) => {
           const toolKey = TOOL_KEYS[tool];
           const cost = TOOL_CREDITS[tool];
@@ -51,22 +51,24 @@ export function ToolShowcase({ onSelectTool }: ToolShowcaseProps) {
                 }
               }}
               className={cn(
-                "group cursor-pointer p-4 transition-all border-border/50 shadow-sm hover:shadow-md",
+                "group cursor-pointer transition-all border-border/50 shadow-sm hover:shadow-md",
                 "hover:border-indigo-300 dark:hover:border-indigo-700",
                 "active:scale-[0.98] transition-transform",
                 "bg-gradient-to-br",
-                color
+                color,
+                // Mobile: compact pill
+                "min-w-[120px] snap-start p-3 sm:min-w-0 sm:p-4"
               )}
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1 sm:gap-2">
                 <span className="text-2xl">{icon}</span>
                 <span className="text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {tTools(toolKey)}
                 </span>
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                <p className="hidden text-xs text-muted-foreground leading-relaxed line-clamp-2 sm:block">
                   {tFeatures(`${toolKey}.description`)}
                 </p>
-                <div className="mt-auto flex items-center gap-2 pt-1">
+                <div className="mt-auto hidden items-center gap-2 pt-1 sm:flex">
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                     {tCredits("cost", { count: cost })}
                   </Badge>

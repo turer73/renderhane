@@ -103,7 +103,7 @@ export function DemoSection() {
                         {t("demo.before")}
                       </span>
                     </div>
-                    <div className="relative aspect-square bg-white/5">
+                    <div className="relative aspect-[4/3] bg-white/5 sm:aspect-square">
                       <Image
                         src="/demo/original.png"
                         alt="Original product photo"
@@ -124,7 +124,7 @@ export function DemoSection() {
                         {t("demo.interact")}
                       </span>
                     </div>
-                    <div className="relative aspect-square">
+                    <div className="relative aspect-[4/3] sm:aspect-square">
                       <Suspense fallback={<MiniLoader />}>
                         <Canvas
                           camera={{ position: [0, 0.6, 1.8], fov: 40 }}

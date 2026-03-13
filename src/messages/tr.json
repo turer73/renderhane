@@ -51,6 +51,7 @@
   },
   "dashboard": {
     "dragDrop": "Sürükle & Bırak veya tıkla",
+    "tapToUpload": "Dokunarak yükleyin veya fotoğraf çekin",
     "takePhoto": "Fotoğraf Çek",
     "takeAnotherPhoto": "Başka Fotoğraf Çek",
     "orPasteUrl": "veya URL yapıştır",

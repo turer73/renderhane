@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, FolderOpen, Plus, CreditCard, Menu } from "lucide-react";
+import { Home, FolderOpen, CreditCard, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -36,22 +36,15 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
       active: isProjects,
     },
     {
-      href: `/${locale}/app`,
-      label: tSidebar("newProduction"),
-      icon: Plus,
-      active: false,
-      primary: true,
-    },
-    {
       href: `/${locale}/app/credits`,
       label: tSidebar("creditsAndInvoices"),
       icon: CreditCard,
       active: isCredits,
     },
     {
-      href: "#menu",
-      label: t("menu"),
-      icon: Menu,
+      href: "#settings",
+      label: t("settings"),
+      icon: Settings,
       active: false,
       isMenu: true,
     },
@@ -69,27 +62,13 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
           if (item.isMenu) {
             return (
               <button
-                key="menu"
+                key="settings"
                 onClick={onMenuClick}
-                className="flex flex-1 flex-col items-center gap-0.5 py-1 text-muted-foreground transition-colors active:text-foreground"
+                className="flex flex-1 flex-col items-center gap-0.5 py-2 text-muted-foreground transition-colors active:text-foreground"
               >
                 <Icon className="size-5" />
                 <span className="text-[10px] font-medium">{item.label}</span>
               </button>
-            );
-          }
-
-          if (item.primary) {
-            return (
-              <Link
-                key="create"
-                href={item.href}
-                className="flex flex-col items-center gap-0.5 py-1"
-              >
-                <div className="flex size-11 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 transition-transform active:scale-95 dark:bg-indigo-500">
-                  <Icon className="size-5" />
-                </div>
-              </Link>
             );
           }
 
@@ -98,7 +77,7 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 py-1 transition-colors active:text-foreground",
+                "flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors active:text-foreground",
                 item.active
                   ? "text-indigo-600 dark:text-indigo-400"
                   : "text-muted-foreground",

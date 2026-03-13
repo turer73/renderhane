@@ -51,6 +51,7 @@
   },
   "dashboard": {
     "dragDrop": "Drag & Drop or click",
+    "tapToUpload": "Tap to upload or take a photo",
     "takePhoto": "Take Photo",
     "takeAnotherPhoto": "Take Another Photo",
     "orPasteUrl": "or paste URL",

@@ -5,11 +5,10 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Box,
   Eraser,
@@ -50,8 +49,7 @@ export function FeaturesSection() {
         </div>
 
         {/* Grid */}
-        <TooltipProvider delayDuration={200}>
-          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool, i) => (
               <div
                 key={tool.key}
@@ -67,27 +65,27 @@ export function FeaturesSection() {
                     <tool.icon className="size-7 text-indigo-600 dark:text-indigo-400" />
                   </div>
 
-                  {/* Tip tooltip */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  {/* Tip popover — works on both touch and mouse */}
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center rounded-full text-amber-500/70 transition-colors hover:bg-amber-500/10 hover:text-amber-500"
+                        className="flex size-9 items-center justify-center rounded-full text-amber-500/70 transition-colors hover:bg-amber-500/10 hover:text-amber-500"
                         aria-label="İpucu"
                       >
                         <Lightbulb className="size-4" />
                       </button>
-                    </TooltipTrigger>
-                    <TooltipContent
+                    </PopoverTrigger>
+                    <PopoverContent
                       side="top"
-                      className="max-w-[260px] bg-popover text-popover-foreground border border-border shadow-lg px-3 py-2.5 text-xs leading-relaxed"
+                      className="max-w-[260px] px-3 py-2.5 text-xs leading-relaxed"
                     >
                       <div className="flex items-start gap-2">
                         <Lightbulb className="mt-0.5 size-3.5 flex-shrink-0 text-amber-500" />
                         <span>{t(`features.${tool.key}.tip`)}</span>
                       </div>
-                    </TooltipContent>
-                  </Tooltip>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Title */}
@@ -119,7 +117,6 @@ export function FeaturesSection() {
               </div>
             ))}
           </div>
-        </TooltipProvider>
       </div>
     </section>
   );

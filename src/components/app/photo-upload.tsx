@@ -464,7 +464,10 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" x2="12" y1="3" y2="15" />
               </svg>
-              <p className="text-base text-muted-foreground sm:text-sm">{tDash("dragDrop")}</p>
+              <p className="text-base text-muted-foreground sm:text-sm">
+                <span className="sm:hidden">{tDash("tapToUpload")}</span>
+                <span className="hidden sm:inline">{tDash("dragDrop")}</span>
+              </p>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
             </div>
 
@@ -518,21 +521,19 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         {/* ── Multi-image mode (3D tools) ── */}
         {isMultiImageTool && (
           <div className="space-y-4">
-            {/* Photo / Video input mode tabs */}
-            {multiImages.length === 0 && (
-              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "photo" | "video")}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="photo" className="gap-2">
-                    <Upload className="size-4" />
-                    {tDash("photoMode")}
-                  </TabsTrigger>
-                  <TabsTrigger value="video" className="gap-2">
-                    <Video className="size-4" />
-                    {tDash("videoMode")}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
+            {/* Photo / Video input mode tabs — always visible */}
+            <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "photo" | "video")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="photo" className="gap-2">
+                  <Upload className="size-4" />
+                  {tDash("photoMode")}
+                </TabsTrigger>
+                <TabsTrigger value="video" className="gap-2">
+                  <Video className="size-4" />
+                  {tDash("videoMode")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             {/* Multi-image grid (shown regardless of input mode) */}
             {multiImages.length > 0 && (
@@ -553,7 +554,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                         <img src={img.preview} alt={img.name} className="h-full w-full object-cover" />
                         <button
                           onClick={() => removeMultiImage(img.id)}
-                          className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                          className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-600"
                           aria-label={tDash("removeView")}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -620,7 +621,10 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
                   <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-muted-foreground">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                   </svg>
-                  <p className="text-base text-muted-foreground sm:text-sm">{tDash("multiViewDragDrop")}</p>
+                  <p className="text-base text-muted-foreground sm:text-sm">
+                    <span className="sm:hidden">{tDash("tapToUpload")}</span>
+                    <span className="hidden sm:inline">{tDash("multiViewDragDrop")}</span>
+                  </p>
                   <p className="mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">{tDash("angleGuideTip")}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">{tDash("autoBgRemoveNote")}</p>
                 </div>
