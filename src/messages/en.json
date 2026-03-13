@@ -3,7 +3,6 @@
     "appName": "Renderhane",
     "tagline": "Upload your product photo, let AI do the rest",
     "login": "Log In",
-    "signup": "Sign Up",
     "logout": "Log Out",
     "credits": "Credits",
     "settings": "Settings",
@@ -12,10 +11,7 @@
     "processing": "Processing...",
     "download": "Download",
     "tryIt": "Try Free",
-    "darkMode": "Dark Mode",
-    "lightMode": "Light Mode",
-    "dashboard": "Home",
-    "menu": "Menu"
+    "dashboard": "Home"
   },
   "tools": {
     "3dModel": "Generate 3D Model",

@@ -3,7 +3,6 @@
     "appName": "Renderhane",
     "tagline": "Ürün fotoğrafını yükle, gerisini AI yapsın",
     "login": "Giriş Yap",
-    "signup": "Kayıt Ol",
     "logout": "Çıkış",
     "credits": "Kredi",
     "settings": "Ayarlar",
@@ -12,10 +11,7 @@
     "processing": "İşleniyor...",
     "download": "İndir",
     "tryIt": "Ücretsiz Dene",
-    "darkMode": "Koyu Tema",
-    "lightMode": "Açık Tema",
-    "dashboard": "Ana Sayfa",
-    "menu": "Menü"
+    "dashboard": "Ana Sayfa"
   },
   "tools": {
     "3dModel": "3D Model Üret",
