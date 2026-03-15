@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { CookieBanner } from "@/components/cookie-banner";
 import "@/app/globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
@@ -129,6 +130,7 @@ export default async function LocaleLayout({
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
             {children}
+            <CookieBanner />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

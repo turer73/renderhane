@@ -15,6 +15,7 @@ const staticPages: { path: string; lastModified: string; changeFreq: "weekly" | 
   { path: "/privacy", lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/terms",   lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/kvkk",    lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
+  { path: "/cookie-policy", lastModified: "2026-03-16", changeFreq: "monthly", priority: 0.3 },
   { path: "/login",   lastModified: "2025-02-01", changeFreq: "monthly", priority: 0.4 },
 ];
 

@@ -43,7 +43,8 @@
     "sendMagicLink": "Magic Link Gönder",
     "sending": "Gönderiliyor...",
     "checkEmail": "E-postanızı kontrol edin!",
-    "errorGeneric": "Bir hata oluştu. Lütfen tekrar deneyin."
+    "errorGeneric": "Bir hata oluştu. Lütfen tekrar deneyin.",
+    "consent": "Giriş yaparak <terms>Kullanım Koşullarını</terms> ve <privacy>Gizlilik Politikasını</privacy> kabul etmiş olursunuz."
   },
   "dashboard": {
     "dragDrop": "Sürükle & Bırak veya tıkla",
@@ -259,6 +260,7 @@
       "terms": "Kullanım Koşulları",
       "contact": "İletişim",
       "kvkk": "KVKK Aydınlatma",
+      "cookiePolicy": "Çerez Politikası",
       "email": "info@renderhane.com",
       "allRights": "Tüm hakları saklıdır.",
       "language": "Dil"
@@ -393,7 +395,29 @@
       "section6Content": "KVKK'nın 11. maddesi kapsamında aşağıdaki haklara sahipsiniz:\n\na) Kişisel verilerinizin işlenip işlenmediğini öğrenme\nb) Kişisel verileriniz işlenmişse buna ilişkin bilgi talep etme\nc) Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme\nd) Yurt içinde veya yurt dışında kişisel verilerinizin aktarıldığı üçüncü kişileri bilme\ne) Kişisel verilerinizin eksik veya yanlış işlenmiş olması halinde bunların düzeltilmesini isteme\nf) KVKK m.7 kapsamında kişisel verilerinizin silinmesini veya yok edilmesini isteme\ng) Düzeltme ve silme işlemlerinin kişisel verilerinizin aktarıldığı üçüncü kişilere bildirilmesini isteme\nh) İşlenen verilerinizin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme\nı) Kişisel verilerinizin kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme",
       "section7Title": "Başvuru Yöntemi",
       "section7Content": "Yukarıda belirtilen haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:\n\n• E-posta: info@renderhane.com adresine kimliğinizi doğrulayıcı belgelerle birlikte başvuru yapabilirsiniz.\n\nBaşvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır. İşlemin ayrıca bir maliyet gerektirmesi halinde Kişisel Verileri Koruma Kurulu tarafından belirlenen tarife üzerinden ücretlendirme yapılabilecektir."
+    },
+    "cookiePolicy": {
+      "title": "Çerez Politikası",
+      "intro": "Renderhane olarak web sitemizde çeşitli çerezler kullanmaktayız. Bu politika, hangi çerezlerin kullanıldığını ve bunları nasıl yönetebileceğinizi açıklamaktadır.",
+      "section1Title": "Çerez Nedir?",
+      "section1Content": "Çerezler, web siteleri tarafından tarayıcınıza yerleştirilen küçük metin dosyalarıdır. Siteyi ziyaret ettiğinizde çerezler cihazınızda saklanır ve bir sonraki ziyaretinizde sizi tanımak, tercihlerinizi hatırlamak ve size daha iyi bir deneyim sunmak için kullanılır.",
+      "section2Title": "Kullandığımız Çerez Türleri",
+      "section2Content": "Zorunlu Çerezler:\n• Oturum çerezleri (Supabase Auth): Giriş yapmanız ve hesabınıza erişmeniz için gereklidir\n• Dil tercihi: Seçtiğiniz dili hatırlamak için kullanılır\n• Çerez onayı: Çerez tercihlerinizi saklar\n\nAnalitik Çerezler (isteğe bağlı):\n• Google Analytics (_ga, _gid): Site kullanımını analiz etmek ve hizmetlerimizi iyileştirmek için kullanılır\n• Bu çerezler yalnızca onayınızla etkinleştirilir",
+      "section3Title": "Çerezlerin Hukuki Dayanağı",
+      "section3Content": "Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan KVKK m.5/2(f) kapsamında meşru menfaat hukuki dayanağıyla işlenmektedir.\n\nAnalitik çerezler ise yalnızca açık rızanızla (KVKK m.5/1) kullanılmaktadır. Çerez banner'ı üzerinden tercihlerinizi istediğiniz zaman değiştirebilirsiniz.",
+      "section4Title": "Üçüncü Taraf Çerezleri",
+      "section4Content": "Analitik çerezleri kabul etmeniz halinde Google Analytics tarafından çerezler yerleştirilir. Google'ın gizlilik politikası hakkında detaylı bilgi için: https://policies.google.com/privacy\n\nÖdeme işlemlerinde Iyzico altyapısı kendi çerezlerini kullanabilir. Bu çerezler ödeme güvenliği için zorunludur.",
+      "section5Title": "Çerezleri Nasıl Yönetirsiniz?",
+      "section5Content": "Çerez tercihlerinizi aşağıdaki yöntemlerle yönetebilirsiniz:\n\n• Çerez banner'ı: Sitemizi ilk ziyaretinizde gösterilen banner üzerinden tercihlerinizi belirleyebilirsiniz\n• Tarayıcı ayarları: Tarayıcınızın ayarlarından çerezleri silebilir veya engelleyebilirsiniz\n\nZorunlu çerezleri devre dışı bırakmanız halinde sitemizin bazı işlevleri düzgün çalışmayabilir.",
+      "section6Title": "İletişim",
+      "section6Content": "Çerez politikamızla ilgili sorularınız için:\n\nE-posta: info@renderhane.com"
     }
+  },
+  "cookieBanner": {
+    "message": "Web sitemizde deneyiminizi iyileştirmek için çerezler kullanıyoruz.",
+    "learnMore": "Çerez Politikası",
+    "acceptAll": "Tümünü Kabul Et",
+    "essentialOnly": "Sadece Zorunlu"
   },
   "referral": {
     "title": "Arkadaşını Davet Et",

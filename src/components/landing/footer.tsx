@@ -42,6 +42,7 @@ export function Footer() {
     { label: t("footer.privacy"), href: `/${locale}/privacy` },
     { label: t("footer.terms"), href: `/${locale}/terms` },
     { label: t("footer.kvkk"), href: `/${locale}/kvkk` },
+    { label: t("footer.cookiePolicy"), href: `/${locale}/cookie-policy` },
   ];
 
   return (

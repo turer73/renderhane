@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +115,21 @@ export function LoginForm() {
         <Button onClick={handleMagicLink} className="w-full bg-indigo-600 text-white hover:bg-indigo-700" disabled={loading}>
           {loading ? tAuth("sending") : tAuth("sendMagicLink")}
         </Button>
+
+        <p className="text-center text-xs text-muted-foreground">
+          {tAuth.rich("consent", {
+            terms: (chunks) => (
+              <Link href={`/${locale}/terms`} className="underline underline-offset-2 hover:text-foreground">
+                {chunks}
+              </Link>
+            ),
+            privacy: (chunks) => (
+              <Link href={`/${locale}/privacy`} className="underline underline-offset-2 hover:text-foreground">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
 
         {message && (
           <p className="text-center text-sm text-green-600">{message}</p>

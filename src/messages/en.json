@@ -43,7 +43,8 @@
     "sendMagicLink": "Send Magic Link",
     "sending": "Sending...",
     "checkEmail": "Check your email for the login link!",
-    "errorGeneric": "An error occurred. Please try again."
+    "errorGeneric": "An error occurred. Please try again.",
+    "consent": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "dashboard": {
     "dragDrop": "Drag & Drop or click",
@@ -259,6 +260,7 @@
       "terms": "Terms of Service",
       "contact": "Contact",
       "kvkk": "Data Protection",
+      "cookiePolicy": "Cookie Policy",
       "email": "info@renderhane.com",
       "allRights": "All rights reserved.",
       "language": "Language"
@@ -393,7 +395,29 @@
       "section6Content": "Under Article 11 of KVKK, you have the following rights:\n\na) Learn whether your personal data is being processed\nb) Request information if your personal data has been processed\nc) Learn the purpose of processing and whether data is used accordingly\nd) Know the third parties to whom your personal data has been transferred domestically or abroad\ne) Request correction of incomplete or inaccurate personal data\nf) Request deletion or destruction of personal data under KVKK Art. 7\ng) Request notification of correction and deletion operations to third parties\nh) Object to results arising from automated analysis of processed data\ni) Claim compensation for damages caused by unlawful processing of personal data",
       "section7Title": "How to Apply",
       "section7Content": "To exercise the rights listed above, you may apply through the following methods:\n\n• Email: Send your application with identity verification documents to info@renderhane.com.\n\nApplications will be concluded free of charge within 30 days at the latest. If the process requires additional costs, fees may be charged according to the tariff determined by the Personal Data Protection Board."
+    },
+    "cookiePolicy": {
+      "title": "Cookie Policy",
+      "intro": "At Renderhane, we use various cookies on our website. This policy explains which cookies are used and how you can manage them.",
+      "section1Title": "What Are Cookies?",
+      "section1Content": "Cookies are small text files placed on your browser by websites. When you visit a site, cookies are stored on your device and are used on your next visit to recognize you, remember your preferences, and provide a better experience.",
+      "section2Title": "Types of Cookies We Use",
+      "section2Content": "Essential Cookies:\n• Session cookies (Supabase Auth): Required for you to log in and access your account\n• Language preference: Used to remember your selected language\n• Cookie consent: Stores your cookie preferences\n\nAnalytics Cookies (optional):\n• Google Analytics (_ga, _gid): Used to analyze site usage and improve our services\n• These cookies are only activated with your consent",
+      "section3Title": "Legal Basis for Cookies",
+      "section3Content": "Essential cookies are processed under the legitimate interest legal basis (KVKK Art. 5/2(f)) as they are technically necessary for service delivery.\n\nAnalytics cookies are only used with your explicit consent (KVKK Art. 5/1). You can change your preferences at any time through the cookie banner.",
+      "section4Title": "Third-Party Cookies",
+      "section4Content": "If you accept analytics cookies, cookies will be placed by Google Analytics. For detailed information about Google's privacy policy: https://policies.google.com/privacy\n\nDuring payment transactions, Iyzico infrastructure may use its own cookies. These cookies are essential for payment security.",
+      "section5Title": "How to Manage Cookies",
+      "section5Content": "You can manage your cookie preferences through the following methods:\n\n• Cookie banner: Set your preferences through the banner shown on your first visit\n• Browser settings: You can delete or block cookies through your browser settings\n\nDisabling essential cookies may cause some features of our site to not function properly.",
+      "section6Title": "Contact",
+      "section6Content": "For questions about our cookie policy:\n\nEmail: info@renderhane.com"
     }
+  },
+  "cookieBanner": {
+    "message": "We use cookies to improve your experience on our website.",
+    "learnMore": "Cookie Policy",
+    "acceptAll": "Accept All",
+    "essentialOnly": "Essential Only"
   },
   "referral": {
     "title": "Invite Friends",
