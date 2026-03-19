@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,8 @@ export function PhotoUpload() {
   const t = useTranslations("common");
   const tDash = useTranslations("dashboard");
   const tTools = useTranslations("tools");
+  const params = useParams<{ locale: string }>();
+  const locale = params.locale || "tr";
 
   // Single-image state (for non-3D tools)
   const [preview, setPreview] = useState<string | null>(null);
@@ -814,14 +817,19 @@ export function PhotoUpload() {
                 />
               </div>
             )}
-            <Textarea
-              value={prompt}
-              onChange={(e) => { setPrompt(e.target.value); setSelectedPresetId(null); }}
-              placeholder={getPromptPlaceholder()}
-              rows={2}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground">{tDash("promptHint")}</p>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                {locale === "tr" ? "veya kendi sahne açıklamanızı yazın:" : "or write your own scene description:"}
+              </label>
+              <Textarea
+                value={prompt}
+                onChange={(e) => { setPrompt(e.target.value); setSelectedPresetId(null); }}
+                placeholder={getPromptPlaceholder()}
+                rows={2}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">{tDash("promptHint")}</p>
+            </div>
           </div>
         )}
 
