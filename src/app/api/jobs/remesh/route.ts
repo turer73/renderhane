@@ -71,14 +71,14 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[remesh] Starting:", { outputId, modelUrl, outputFormat });
 
-    // Try fal.run first (simpler, no queue), fallback to fal.subscribe
+    // Always remesh as GLB first (most reliable), format conversion can be done client-side
     const result = await fal.subscribe("fal-ai/triposr/remeshing", {
       input: {
         object_url: modelUrl,
-        output_format: outputFormat,
-        faces: outputFormat === "stl" ? 50000 : 30000,
+        output_format: "glb",
+        faces: 30000,
         merge: true,
-        preserve_uvs: outputFormat !== "stl",
+        preserve_uvs: true,
       },
     });
 
