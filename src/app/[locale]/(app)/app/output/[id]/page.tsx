@@ -10,6 +10,7 @@ import { OutputActions } from "@/components/output/output-actions";
 import { OutputImage } from "@/components/output/output-image";
 import { OutputModelViewer } from "@/components/output/output-model-viewer";
 import { BeforeAfter } from "@/components/output/before-after";
+import { RemeshButton } from "@/components/output/remesh-button";
 import { proxyUrl } from "@/lib/proxy-url";
 
 export default async function OutputDetailPage({
@@ -162,6 +163,13 @@ export default async function OutputDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Remesh button — only for 3D model (GLB) outputs */}
+      {outputType === "glb" && url && (
+        <div className="flex items-center gap-3">
+          <RemeshButton outputId={id} />
+        </div>
+      )}
 
       {/* Action buttons — only for image outputs */}
       {outputType === "image" && url && (
