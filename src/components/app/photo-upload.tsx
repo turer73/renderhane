@@ -294,7 +294,19 @@ export function PhotoUpload() {
   }
 
   async function uploadSingleImage(): Promise<string | null> {
-    if (imageSource === "url" && preview) return preview;
+    if (imageSource === "url" && preview) {
+      // Fetch external image and upload to Supabase so it passes domain validation
+      try {
+        const res = await fetch(preview);
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        const ext = blob.type.split("/")[1] || "jpg";
+        const fetched = new File([blob], `url-upload.${ext}`, { type: blob.type });
+        return uploadFileToSupabase(fetched);
+      } catch {
+        return null;
+      }
+    }
     if (imageSource === "file" && file) return uploadFileToSupabase(file);
     return null;
   }
