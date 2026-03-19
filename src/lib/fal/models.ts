@@ -59,7 +59,7 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "Hunyuan3D Multi-View",
     },
     tier: "standard",
-    creditCost: 8,
+    creditCost: 25,
     estimatedTime: "~1min",
     imageParamKey: "front_image_url",
     multiImage: true,

@@ -58,19 +58,8 @@ export function PricingSection() {
           </p>
         </div>
 
-        {/* Coming Soon Banner */}
-        <div className="mx-auto mt-10 flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30">
-            <span className="relative flex size-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
-              <span className="relative inline-flex size-2.5 rounded-full bg-white" />
-            </span>
-            {t("pricing.comingSoon")}
-          </div>
-        </div>
-
-        {/* Cards — dimmed until payment goes live */}
-        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 opacity-60 pointer-events-none select-none sm:max-w-5xl sm:grid-cols-2 lg:grid-cols-4">
+        {/* Cards */}
+        <div className="mx-auto mt-12 grid grid-cols-1 gap-4 sm:max-w-5xl sm:grid-cols-2 lg:grid-cols-4">
           {packages.map((pkg) => {
             const isPopular = pkg.popular;
             const isEnterprise = pkg.key === "enterprise";
@@ -189,10 +178,8 @@ export function PricingSection() {
           })}
         </div>
 
-        {/* Credit Calculator — dimmed until payment goes live */}
-        <div className="opacity-60 pointer-events-none select-none">
-          <CreditCalculator />
-        </div>
+        {/* Credit Calculator */}
+        <CreditCalculator />
       </div>
     </section>
   );
@@ -229,8 +216,8 @@ function CreditCalculator() {
   // Find recommended package
   function getRecommendedPackage(): string {
     if (totalCredits === 0) return "";
-    if (totalCredits <= 50) return "starter";
-    if (totalCredits <= 200) return "standard";
+    if (totalCredits <= 100) return "starter";
+    if (totalCredits <= 300) return "standard";
     return "pro";
   }
 
@@ -267,7 +254,7 @@ function CreditCalculator() {
                   <span className="text-sm font-medium truncate">
                     {tTools(toolKey)}
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                  <Badge variant="secondary" className="text-[11px] px-1.5 py-0.5 shrink-0">
                     {tCredits("cost", { count: cost })}
                   </Badge>
                 </div>
