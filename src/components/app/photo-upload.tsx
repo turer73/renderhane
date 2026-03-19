@@ -49,6 +49,7 @@ export function PhotoUpload() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
+  const [userSegment, setUserSegment] = useState<string | null>(null);
 
   // Video-to-3D state
   const [inputMode, setInputMode] = useState<"photo" | "video">("photo");
@@ -94,14 +95,18 @@ export function PhotoUpload() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiImageTool]);
 
-  // Check fal.ai service health on mount
+  // Check fal.ai service health + fetch user segment on mount
   useEffect(() => {
     fetch("/api/health/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data?.healthy === false) {
-          setMaintenance(true);
-        }
+        if (data?.healthy === false) setMaintenance(true);
+      })
+      .catch(() => {});
+    fetch("/api/credits/balance")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.useCase) setUserSegment(data.useCase);
       })
       .catch(() => {});
   }, []);
@@ -760,14 +765,27 @@ export function PhotoUpload() {
         {/* Tool Cards — colorful showcase-style, tap to instantly submit */}
         {hasImage && !selectedTool && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {([
-              { tool: "bg-remove" as ToolType, icon: "🧹", color: "from-rose-500/10 to-rose-500/5", border: "border-rose-200 dark:border-rose-800", hover: "hover:border-rose-400 dark:hover:border-rose-600" },
-              { tool: "enhance" as ToolType, icon: "✨", color: "from-amber-500/10 to-amber-500/5", border: "border-amber-200 dark:border-amber-800", hover: "hover:border-amber-400 dark:hover:border-amber-600" },
-              { tool: "scene" as ToolType, icon: "🎬", color: "from-indigo-500/10 to-indigo-500/5", border: "border-indigo-200 dark:border-indigo-800", hover: "hover:border-indigo-400 dark:hover:border-indigo-600" },
-              { tool: "3d-model" as ToolType, icon: "📦", color: "from-emerald-500/10 to-emerald-500/5", border: "border-emerald-200 dark:border-emerald-800", hover: "hover:border-emerald-400 dark:hover:border-emerald-600" },
-              { tool: "video" as ToolType, icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
-              { tool: "aplus" as ToolType, icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
-            ]).map(({ tool, icon, color, border, hover }) => {
+            {(() => {
+              const allTools = [
+                { tool: "bg-remove" as ToolType, icon: "🧹", color: "from-rose-500/10 to-rose-500/5", border: "border-rose-200 dark:border-rose-800", hover: "hover:border-rose-400 dark:hover:border-rose-600" },
+                { tool: "enhance" as ToolType, icon: "✨", color: "from-amber-500/10 to-amber-500/5", border: "border-amber-200 dark:border-amber-800", hover: "hover:border-amber-400 dark:hover:border-amber-600" },
+                { tool: "scene" as ToolType, icon: "🎬", color: "from-indigo-500/10 to-indigo-500/5", border: "border-indigo-200 dark:border-indigo-800", hover: "hover:border-indigo-400 dark:hover:border-indigo-600" },
+                { tool: "3d-model" as ToolType, icon: "📦", color: "from-emerald-500/10 to-emerald-500/5", border: "border-emerald-200 dark:border-emerald-800", hover: "hover:border-emerald-400 dark:hover:border-emerald-600" },
+                { tool: "video" as ToolType, icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
+                { tool: "aplus" as ToolType, icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
+              ];
+              // Reorder based on user segment
+              const segmentOrder: Record<string, ToolType[]> = {
+                ecommerce: ["bg-remove", "scene", "aplus", "3d-model", "enhance", "video"],
+                gaming: ["3d-model", "enhance", "bg-remove", "scene", "video", "aplus"],
+                "3dprint": ["3d-model", "enhance", "bg-remove", "scene", "video", "aplus"],
+              };
+              const order = userSegment ? segmentOrder[userSegment] : null;
+              const sorted = order
+                ? order.map((t) => allTools.find((a) => a.tool === t)!).filter(Boolean)
+                : allTools;
+              return sorted;
+            })().map(({ tool, icon, color, border, hover }) => {
               const toolKey = TOOL_KEYS[tool];
               return (
                 <button

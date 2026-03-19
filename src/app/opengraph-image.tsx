@@ -39,21 +39,39 @@ export default function OGImage() {
             lineHeight: 1.4,
           }}
         >
-          AI Studio for Your E-Commerce Store
+          AI-Powered 3D Models & Product Visuals
         </div>
         <div
           style={{
-            marginTop: 40,
-            fontSize: 18,
-            opacity: 0.7,
+            marginTop: 32,
+            fontSize: 20,
+            opacity: 0.85,
             display: "flex",
-            gap: 24,
+            gap: 32,
           }}
         >
-          <span>🎨 Product Visuals</span>
-          <span>📦 3D Model</span>
-          <span>🎬 Video</span>
-          <span>✂️ BG Remove</span>
+          <span>🛒 E-Commerce</span>
+          <span>🎮 Gaming</span>
+          <span>🖨️ 3D Printing</span>
+        </div>
+        <div
+          style={{
+            marginTop: 16,
+            fontSize: 16,
+            opacity: 0.6,
+            display: "flex",
+            gap: 20,
+          }}
+        >
+          <span>3D Model</span>
+          <span>•</span>
+          <span>PBR Texture</span>
+          <span>•</span>
+          <span>Scene</span>
+          <span>•</span>
+          <span>Video</span>
+          <span>•</span>
+          <span>STL Export</span>
         </div>
       </div>
     ),

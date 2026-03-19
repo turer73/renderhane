@@ -14,7 +14,7 @@ export async function GET() {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("credit_balance")
+    .select("credit_balance, use_case")
     .eq("id", user.id)
     .single();
 
@@ -25,5 +25,8 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({ balance: profile?.credit_balance ?? 0 });
+  return NextResponse.json({
+    balance: profile?.credit_balance ?? 0,
+    useCase: profile?.use_case ?? null,
+  });
 }

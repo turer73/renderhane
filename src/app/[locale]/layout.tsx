@@ -99,14 +99,15 @@ export default async function LocaleLayout({
         logo: `${BASE_URL}/icon.png`,
         description:
           locale === "tr"
-            ? "Yapay zeka destekli e-ticaret ürün görseli üretim platformu"
-            : "AI-powered e-commerce product visual generation platform",
+            ? "E-ticaret, oyun ve 3D baskı için AI destekli 3D model ve görsel üretim platformu"
+            : "AI-powered 3D model and visual production platform for e-commerce, gaming, and 3D printing",
       },
       {
         "@type": "WebApplication",
         name: "Renderhane",
         url: BASE_URL,
         applicationCategory: "DesignApplication",
+        applicationSubCategory: "3DModeling",
         operatingSystem: "Web",
         offers: {
           "@type": "Offer",
@@ -114,6 +115,9 @@ export default async function LocaleLayout({
           priceCurrency: "TRY",
           description: locale === "tr" ? "20 ücretsiz kredi ile başla" : "Start with 20 free credits",
         },
+        featureList: locale === "tr"
+          ? "3D Model Üretimi, Arka Plan Kaldırma, Sahne Üretimi, Video Oluşturma, PBR Materyal, STL Export"
+          : "3D Model Generation, Background Removal, Scene Generation, Video Creation, PBR Materials, STL Export",
       },
     ],
   };

@@ -243,6 +243,32 @@
         "recommendation": "Önerilen paket: {package}"
       }
     },
+    "segments": {
+      "title": "Her Sektör İçin AI Destekli 3D Üretim",
+      "subtitle": "E-ticaret, oyun geliştirme veya 3D baskı — tek platform, sınırsız olasılık.",
+      "cta": "Ücretsiz Başla",
+      "ecommerce": {
+        "title": "E-Ticaret Mağazaları",
+        "description": "Ürün fotoğraflarınızı satışa dönüştürün",
+        "benefit1": "Profesyonel arka plan kaldırma ve sahne üretimi",
+        "benefit2": "3D ürün görüntüleyici ile %94-250 dönüşüm artışı",
+        "benefit3": "A+ içerik paketi ile pazaryeri optimizasyonu"
+      },
+      "gaming": {
+        "title": "Oyun ve 3D İçerik",
+        "description": "Oyun assetlerinizi dakikalar içinde üretin",
+        "benefit1": "PBR materyal destekli 3D modeller (Meshy 5)",
+        "benefit2": "Quad mesh topoloji ile oyun motoruna hazır çıktı",
+        "benefit3": "Rigging ve animasyon desteği"
+      },
+      "3dprint": {
+        "title": "3D Baskı",
+        "description": "Fotoğraftan baskıya hazır model oluşturun",
+        "benefit1": "STL ve OBJ formatında export",
+        "benefit2": "Yüksek polygon detayı ile hassas baskı",
+        "benefit3": "Otomatik mesh onarım ve remesh"
+      }
+    },
     "demo": {
       "title": "Nasıl Çalışır?",
       "subtitle": "Tek bir ürün fotoğrafından profesyonel içeriklere dönüşümü görün.",
@@ -488,5 +514,21 @@
     "viewDetail": "Detayları Gör",
     "close": "Kapat",
     "outputLoading": "Sonucunuz hazırlanıyor..."
+  },
+  "onboarding": {
+    "title": "Ne yapmak istiyorsunuz?",
+    "subtitle": "Size en uygun deneyimi sunmamız için seçim yapın",
+    "ecommerce": {
+      "title": "E-Ticaret",
+      "description": "Mağazanız için profesyonel ürün görselleri, 3D modeller ve sahne üretimi"
+    },
+    "gaming": {
+      "title": "Oyun / 3D İçerik",
+      "description": "Oyun ve metaverse için PBR materyalli 3D asset üretimi"
+    },
+    "3dprint": {
+      "title": "3D Baskı",
+      "description": "Fotoğraftan baskıya hazır yüksek detaylı 3D model oluşturma"
+    }
   }
 }

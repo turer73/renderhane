@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { HeroSection } from "@/components/landing/hero";
+import { SegmentsSection } from "@/components/landing/segments";
 import { FeaturesSection } from "@/components/landing/features";
 import { PricingSection } from "@/components/landing/pricing";
 import { Footer } from "@/components/landing/footer";
@@ -13,23 +14,22 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "common" });
   const title =
     locale === "tr"
-      ? "Renderhane — E-Ticaret Mağazanız İçin AI Stüdyosu"
-      : "Renderhane — AI Studio for Your E-Commerce Store";
+      ? "Renderhane — AI ile 3D Model, Ürün Görseli ve Video Üretimi"
+      : "Renderhane — AI-Powered 3D Models, Product Visuals & Videos";
   const description =
     locale === "tr"
-      ? "Tek fotoğraftan profesyonel ürün görseli, 3D model ve video üretin. 20 ücretsiz kredi ile hemen başlayın."
-      : "Generate professional product visuals, 3D models and videos from a single photo. Start free with 20 credits.";
+      ? "E-ticaret, oyun geliştirme ve 3D baskı için AI destekli görsel üretim platformu. Tek fotoğraftan profesyonel 3D model, sahne ve video. 20 ücretsiz kredi ile başlayın."
+      : "AI-powered visual production for e-commerce, game development, and 3D printing. Professional 3D models, scenes, and videos from a single photo. Start with 20 free credits.";
 
   return {
     title,
     description,
     keywords:
       locale === "tr"
-        ? ["ürün fotoğrafı", "AI görsel", "3D model", "arka plan silme", "e-ticaret", "ürün görseli"]
-        : ["product photo", "AI visual", "3D model", "background removal", "e-commerce", "product image"],
+        ? ["3D model", "ürün fotoğrafı", "AI görsel", "e-ticaret", "oyun asset", "3D baskı", "STL", "PBR", "arka plan silme", "sahne üretimi"]
+        : ["3D model", "product photo", "AI visual", "e-commerce", "game asset", "3D printing", "STL", "PBR", "background removal", "scene generation"],
   };
 }
 
@@ -39,6 +39,7 @@ export default function MarketingPage() {
       <LandingHeader />
       <main className="flex-1">
         <HeroSection />
+        <SegmentsSection />
         <DemoSectionLazy />
         <FeaturesSection />
         <PricingSection />

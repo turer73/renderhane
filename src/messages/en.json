@@ -243,6 +243,32 @@
         "recommendation": "Recommended package: {package}"
       }
     },
+    "segments": {
+      "title": "AI-Powered 3D Production for Every Industry",
+      "subtitle": "E-commerce, game development, or 3D printing — one platform, unlimited possibilities.",
+      "cta": "Start Free",
+      "ecommerce": {
+        "title": "E-Commerce Stores",
+        "description": "Turn your product photos into sales",
+        "benefit1": "Professional background removal and scene generation",
+        "benefit2": "94-250% conversion boost with 3D product viewers",
+        "benefit3": "A+ content pack for marketplace optimization"
+      },
+      "gaming": {
+        "title": "Game & 3D Content",
+        "description": "Generate game assets in minutes",
+        "benefit1": "PBR material-ready 3D models (Meshy 5)",
+        "benefit2": "Quad mesh topology for game engine-ready output",
+        "benefit3": "Rigging and animation support"
+      },
+      "3dprint": {
+        "title": "3D Printing",
+        "description": "Create print-ready models from photos",
+        "benefit1": "Export in STL and OBJ formats",
+        "benefit2": "High polygon detail for precise prints",
+        "benefit3": "Automatic mesh repair and remesh"
+      }
+    },
     "demo": {
       "title": "How It Works",
       "subtitle": "See the transformation from a single product photo to professional content.",
@@ -488,5 +514,21 @@
     "viewDetail": "View Details",
     "close": "Close",
     "outputLoading": "Preparing your result..."
+  },
+  "onboarding": {
+    "title": "What would you like to create?",
+    "subtitle": "Choose your focus so we can tailor your experience",
+    "ecommerce": {
+      "title": "E-Commerce",
+      "description": "Professional product visuals, 3D models, and scene generation for your store"
+    },
+    "gaming": {
+      "title": "Game / 3D Content",
+      "description": "PBR-ready 3D assets for games and metaverse projects"
+    },
+    "3dprint": {
+      "title": "3D Printing",
+      "description": "High-detail print-ready 3D models from photos"
+    }
   }
 }

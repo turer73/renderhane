@@ -23,26 +23,40 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Get user for referral + onboarding check
+  const { data: { user } } = await supabase.auth.getUser();
+
   // Check for referral cookie
   const refCode = request.cookies.get("ref_code")?.value;
 
-  if (refCode) {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      // Complete referral directly (no HTTP round-trip)
-      try {
-        await completeReferral(refCode, user.id);
-      } catch (err) {
-        console.error("Referral completion failed:", err);
-      }
+  if (refCode && user) {
+    try {
+      await completeReferral(refCode, user.id);
+    } catch (err) {
+      console.error("Referral completion failed:", err);
     }
+  }
 
-    // Clear the referral cookie and redirect
-    const response = NextResponse.redirect(`${baseUrl}/${locale}/app`);
+  // Check if user needs onboarding (no segment selected yet)
+  let needsOnboarding = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("use_case")
+      .eq("id", user.id)
+      .single();
+    needsOnboarding = !profile?.use_case;
+  }
+
+  const destination = needsOnboarding
+    ? `${baseUrl}/${locale}/onboarding`
+    : `${baseUrl}/${locale}/app`;
+
+  if (refCode) {
+    const response = NextResponse.redirect(destination);
     response.cookies.delete("ref_code");
     return response;
   }
 
-  return NextResponse.redirect(`${baseUrl}/${locale}/app`);
+  return NextResponse.redirect(destination);
 }
