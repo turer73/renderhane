@@ -1,7 +1,6 @@
 import { fal } from "@fal-ai/client";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { uploadToR2 } from "@/lib/r2/upload";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -89,33 +88,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload remeshed model to R2
-    let r2Url: string | null = null;
-    try {
-      const r2Result = await uploadToR2(
-        remeshed.model_mesh.url,
-        user.id,
-        outputFormat === "stl" ? "glb" : "glb" // R2 upload handles extension from URL
-      );
-      r2Url = r2Result.r2Url;
-    } catch {
-      // Fallback to fal URL if R2 upload fails
-    }
-
-    const permanentUrl = r2Url || remeshed.model_mesh.url;
-
-    // Update the existing output record with the repaired URL
-    await admin
-      .from("outputs")
-      .update({
-        fal_url: remeshed.model_mesh.url,
-        r2_url: r2Url,
-      })
-      .eq("id", outputId);
-
+    // Return the remeshed file URL directly for download
+    // Do NOT modify the original output record — keep original GLB intact
     return NextResponse.json({
-      url: permanentUrl,
-      message: "Model repaired successfully",
+      url: remeshed.model_mesh.url,
+      format: outputFormat,
+      message: "Model rebuilt successfully",
     });
   } catch (error) {
     console.error("Remesh error:", error);

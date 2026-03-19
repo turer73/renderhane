@@ -36,19 +36,30 @@ export function RemeshButton({ outputId, onRepaired }: RemeshButtonProps) {
       });
 
       if (!res.ok) {
-        toast.error(locale === "tr" ? "Onarım başarısız oldu" : "Repair failed");
+        toast.error(locale === "tr" ? "Yeniden oluşturma başarısız oldu" : "Rebuild failed");
         return;
       }
 
-      toast.success(
-        locale === "tr"
-          ? "Model yeniden oluşturuldu!"
-          : "Model rebuilt successfully!"
-      );
+      const data = await res.json();
 
-      // Refresh the page to show updated model
+      if (data.url) {
+        // Trigger download of the rebuilt file
+        const a = document.createElement("a");
+        a.href = data.url;
+        a.download = `renderhane-rebuilt.${data.format || "glb"}`;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        toast.success(
+          locale === "tr"
+            ? `${(data.format || "GLB").toUpperCase()} dosyası indiriliyor!`
+            : `Downloading ${(data.format || "GLB").toUpperCase()} file!`
+        );
+      }
+
       onRepaired?.();
-      window.location.reload();
     } catch {
       toast.error(locale === "tr" ? "Bir hata oluştu" : "An error occurred");
     } finally {
