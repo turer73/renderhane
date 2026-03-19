@@ -85,16 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (data === null) {
-      // NULL means the payment was already processed (duplicate) — that's OK
-      console.log(
-        `Callback: payment already processed (duplicate), paymentId=${paymentId}`
-      );
-    } else {
-      console.log(
-        `Credits added: ${pkg.credits} to user ${userId}, tx=${data}, paymentId=${paymentId}`
-      );
-    }
+    // data === null means duplicate (already processed) — that's OK
 
     return NextResponse.redirect(
       `${appUrl}/${locale}/app/credits?status=success`,

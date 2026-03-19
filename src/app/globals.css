@@ -147,8 +147,8 @@
     min-height: 44px;
     min-width: 44px;
   }
-  /* Except very small inline elements */
-  .inline-touch-exempt, nav a, nav button {
+  /* Except nav elements */
+  nav a, nav button {
     min-height: unset;
     min-width: unset;
   }

@@ -50,13 +50,6 @@ export async function POST(request: NextRequest) {
 
     const { token, paymentConversationId, iyziEventType, status } = body;
 
-    console.log("iyzico webhook received:", {
-      token: token ? "present" : "missing",
-      paymentConversationId,
-      iyziEventType: iyziEventType || "not_provided",
-      status: status || "not_provided",
-    });
-
     if (!token) {
       return NextResponse.json({ status: "ok" });
     }
@@ -67,7 +60,6 @@ export async function POST(request: NextRequest) {
     const result = await retrieveCheckoutFormResult(token);
 
     if (result.paymentStatus !== "SUCCESS") {
-      console.log("Webhook: payment not successful, skipping");
       return NextResponse.json({ status: "ok" });
     }
 
@@ -97,15 +89,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Webhook: failed to add credits:", error.message);
-    } else if (data === null) {
-      console.log(
-        `Webhook: payment already processed (duplicate), paymentId=${paymentId}`
-      );
-    } else {
-      console.log(
-        `Webhook: credits added: ${pkg.credits} to user ${userId}, paymentId=${paymentId}`
-      );
     }
+    // data === null means duplicate (already processed) — that's OK
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
