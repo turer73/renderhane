@@ -16,7 +16,10 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <ToolShowcase onSelectTool={(tool) => setSelectedTool(tool)} />
+      {/* Desktop only — mobile uses quick action buttons inside PhotoUpload */}
+      <div className="hidden sm:block">
+        <ToolShowcase onSelectTool={(tool) => setSelectedTool(tool)} />
+      </div>
       <PhotoUpload defaultTool={selectedTool} />
     </div>
   );
