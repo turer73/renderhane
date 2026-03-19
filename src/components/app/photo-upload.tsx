@@ -793,7 +793,6 @@ export function PhotoUpload() {
                   type="button"
                   disabled={submitting}
                   onClick={() => {
-                    // Scene/Video need prompt input, 3D needs quality selection
                     if (TOOLS_WITH_PROMPT.includes(tool) || tool === "3d-model") {
                       setSelectedTool(tool);
                     } else {
@@ -827,43 +826,85 @@ export function PhotoUpload() {
               </button>
               <span className="text-sm font-medium">{tTools("3dModel")}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {locale === "tr" ? "Kalite seviyesi seçin:" : "Choose quality level:"}
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSubmit("3d-model", "fast")}
-                className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">⚡</span>
-                  <span className="text-sm font-semibold">{locale === "tr" ? "Hızlı" : "Fast"}</span>
+            {(userSegment === "gaming" || userSegment === "3dprint") ? (
+              /* Gaming / 3D Print: Tek fotoğraf (TRELLIS 2) veya Çoklu (Meshy 5 PBR) */
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {locale === "tr" ? "Fotoğraf sayısına göre model seçin:" : "Choose based on photo count:"}
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleSubmit("3d-model", "standard")}
+                    className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📷</span>
+                      <span className="text-sm font-semibold">{locale === "tr" ? "Tek Fotoğraf" : "Single Photo"}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {locale === "tr" ? "~2 dakika • 20 kredi • TRELLIS 2" : "~2 minutes • 20 credits • TRELLIS 2"}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleSubmit("3d-model", "standard")}
+                    className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📸</span>
+                      <span className="text-sm font-semibold">{locale === "tr" ? "Çoklu Fotoğraf" : "Multi Photo"}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {locale === "tr" ? "~3 dakika • 15 kredi • Meshy 5 PBR" : "~3 minutes • 15 credits • Meshy 5 PBR"}
+                    </span>
+                  </button>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {multiImages.length >= 2
-                    ? (locale === "tr" ? "~30 saniye • 10 kredi • Tripo 2.5" : "~30 seconds • 10 credits • Tripo 2.5")
-                    : (locale === "tr" ? "~15 saniye • 5 kredi • TRELLIS v1" : "~15 seconds • 5 credits • TRELLIS v1")}
-                </span>
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSubmit("3d-model", "standard")}
-                className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">💎</span>
-                  <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
+              </>
+            ) : (
+              /* E-Commerce: Hızlı / Kaliteli seçimi */
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {locale === "tr" ? "Kalite seviyesi seçin:" : "Choose quality level:"}
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleSubmit("3d-model", "fast")}
+                    className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">⚡</span>
+                      <span className="text-sm font-semibold">{locale === "tr" ? "Hızlı" : "Fast"}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {multiImages.length >= 2
+                        ? (locale === "tr" ? "~30 saniye • 10 kredi • Tripo 2.5" : "~30 seconds • 10 credits • Tripo 2.5")
+                        : (locale === "tr" ? "~15 saniye • 5 kredi • TRELLIS v1" : "~15 seconds • 5 credits • TRELLIS v1")}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleSubmit("3d-model", "standard")}
+                    className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">💎</span>
+                      <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {multiImages.length >= 2
+                        ? (locale === "tr" ? "~3 dakika • 15 kredi • Meshy 5 PBR" : "~3 minutes • 15 credits • Meshy 5 PBR")
+                        : (locale === "tr" ? "~2 dakika • 20 kredi • TRELLIS 2" : "~2 minutes • 20 credits • TRELLIS 2")}
+                    </span>
+                  </button>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {multiImages.length >= 2
-                    ? (locale === "tr" ? "~3 dakika • 15 kredi • Meshy 5 PBR" : "~3 minutes • 15 credits • Meshy 5 PBR")
-                    : (locale === "tr" ? "~2 dakika • 20 kredi • TRELLIS 2" : "~2 minutes • 20 credits • TRELLIS 2")}
-                </span>
-              </button>
-            </div>
+              </>
+            )}
             <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2.5 dark:bg-indigo-500/10 dark:border-indigo-800">
               <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
                 {locale === "tr"
