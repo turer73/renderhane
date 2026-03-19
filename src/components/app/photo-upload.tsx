@@ -592,8 +592,22 @@ export function PhotoUpload() {
           </div>
         )}
 
-        {/* ── Multi-image mode (3D tools) ── */}
-        {isMultiImageTool && (
+        {/* ── Single-image preview when 3D tool selected ── */}
+        {isMultiImageTool && selectedTool === "3d-model" && preview && multiImages.length === 0 && (
+          <div className="space-y-3">
+            <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt={tDash("imageSelected")} className="h-auto max-h-[40vh] w-full object-contain" referrerPolicy="no-referrer" />
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              <p className="text-sm text-muted-foreground">{tDash("imageSelected")}</p>
+              <Button type="button" variant="outline" size="sm" onClick={handleReset}>{tDash("changeImage")}</Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Multi-image mode (3D tools) — hidden when quality selection is showing ── */}
+        {isMultiImageTool && !selectedTool && (
           <div className="space-y-4">
             {/* Photo / Video input mode tabs — always visible */}
             <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "photo" | "video")}>
