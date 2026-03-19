@@ -53,14 +53,14 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const altHref = pathname.replace(`/${locale}/`, `/${altLocale}/`);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/40 bg-background/80 backdrop-blur-md px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/40 bg-background/80 backdrop-blur-md px-4 sm:px-6" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Left: hamburger (mobile) + page title */}
       <div className="flex items-center gap-3">
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="size-8 lg:hidden"
+          className="size-10 sm:size-8 lg:hidden"
           onClick={onMenuClick}
           aria-label="Toggle menu"
         >

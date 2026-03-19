@@ -407,7 +407,7 @@ export function BatchUpload() {
 
           {/* Image Grid */}
           {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {images.map((img) => {
                 const result = results.find((r) => r.imageId === img.id);
                 return (
@@ -479,7 +479,7 @@ export function BatchUpload() {
                             e.stopPropagation();
                             removeImage(img.id);
                           }}
-                          className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                          className="absolute top-1 right-1 flex size-8 sm:size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-100 sm:opacity-0 transition-opacity sm:group-hover:opacity-100 hover:bg-red-600"
                           aria-label={t("removeImage")}
                         >
                           <svg

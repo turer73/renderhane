@@ -64,10 +64,10 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
               <button
                 key="settings"
                 onClick={onMenuClick}
-                className="flex flex-1 flex-col items-center gap-0.5 py-2 text-muted-foreground transition-colors active:text-foreground"
+                className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-muted-foreground transition-colors active:text-foreground"
               >
                 <Icon className="size-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[11px] font-medium">{item.label}</span>
               </button>
             );
           }
@@ -77,14 +77,14 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors active:text-foreground",
+                "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors active:text-foreground",
                 item.active
                   ? "text-indigo-600 dark:text-indigo-400"
                   : "text-muted-foreground",
               )}
             >
               <Icon className="size-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[11px] font-medium">{item.label}</span>
             </Link>
           );
         })}

@@ -179,7 +179,7 @@ export function ReferralCard() {
             <Mail className="mr-1 inline size-3.5" />
             {t("inviteByEmail")}
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               type="email"
               value={email}
@@ -190,7 +190,7 @@ export function ReferralCard() {
             <Button
               onClick={handleInvite}
               disabled={sending || !email.trim()}
-              className="shrink-0 bg-indigo-600 hover:bg-indigo-700"
+              className="shrink-0 bg-indigo-600 hover:bg-indigo-700 h-11 sm:h-9"
             >
               {sending ? (
                 t("sending")

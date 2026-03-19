@@ -195,7 +195,7 @@ export function VideoRecorder({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
       {/* Close button */}
-      <div className="absolute right-4 top-4 z-10">
+      <div className="absolute z-10" style={{ right: "max(1rem, env(safe-area-inset-right))", top: "max(1rem, env(safe-area-inset-top))" }}>
         <button
           onClick={handleCancel}
           className="rounded-full bg-black/50 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/70"

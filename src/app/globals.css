@@ -134,8 +134,23 @@
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Mobile-first touch optimizations */
+@media (pointer: coarse) {
+  /* Larger tap targets on touch devices */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Except very small inline elements */
+  .inline-touch-exempt, nav a, nav button {
+    min-height: unset;
+    min-width: unset;
   }
 }
 

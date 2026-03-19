@@ -108,7 +108,7 @@ export function FeaturesSection() {
                   </Badge>
                   <Link
                     href={`/${locale}/login`}
-                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 transition-all duration-300 group-hover:opacity-100 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-100 sm:opacity-0 transition-all duration-300 sm:group-hover:opacity-100 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
                   >
                     {t("demo.tryNow")}
                     <ArrowRight className="size-3" />
