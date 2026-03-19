@@ -321,8 +321,9 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   }
 
   /* ── Submit ── */
-  async function handleSubmit() {
-    if (!hasImage || !selectedTool) return;
+  async function handleSubmit(quickTool?: ToolType) {
+    const activeTool = quickTool || selectedTool;
+    if (!hasImage || !activeTool) return;
 
     setSubmitting(true);
     setMessage(null);
@@ -340,31 +341,42 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         }
       } catch { /* fail-open */ }
 
-      const payload: Record<string, unknown> = { tool: selectedTool };
+      // Upload image(s)
+      let uploadedImageUrl: string | undefined;
+      let uploadedImageUrls: string[] | undefined;
 
       if (isMultiImageTool) {
-        const imageUrls = await uploadMultiImages();
-        if (!imageUrls) {
+        const urls = await uploadMultiImages();
+        if (!urls) {
           setMessage({ type: "error", text: tDash("uploadError") });
           setSubmitting(false);
           return;
         }
-        payload.imageUrls = imageUrls;
+        uploadedImageUrls = urls;
       } else {
-        const imageUrl = await uploadSingleImage();
-        if (!imageUrl) {
+        const url = await uploadSingleImage();
+        if (!url) {
           setMessage({ type: "error", text: tDash("uploadError") });
           setSubmitting(false);
           return;
         }
-        payload.imageUrl = imageUrl;
+        uploadedImageUrl = url;
       }
 
-      if (needsPrompt && prompt.trim()) {
-        payload.prompt = prompt.trim();
-      }
+      // A+ uses a dedicated multi-scene endpoint
+      const isAplus = activeTool === "aplus";
+      const endpoint = isAplus ? "/api/jobs/submit-aplus" : "/api/jobs/submit";
+      const activeNeedsPrompt = TOOLS_WITH_PROMPT.includes(activeTool);
 
-      const res = await fetch("/api/jobs/submit", {
+      const payload: Record<string, unknown> = isAplus
+        ? { imageUrl: uploadedImageUrl }
+        : {
+            tool: activeTool,
+            ...(uploadedImageUrls ? { imageUrls: uploadedImageUrls } : { imageUrl: uploadedImageUrl }),
+            ...(activeNeedsPrompt && prompt.trim() ? { prompt: prompt.trim() } : {}),
+          };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -390,11 +402,20 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
       }
 
       const result = await res.json();
-      window.dispatchEvent(
-        new CustomEvent("job-submitted", {
-          detail: { jobId: result.jobId, tool: selectedTool },
-        })
-      );
+
+      if (isAplus && result.jobIds) {
+        window.dispatchEvent(
+          new CustomEvent("job-submitted", {
+            detail: { jobIds: result.jobIds, tool: activeTool },
+          })
+        );
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("job-submitted", {
+            detail: { jobId: result.jobId, tool: activeTool },
+          })
+        );
+      }
       handleReset();
     } catch {
       setMessage({ type: "error", text: tDash("jobError") });
@@ -690,30 +711,33 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           </div>
         )}
 
-        {/* Quick Action Buttons — shown when image is ready but no tool selected */}
+        {/* Quick Action Buttons — tap to instantly submit */}
         {hasImage && !selectedTool && !showAllTools && (
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <button
                 type="button"
-                onClick={() => setSelectedTool("3d-model")}
-                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-indigo-200 bg-indigo-50 px-4 py-4 text-base font-semibold text-indigo-700 transition-all hover:border-indigo-400 hover:bg-indigo-100 active:scale-[0.98] dark:border-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/15 sm:py-3 sm:text-sm"
+                disabled={submitting}
+                onClick={() => handleSubmit("3d-model")}
+                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-indigo-200 bg-indigo-50 px-4 py-4 text-base font-semibold text-indigo-700 transition-all hover:border-indigo-400 hover:bg-indigo-100 active:scale-[0.98] disabled:opacity-50 dark:border-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/15 sm:py-3 sm:text-sm"
               >
                 <Box className="size-5 shrink-0" />
                 {tDash("quick3d")}
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedTool("bg-remove")}
-                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-4 text-base font-semibold text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-100 active:scale-[0.98] dark:border-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/15 sm:py-3 sm:text-sm"
+                disabled={submitting}
+                onClick={() => handleSubmit("bg-remove")}
+                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-4 text-base font-semibold text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-100 active:scale-[0.98] disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/15 sm:py-3 sm:text-sm"
               >
                 <Eraser className="size-5 shrink-0" />
                 {tDash("quickBg")}
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedTool("scene")}
-                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-amber-200 bg-amber-50 px-4 py-4 text-base font-semibold text-amber-700 transition-all hover:border-amber-400 hover:bg-amber-100 active:scale-[0.98] dark:border-amber-800 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:border-amber-600 dark:hover:bg-amber-500/15 sm:py-3 sm:text-sm"
+                disabled={submitting}
+                onClick={() => handleSubmit("scene")}
+                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-amber-200 bg-amber-50 px-4 py-4 text-base font-semibold text-amber-700 transition-all hover:border-amber-400 hover:bg-amber-100 active:scale-[0.98] disabled:opacity-50 dark:border-amber-800 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:border-amber-600 dark:hover:bg-amber-500/15 sm:py-3 sm:text-sm"
               >
                 <Image className="size-5 shrink-0" />
                 {tDash("quickScene")}
@@ -767,7 +791,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           <Button
             type="button"
             className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             disabled={submitting || maintenance}
           >
             {submitting ? tDash("submitting") : tDash("submit")}

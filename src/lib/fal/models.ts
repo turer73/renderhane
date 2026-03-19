@@ -162,16 +162,20 @@ export const TOOL_KEYS: Record<ToolType, string> = {
 /**
  * Credit cost per tool — derived from the first (default) model's creditCost
  * to stay in sync with MODELS automatically.
+ * A+ is overridden: 4 scenes × 8 credits = 32 credits total.
  */
-export const TOOL_CREDITS: Record<ToolType, number> = Object.fromEntries(
-  (Object.keys(TOOL_MODELS) as ToolType[]).map((tool) => [
-    tool,
-    MODELS[TOOL_MODELS[tool][0]].creditCost,
-  ])
-) as Record<ToolType, number>;
+export const TOOL_CREDITS: Record<ToolType, number> = {
+  ...(Object.fromEntries(
+    (Object.keys(TOOL_MODELS) as ToolType[]).map((tool) => [
+      tool,
+      MODELS[TOOL_MODELS[tool][0]].creditCost,
+    ])
+  ) as Record<ToolType, number>),
+  aplus: 32, // 4 scenes × 8 credits
+};
 
 /** Tools that accept a text prompt from the user */
-export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "aplus"];
+export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video"];
 
 /** Tools that accept multiple images (multi-view) */
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];

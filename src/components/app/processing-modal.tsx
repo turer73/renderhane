@@ -91,9 +91,12 @@ const PROCESSING_MESSAGES_TR: Record<string, string[]> = {
     "Neredeyse hazır...",
   ],
   aplus: [
-    "A+ sahne hazırlanıyor...",
-    "Profesyonel ışıklandırma...",
-    "Detaylar ekleniyor...",
+    "4 farklı sahne hazırlanıyor...",
+    "Stüdyo sahnesi oluşturuluyor...",
+    "Yaşam tarzı sahnesi tasarlanıyor...",
+    "Doğal ortam yerleştiriliyor...",
+    "Minimal sahne işleniyor...",
+    "Profesyonel ışıklandırma uygulanıyor...",
     "Son rötuşlar...",
   ],
 };
@@ -131,9 +134,12 @@ const PROCESSING_MESSAGES_EN: Record<string, string[]> = {
     "Almost there...",
   ],
   aplus: [
-    "Preparing A+ scene...",
-    "Professional lighting...",
-    "Adding details...",
+    "Generating 4 different scenes...",
+    "Creating studio scene...",
+    "Designing lifestyle scene...",
+    "Setting up outdoor scene...",
+    "Processing minimal scene...",
+    "Applying professional lighting...",
     "Final touches...",
   ],
 };
@@ -308,6 +314,7 @@ export function ProcessingModal() {
   const [state, setState] = useState<ModalState>("idle");
   const [tool, setTool] = useState<ToolType | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [multiJobIds, setMultiJobIds] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
   const [job, setJob] = useState<ProcessingJob | null>(null);
@@ -330,13 +337,24 @@ export function ProcessingModal() {
   useEffect(() => {
     function handleJobSubmitted(e: Event) {
       const detail = (e as CustomEvent).detail as {
-        jobId: string;
+        jobId?: string;
+        jobIds?: string[];
         tool: ToolType;
       } | undefined;
 
       if (!detail) return;
 
-      setJobId(detail.jobId);
+      // A+ multi-scene sends jobIds array
+      if (detail.jobIds && detail.jobIds.length > 0) {
+        setMultiJobIds(detail.jobIds);
+        setJobId(detail.jobIds[0]); // primary for fallback display
+      } else if (detail.jobId) {
+        setMultiJobIds([]);
+        setJobId(detail.jobId);
+      } else {
+        return;
+      }
+
       setTool(detail.tool);
       setState("processing");
       setProgress(0);
@@ -381,33 +399,53 @@ export function ProcessingModal() {
     };
   }, [state, messages.length]);
 
-  // Watch shared polling data for this specific job's status changes.
-  // The provider handles fetch intervals — we just react to new data.
+  // Watch shared polling data for job status changes.
+  // Supports both single-job and multi-job (A+) tracking.
   useEffect(() => {
-    if (state !== "processing" || !jobId) return;
+    if (state !== "processing") return;
 
-    const found = polledJobs.find((j) => j.id === jobId);
-    if (!found) return;
+    const isMulti = multiJobIds.length > 1;
+    const trackingIds = isMulti ? multiJobIds : jobId ? [jobId] : [];
+    if (trackingIds.length === 0) return;
 
-    if (found.status === "completed") {
-      // Webhook creates the output record BEFORE marking the job as
-      // completed, but keep a small safety buffer (3 poll cycles ≈ 7.5s)
-      // in case of eventual consistency delays.
-      if (!found.output_url && outputRetries.current < 3) {
-        outputRetries.current += 1;
-        return; // stay in "processing" state, wait for next poll
-      }
+    const matchedJobs = trackingIds
+      .map((id) => polledJobs.find((j) => j.id === id))
+      .filter(Boolean) as ProcessingJob[];
 
-      setJob(found);
-      setProgress(100);
-      setState("completed");
-      // Trigger confetti after a tiny delay
-      confettiTimeoutRef.current = setTimeout(() => setShowConfetti(true), 300);
-    } else if (found.status === "failed") {
-      setJob(found);
-      setState("failed");
+    if (matchedJobs.length === 0) return;
+
+    const completedJobs = matchedJobs.filter((j) => j.status === "completed");
+    const failedJobs = matchedJobs.filter((j) => j.status === "failed");
+    const doneCount = completedJobs.length + failedJobs.length;
+
+    // Update progress based on completion ratio for multi-job
+    if (isMulti && doneCount > 0) {
+      const ratio = (doneCount / trackingIds.length) * 100;
+      setProgress(Math.min(ratio, doneCount === trackingIds.length ? 100 : 95));
     }
-  }, [polledJobs, state, jobId]);
+
+    // All jobs done?
+    if (doneCount === trackingIds.length) {
+      if (completedJobs.length > 0) {
+        // Use last completed job for display (or first with output)
+        const withOutput = completedJobs.find((j) => j.output_url) || completedJobs[0];
+
+        if (!withOutput.output_url && outputRetries.current < 3) {
+          outputRetries.current += 1;
+          return;
+        }
+
+        setJob(withOutput);
+        setProgress(100);
+        setState("completed");
+        confettiTimeoutRef.current = setTimeout(() => setShowConfetti(true), 300);
+      } else {
+        // All failed
+        setJob(failedJobs[0]);
+        setState("failed");
+      }
+    }
+  }, [polledJobs, state, jobId, multiJobIds]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -426,6 +464,7 @@ export function ProcessingModal() {
       setState("idle");
       setTool(null);
       setJobId(null);
+      setMultiJobIds([]);
       setProgress(0);
       setMessageIndex(0);
       setJob(null);
@@ -473,7 +512,9 @@ export function ProcessingModal() {
                   className="h-2 bg-muted/50"
                 />
                 <p className="text-center text-xs text-muted-foreground">
-                  {tProc("pleaseWait")}
+                  {multiJobIds.length > 1
+                    ? `${polledJobs.filter((j) => multiJobIds.includes(j.id) && (j.status === "completed" || j.status === "failed")).length}/${multiJobIds.length} ${locale === "tr" ? "sahne hazır" : "scenes ready"}`
+                    : tProc("pleaseWait")}
                 </p>
               </div>
 

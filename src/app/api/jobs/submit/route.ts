@@ -26,7 +26,7 @@ const ALLOWED_IMAGE_HOSTS = [
 ];
 
 /** Validate a single image URL — returns error string or null if valid */
-function validateImageUrl(url: unknown): string | null {
+export function validateImageUrl(url: unknown): string | null {
   if (typeof url !== "string" || !url) {
     return "imageUrl must be a non-empty string";
   }
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
  * Uses the source image as the project thumbnail and names
  * it after the tool + short timestamp.
  */
-async function autoCreateProject(
+export async function autoCreateProject(
   userId: string,
   tool: ToolType,
   imageUrl: string
