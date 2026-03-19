@@ -22,17 +22,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  let body: { outputId: string };
+  let body: { outputId: string; format?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { outputId } = body;
+  const { outputId, format } = body;
   if (!outputId) {
     return NextResponse.json({ error: "outputId required" }, { status: 400 });
   }
+  const validFormats = ["glb", "stl", "fbx", "obj"] as const;
+  const outputFormat = validFormats.includes(format as typeof validFormats[number])
+    ? (format as string)
+    : "glb";
 
   // Fetch the output record — verify ownership + get URL
   const admin = createAdminClient();
@@ -67,10 +71,10 @@ export async function POST(request: NextRequest) {
     const result = await fal.subscribe("fal-ai/triposr/remeshing", {
       input: {
         object_url: modelUrl,
-        output_format: "glb",
-        faces: 30000,
+        output_format: outputFormat,
+        faces: outputFormat === "stl" ? 50000 : 30000,
         merge: true,
-        preserve_uvs: true,
+        preserve_uvs: outputFormat !== "stl",
       },
     });
 
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
       const r2Result = await uploadToR2(
         remeshed.model_mesh.url,
         user.id,
-        "glb"
+        outputFormat === "stl" ? "glb" : "glb" // R2 upload handles extension from URL
       );
       r2Url = r2Result.r2Url;
     } catch {
