@@ -50,9 +50,9 @@ export function RemeshButton({ outputId, onRepaired }: RemeshButtonProps) {
 
       toast.info(locale === "tr" ? "Model yeniden oluşturuluyor..." : "Rebuilding model...");
 
-      // Step 2: Poll for result (every 3s, max 2 minutes)
-      for (let i = 0; i < 40; i++) {
-        await new Promise((r) => setTimeout(r, 3000));
+      // Step 2: Poll for result (every 5s, max 5 minutes)
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
 
         const statusRes = await fetch(`/api/jobs/remesh/status?requestId=${requestId}`);
         const statusData = await statusRes.json();
