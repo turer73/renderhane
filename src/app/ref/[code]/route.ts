@@ -7,8 +7,12 @@ export async function GET(
   const { code } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+  // Detect locale from Accept-Language header, default to "tr"
+  const acceptLang = request.headers.get("accept-language") || "";
+  const locale = acceptLang.toLowerCase().startsWith("en") ? "en" : "tr";
+
   // Redirect to login page with referral context
-  const response = NextResponse.redirect(`${baseUrl}/tr/login?ref=${code}`);
+  const response = NextResponse.redirect(`${baseUrl}/${locale}/login?ref=${code}`);
 
   // Set referral code cookie (30 days)
   response.cookies.set("ref_code", code, {
