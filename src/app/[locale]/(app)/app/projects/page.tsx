@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { ProjectCard } from "@/components/projects/project-card";
+import { refreshSignedUrl } from "@/lib/supabase/refresh-url";
 
 interface OutputRow {
   id: string;
@@ -47,7 +48,7 @@ export default async function ProjectsPage({
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
-  const projectList = (projects ?? []).map((p) => {
+  const projectList = await Promise.all((projects ?? []).map(async (p) => {
     const allOutputs = ((p.outputs ?? []) as OutputRow[]).sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -68,17 +69,22 @@ export default async function ProjectsPage({
     );
     const glbUrl = glbOutput ? glbOutput.fal_url || glbOutput.r2_url : null;
 
+    // Refresh expired Supabase signed URLs for thumbnails that aren't from fal.media
+    const rawThumb = bestImageUrl || (p.thumbnail_url as string) || null;
+    const rawSource = (p.source_image_url as string) || null;
+    const thumbnailUrl = await refreshSignedUrl(supabase, rawThumb);
+    const sourceImageUrl = await refreshSignedUrl(supabase, rawSource);
+
     return {
       id: p.id as string,
       name: p.name as string,
-      // Priority: output image > source image (may be expired, card handles error)
-      thumbnailUrl: bestImageUrl || (p.thumbnail_url as string) || null,
-      sourceImageUrl: (p.source_image_url as string) || null,
+      thumbnailUrl,
+      sourceImageUrl,
       outputCount: allOutputs.length,
       createdAt: p.created_at as string,
       glbUrl,
     };
-  });
+  }));
 
   return (
     <div className="space-y-6">
