@@ -10,11 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolSelector } from "@/components/app/tool-selector";
 import { ScenePresets } from "@/components/app/scene-presets";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES, type ToolType } from "@/lib/fal/models";
+import { TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES, TOOL_KEYS, TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
 import { resizeImageIfNeeded } from "@/lib/resize-image";
 import { extractFrames } from "@/lib/extract-frames";
 import { VideoRecorder } from "@/components/app/video-recorder";
-import { Video, Upload, Box, Eraser, Image, ChevronRight } from "lucide-react";
+import { Video, Upload } from "lucide-react";
 
 interface MultiImage {
   id: string;
@@ -26,13 +26,10 @@ interface MultiImage {
 /** 10 MB — reject anything larger before uploading to Supabase */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-interface PhotoUploadProps {
-  defaultTool?: ToolType | null;
-}
-
-export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
+export function PhotoUpload() {
   const t = useTranslations("common");
   const tDash = useTranslations("dashboard");
+  const tTools = useTranslations("tools");
 
   // Single-image state (for non-3D tools)
   const [preview, setPreview] = useState<string | null>(null);
@@ -43,14 +40,13 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   // Multi-image state (for 3D tools)
   const [multiImages, setMultiImages] = useState<MultiImage[]>([]);
 
-  const [selectedTool, setSelectedTool] = useState<ToolType | null>(defaultTool ?? null);
+  const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
   const [prompt, setPrompt] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
-  const [showAllTools, setShowAllTools] = useState(false);
 
   // Video-to-3D state
   const [inputMode, setInputMode] = useState<"photo" | "video">("photo");
@@ -75,12 +71,6 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync external defaultTool prop into internal state
-  useEffect(() => {
-    if (defaultTool) {
-      setSelectedTool(defaultTool);
-    }
-  }, [defaultTool]);
 
   // When switching TO a multi-image tool and a single image exists,
   // migrate it to the multi-image list
@@ -279,7 +269,6 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
     setPrompt("");
     setSelectedPresetId(null);
     setMessage(null);
-    setShowAllTools(false);
   }
 
   /* ── Upload helpers ── */
@@ -720,53 +709,40 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           </div>
         )}
 
-        {/* Quick Action Buttons — tap to instantly submit */}
-        {hasImage && !selectedTool && !showAllTools && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSubmit("3d-model")}
-                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-indigo-200 bg-indigo-50 px-4 py-4 text-base font-semibold text-indigo-700 transition-all hover:border-indigo-400 hover:bg-indigo-100 active:scale-[0.98] disabled:opacity-50 dark:border-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/15 sm:py-3 sm:text-sm"
-              >
-                <Box className="size-5 shrink-0" />
-                {tDash("quick3d")}
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSubmit("bg-remove")}
-                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-4 text-base font-semibold text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-100 active:scale-[0.98] disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/15 sm:py-3 sm:text-sm"
-              >
-                <Eraser className="size-5 shrink-0" />
-                {tDash("quickBg")}
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSubmit("scene")}
-                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-amber-200 bg-amber-50 px-4 py-4 text-base font-semibold text-amber-700 transition-all hover:border-amber-400 hover:bg-amber-100 active:scale-[0.98] disabled:opacity-50 dark:border-amber-800 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:border-amber-600 dark:hover:bg-amber-500/15 sm:py-3 sm:text-sm"
-              >
-                <Image className="size-5 shrink-0" />
-                {tDash("quickScene")}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowAllTools(true)}
-              className="flex w-full items-center justify-center gap-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {tDash("otherTools")}
-              <ChevronRight className="size-4" />
-            </button>
+        {/* Tool Cards — colorful showcase-style, tap to instantly submit */}
+        {hasImage && !selectedTool && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {([
+              { tool: "bg-remove" as ToolType, icon: "🧹", color: "from-rose-500/10 to-rose-500/5", border: "border-rose-200 dark:border-rose-800", hover: "hover:border-rose-400 dark:hover:border-rose-600" },
+              { tool: "enhance" as ToolType, icon: "✨", color: "from-amber-500/10 to-amber-500/5", border: "border-amber-200 dark:border-amber-800", hover: "hover:border-amber-400 dark:hover:border-amber-600" },
+              { tool: "scene" as ToolType, icon: "🎬", color: "from-indigo-500/10 to-indigo-500/5", border: "border-indigo-200 dark:border-indigo-800", hover: "hover:border-indigo-400 dark:hover:border-indigo-600" },
+              { tool: "3d-model" as ToolType, icon: "📦", color: "from-emerald-500/10 to-emerald-500/5", border: "border-emerald-200 dark:border-emerald-800", hover: "hover:border-emerald-400 dark:hover:border-emerald-600" },
+              { tool: "video" as ToolType, icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
+              { tool: "aplus" as ToolType, icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
+            ]).map(({ tool, icon, color, border, hover }) => {
+              const toolKey = TOOL_KEYS[tool];
+              return (
+                <button
+                  key={tool}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSubmit(tool)}
+                  className={`flex flex-col gap-1.5 rounded-2xl border bg-gradient-to-br p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 ${color} ${border} ${hover} hover:shadow-md`}
+                >
+                  <span className="text-2xl">{icon}</span>
+                  <span className="text-sm font-semibold">{tTools(toolKey)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {TOOL_CREDITS[tool]} {t("credits").toLowerCase()}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* Full Tool Selector — shown when "Other tools" clicked or tool already selected */}
-        {hasImage && (showAllTools || selectedTool) && (
+        {/* Tool re-selector — shown when a tool is already selected (via "Diğer araçlar" flow) */}
+        {hasImage && selectedTool && (
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">{tDash("selectTool")}</h3>
             <ToolSelector selectedTool={selectedTool} onSelect={setSelectedTool} />
           </div>
         )}
