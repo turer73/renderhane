@@ -27,11 +27,11 @@ export const MODELS: Record<string, ModelConfig> = {
     creditCost: 5,
     estimatedTime: "~15s",
     imageParamKey: "image_urls",
-    multiImage: true, // API expects array — router always sends [single_url]
+    multiImage: true,
     defaultParams: {
       ss_guidance_strength: 7.5,
-      slat_guidance_strength: 3,
-      mesh_simplify: 0.95,
+      slat_guidance_strength: 5,
+      mesh_simplify: 0.90,
       texture_size: 1024,
     },
   },
@@ -42,7 +42,7 @@ export const MODELS: Record<string, ModelConfig> = {
     creditCost: 20,
     estimatedTime: "~2min",
     imageParamKey: "image_urls",
-    multiImage: true, // API expects array — router always sends [single_url]
+    multiImage: true,
     defaultParams: {
       resolution: 1024,
       ss_guidance_strength: 7.5,
@@ -60,14 +60,14 @@ export const MODELS: Record<string, ModelConfig> = {
     },
     tier: "standard",
     creditCost: 25,
-    estimatedTime: "~1min",
+    estimatedTime: "~2min",
     imageParamKey: "front_image_url",
     multiImage: true,
     namedImageParams: ["front_image_url", "back_image_url", "left_image_url"],
     defaultParams: {
-      num_inference_steps: 50,
+      num_inference_steps: 75,
       guidance_scale: 7.5,
-      octree_resolution: 256,
+      octree_resolution: 384,
       textured_mesh: true,
     },
   },

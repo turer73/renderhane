@@ -342,7 +342,7 @@ export function PhotoUpload() {
   }
 
   /* ── Submit ── */
-  async function handleSubmit(quickTool?: ToolType) {
+  async function handleSubmit(quickTool?: ToolType, tier?: "fast" | "standard") {
     const activeTool = quickTool || selectedTool;
     if (!hasImage || !activeTool) return;
 
@@ -402,6 +402,7 @@ export function PhotoUpload() {
         ? { imageUrl: uploadedImageUrl }
         : {
             tool: activeTool,
+            ...(tier ? { tier } : {}),
             ...(uploadedImageUrls ? { imageUrls: uploadedImageUrls } : { imageUrl: uploadedImageUrl }),
             ...(activeNeedsPrompt && prompt.trim() ? { prompt: prompt.trim() } : {}),
           };
@@ -774,8 +775,8 @@ export function PhotoUpload() {
                   type="button"
                   disabled={submitting}
                   onClick={() => {
-                    // Scene/Video need prompt input first — select tool to show prompt UI
-                    if (TOOLS_WITH_PROMPT.includes(tool)) {
+                    // Scene/Video need prompt input, 3D needs quality selection
+                    if (TOOLS_WITH_PROMPT.includes(tool) || tool === "3d-model") {
                       setSelectedTool(tool);
                     } else {
                       handleSubmit(tool);
@@ -791,6 +792,63 @@ export function PhotoUpload() {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* 3D Quality Selection — shown when 3D Model is selected */}
+        {hasImage && selectedTool === "3d-model" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedTool(null)}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                {tDash("goBack")}
+              </button>
+              <span className="text-sm font-medium">{tTools("3dModel")}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {locale === "tr" ? "Kalite seviyesi seçin:" : "Choose quality level:"}
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSubmit("3d-model", "fast")}
+                className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">⚡</span>
+                  <span className="text-sm font-semibold">{locale === "tr" ? "Hızlı" : "Fast"}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {locale === "tr" ? "~15 saniye • 5 kredi • Önizleme için ideal" : "~15 seconds • 5 credits • Ideal for preview"}
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSubmit("3d-model", "standard")}
+                className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">💎</span>
+                  <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {locale === "tr" ? "~2 dakika • 20 kredi • Tam detaylı yüzeyler" : "~2 minutes • 20 credits • Full surface detail"}
+                </span>
+              </button>
+            </div>
+            <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2.5 dark:bg-indigo-500/10 dark:border-indigo-800">
+              <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                {locale === "tr"
+                  ? "💡 3 farklı açıdan fotoğraf eklerseniz çok daha iyi sonuç alırsınız (ön, arka, sol)"
+                  : "💡 Adding photos from 3 angles gives much better results (front, back, left)"}
+              </p>
+            </div>
           </div>
         )}
 
