@@ -167,7 +167,7 @@ export default async function OutputDetailPage({
       {/* Remesh button — only for 3D model (GLB) outputs */}
       {outputType === "glb" && url && (
         <div className="flex items-center gap-3">
-          <RemeshButton />
+          <RemeshButton modelUrl={proxyUrl(url)} />
         </div>
       )}
 
