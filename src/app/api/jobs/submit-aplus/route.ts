@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/app/api/jobs/submit/route";
 import { APLUS_SCENES, getScenePrompt, APLUS_TOTAL_CREDITS } from "@/lib/fal/aplus-scenes";
 
+// A+ submits 4 parallel jobs — needs extended timeout
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
 

@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES } from "@/lib/fal/models";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 
+// Job submission can include auto bg-remove (~5s) + fal.ai queue submit
+export const maxDuration = 60;
+
 const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus"] as const;
 
 /** Human-readable tool names for auto-created project titles */

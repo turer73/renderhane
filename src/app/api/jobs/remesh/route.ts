@@ -4,6 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
+// Remeshing can take 15-30s — extend Vercel function timeout
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
 

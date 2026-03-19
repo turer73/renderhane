@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import crypto from "crypto";
 
+// External image download can be slow
+export const maxDuration = 30;
+
 /** Max image size: 10 MB */
 const MAX_SIZE = 10 * 1024 * 1024;
 
