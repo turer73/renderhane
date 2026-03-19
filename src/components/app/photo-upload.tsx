@@ -774,15 +774,15 @@ export function PhotoUpload() {
                 { tool: "video" as ToolType, icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
                 { tool: "aplus" as ToolType, icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
               ];
-              // Reorder based on user segment
-              const segmentOrder: Record<string, ToolType[]> = {
+              // Filter + order based on user segment
+              const segmentTools: Record<string, ToolType[]> = {
                 ecommerce: ["bg-remove", "scene", "aplus", "3d-model", "enhance", "video"],
-                gaming: ["3d-model", "enhance", "bg-remove", "scene", "video", "aplus"],
-                "3dprint": ["3d-model", "enhance", "bg-remove", "scene", "video", "aplus"],
+                gaming: ["3d-model", "bg-remove", "enhance"],
+                "3dprint": ["3d-model", "bg-remove"],
               };
-              const order = userSegment ? segmentOrder[userSegment] : null;
-              const sorted = order
-                ? order.map((t) => allTools.find((a) => a.tool === t)!).filter(Boolean)
+              const visibleTools = userSegment ? segmentTools[userSegment] : null;
+              const sorted = visibleTools
+                ? visibleTools.map((t) => allTools.find((a) => a.tool === t)!).filter(Boolean)
                 : allTools;
               return sorted;
             })().map(({ tool, icon, color, border, hover }) => {
