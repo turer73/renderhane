@@ -133,6 +133,12 @@ export default async function LocaleLayout({
             <CookieBanner />
           </NextIntlClientProvider>
         </ThemeProvider>
+        <Script
+          defer
+          data-domain="renderhane.com"
+          src="http://194.163.134.239:8888/js/script.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
