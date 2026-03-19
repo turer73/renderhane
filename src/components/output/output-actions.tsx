@@ -55,12 +55,15 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
   async function handleSubmit(tool: ToolType, prompt?: string) {
     setSubmitting(tool);
     try {
-      const payload: Record<string, unknown> = { tool, imageUrl };
-      if (prompt?.trim()) {
-        payload.prompt = prompt.trim();
-      }
+      // A+ uses dedicated multi-scene endpoint (4 scenes, 32 credits)
+      const isAplus = tool === "aplus";
+      const endpoint = isAplus ? "/api/jobs/submit-aplus" : "/api/jobs/submit";
 
-      const res = await fetch("/api/jobs/submit", {
+      const payload: Record<string, unknown> = isAplus
+        ? { imageUrl }
+        : { tool, imageUrl, ...(prompt?.trim() ? { prompt: prompt.trim() } : {}) };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -79,15 +82,20 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
 
       toast.success(t("started"));
 
-      // Signal ProcessingModal to open with job tracking info.
-      // The modal + provider live in the app layout so this works
-      // from ANY /app/* page (dashboard, project detail, output…).
-      if (typeof window !== "undefined" && data?.jobId) {
-        window.dispatchEvent(
-          new CustomEvent("job-submitted", {
-            detail: { jobId: data.jobId, tool },
-          })
-        );
+      if (typeof window !== "undefined") {
+        if (isAplus && data?.jobIds) {
+          window.dispatchEvent(
+            new CustomEvent("job-submitted", {
+              detail: { jobIds: data.jobIds, tool },
+            })
+          );
+        } else if (data?.jobId) {
+          window.dispatchEvent(
+            new CustomEvent("job-submitted", {
+              detail: { jobId: data.jobId, tool },
+            })
+          );
+        }
       }
     } catch {
       toast.error(t("errorSubmit"));
