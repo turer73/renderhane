@@ -23,7 +23,6 @@ export function RemeshButton({ modelUrl }: RemeshButtonProps) {
       // Dynamic import — only loads Three.js when repair is clicked
       const THREE = await import("three");
       const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
-      const { GLTFExporter } = await import("three/addons/exporters/GLTFExporter.js");
       const { mergeVertices } = await import("three/addons/utils/BufferGeometryUtils.js");
 
       // 1. Load the GLB
@@ -78,10 +77,14 @@ export function RemeshButton({ modelUrl }: RemeshButtonProps) {
         }
       });
 
-      // 3. Export repaired GLB
-      const exporter = new GLTFExporter();
+      // 3. Export — GLB + STL
+      const { GLTFExporter } = await import("three/addons/exporters/GLTFExporter.js");
+      const { STLExporter } = await import("three/addons/exporters/STLExporter.js");
+
+      // Export GLB
+      const glbExporter = new GLTFExporter();
       const glb = await new Promise<ArrayBuffer>((resolve, reject) => {
-        exporter.parse(
+        glbExporter.parse(
           gltf.scene,
           (result) => resolve(result as ArrayBuffer),
           reject,
@@ -89,21 +92,32 @@ export function RemeshButton({ modelUrl }: RemeshButtonProps) {
         );
       });
 
-      // 4. Download
-      const blob = new Blob([glb], { type: "model/gltf-binary" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "renderhane-repaired.glb";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Export STL
+      const stlExporter = new STLExporter();
+      const stlData = stlExporter.parse(gltf.scene, { binary: true });
+      const stlBuffer = stlData instanceof DataView ? stlData.buffer : stlData;
+
+      // 4. Download both files
+      function downloadBlob(data: BlobPart, name: string, type: string) {
+        const blob = new Blob([data], { type });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }
+
+      downloadBlob(glb, "renderhane-repaired.glb", "model/gltf-binary");
+      await new Promise((r) => setTimeout(r, 500));
+      downloadBlob(stlBuffer, "renderhane-repaired.stl", "model/stl");
 
       toast.success(
         locale === "tr"
-          ? `Model onarıldı! (${repaired} mesh düzeltildi)`
-          : `Model repaired! (${repaired} meshes fixed)`
+          ? `Model onarıldı! GLB + STL indiriliyor (${repaired} mesh düzeltildi)`
+          : `Model repaired! Downloading GLB + STL (${repaired} meshes fixed)`
       );
     } catch (err) {
       console.error("Repair error:", err);
