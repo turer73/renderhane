@@ -110,11 +110,7 @@
     "cameraPermissionDenied": "Kamera izni reddedildi. Lütfen tarayıcı ayarlarından izin verin.",
     "mediaRecorderNotSupported": "Video kaydı bu tarayıcıda desteklenmiyor.",
     "videoDragDrop": "Video dosyasını sürükle & bırak veya tıkla",
-    "goBack": "Geri Dön",
-    "quick3d": "3D Yap",
-    "quickBg": "Arka Plan Kaldır",
-    "quickScene": "Sahne Yap",
-    "otherTools": "Diğer araçlar"
+    "goBack": "Geri Dön"
   },
   "batch": {
     "title": "Toplu İşlem",

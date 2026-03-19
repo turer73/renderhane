@@ -110,11 +110,7 @@
     "cameraPermissionDenied": "Camera permission denied. Please allow access in browser settings.",
     "mediaRecorderNotSupported": "Video recording is not supported in this browser.",
     "videoDragDrop": "Drag & drop a video file or click",
-    "goBack": "Go Back",
-    "quick3d": "Make 3D",
-    "quickBg": "Remove Background",
-    "quickScene": "Create Scene",
-    "otherTools": "Other tools"
+    "goBack": "Go Back"
   },
   "batch": {
     "title": "Batch Processing",
