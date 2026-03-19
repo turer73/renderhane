@@ -295,14 +295,16 @@ export function PhotoUpload() {
 
   async function uploadSingleImage(): Promise<string | null> {
     if (imageSource === "url" && preview) {
-      // Fetch external image and upload to Supabase so it passes domain validation
+      // Use server-side proxy to download and upload — avoids CORS issues
       try {
-        const res = await fetch(preview);
+        const res = await fetch("/api/upload/from-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: preview }),
+        });
         if (!res.ok) return null;
-        const blob = await res.blob();
-        const ext = blob.type.split("/")[1] || "jpg";
-        const fetched = new File([blob], `url-upload.${ext}`, { type: blob.type });
-        return uploadFileToSupabase(fetched);
+        const data = await res.json();
+        return data.signedUrl || null;
       } catch {
         return null;
       }
