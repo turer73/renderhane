@@ -153,7 +153,7 @@
       "subtitle": "Ürün görsellerinizi profesyonel seviyeye taşıyın — stüdyo veya fotoğrafçıya gerek yok.",
       "3dModel": {
         "description": "Tek bir fotoğraftan yüksek kaliteli 3D model oluşturun. Ürünlerinizi 360 derece sergileyin.",
-        "credits": "5 kredi",
+        "credits": "4 kredi",
         "tip": "Ürün kenarları net olsun. Yüksek kontrastlı fotoğraflar daha iyi sonuç verir."
       },
       "bgRemove": {
@@ -163,22 +163,22 @@
       },
       "enhance": {
         "description": "Düşük çözünürlüklü görselleri AI ile iyileştirin. Detayları ve netliği artırın.",
-        "credits": "3 kredi",
+        "credits": "2 kredi",
         "tip": "En az 256×256 piksel boyutunda görseller kullanın. Çok bulanık görsellerde sonuç sınırlı kalabilir."
       },
       "scene": {
         "description": "Ürününüz için profesyonel sahneler ve ortamlar oluşturun. Yaşam tarzı görselleri üretin.",
-        "credits": "5 kredi",
+        "credits": "3 kredi",
         "tip": "Arka planı temiz ürünler en iyi sonucu verir. Önce 'Arka Plan Kaldır' kullanmanızı öneririz."
       },
       "video": {
         "description": "Statik ürün fotoğraflarından etkileyici tanıtım videoları oluşturun.",
-        "credits": "20 kredi",
+        "credits": "15 kredi",
         "tip": "Net ve yüksek çözünürlüklü fotoğraflar daha akıcı video üretir. Minimum 512×512 piksel önerilir."
       },
       "aplus": {
         "description": "Pazaryerleri için A+ kalitesinde ürün içerikleri ve görseller üretin.",
-        "credits": "8 kredi",
+        "credits": "5 kredi",
         "tip": "Birden fazla açıdan fotoğraf hazırlayın. Ürün özelliklerini belirgin tutun."
       }
     },

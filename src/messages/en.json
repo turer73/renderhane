@@ -153,7 +153,7 @@
       "subtitle": "Take your product visuals to the next level — no studio or photographer needed.",
       "3dModel": {
         "description": "Create high-quality 3D models from a single photo. Showcase your products in 360 degrees.",
-        "credits": "5 credits",
+        "credits": "4 credits",
         "tip": "Keep product edges sharp. High-contrast photos give better results."
       },
       "bgRemove": {
@@ -163,22 +163,22 @@
       },
       "enhance": {
         "description": "Enhance low-resolution images with AI. Improve details and sharpness.",
-        "credits": "3 credits",
+        "credits": "2 credits",
         "tip": "Use images at least 256×256 pixels. Very blurry images may have limited improvement."
       },
       "scene": {
         "description": "Create professional scenes and environments for your products. Generate lifestyle images.",
-        "credits": "5 credits",
+        "credits": "3 credits",
         "tip": "Products with clean backgrounds work best. We recommend using 'Remove Background' first."
       },
       "video": {
         "description": "Create stunning promotional videos from static product photos.",
-        "credits": "20 credits",
+        "credits": "15 credits",
         "tip": "Sharp, high-resolution photos produce smoother videos. Minimum 512×512 pixels recommended."
       },
       "aplus": {
         "description": "Generate A+ quality product content and visuals for marketplaces.",
-        "credits": "8 credits",
+        "credits": "5 credits",
         "tip": "Prepare photos from multiple angles. Keep product features prominent."
       }
     },
