@@ -5,9 +5,9 @@ import crypto from "crypto";
 // ---------------------------------------------------------------------------
 
 export const PACKAGES = {
-  starter: { credits: 50, price: 49, name: "Starter" },
-  standard: { credits: 200, price: 149, name: "Standard" },
-  pro: { credits: 500, price: 299, name: "Professional" },
+  starter: { credits: 100, price: 199, name: "Starter" },
+  standard: { credits: 300, price: 499, name: "Standard" },
+  pro: { credits: 800, price: 999, name: "Professional" },
 } as const;
 
 export type PackageKey = keyof typeof PACKAGES;
