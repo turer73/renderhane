@@ -139,19 +139,8 @@ export default function CreditsPage() {
 
       <Separator />
 
-      {/* Coming Soon Banner */}
-      <div className="flex justify-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30">
-          <span className="relative flex size-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-white" />
-          </span>
-          {tp("comingSoon")}
-        </div>
-      </div>
-
-      {/* Pricing cards — dimmed until payment goes live */}
-      <div className="grid grid-cols-1 gap-6 opacity-60 pointer-events-none select-none sm:grid-cols-2 md:grid-cols-3">
+      {/* Pricing cards */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
         {PACKAGE_KEYS.map((key) => {
           const isPopular = key === "standard";
 

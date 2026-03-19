@@ -58,19 +58,8 @@ export function PricingSection() {
           </p>
         </div>
 
-        {/* Coming Soon Banner */}
-        <div className="mx-auto mt-10 flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30">
-            <span className="relative flex size-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
-              <span className="relative inline-flex size-2.5 rounded-full bg-white" />
-            </span>
-            {t("pricing.comingSoon")}
-          </div>
-        </div>
-
-        {/* Cards — dimmed until payment goes live */}
-        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 opacity-60 pointer-events-none select-none sm:max-w-5xl sm:grid-cols-2 lg:grid-cols-4">
+        {/* Cards */}
+        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 sm:max-w-5xl sm:grid-cols-2 lg:grid-cols-4">
           {packages.map((pkg) => {
             const isPopular = pkg.popular;
             const isEnterprise = pkg.key === "enterprise";
@@ -159,7 +148,7 @@ export function PricingSection() {
                       className="w-full"
                       asChild
                     >
-                      <Link href={`/${locale}/login`}>
+                      <Link href={`/${locale}/app/credits`}>
                         {t("pricing.contactUs")}
                       </Link>
                     </Button>
@@ -168,7 +157,7 @@ export function PricingSection() {
                       asChild
                       className="w-full bg-white text-indigo-900 shadow-lg shadow-indigo-900/20 hover:bg-slate-100 font-semibold transition-all"
                     >
-                      <Link href={`/${locale}/login`}>
+                      <Link href={`/${locale}/app/credits`}>
                         {t("pricing.buyNow")}
                       </Link>
                     </Button>
@@ -178,7 +167,7 @@ export function PricingSection() {
                       className="w-full hover:border-indigo-300 hover:text-indigo-700 dark:hover:border-indigo-600 dark:hover:text-indigo-300 transition-colors"
                       asChild
                     >
-                      <Link href={`/${locale}/login`}>
+                      <Link href={`/${locale}/app/credits`}>
                         {t("pricing.buyNow")}
                       </Link>
                     </Button>
@@ -189,10 +178,8 @@ export function PricingSection() {
           })}
         </div>
 
-        {/* Credit Calculator — dimmed until payment goes live */}
-        <div className="opacity-60 pointer-events-none select-none">
-          <CreditCalculator />
-        </div>
+        {/* Credit Calculator */}
+        <CreditCalculator />
       </div>
     </section>
   );

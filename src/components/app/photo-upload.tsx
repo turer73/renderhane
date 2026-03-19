@@ -14,7 +14,7 @@ import { TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES, type ToolType }
 import { resizeImageIfNeeded } from "@/lib/resize-image";
 import { extractFrames } from "@/lib/extract-frames";
 import { VideoRecorder } from "@/components/app/video-recorder";
-import { Video, Upload } from "lucide-react";
+import { Video, Upload, Box, Eraser, Image, ChevronRight } from "lucide-react";
 
 interface MultiImage {
   id: string;
@@ -50,6 +50,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
+  const [showAllTools, setShowAllTools] = useState(false);
 
   // Video-to-3D state
   const [inputMode, setInputMode] = useState<"photo" | "video">("photo");
@@ -278,6 +279,7 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
     setPrompt("");
     setSelectedPresetId(null);
     setMessage(null);
+    setShowAllTools(false);
   }
 
   /* ── Upload helpers ── */
@@ -688,8 +690,48 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
           </div>
         )}
 
-        {/* Tool Selector */}
-        {hasImage && (
+        {/* Quick Action Buttons — shown when image is ready but no tool selected */}
+        {hasImage && !selectedTool && !showAllTools && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => setSelectedTool("3d-model")}
+                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-indigo-200 bg-indigo-50 px-4 py-4 text-base font-semibold text-indigo-700 transition-all hover:border-indigo-400 hover:bg-indigo-100 active:scale-[0.98] dark:border-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/15 sm:py-3 sm:text-sm"
+              >
+                <Box className="size-5 shrink-0" />
+                {tDash("quick3d")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTool("bg-remove")}
+                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-4 text-base font-semibold text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-100 active:scale-[0.98] dark:border-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/15 sm:py-3 sm:text-sm"
+              >
+                <Eraser className="size-5 shrink-0" />
+                {tDash("quickBg")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTool("scene")}
+                className="flex items-center justify-center gap-3 rounded-2xl border-2 border-amber-200 bg-amber-50 px-4 py-4 text-base font-semibold text-amber-700 transition-all hover:border-amber-400 hover:bg-amber-100 active:scale-[0.98] dark:border-amber-800 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:border-amber-600 dark:hover:bg-amber-500/15 sm:py-3 sm:text-sm"
+              >
+                <Image className="size-5 shrink-0" />
+                {tDash("quickScene")}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAllTools(true)}
+              className="flex w-full items-center justify-center gap-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {tDash("otherTools")}
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Full Tool Selector — shown when "Other tools" clicked or tool already selected */}
+        {hasImage && (showAllTools || selectedTool) && (
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-muted-foreground">{tDash("selectTool")}</h3>
             <ToolSelector selectedTool={selectedTool} onSelect={setSelectedTool} />

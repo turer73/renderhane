@@ -90,7 +90,7 @@ export function FeaturesSection() {
 
                 {/* Title */}
                 <h3 className="text-xl font-bold text-foreground">
-                  {tt(tool.toolKey)}
+                  {t(`features.${tool.key}.title`)}
                 </h3>
 
                 {/* Description */}

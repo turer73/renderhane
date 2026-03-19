@@ -110,7 +110,11 @@
     "cameraPermissionDenied": "Camera permission denied. Please allow access in browser settings.",
     "mediaRecorderNotSupported": "Video recording is not supported in this browser.",
     "videoDragDrop": "Drag & drop a video file or click",
-    "goBack": "Go Back"
+    "goBack": "Go Back",
+    "quick3d": "Make 3D",
+    "quickBg": "Remove Background",
+    "quickScene": "Create Scene",
+    "otherTools": "Other tools"
   },
   "batch": {
     "title": "Batch Processing",
@@ -133,8 +137,8 @@
   },
   "landing": {
     "badge": "AI-Powered",
-    "hero": "AI Studio for Your E-Commerce Store",
-    "heroSub": "3D models, professional product images, and videos from a single photo — in minutes.",
+    "hero": "Turn Your Product Photos Into Professional Assets",
+    "heroSub": "3D models, clean backgrounds, scenes, videos — from a single photo, in minutes.",
     "stat1": "94-250% conversion boost",
     "stat1Sub": "Proven impact of 3D product visuals",
     "stat2": "Starting at ₺2 per task",
@@ -152,33 +156,39 @@
       "title": "6 AI Tools, One Platform",
       "subtitle": "Take your product visuals to the next level — no studio or photographer needed.",
       "3dModel": {
-        "description": "Create high-quality 3D models from a single photo. Showcase your products in 360 degrees.",
-        "credits": "4 credits",
+        "title": "Turn Your Product Into 3D",
+        "description": "Create interactive 3D models from a single photo. Let customers rotate and explore your product in 360°.",
+        "credits": "5 credits",
         "tip": "Keep product edges sharp. High-contrast photos give better results."
       },
       "bgRemove": {
-        "description": "Remove backgrounds instantly. Get clean, professional product images.",
+        "title": "Remove Background in One Click",
+        "description": "Get clean, white-background professional product images in seconds.",
         "credits": "1 credit",
         "tip": "Ensure product edges are sharp. High-contrast photos yield better results."
       },
       "enhance": {
-        "description": "Enhance low-resolution images with AI. Improve details and sharpness.",
-        "credits": "2 credits",
+        "title": "Upscale Your Image to 4K",
+        "description": "Sharpen low-resolution product photos with AI. Boost detail and clarity.",
+        "credits": "4 credits",
         "tip": "Use images at least 256×256 pixels. Very blurry images may have limited improvement."
       },
       "scene": {
-        "description": "Create professional scenes and environments for your products. Generate lifestyle images.",
-        "credits": "3 credits",
+        "title": "Create a Professional Scene",
+        "description": "Place your product on marble surfaces, wooden counters, or lifestyle environments.",
+        "credits": "8 credits",
         "tip": "Products with clean backgrounds work best. We recommend using 'Remove Background' first."
       },
       "video": {
-        "description": "Create stunning promotional videos from static product photos.",
-        "credits": "15 credits",
+        "title": "Create a Product Video",
+        "description": "Generate stunning promotional videos from a static photo. Ready for social media and your store.",
+        "credits": "20 credits",
         "tip": "Sharp, high-resolution photos produce smoother videos. Minimum 512×512 pixels recommended."
       },
       "aplus": {
-        "description": "Generate A+ quality product content and visuals for marketplaces.",
-        "credits": "5 credits",
+        "title": "Prepare A+ Content",
+        "description": "Generate premium quality product visuals and catalog content for marketplaces.",
+        "credits": "8 credits",
         "tip": "Prepare photos from multiple angles. Keep product features prominent."
       }
     },
