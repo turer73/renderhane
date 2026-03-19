@@ -52,23 +52,24 @@ export const MODELS: Record<string, ModelConfig> = {
   },
 
   /* ── 3D Model — Çoklu Fotoğraf ─────────────── */
-  "hunyuan3d-v2-mv": {
-    id: "fal-ai/hunyuan3d/v2/multi-view",
+  "meshy-5-multi": {
+    id: "fal-ai/meshy/v5/multi-image-to-3d",
     displayName: {
-      tr: "Hunyuan3D Multi-View",
-      en: "Hunyuan3D Multi-View",
+      tr: "Meshy 5 — Çoklu Fotoğraf",
+      en: "Meshy 5 — Multi-Image",
     },
     tier: "standard",
-    creditCost: 25,
-    estimatedTime: "~2min",
-    imageParamKey: "front_image_url",
+    creditCost: 15,
+    estimatedTime: "~3min",
+    imageParamKey: "image_urls",
     multiImage: true,
-    namedImageParams: ["front_image_url", "back_image_url", "left_image_url"],
     defaultParams: {
-      num_inference_steps: 75,
-      guidance_scale: 7.5,
-      octree_resolution: 384,
-      textured_mesh: true,
+      topology: "triangle",
+      target_polycount: 50000,
+      should_remesh: true,
+      should_texture: true,
+      enable_pbr: true,
+      symmetry_mode: "auto",
     },
   },
 
@@ -142,7 +143,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "trellis-2", "hunyuan3d-v2-mv"],
+  "3d-model": ["trellis-v1", "trellis-2", "meshy-5-multi"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
@@ -181,4 +182,4 @@ export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video"];
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];
 
 /** Max images for multi-image tools */
-export const MAX_MULTI_IMAGES = 3;
+export const MAX_MULTI_IMAGES = 4;

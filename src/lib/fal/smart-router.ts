@@ -36,9 +36,12 @@ export function routeRequest(request: RouteRequest): RouteResult {
       input[model.namedImageParams[i]] = imageUrls[i] ?? "";
     }
   } else if (model.multiImage) {
-    // Array-based multi-image (TRELLIS): always use first image only (single-photo mode)
-    const firstUrl = imageUrl ?? imageUrls?.[0] ?? "";
-    input[model.imageParamKey] = [firstUrl];
+    // Array-based multi-image: send all provided URLs as array
+    if (imageUrls && imageUrls.length > 0) {
+      input[model.imageParamKey] = imageUrls;
+    } else {
+      input[model.imageParamKey] = [imageUrl ?? ""];
+    }
   } else {
     // Single-image model
     input[model.imageParamKey] = imageUrl ?? imageUrls?.[0] ?? "";
@@ -55,8 +58,8 @@ export function routeRequest(request: RouteRequest): RouteResult {
 function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
-      // 3+ photos → Hunyuan3D multi-view (front/back/left)
-      if (imageCount >= 3) return "hunyuan3d-v2-mv";
+      // 2+ photos → Meshy 5 multi-image (up to 4 photos, PBR textures)
+      if (imageCount >= 2) return "meshy-5-multi";
       // Single photo: tier-based TRELLIS
       if (tier === "fast") return "trellis-v1";
       return "trellis-2";
