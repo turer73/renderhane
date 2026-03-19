@@ -349,7 +349,8 @@ export function PhotoUpload() {
   /* ── Submit ── */
   async function handleSubmit(quickTool?: ToolType, tier?: "fast" | "standard") {
     const activeTool = quickTool || selectedTool;
-    if (!hasImage || !activeTool) return;
+    const anyImage = preview || multiImages.length > 0;
+    if (!anyImage || !activeTool) return;
 
     setSubmitting(true);
     setMessage(null);
