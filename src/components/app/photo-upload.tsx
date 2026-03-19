@@ -238,7 +238,7 @@ export function PhotoUpload() {
     addMultiFiles(frames);
   }
 
-  function handleUrlSubmit() {
+  async function handleUrlSubmit() {
     const trimmed = urlInput.trim();
     if (!trimmed) return;
     try {
@@ -251,10 +251,37 @@ export function PhotoUpload() {
       setMessage({ type: "error", text: tDash("uploadError") });
       return;
     }
-    setFile(null);
-    setImageSource("url");
-    setPreview(trimmed);
+
     setMessage(null);
+    setSubmitting(true);
+
+    // Download via server proxy and upload to Supabase — gives us a working preview URL
+    try {
+      const res = await fetch("/api/upload/from-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      if (!res.ok) {
+        setMessage({ type: "error", text: tDash("uploadError") });
+        setSubmitting(false);
+        return;
+      }
+      const data = await res.json();
+      if (!data.signedUrl) {
+        setMessage({ type: "error", text: tDash("uploadError") });
+        setSubmitting(false);
+        return;
+      }
+      // Use the Supabase signed URL as preview — always loads
+      setFile(null);
+      setImageSource("url");
+      setPreview(data.signedUrl);
+    } catch {
+      setMessage({ type: "error", text: tDash("uploadError") });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function handleReset() {
@@ -295,19 +322,8 @@ export function PhotoUpload() {
 
   async function uploadSingleImage(): Promise<string | null> {
     if (imageSource === "url" && preview) {
-      // Use server-side proxy to download and upload — avoids CORS issues
-      try {
-        const res = await fetch("/api/upload/from-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: preview }),
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.signedUrl || null;
-      } catch {
-        return null;
-      }
+      // preview is already a Supabase signed URL (uploaded during handleUrlSubmit)
+      return preview;
     }
     if (imageSource === "file" && file) return uploadFileToSupabase(file);
     return null;
@@ -755,7 +771,14 @@ export function PhotoUpload() {
                   key={tool}
                   type="button"
                   disabled={submitting}
-                  onClick={() => handleSubmit(tool)}
+                  onClick={() => {
+                    // Scene/Video need prompt input first — select tool to show prompt UI
+                    if (TOOLS_WITH_PROMPT.includes(tool)) {
+                      setSelectedTool(tool);
+                    } else {
+                      handleSubmit(tool);
+                    }
+                  }}
                   className={`flex flex-col gap-1.5 rounded-2xl border bg-gradient-to-br p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 ${color} ${border} ${hover} hover:shadow-md`}
                 >
                   <span className="text-2xl">{icon}</span>
