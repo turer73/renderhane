@@ -15,7 +15,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScenePresets } from "@/components/app/scene-presets";
-import { TOOL_KEYS, TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
+import { TOOL_KEYS, TOOL_CREDITS, TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
+
+const TOOL_STYLES: Record<string, { icon: string; color: string; border: string; hover: string }> = {
+  "bg-remove": { icon: "🧹", color: "from-rose-500/10 to-rose-500/5", border: "border-rose-200 dark:border-rose-800", hover: "hover:border-rose-400 dark:hover:border-rose-600" },
+  "enhance": { icon: "✨", color: "from-amber-500/10 to-amber-500/5", border: "border-amber-200 dark:border-amber-800", hover: "hover:border-amber-400 dark:hover:border-amber-600" },
+  "scene": { icon: "🎬", color: "from-indigo-500/10 to-indigo-500/5", border: "border-indigo-200 dark:border-indigo-800", hover: "hover:border-indigo-400 dark:hover:border-indigo-600" },
+  "3d-model": { icon: "📦", color: "from-emerald-500/10 to-emerald-500/5", border: "border-emerald-200 dark:border-emerald-800", hover: "hover:border-emerald-400 dark:hover:border-emerald-600" },
+  "video": { icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
+  "aplus": { icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
+};
 
 interface ToolOption {
   tool: ToolType;
@@ -120,33 +129,31 @@ export function OutputActions({ imageUrl, tools, creditCosts }: OutputActionsPro
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {tools.map(({ tool, icon }) => {
+        {tools.map(({ tool }) => {
           const toolKey = TOOL_KEYS[tool];
-          const cost = creditCosts[tool];
+          const cost = TOOL_CREDITS[tool];
           const isActive = submitting === tool;
           const isDisabled = submitting !== null;
+          const style = TOOL_STYLES[tool] || TOOL_STYLES["enhance"];
 
           return (
-            <Button
+            <button
               key={tool}
               type="button"
-              variant="outline"
-              className="flex h-auto flex-col items-center gap-2 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/5 transition-colors"
-              onClick={() => handleToolClick(tool)}
               disabled={isDisabled}
+              onClick={() => handleToolClick(tool)}
+              className={`flex flex-col gap-1.5 rounded-2xl border bg-gradient-to-br p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 ${style.color} ${style.border} ${style.hover} hover:shadow-md`}
             >
               {isActive ? (
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
               ) : (
-                <ToolIcon name={icon} className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                <span className="text-2xl">{style.icon}</span>
               )}
-              <span className="text-sm font-medium">
-                {tTools(toolKey)}
-              </span>
+              <span className="text-sm font-semibold">{tTools(toolKey)}</span>
               <span className="text-xs text-muted-foreground">
-                {tCredits("cost", { count: cost })}
+                {cost} {tCredits("cost", { count: "" }).replace(/^\d*\s*/, "")}
               </span>
-            </Button>
+            </button>
           );
         })}
       </div>
