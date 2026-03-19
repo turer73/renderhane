@@ -530,7 +530,22 @@ export function PhotoUpload() {
           <div className="space-y-3">
             <div className="relative mx-auto max-w-sm overflow-hidden rounded-lg border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt={tDash("imageSelected")} className="h-auto max-h-[60vh] w-full object-contain" />
+              <img
+                src={preview}
+                alt={tDash("imageSelected")}
+                className="h-auto max-h-[60vh] w-full object-contain"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  // Show a placeholder on load failure (e.g. hotlink blocked)
+                  img.style.display = "none";
+                  const fallback = img.parentElement?.querySelector(".img-fallback");
+                  if (fallback) (fallback as HTMLElement).style.display = "flex";
+                }}
+              />
+              <div className="img-fallback hidden h-40 items-center justify-center text-sm text-muted-foreground">
+                {tDash("imageSelected")} — URL
+              </div>
             </div>
             <div className="flex items-center justify-center gap-3">
               <p className="text-sm text-muted-foreground">{tDash("imageSelected")}</p>
