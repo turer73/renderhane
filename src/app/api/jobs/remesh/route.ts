@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Call fal.ai remeshing — synchronous (fal.subscribe)
+    console.log("[remesh] Starting:", { outputId, modelUrl, outputFormat });
+
+    // Try fal.run first (simpler, no queue), fallback to fal.subscribe
     const result = await fal.subscribe("fal-ai/triposr/remeshing", {
       input: {
         object_url: modelUrl,
@@ -80,28 +82,37 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log("[remesh] Result keys:", Object.keys(result.data || {}));
+
     const remeshed = result.data as {
       model_mesh?: { url?: string };
     };
 
     if (!remeshed.model_mesh?.url) {
+      console.error("[remesh] No output URL. Full result:", JSON.stringify(result.data).slice(0, 500));
       return NextResponse.json(
-        { error: "Remeshing failed — no output" },
+        { error: "Remeshing completed but no output file was returned" },
         { status: 500 }
       );
     }
 
-    // Return the remeshed file URL directly for download
-    // Do NOT modify the original output record — keep original GLB intact
     return NextResponse.json({
       url: remeshed.model_mesh.url,
       format: outputFormat,
       message: "Model rebuilt successfully",
     });
   } catch (error) {
-    console.error("Remesh error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const falErr = error as { status?: number; body?: { detail?: string } };
+    console.error("[remesh] Error:", {
+      message: errMsg,
+      status: falErr.status,
+      detail: falErr.body?.detail,
+      modelUrl,
+      outputFormat,
+    });
     return NextResponse.json(
-      { error: "Remeshing failed" },
+      { error: `Remeshing failed: ${falErr.body?.detail || errMsg}` },
       { status: 500 }
     );
   }

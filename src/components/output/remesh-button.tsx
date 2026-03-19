@@ -36,7 +36,9 @@ export function RemeshButton({ outputId, onRepaired }: RemeshButtonProps) {
       });
 
       if (!res.ok) {
-        toast.error(locale === "tr" ? "Yeniden oluşturma başarısız oldu" : "Rebuild failed");
+        const errData = await res.json().catch(() => null);
+        const detail = errData?.error || (locale === "tr" ? "Yeniden oluşturma başarısız oldu" : "Rebuild failed");
+        toast.error(detail);
         return;
       }
 
