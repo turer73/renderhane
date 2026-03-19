@@ -12,22 +12,22 @@ import { TOOL_CREDITS, TOOL_KEYS, type ToolType } from "@/lib/fal/models";
 const packages = [
   {
     key: "starter" as const,
-    credits: 50,
-    priceValue: 49,
+    credits: 100,
+    priceValue: 199,
     features: ["feature1", "feature2", "feature3"] as const,
     popular: false,
   },
   {
     key: "standard" as const,
-    credits: 200,
-    priceValue: 149,
+    credits: 300,
+    priceValue: 499,
     features: ["feature1", "feature2", "feature3"] as const,
     popular: true,
   },
   {
     key: "pro" as const,
-    credits: 500,
-    priceValue: 299,
+    credits: 800,
+    priceValue: 999,
     features: ["feature1", "feature2", "feature3", "feature4"] as const,
     popular: false,
   },

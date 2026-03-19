@@ -36,14 +36,9 @@ export function routeRequest(request: RouteRequest): RouteResult {
       input[model.namedImageParams[i]] = imageUrls[i] ?? "";
     }
   } else if (model.multiImage) {
-    // Array-based multi-image (e.g. TRELLIS)
-    const imageValue = imageUrls ?? (imageUrl ? [imageUrl] : []);
-    input[model.imageParamKey] = imageValue;
-
-    // Use multidiffusion when >1 image provided (TRELLIS-specific)
-    if (imageValue.length > 1) {
-      input.multiimage_algo = "multidiffusion";
-    }
+    // Array-based multi-image (TRELLIS): always use first image only (single-photo mode)
+    const firstUrl = imageUrl ?? imageUrls?.[0] ?? "";
+    input[model.imageParamKey] = [firstUrl];
   } else {
     // Single-image model
     input[model.imageParamKey] = imageUrl ?? imageUrls?.[0] ?? "";
@@ -60,11 +55,11 @@ export function routeRequest(request: RouteRequest): RouteResult {
 function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
-      if (tier === "fast") return "trellis-v1";
-      // Standard tier: Hunyuan3D v2
-      // Use multi-view when exactly 3 images provided (front/back/left)
+      // 3+ photos → Hunyuan3D multi-view (front/back/left)
       if (imageCount >= 3) return "hunyuan3d-v2-mv";
-      return "hunyuan3d-v2";
+      // Single photo: tier-based TRELLIS
+      if (tier === "fast") return "trellis-v1";
+      return "trellis-2";
 
     case "bg-remove":
       return "birefnet";

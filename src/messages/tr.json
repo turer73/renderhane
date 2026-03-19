@@ -137,7 +137,7 @@
     "heroSub": "Tek fotoğraftan 3D model, profesyonel ürün görseli ve video — dakikalar içinde.",
     "stat1": "%94-250 dönüşüm artışı",
     "stat1Sub": "3D ürün görsellerinin kanıtlanmış etkisi",
-    "stat2": "₺2'den başlayan fiyat",
+    "stat2": "₺2'den başlayan işlem",
     "stat2Sub": "Geleneksel fotoğrafçılığın %95 altında",
     "stat3": "2 dakikada hazır",
     "stat3Sub": "Günler yerine dakikalar",
@@ -153,7 +153,7 @@
       "subtitle": "Ürün görsellerinizi profesyonel seviyeye taşıyın — stüdyo veya fotoğrafçıya gerek yok.",
       "3dModel": {
         "description": "Tek bir fotoğraftan yüksek kaliteli 3D model oluşturun. Ürünlerinizi 360 derece sergileyin.",
-        "credits": "3 kredi",
+        "credits": "5 kredi",
         "tip": "Ürün kenarları net olsun. Yüksek kontrastlı fotoğraflar daha iyi sonuç verir."
       },
       "bgRemove": {
@@ -163,22 +163,22 @@
       },
       "enhance": {
         "description": "Düşük çözünürlüklü görselleri AI ile iyileştirin. Detayları ve netliği artırın.",
-        "credits": "2 kredi",
+        "credits": "3 kredi",
         "tip": "En az 256×256 piksel boyutunda görseller kullanın. Çok bulanık görsellerde sonuç sınırlı kalabilir."
       },
       "scene": {
         "description": "Ürününüz için profesyonel sahneler ve ortamlar oluşturun. Yaşam tarzı görselleri üretin.",
-        "credits": "3 kredi",
+        "credits": "5 kredi",
         "tip": "Arka planı temiz ürünler en iyi sonucu verir. Önce 'Arka Plan Kaldır' kullanmanızı öneririz."
       },
       "video": {
         "description": "Statik ürün fotoğraflarından etkileyici tanıtım videoları oluşturun.",
-        "credits": "10 kredi",
+        "credits": "20 kredi",
         "tip": "Net ve yüksek çözünürlüklü fotoğraflar daha akıcı video üretir. Minimum 512×512 piksel önerilir."
       },
       "aplus": {
         "description": "Pazaryerleri için A+ kalitesinde ürün içerikleri ve görseller üretin.",
-        "credits": "5 kredi",
+        "credits": "8 kredi",
         "tip": "Birden fazla açıdan fotoğraf hazırlayın. Ürün özelliklerini belirgin tutun."
       }
     },
@@ -188,8 +188,8 @@
       "comingSoon": "Çok Yakında",
       "starter": {
         "name": "Başlangıç",
-        "credits": "50 Kredi",
-        "price": "₺49",
+        "credits": "100 Kredi",
+        "price": "₺199",
         "description": "Platformu keşfetmek isteyenler için ideal.",
         "feature1": "Tüm AI araçlarına erişim",
         "feature2": "Standart işlem hızı",
@@ -197,8 +197,8 @@
       },
       "standard": {
         "name": "Standart",
-        "credits": "200 Kredi",
-        "price": "₺149",
+        "credits": "300 Kredi",
+        "price": "₺499",
         "description": "Düzenli kullanım için en popüler paket.",
         "feature1": "Tüm AI araçlarına erişim",
         "feature2": "Öncelikli işlem hızı",
@@ -207,8 +207,8 @@
       },
       "pro": {
         "name": "Profesyonel",
-        "credits": "500 Kredi",
-        "price": "₺299",
+        "credits": "800 Kredi",
+        "price": "₺999",
         "description": "Yüksek hacimli mağazalar için güçlü paket.",
         "feature1": "Tüm AI araçlarına erişim",
         "feature2": "En yüksek işlem önceliği",

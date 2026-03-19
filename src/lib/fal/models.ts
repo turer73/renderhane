@@ -19,45 +19,47 @@ export interface ModelConfig {
 }
 
 export const MODELS: Record<string, ModelConfig> = {
-  /* ── 3D Model ─────────────────────────────── */
+  /* ── 3D Model — Tek Fotoğraf ────────────────── */
   "trellis-v1": {
     id: "fal-ai/trellis/multi",
     displayName: { tr: "TRELLIS v1 — Hızlı", en: "TRELLIS v1 — Fast" },
     tier: "fast",
-    creditCost: 2,
+    creditCost: 5,
     estimatedTime: "~15s",
     imageParamKey: "image_urls",
-    multiImage: true,
+    multiImage: true, // API expects array — router always sends [single_url]
     defaultParams: {
       ss_guidance_strength: 7.5,
       slat_guidance_strength: 3,
       mesh_simplify: 0.95,
       texture_size: 1024,
-      multiimage_algo: "stochastic",
     },
   },
-  "hunyuan3d-v2": {
-    id: "fal-ai/hunyuan3d/v2",
-    displayName: { tr: "Hunyuan3D — Kaliteli", en: "Hunyuan3D — Quality" },
+  "trellis-2": {
+    id: "fal-ai/trellis-2/multi",
+    displayName: { tr: "TRELLIS 2 — Kaliteli", en: "TRELLIS 2 — Quality" },
     tier: "standard",
-    creditCost: 5,
-    estimatedTime: "~1min",
-    imageParamKey: "input_image_url",
+    creditCost: 15,
+    estimatedTime: "~2min",
+    imageParamKey: "image_urls",
+    multiImage: true, // API expects array — router always sends [single_url]
     defaultParams: {
-      num_inference_steps: 50,
-      guidance_scale: 7.5,
-      octree_resolution: 256,
-      textured_mesh: true,
+      resolution: 1024,
+      ss_guidance_strength: 7.5,
+      texture_size: 2048,
+      remesh: true,
     },
   },
+
+  /* ── 3D Model — Çoklu Fotoğraf ─────────────── */
   "hunyuan3d-v2-mv": {
     id: "fal-ai/hunyuan3d/v2/multi-view",
     displayName: {
-      tr: "Hunyuan3D Multi-View — Kaliteli",
-      en: "Hunyuan3D Multi-View — Quality",
+      tr: "Hunyuan3D Multi-View",
+      en: "Hunyuan3D Multi-View",
     },
     tier: "standard",
-    creditCost: 3,
+    creditCost: 8,
     estimatedTime: "~1min",
     imageParamKey: "front_image_url",
     multiImage: true,
@@ -86,7 +88,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/aura-sr",
     displayName: { tr: "Görseli İyileştir", en: "Enhance Image" },
     tier: "fast",
-    creditCost: 2,
+    creditCost: 3,
     estimatedTime: "~5s",
     imageParamKey: "image_url",
     defaultParams: {},
@@ -97,7 +99,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/bria/product-shot",
     displayName: { tr: "Sahne Üretici", en: "Scene Generator" },
     tier: "fast",
-    creditCost: 3,
+    creditCost: 5,
     estimatedTime: "~10s",
     imageParamKey: "image_url",
     promptParamKey: "scene_description",
@@ -112,7 +114,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "wan/v2.6/image-to-video",
     displayName: { tr: "Wan 2.6 Video", en: "Wan 2.6 Video" },
     tier: "standard",
-    creditCost: 10,
+    creditCost: 20,
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "prompt",
@@ -128,7 +130,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/bria/product-shot",
     displayName: { tr: "A+ Sahne Üretici", en: "A+ Scene Generator" },
     tier: "standard",
-    creditCost: 5,
+    creditCost: 8,
     estimatedTime: "~15s",
     imageParamKey: "image_url",
     promptParamKey: "scene_description",
@@ -140,7 +142,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "hunyuan3d-v2", "hunyuan3d-v2-mv"],
+  "3d-model": ["trellis-v1", "trellis-2", "hunyuan3d-v2-mv"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
@@ -175,4 +177,4 @@ export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "aplus"];
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];
 
 /** Max images for multi-image tools */
-export const MAX_MULTI_IMAGES = 4;
+export const MAX_MULTI_IMAGES = 3;
