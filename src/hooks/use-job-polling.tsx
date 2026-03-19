@@ -48,23 +48,35 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<PolledJob[]>([]);
   const [loading, setLoading] = useState(true);
   const isFetchingRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchJobs = useCallback(async () => {
-    // Guard against overlapping requests
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
+
+    // Abort previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      const res = await fetch("/api/jobs/status");
+      const res = await fetch("/api/jobs/status", { signal: controller.signal });
       if (res.ok) {
         const data = await res.json();
         setJobs(data.jobs ?? []);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       // Silently fail — will retry on next poll
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
     }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => abortRef.current?.abort();
   }, []);
 
   // Initial fetch on mount

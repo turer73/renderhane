@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 // GET /api/blog/comments?slug=xxx
 export async function GET(request: NextRequest) {
@@ -43,6 +44,12 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit: 5 comments per minute per user
+  const rl = rateLimit(`blog-comment:${user.id}`, RATE_LIMITS.blogComment);
+  if (!rl.success) {
+    return NextResponse.json({ error: "Too many comments, please wait" }, { status: 429 });
   }
 
   const body = await request.json();

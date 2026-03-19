@@ -62,8 +62,9 @@ export async function PATCH(
       });
 
       if (txError) {
+        console.error("Admin credit tx error:", txError.message);
         return NextResponse.json(
-          { error: `Failed to create transaction: ${txError.message}` },
+          { error: "Failed to create transaction" },
           { status: 500 }
         );
       }
@@ -81,8 +82,9 @@ export async function PATCH(
     .eq("id", targetUserId);
 
   if (updateError) {
+    console.error("Admin profile update error:", updateError.message);
     return NextResponse.json(
-      { error: `Failed to update: ${updateError.message}` },
+      { error: "Failed to update user" },
       { status: 500 }
     );
   }

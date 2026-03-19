@@ -146,13 +146,15 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
 
 async function downloadImageAs(url: string, format: FormatOption, baseName: string) {
   const response = await fetch(url);
+  if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
   const blob = await response.blob();
   const bitmap = await createImageBitmap(blob);
 
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
   ctx.drawImage(bitmap, 0, 0);
 
   const quality = format.ext === "png" ? undefined : 0.92;
@@ -229,6 +231,7 @@ async function downloadModelAs(url: string, format: FormatOption, baseName: stri
 
 async function downloadDirect(url: string, filename: string) {
   const response = await fetch(url);
+  if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
   const blob = await response.blob();
   triggerDownload(blob, filename);
 }

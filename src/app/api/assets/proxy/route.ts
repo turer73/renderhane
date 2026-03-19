@@ -9,6 +9,17 @@ import { NextRequest, NextResponse } from "next/server";
  * to prevent open-proxy abuse.
  */
 
+const CORS_ALLOWED_ORIGINS = [
+  "https://renderhane.com",
+  "https://www.renderhane.com",
+  "http://localhost:3000",
+];
+
+function getAllowedOrigin(origin: string | null): string {
+  if (origin && CORS_ALLOWED_ORIGINS.includes(origin)) return origin;
+  return "https://renderhane.com";
+}
+
 const ALLOWED_HOSTS = [
   "assets.renderhane.com",
   "v3b.fal.media",       // fal.ai CDN (temporary URLs)
@@ -63,7 +74,7 @@ export async function GET(request: NextRequest) {
   const headers: Record<string, string> = {
     "Content-Type": contentType,
     "Cache-Control": "public, max-age=31536000, immutable",
-    "Access-Control-Allow-Origin": request.headers.get("origin") || "https://renderhane.com",
+    "Access-Control-Allow-Origin": getAllowedOrigin(request.headers.get("origin")),
   };
 
   if (contentLength) {
