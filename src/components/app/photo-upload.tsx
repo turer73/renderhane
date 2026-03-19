@@ -813,7 +813,7 @@ export function PhotoUpload() {
         )}
 
         {/* 3D Quality Selection — shown when 3D Model is selected */}
-        {hasImage && selectedTool === "3d-model" && (
+        {(preview || multiImages.length > 0) && selectedTool === "3d-model" && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <button
