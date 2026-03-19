@@ -29,6 +29,7 @@ export function RemeshButton({ outputId, onRepaired }: RemeshButtonProps) {
   async function handleRemesh() {
     setRepairing(true);
     try {
+      // Step 1: Submit to queue (returns immediately)
       const res = await fetch("/api/jobs/remesh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,31 +38,46 @@ export function RemeshButton({ outputId, onRepaired }: RemeshButtonProps) {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        const detail = errData?.error || (locale === "tr" ? "Yeniden oluşturma başarısız oldu" : "Rebuild failed");
-        toast.error(detail);
+        toast.error(errData?.error || (locale === "tr" ? "Başlatılamadı" : "Failed to start"));
         return;
       }
 
-      const data = await res.json();
-
-      if (data.url) {
-        // Trigger download of the rebuilt file
-        const a = document.createElement("a");
-        a.href = data.url;
-        a.download = `renderhane-rebuilt.${data.format || "glb"}`;
-        a.target = "_blank";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        toast.success(
-          locale === "tr"
-            ? `${(data.format || "GLB").toUpperCase()} dosyası indiriliyor!`
-            : `Downloading ${(data.format || "GLB").toUpperCase()} file!`
-        );
+      const { requestId } = await res.json();
+      if (!requestId) {
+        toast.error(locale === "tr" ? "İstek oluşturulamadı" : "Request failed");
+        return;
       }
 
-      onRepaired?.();
+      toast.info(locale === "tr" ? "Model yeniden oluşturuluyor..." : "Rebuilding model...");
+
+      // Step 2: Poll for result (every 3s, max 2 minutes)
+      for (let i = 0; i < 40; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+
+        const statusRes = await fetch(`/api/jobs/remesh/status?requestId=${requestId}`);
+        const statusData = await statusRes.json();
+
+        if (statusData.status === "completed" && statusData.url) {
+          const a = document.createElement("a");
+          a.href = statusData.url;
+          a.download = "renderhane-rebuilt.glb";
+          a.target = "_blank";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          toast.success(locale === "tr" ? "Model indiriliyor!" : "Downloading model!");
+          onRepaired?.();
+          return;
+        }
+
+        if (statusData.status === "failed") {
+          toast.error(statusData.error || (locale === "tr" ? "Başarısız oldu" : "Failed"));
+          return;
+        }
+      }
+
+      toast.error(locale === "tr" ? "Zaman aşımı — lütfen tekrar deneyin" : "Timeout — please try again");
     } catch {
       toast.error(locale === "tr" ? "Bir hata oluştu" : "An error occurred");
     } finally {

@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log("[remesh] Starting:", { outputId, modelUrl, outputFormat });
+    console.log("[remesh] Submitting to queue:", { outputId, modelUrl });
 
-    // Always remesh as GLB first (most reliable), format conversion can be done client-side
-    const result = await fal.subscribe("fal-ai/triposr/remeshing", {
+    // Use queue.submit (async) instead of subscribe (sync) to avoid Vercel timeout
+    const queueResult = await fal.queue.submit("fal-ai/triposr/remeshing", {
       input: {
         object_url: modelUrl,
         output_format: "glb",
@@ -82,24 +82,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("[remesh] Result keys:", Object.keys(result.data || {}));
-
-    const remeshed = result.data as {
-      model_mesh?: { url?: string };
-    };
-
-    if (!remeshed.model_mesh?.url) {
-      console.error("[remesh] No output URL. Full result:", JSON.stringify(result.data).slice(0, 500));
-      return NextResponse.json(
-        { error: "Remeshing completed but no output file was returned" },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({
-      url: remeshed.model_mesh.url,
-      format: outputFormat,
-      message: "Model rebuilt successfully",
+      requestId: queueResult.request_id,
+      status: "processing",
     });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
