@@ -824,7 +824,9 @@ export function PhotoUpload() {
                   <span className="text-sm font-semibold">{locale === "tr" ? "Hızlı" : "Fast"}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {locale === "tr" ? "~15 saniye • 5 kredi • Önizleme için ideal" : "~15 seconds • 5 credits • Ideal for preview"}
+                  {multiImages.length >= 2
+                    ? (locale === "tr" ? "~30 saniye • 10 kredi • Tripo 2.5" : "~30 seconds • 10 credits • Tripo 2.5")
+                    : (locale === "tr" ? "~15 saniye • 5 kredi • TRELLIS v1" : "~15 seconds • 5 credits • TRELLIS v1")}
                 </span>
               </button>
               <button
@@ -838,7 +840,9 @@ export function PhotoUpload() {
                   <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {locale === "tr" ? "~2 dakika • 20 kredi • Tam detaylı yüzeyler" : "~2 minutes • 20 credits • Full surface detail"}
+                  {multiImages.length >= 2
+                    ? (locale === "tr" ? "~3 dakika • 15 kredi • Meshy 5 PBR" : "~3 minutes • 15 credits • Meshy 5 PBR")
+                    : (locale === "tr" ? "~2 dakika • 20 kredi • TRELLIS 2" : "~2 minutes • 20 credits • TRELLIS 2")}
                 </span>
               </button>
             </div>

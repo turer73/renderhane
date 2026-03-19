@@ -31,9 +31,11 @@ export function routeRequest(request: RouteRequest): RouteResult {
   // Build the image input based on model type
   if (model.namedImageParams && imageUrls) {
     // Named multi-image params: map array positions to specific param names
-    // e.g. Hunyuan3D multi-view: [0]→front_image_url, [1]→back_image_url, [2]→left_image_url
+    // e.g. Tripo: [0]→front, [1]→left, [2]→back, [3]→right
     for (let i = 0; i < model.namedImageParams.length; i++) {
-      input[model.namedImageParams[i]] = imageUrls[i] ?? "";
+      if (imageUrls[i]) {
+        input[model.namedImageParams[i]] = imageUrls[i];
+      }
     }
   } else if (model.multiImage) {
     // Array-based multi-image: send all provided URLs as array
@@ -58,8 +60,11 @@ export function routeRequest(request: RouteRequest): RouteResult {
 function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
-      // 2+ photos → Meshy 5 multi-image (up to 4 photos, PBR textures)
-      if (imageCount >= 2) return "meshy-5-multi";
+      // 2+ photos → multi-image models (tier-based)
+      if (imageCount >= 2) {
+        if (tier === "fast") return "tripo-v25-mv";  // ~30s, standard texture
+        return "meshy-5-multi";                       // ~3min, PBR texture
+      }
       // Single photo: tier-based TRELLIS
       if (tier === "fast") return "trellis-v1";
       return "trellis-2";

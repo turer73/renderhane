@@ -51,12 +51,31 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
-  /* ── 3D Model — Çoklu Fotoğraf ─────────────── */
+  /* ── 3D Model — Çoklu Fotoğraf (Hızlı) ────── */
+  "tripo-v25-mv": {
+    id: "tripo3d/tripo/v2.5/multiview-to-3d",
+    displayName: {
+      tr: "Tripo 2.5 — Hızlı Çoklu",
+      en: "Tripo 2.5 — Fast Multi",
+    },
+    tier: "fast",
+    creditCost: 10,
+    estimatedTime: "~30s",
+    imageParamKey: "front_image_url",
+    multiImage: true,
+    namedImageParams: ["front_image_url", "left_image_url", "back_image_url", "right_image_url"],
+    defaultParams: {
+      texture: "standard",
+      face_limit: 50000,
+    },
+  },
+
+  /* ── 3D Model — Çoklu Fotoğraf (Kaliteli) ─── */
   "meshy-5-multi": {
     id: "fal-ai/meshy/v5/multi-image-to-3d",
     displayName: {
-      tr: "Meshy 5 — Çoklu Fotoğraf",
-      en: "Meshy 5 — Multi-Image",
+      tr: "Meshy 5 — Kaliteli Çoklu",
+      en: "Meshy 5 — Quality Multi",
     },
     tier: "standard",
     creditCost: 15,
@@ -143,7 +162,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "trellis-2", "meshy-5-multi"],
+  "3d-model": ["trellis-v1", "trellis-2", "tripo-v25-mv", "meshy-5-multi"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
