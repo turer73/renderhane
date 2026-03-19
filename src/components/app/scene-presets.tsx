@@ -25,7 +25,7 @@ export function ScenePresets({ onSelect, selectedPresetId }: ScenePresetsProps) 
             type="button"
             onClick={() => onSelect(preset.prompt, preset.id)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all",
+              "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-all sm:px-3 sm:py-1.5",
               "cursor-pointer select-none whitespace-nowrap",
               isSelected
                 ? "border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300"

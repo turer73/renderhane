@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToolSelector } from "@/components/app/tool-selector";
 import { ScenePresets } from "@/components/app/scene-presets";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES, TOOL_KEYS, TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
@@ -792,17 +791,20 @@ export function PhotoUpload() {
           </div>
         )}
 
-        {/* Tool re-selector — shown when a tool is already selected (via "Diğer araçlar" flow) */}
-        {hasImage && selectedTool && (
-          <div className="space-y-3">
-            <ToolSelector selectedTool={selectedTool} onSelect={setSelectedTool} />
-          </div>
-        )}
-
-        {/* Prompt Input — shown for scene, video, aplus tools */}
+        {/* Prompt Input — shown for scene/video tools (no ToolSelector, just presets + prompt) */}
         {hasImage && needsPrompt && (
           <div className="space-y-3">
-            <label className="text-sm font-medium text-muted-foreground">{tDash("promptLabel")}</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setSelectedTool(null); setPrompt(""); setSelectedPresetId(null); }}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                {tDash("goBack")}
+              </button>
+              <span className="text-sm font-medium">{tTools(TOOL_KEYS[selectedTool!])}</span>
+            </div>
             {(selectedTool === "scene" || selectedTool === "aplus") && (
               <div className="space-y-1.5">
                 <p className="text-xs text-muted-foreground">{tDash("presetHint")}</p>
