@@ -341,11 +341,14 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         }
       } catch { /* fail-open */ }
 
+      // Determine if this tool needs multi-image based on activeTool (not state)
+      const activeIsMulti = TOOLS_MULTI_IMAGE.includes(activeTool);
+
       // Upload image(s)
       let uploadedImageUrl: string | undefined;
       let uploadedImageUrls: string[] | undefined;
 
-      if (isMultiImageTool) {
+      if (activeIsMulti && multiImages.length > 0) {
         const urls = await uploadMultiImages();
         if (!urls) {
           setMessage({ type: "error", text: tDash("uploadError") });
@@ -354,13 +357,19 @@ export function PhotoUpload({ defaultTool }: PhotoUploadProps = {}) {
         }
         uploadedImageUrls = urls;
       } else {
+        // Single image — also wrap in array if tool requires imageUrls
         const url = await uploadSingleImage();
         if (!url) {
           setMessage({ type: "error", text: tDash("uploadError") });
           setSubmitting(false);
           return;
         }
-        uploadedImageUrl = url;
+        if (activeIsMulti) {
+          // 3D model API expects imageUrls array even for single image
+          uploadedImageUrls = [url];
+        } else {
+          uploadedImageUrl = url;
+        }
       }
 
       // A+ uses a dedicated multi-scene endpoint
