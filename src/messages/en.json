@@ -85,9 +85,9 @@
     "formatSelect": "Select Format",
     "downloadFailed": "Download failed",
     "glbOriginal": "GLB (Original)",
-    "multiViewHint": "Add photos from different angles for a better 3D model: front, back, left, right",
+    "multiViewHint": "Add 3 photos for quality 3D: front, back, left",
     "autoBgRemoveNote": "Backgrounds are auto-removed — no clean backdrop needed",
-    "angleGuideTip": "Keep the product steady and photograph it from 4 angles (front, side, back, top). Consistent lighting gives the best results.",
+    "angleGuideTip": "Keep the product steady and photograph it from 3 angles (front, back, left). Consistent lighting gives the best results.",
     "addMoreViews": "Add More Views",
     "maxViews": "Up to {max} images",
     "viewCount": "{count}/{max} images",
@@ -153,8 +153,8 @@
       "subtitle": "Take your product visuals to the next level — no studio or photographer needed.",
       "3dModel": {
         "description": "Create high-quality 3D models from a single photo. Showcase your products in 360 degrees.",
-        "credits": "10 credits",
-        "tip": "Use a white or plain background with clear lighting and a single product. Avoid complex backgrounds."
+        "credits": "3 credits",
+        "tip": "Keep product edges sharp. High-contrast photos give better results."
       },
       "bgRemove": {
         "description": "Remove backgrounds instantly. Get clean, professional product images.",

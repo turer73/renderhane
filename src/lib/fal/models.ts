@@ -13,6 +13,8 @@ export interface ModelConfig {
   promptParamKey?: string;
   /** When true, imageParamKey accepts a string[] instead of a single string */
   multiImage?: boolean;
+  /** When set, multi-image input maps array positions to these named params instead of a single array key */
+  namedImageParams?: string[];
   defaultParams: Record<string, unknown>;
 }
 
@@ -34,20 +36,37 @@ export const MODELS: Record<string, ModelConfig> = {
       multiimage_algo: "stochastic",
     },
   },
-  "trellis-2": {
-    id: "fal-ai/trellis-2/multi",
-    displayName: { tr: "TRELLIS 2 — Kaliteli", en: "TRELLIS 2 — Quality" },
+  "hunyuan3d-v2": {
+    id: "fal-ai/hunyuan3d/v2",
+    displayName: { tr: "Hunyuan3D — Kaliteli", en: "Hunyuan3D — Quality" },
     tier: "standard",
-    creditCost: 10,
-    estimatedTime: "~2min",
-    imageParamKey: "image_urls",
-    multiImage: true,
+    creditCost: 5,
+    estimatedTime: "~1min",
+    imageParamKey: "input_image_url",
     defaultParams: {
-      resolution: 1024,
-      ss_guidance_strength: 7.5,
-      texture_size: 2048,
-      remesh: true,
-      multiimage_algo: "stochastic",
+      num_inference_steps: 50,
+      guidance_scale: 7.5,
+      octree_resolution: 256,
+      textured_mesh: true,
+    },
+  },
+  "hunyuan3d-v2-mv": {
+    id: "fal-ai/hunyuan3d/v2/multi-view",
+    displayName: {
+      tr: "Hunyuan3D Multi-View — Kaliteli",
+      en: "Hunyuan3D Multi-View — Quality",
+    },
+    tier: "standard",
+    creditCost: 3,
+    estimatedTime: "~1min",
+    imageParamKey: "front_image_url",
+    multiImage: true,
+    namedImageParams: ["front_image_url", "back_image_url", "left_image_url"],
+    defaultParams: {
+      num_inference_steps: 50,
+      guidance_scale: 7.5,
+      octree_resolution: 256,
+      textured_mesh: true,
     },
   },
 
@@ -121,7 +140,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "trellis-2"],
+  "3d-model": ["trellis-v1", "hunyuan3d-v2", "hunyuan3d-v2-mv"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],

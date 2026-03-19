@@ -20,31 +20,33 @@ interface RouteResult {
 export function routeRequest(request: RouteRequest): RouteResult {
   const { tool, tier = "standard", imageUrl, imageUrls, prompt } = request;
 
-  const modelKey = selectModel(tool, tier);
+  const imageCount = imageUrls?.length ?? (imageUrl ? 1 : 0);
+  const modelKey = selectModel(tool, tier, imageCount);
   const model = MODELS[modelKey];
 
-  // Build the image input based on model type
-  let imageValue: string | string[];
-  if (model.multiImage) {
-    // Multi-image model: use imageUrls array, fallback to wrapping single imageUrl
-    imageValue = imageUrls ?? (imageUrl ? [imageUrl] : []);
-  } else {
-    // Single-image model
-    imageValue = imageUrl ?? "";
-  }
-
   const input: Record<string, unknown> = {
-    [model.imageParamKey]: imageValue,
     ...model.defaultParams,
   };
 
-  // For multi-image 3D models: use multidiffusion when >1 image provided
-  if (
-    model.multiImage &&
-    Array.isArray(imageValue) &&
-    imageValue.length > 1
-  ) {
-    input.multiimage_algo = "multidiffusion";
+  // Build the image input based on model type
+  if (model.namedImageParams && imageUrls) {
+    // Named multi-image params: map array positions to specific param names
+    // e.g. Hunyuan3D multi-view: [0]→front_image_url, [1]→back_image_url, [2]→left_image_url
+    for (let i = 0; i < model.namedImageParams.length; i++) {
+      input[model.namedImageParams[i]] = imageUrls[i] ?? "";
+    }
+  } else if (model.multiImage) {
+    // Array-based multi-image (e.g. TRELLIS)
+    const imageValue = imageUrls ?? (imageUrl ? [imageUrl] : []);
+    input[model.imageParamKey] = imageValue;
+
+    // Use multidiffusion when >1 image provided (TRELLIS-specific)
+    if (imageValue.length > 1) {
+      input.multiimage_algo = "multidiffusion";
+    }
+  } else {
+    // Single-image model
+    input[model.imageParamKey] = imageUrl ?? imageUrls?.[0] ?? "";
   }
 
   // Override the prompt param if user provided one and model supports it
@@ -55,11 +57,14 @@ export function routeRequest(request: RouteRequest): RouteResult {
   return { model, modelKey, input };
 }
 
-function selectModel(tool: ToolType, tier: ModelTier): string {
+function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
       if (tier === "fast") return "trellis-v1";
-      return "trellis-2";
+      // Standard tier: Hunyuan3D v2
+      // Use multi-view when exactly 3 images provided (front/back/left)
+      if (imageCount >= 3) return "hunyuan3d-v2-mv";
+      return "hunyuan3d-v2";
 
     case "bg-remove":
       return "birefnet";

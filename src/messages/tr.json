@@ -85,9 +85,9 @@
     "formatSelect": "Format Seçin",
     "downloadFailed": "İndirme başarısız oldu",
     "glbOriginal": "GLB (Orijinal)",
-    "multiViewHint": "Daha iyi 3D model için farklı açılardan fotoğraf ekleyin: ön, arka, sol, sağ",
+    "multiViewHint": "Kaliteli 3D için 3 açıdan fotoğraf ekleyin: ön, arka, sol",
     "autoBgRemoveNote": "Arka planlar otomatik kaldırılır — temiz arka plan aranmaz",
-    "angleGuideTip": "Ürünü sabit tutun, etrafında 4 farklı açıdan (ön, yan, arka, üst) fotoğraflayın. Tutarlı aydınlatma en iyi sonucu verir.",
+    "angleGuideTip": "Ürünü sabit tutun, 3 farklı açıdan (ön, arka, sol) fotoğraflayın. Tutarlı aydınlatma en iyi sonucu verir.",
     "addMoreViews": "Daha Fazla Açı Ekle",
     "maxViews": "En fazla {max} görsel",
     "viewCount": "{count}/{max} görsel",
@@ -153,8 +153,8 @@
       "subtitle": "Ürün görsellerinizi profesyonel seviyeye taşıyın — stüdyo veya fotoğrafçıya gerek yok.",
       "3dModel": {
         "description": "Tek bir fotoğraftan yüksek kaliteli 3D model oluşturun. Ürünlerinizi 360 derece sergileyin.",
-        "credits": "10 kredi",
-        "tip": "Beyaz veya düz arka plan, net ışıklandırma ve tek ürün ile en iyi sonucu alırsınız. Karmaşık arka planlardan kaçının."
+        "credits": "3 kredi",
+        "tip": "Ürün kenarları net olsun. Yüksek kontrastlı fotoğraflar daha iyi sonuç verir."
       },
       "bgRemove": {
         "description": "Arka planı anında kaldırın. Temiz, profesyonel ürün görselleri elde edin.",
