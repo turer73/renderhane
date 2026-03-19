@@ -1,11 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Menu, Globe, ArrowLeft } from "lucide-react";
+import { Menu, Globe, ArrowLeft, ShoppingCart, Gamepad2, Printer } from "lucide-react";
+
+const SEGMENT_CONFIG: Record<string, { icon: typeof ShoppingCart; label: { tr: string; en: string }; color: string }> = {
+  ecommerce: { icon: ShoppingCart, label: { tr: "E-Ticaret", en: "E-Commerce" }, color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300" },
+  gaming: { icon: Gamepad2, label: { tr: "Oyun / 3D", en: "Game / 3D" }, color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" },
+  "3dprint": { icon: Printer, label: { tr: "3D Baskı", en: "3D Print" }, color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" },
+};
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -21,6 +29,14 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
+  const [segment, setSegment] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/credits/balance")
+      .then((res) => res.json())
+      .then((data) => { if (data?.useCase) setSegment(data.useCase); })
+      .catch(() => {});
+  }, []);
 
   // Dynamic page title based on route
   function getPageTitle(): string {
@@ -69,6 +85,16 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         <h1 className="text-lg font-semibold tracking-tight">
           {getPageTitle()}
         </h1>
+        {segment && SEGMENT_CONFIG[segment] && (() => {
+          const cfg = SEGMENT_CONFIG[segment];
+          const Icon = cfg.icon;
+          return (
+            <Badge variant="secondary" className={`hidden sm:inline-flex gap-1 text-[11px] px-2 py-0.5 ${cfg.color}`}>
+              <Icon className="size-3" />
+              {cfg.label[locale === "en" ? "en" : "tr"]}
+            </Badge>
+          );
+        })()}
       </div>
 
       {/* Right: language + theme + back to home */}
