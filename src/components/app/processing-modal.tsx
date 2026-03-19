@@ -620,33 +620,49 @@ export function ProcessingModal() {
 
               {/* Action buttons */}
               <div className="flex w-full flex-col items-center gap-3 pt-2">
-                {/* Primary: Download button (prominent) */}
-                {job.output_url && (
-                  <div className="flex w-full items-center justify-center gap-2">
-                    <DownloadMenu
-                      url={proxyUrl(job.output_url)}
-                      outputType={job.output_type ?? "image"}
-                    />
-                  </div>
-                )}
-
-                {/* Secondary row */}
-                <div className="flex items-center justify-center gap-2">
-                  {job.output_id && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/${locale}/app/output/${job.output_id}`}>
-                        {tProc("viewDetail")}
+                {/* A+ multi-scene: link to project to see all outputs */}
+                {multiJobIds.length > 1 ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Button variant="default" size="sm" className="bg-indigo-600 text-white hover:bg-indigo-700" asChild>
+                      <Link href={`/${locale}/app/projects`}>
+                        {locale === "tr" ? "Tüm Sahneleri Gör" : "View All Scenes"}
                       </Link>
                     </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClose}
-                  >
-                    {tProc("close")}
-                  </Button>
-                </div>
+                    <Button variant="ghost" size="sm" onClick={handleClose}>
+                      {tProc("close")}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Primary: Download button (prominent) */}
+                    {job.output_url && (
+                      <div className="flex w-full items-center justify-center gap-2">
+                        <DownloadMenu
+                          url={proxyUrl(job.output_url)}
+                          outputType={job.output_type ?? "image"}
+                        />
+                      </div>
+                    )}
+
+                    {/* Secondary row */}
+                    <div className="flex items-center justify-center gap-2">
+                      {job.output_id && (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/${locale}/app/output/${job.output_id}`}>
+                            {tProc("viewDetail")}
+                          </Link>
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClose}
+                      >
+                        {tProc("close")}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

@@ -71,31 +71,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Submit 4 scenes sequentially — each gets its own credit reservation
-  const jobIds: string[] = [];
-  const errors: string[] = [];
-
-  for (const scene of APLUS_SCENES) {
-    try {
-      const result = await submitJob({
+  // Submit 4 scenes in parallel — avoids Vercel function timeout
+  const results = await Promise.allSettled(
+    APLUS_SCENES.map((scene) =>
+      submitJob({
         userId: user.id,
         projectId: resolvedProjectId,
         tool: "aplus",
         imageUrl: imageUrl as string,
         prompt: getScenePrompt(scene.id, locale),
-      });
-      jobIds.push(result.jobId);
-    } catch (error) {
-      if (error instanceof CreditError && error.code === "INSUFFICIENT") {
-        // Stop submitting if credits run out mid-batch
-        errors.push(`Scene "${scene.id}": insufficient credits`);
-        break;
+      })
+    )
+  );
+
+  const jobIds: string[] = [];
+  const errors: string[] = [];
+
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") {
+      jobIds.push(r.value.jobId);
+    } else {
+      const err = r.reason;
+      if (err instanceof CreditError && err.code === "INSUFFICIENT") {
+        errors.push(`Scene "${APLUS_SCENES[i].id}": insufficient credits`);
+      } else {
+        errors.push(
+          `Scene "${APLUS_SCENES[i].id}": ${err instanceof Error ? err.message : "failed"}`
+        );
       }
-      errors.push(
-        `Scene "${scene.id}": ${error instanceof Error ? error.message : "failed"}`
-      );
     }
-  }
+  });
 
   // At least one job must succeed
   if (jobIds.length === 0) {
