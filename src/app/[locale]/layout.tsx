@@ -140,7 +140,7 @@ export default async function LocaleLayout({
         <Script
           defer
           data-domain="renderhane.com"
-          src="http://194.163.134.239:8888/js/script.js"
+          src="https://analytics.panola.app/js/script.js"
           strategy="afterInteractive"
         />
       </body>
