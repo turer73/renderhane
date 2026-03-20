@@ -814,7 +814,7 @@ export function PhotoUpload() {
         )}
 
         {/* 3D Quality Selection — shown when 3D Model is selected */}
-        {(preview || multiImages.length > 0) && selectedTool === "3d-model" && (
+        {(preview || multiImages.length > 0) && selectedTool === "3d-model" && multiImages.length < 2 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <button
@@ -955,16 +955,31 @@ export function PhotoUpload() {
           </div>
         )}
 
-        {/* Submit Button */}
-        {hasImage && selectedTool && (
-          <Button
-            type="button"
-            className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-            onClick={() => handleSubmit()}
-            disabled={submitting || maintenance}
-          >
-            {submitting ? tDash("submitting") : tDash("submit")}
-          </Button>
+        {/* Submit Button — for scene/video (prompt flow) or 3D with 2+ images */}
+        {(preview || multiImages.length > 0) && selectedTool && (
+          selectedTool === "3d-model" ? (
+            /* 3D with 2+ images: show submit (quality auto-selected) */
+            multiImages.length >= 2 && (
+              <Button
+                type="button"
+                className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+                onClick={() => handleSubmit()}
+                disabled={submitting || maintenance}
+              >
+                {submitting ? tDash("submitting") : `${tDash("submit")} (${multiImages.length} ${locale === "tr" ? "görsel" : "images"})`}
+              </Button>
+            )
+          ) : (
+            /* Scene/Video: regular submit after prompt */
+            <Button
+              type="button"
+              className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+              onClick={() => handleSubmit()}
+              disabled={submitting || maintenance}
+            >
+              {submitting ? tDash("submitting") : tDash("submit")}
+            </Button>
+          )
         )}
 
         {/* Messages */}
