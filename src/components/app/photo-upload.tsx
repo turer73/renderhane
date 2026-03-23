@@ -347,7 +347,7 @@ export function PhotoUpload() {
   }
 
   /* ── Submit ── */
-  async function handleSubmit(quickTool?: ToolType, tier?: "fast" | "standard") {
+  async function handleSubmit(quickTool?: ToolType, tier?: "fast" | "standard" | "premium") {
     const activeTool = quickTool || selectedTool;
     const anyImage = preview || multiImages.length > 0;
     if (!anyImage || !activeTool) return;
@@ -815,7 +815,7 @@ export function PhotoUpload() {
         )}
 
         {/* 3D Quality Selection — shown when 3D Model is selected */}
-        {(preview || multiImages.length > 0) && selectedTool === "3d-model" && multiImages.length < 2 && (
+        {(preview || multiImages.length > 0) && selectedTool === "3d-model" && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <button
@@ -828,90 +828,70 @@ export function PhotoUpload() {
               </button>
               <span className="text-sm font-medium">{tTools("3dModel")}</span>
             </div>
-            {(userSegment === "gaming" || userSegment === "3dprint") ? (
-              /* Gaming / 3D Print: Tek fotoğraf (TRELLIS 2) veya Çoklu (Meshy 5 PBR) */
-              <>
-                <p className="text-xs text-muted-foreground">
-                  {locale === "tr" ? "Fotoğraf sayısına göre model seçin:" : "Choose based on photo count:"}
-                </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* 3D kalite seçimi — fotoğraf sayısına göre dinamik */}
+            <>
+              <p className="text-xs text-muted-foreground">
+                {locale === "tr" ? "Kalite seviyesi seçin:" : "Choose quality level:"}
+              </p>
+              <div className={`grid grid-cols-1 gap-3 ${multiImages.length >= 4 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+                {/* Hızlı */}
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSubmit("3d-model", "fast")}
+                  className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">⚡</span>
+                    <span className="text-sm font-semibold">{locale === "tr" ? "Hızlı" : "Fast"}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {multiImages.length >= 2
+                      ? (locale === "tr" ? "~30s • 10 kredi • Tripo 2.5" : "~30s • 10 credits • Tripo 2.5")
+                      : (locale === "tr" ? "~15s • 5 kredi • TRELLIS v1" : "~15s • 5 credits • TRELLIS v1")}
+                  </span>
+                </button>
+                {/* Kaliteli */}
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSubmit("3d-model", "standard")}
+                  className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💎</span>
+                    <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {multiImages.length >= 2
+                      ? (locale === "tr" ? "~3dk • 15 kredi • Meshy 5" : "~3min • 15 credits • Meshy 5")
+                      : (locale === "tr" ? "~2dk • 20 kredi • TRELLIS 2" : "~2min • 20 credits • TRELLIS 2")}
+                  </span>
+                </button>
+                {/* Premium — sadece 4+ fotoğraf/video olduğunda */}
+                {multiImages.length >= 4 && (
                   <button
                     type="button"
                     disabled={submitting}
-                    onClick={() => handleSubmit("3d-model", "standard")}
-                    className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
+                    onClick={() => handleSubmit("3d-model", "premium")}
+                    className="flex flex-col gap-1.5 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-amber-400 hover:shadow-md dark:border-amber-800 dark:hover:border-amber-600"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">📷</span>
-                      <span className="text-sm font-semibold">{locale === "tr" ? "Tek Fotoğraf" : "Single Photo"}</span>
+                      <span className="text-lg">👑</span>
+                      <span className="text-sm font-semibold">{locale === "tr" ? "Premium" : "Premium"}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {locale === "tr" ? "~2 dakika • 20 kredi • TRELLIS 2" : "~2 minutes • 20 credits • TRELLIS 2"}
+                      {locale === "tr" ? "~3dk • 30 kredi • Hunyuan3D V3" : "~3min • 30 credits • Hunyuan3D V3"}
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("3d-model", "standard")}
-                    className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">📸</span>
-                      <span className="text-sm font-semibold">{locale === "tr" ? "Çoklu Fotoğraf" : "Multi Photo"}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {locale === "tr" ? "~3 dakika • 15 kredi • Meshy 5 PBR" : "~3 minutes • 15 credits • Meshy 5 PBR"}
-                    </span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              /* E-Commerce: Hızlı / Kaliteli seçimi */
-              <>
-                <p className="text-xs text-muted-foreground">
-                  {locale === "tr" ? "Kalite seviyesi seçin:" : "Choose quality level:"}
-                </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("3d-model", "fast")}
-                    className="flex flex-col gap-1.5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-emerald-400 hover:shadow-md dark:border-emerald-800 dark:hover:border-emerald-600"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">⚡</span>
-                      <span className="text-sm font-semibold">{locale === "tr" ? "Hızlı" : "Fast"}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {multiImages.length >= 2
-                        ? (locale === "tr" ? "~30 saniye • 10 kredi • Tripo 2.5" : "~30 seconds • 10 credits • Tripo 2.5")
-                        : (locale === "tr" ? "~15 saniye • 5 kredi • TRELLIS v1" : "~15 seconds • 5 credits • TRELLIS v1")}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("3d-model", "standard")}
-                    className="flex flex-col gap-1.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-indigo-400 hover:shadow-md dark:border-indigo-800 dark:hover:border-indigo-600"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">💎</span>
-                      <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {multiImages.length >= 2
-                        ? (locale === "tr" ? "~3 dakika • 15 kredi • Meshy 5 PBR" : "~3 minutes • 15 credits • Meshy 5 PBR")
-                        : (locale === "tr" ? "~2 dakika • 20 kredi • TRELLIS 2" : "~2 minutes • 20 credits • TRELLIS 2")}
-                    </span>
-                  </button>
-                </div>
-              </>
-            )}
+                )}
+              </div>
+            </>
             <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2.5 dark:bg-indigo-500/10 dark:border-indigo-800">
               <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
                 {locale === "tr"
-                  ? "💡 3 farklı açıdan fotoğraf eklerseniz çok daha iyi sonuç alırsınız (ön, arka, sol)"
-                  : "💡 Adding photos from 3 angles gives much better results (front, back, left)"}
+                  ? "💡 4 farklı açıdan fotoğraf ekleyin: ön, sol, arka, sağ — Premium kalite açılır"
+                  : "💡 Add 4 photos from different angles: front, left, back, right — unlocks Premium"}
               </p>
             </div>
           </div>
@@ -956,31 +936,16 @@ export function PhotoUpload() {
           </div>
         )}
 
-        {/* Submit Button — for scene/video (prompt flow) or 3D with 2+ images */}
-        {(preview || multiImages.length > 0) && selectedTool && (
-          selectedTool === "3d-model" ? (
-            /* 3D with 2+ images: show submit (quality auto-selected) */
-            multiImages.length >= 2 && (
-              <Button
-                type="button"
-                className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-                onClick={() => handleSubmit()}
-                disabled={submitting || maintenance}
-              >
-                {submitting ? tDash("submitting") : `${tDash("submit")} (${multiImages.length} ${locale === "tr" ? "görsel" : "images"})`}
-              </Button>
-            )
-          ) : (
-            /* Scene/Video: regular submit after prompt */
-            <Button
-              type="button"
-              className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-              onClick={() => handleSubmit()}
-              disabled={submitting || maintenance}
-            >
-              {submitting ? tDash("submitting") : tDash("submit")}
-            </Button>
-          )
+        {/* Submit Button — for scene/video (prompt flow) only; 3D uses tier buttons above */}
+        {(preview || multiImages.length > 0) && selectedTool && selectedTool !== "3d-model" && (
+          <Button
+            type="button"
+            className="w-full h-12 sm:h-10 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+            onClick={() => handleSubmit()}
+            disabled={submitting || maintenance}
+          >
+            {submitting ? tDash("submitting") : tDash("submit")}
+          </Button>
         )}
 
         {/* Messages */}

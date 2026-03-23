@@ -60,7 +60,13 @@ export function routeRequest(request: RouteRequest): RouteResult {
 function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
-      // 2+ photos → multi-image models (tier-based)
+      // 4 photos (or video frames) → Hunyuan3D V3 premium multi-view
+      if (imageCount >= 4) {
+        if (tier === "premium") return "hunyuan3d-v3"; // ~3min, PBR, 500k poly
+        if (tier === "fast") return "tripo-v25-mv";    // ~30s, named params
+        return "hunyuan3d-v3";                          // default: best quality
+      }
+      // 2-3 photos → multi-image models (tier-based)
       if (imageCount >= 2) {
         if (tier === "fast") return "tripo-v25-mv";  // ~30s, standard texture
         return "meshy-5-multi";                       // ~3min, PBR texture

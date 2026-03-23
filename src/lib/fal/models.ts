@@ -92,6 +92,26 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── 3D Model — Hunyuan3D V3 (Video/4-Açı) ── */
+  "hunyuan3d-v3": {
+    id: "fal-ai/hunyuan3d-v3/image-to-3d",
+    displayName: {
+      tr: "Hunyuan3D V3 — Premium",
+      en: "Hunyuan3D V3 — Premium",
+    },
+    tier: "premium",
+    creditCost: 30,
+    estimatedTime: "~3min",
+    imageParamKey: "input_image_url",
+    multiImage: true,
+    namedImageParams: ["input_image_url", "left_image_url", "back_image_url", "right_image_url"],
+    defaultParams: {
+      enable_pbr: true,
+      face_count: 500000,
+      generate_type: "Normal",
+    },
+  },
+
   /* ── Arka Plan Kaldır ─────────────────────── */
   "birefnet": {
     id: "fal-ai/birefnet/v2",
@@ -162,7 +182,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "trellis-2", "tripo-v25-mv", "meshy-5-multi"],
+  "3d-model": ["trellis-v1", "trellis-2", "tripo-v25-mv", "meshy-5-multi", "hunyuan3d-v3"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
