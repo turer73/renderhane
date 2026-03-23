@@ -107,17 +107,37 @@ export default async function LocaleLayout({
         name: "Renderhane",
         url: BASE_URL,
         applicationCategory: "DesignApplication",
-        applicationSubCategory: "3DModeling",
+        applicationSubCategory: ["3DModeling", "ECommerce", "GameDevelopment"],
         operatingSystem: "Web",
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "TRY",
-          description: locale === "tr" ? "20 ücretsiz kredi ile başla" : "Start with 20 free credits",
-        },
+        offers: [
+          {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "TRY",
+            description: locale === "tr" ? "20 ücretsiz kredi ile başla" : "Start with 20 free credits",
+          },
+          {
+            "@type": "Offer",
+            price: "199",
+            priceCurrency: "TRY",
+            description: locale === "tr" ? "Başlangıç — 100 kredi" : "Starter — 100 credits",
+          },
+          {
+            "@type": "Offer",
+            price: "499",
+            priceCurrency: "TRY",
+            description: locale === "tr" ? "Standart — 300 kredi" : "Standard — 300 credits",
+          },
+          {
+            "@type": "Offer",
+            price: "999",
+            priceCurrency: "TRY",
+            description: locale === "tr" ? "Pro — 800 kredi" : "Pro — 800 credits",
+          },
+        ],
         featureList: locale === "tr"
-          ? "3D Model Üretimi, Arka Plan Kaldırma, Sahne Üretimi, Video Oluşturma, PBR Materyal, STL Export"
-          : "3D Model Generation, Background Removal, Scene Generation, Video Creation, PBR Materials, STL Export",
+          ? "3D Model Üretimi, Arka Plan Kaldırma, Sahne Üretimi, Video Oluşturma, PBR Materyal, STL Export, A+ İçerik, Mesh Onarım"
+          : "3D Model Generation, Background Removal, Scene Generation, Video Creation, PBR Materials, STL Export, A+ Content, Mesh Repair",
       },
     ],
   };
@@ -143,6 +163,14 @@ export default async function LocaleLayout({
           src="https://analytics.panola.app/js/script.js"
           strategy="afterInteractive"
         />
+        {GA_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            <Script id="gtag-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_ID}');`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
