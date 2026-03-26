@@ -828,6 +828,23 @@ export function PhotoUpload() {
               </button>
               <span className="text-sm font-medium">{tTools("3dModel")}</span>
             </div>
+            {/* Fotoğraf önizleme — tek veya çoklu */}
+            {preview && multiImages.length === 0 && (
+              <div className="relative mx-auto max-w-[200px] overflow-hidden rounded-lg border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={preview} alt={tDash("imageSelected")} className="h-auto max-h-[200px] w-full object-contain" referrerPolicy="no-referrer" />
+              </div>
+            )}
+            {multiImages.length > 0 && (
+              <div className="flex justify-center gap-2">
+                {multiImages.map((img) => (
+                  <div key={img.id} className="relative size-16 overflow-hidden rounded-lg border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.preview} alt={img.name} className="h-full w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
             {/* 3D kalite seçimi — fotoğraf sayısına göre dinamik */}
             <>
               <p className="text-xs text-muted-foreground">
