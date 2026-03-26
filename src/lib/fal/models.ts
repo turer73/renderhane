@@ -182,7 +182,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "trellis-2", "tripo-v25-mv", "meshy-5-multi", "hunyuan3d-v3"],
+  "3d-model": ["trellis-v1", "tripo-v25-mv", "meshy-5-multi", "hunyuan3d-v3"],
   "bg-remove": ["birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],

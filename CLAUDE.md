@@ -41,16 +41,17 @@ src/
 ```
 
 ## AI Models & Credit Costs
-| Model | Tool | Credits | fal.ai Endpoint |
-|-------|------|---------|-----------------|
-| TRELLIS v1 | 3d-model (fast) | 5 | fal-ai/trellis/multi |
-| TRELLIS 2 | 3d-model (quality) | 20 | fal-ai/trellis-2/multi |
-| Hunyuan3D MV | 3d-model (multi-photo) | 25 | fal-ai/hunyuan3d/v2/multi-view |
-| birefnet | bg-remove | 1 | fal-ai/birefnet/v2 |
-| aura-sr | enhance | 4 | fal-ai/aura-sr |
-| bria-product-shot | scene | 8 | fal-ai/bria/product-shot |
-| wan-i2v | video | 20 | wan/v2.6/image-to-video |
-| bria-product-shot-hd | aplus | 8 | fal-ai/bria/product-shot |
+| Model | Tool | Tier | Credits | fal.ai Endpoint |
+|-------|------|------|---------|-----------------|
+| TRELLIS v1 | 3d-model | fast | 5 | fal-ai/trellis/multi |
+| Tripo 2.5 | 3d-model (multi-photo fast) | fast | 10 | tripo3d/tripo/v2.5/multiview-to-3d |
+| Meshy 5 | 3d-model | standard | 15 | fal-ai/meshy/v5/multi-image-to-3d |
+| Hunyuan3D V3 | 3d-model | premium | 30 | fal-ai/hunyuan3d-v3/image-to-3d |
+| birefnet | bg-remove | — | 1 | fal-ai/birefnet/v2 |
+| aura-sr | enhance | — | 4 | fal-ai/aura-sr |
+| bria-product-shot | scene | — | 8 | fal-ai/bria/product-shot |
+| wan-i2v | video | — | 20 | wan/v2.6/image-to-video |
+| bria-product-shot-hd | aplus | — | 8 | fal-ai/bria/product-shot |
 
 ## Pricing Packages (KDV dahil)
 | Package | Credits | Price | ₺/Credit |

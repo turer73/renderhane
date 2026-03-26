@@ -14,7 +14,6 @@ import {
   Layers,
   CreditCard,
   Gift,
-  Settings,
   Shield,
   Plus,
   LogOut,
@@ -39,7 +38,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   const [userInitial, setUserInitial] = useState("U");
   const [balance, setBalance] = useState<number | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
-  const maxCredits = 500; // For progress bar scaling
+  const maxCredits = 800; // Pro package max (for progress bar scaling)
 
   useEffect(() => {
     async function fetchData() {
@@ -127,12 +126,6 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           },
         ]
       : []),
-    {
-      href: "#",
-      label: t("settings"),
-      icon: Settings,
-      disabled: true,
-    },
   ];
 
   function isActive(href: string) {

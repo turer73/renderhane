@@ -833,7 +833,7 @@ export function PhotoUpload() {
               <p className="text-xs text-muted-foreground">
                 {locale === "tr" ? "Kalite seviyesi seçin:" : "Choose quality level:"}
               </p>
-              <div className={`grid grid-cols-1 gap-3 ${multiImages.length >= 4 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {/* Hızlı */}
                 <button
                   type="button"
@@ -863,35 +863,31 @@ export function PhotoUpload() {
                     <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {multiImages.length >= 2
-                      ? (locale === "tr" ? "~3dk • 15 kredi • Meshy 5" : "~3min • 15 credits • Meshy 5")
-                      : (locale === "tr" ? "~2dk • 20 kredi • TRELLIS 2" : "~2min • 20 credits • TRELLIS 2")}
+                    {locale === "tr" ? "~3dk • 15 kredi • Meshy 5" : "~3min • 15 credits • Meshy 5"}
                   </span>
                 </button>
-                {/* Premium — sadece 4+ fotoğraf/video olduğunda */}
-                {multiImages.length >= 4 && (
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("3d-model", "premium")}
-                    className="flex flex-col gap-1.5 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-amber-400 hover:shadow-md dark:border-amber-800 dark:hover:border-amber-600"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">👑</span>
-                      <span className="text-sm font-semibold">{locale === "tr" ? "Premium" : "Premium"}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {locale === "tr" ? "~3dk • 30 kredi • Hunyuan3D V3" : "~3min • 30 credits • Hunyuan3D V3"}
-                    </span>
-                  </button>
-                )}
+                {/* Premium */}
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSubmit("3d-model", "premium")}
+                  className="flex flex-col gap-1.5 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50 hover:border-amber-400 hover:shadow-md dark:border-amber-800 dark:hover:border-amber-600"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">👑</span>
+                    <span className="text-sm font-semibold">{locale === "tr" ? "Premium" : "Premium"}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {locale === "tr" ? "~3dk • 30 kredi • Hunyuan3D V3" : "~3min • 30 credits • Hunyuan3D V3"}
+                  </span>
+                </button>
               </div>
             </>
             <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2.5 dark:bg-indigo-500/10 dark:border-indigo-800">
               <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
                 {locale === "tr"
-                  ? "💡 4 farklı açıdan fotoğraf ekleyin: ön, sol, arka, sağ — Premium kalite açılır"
-                  : "💡 Add 4 photos from different angles: front, left, back, right — unlocks Premium"}
+                  ? "💡 Daha iyi sonuç için 2-4 farklı açıdan fotoğraf ekleyin: ön, sol, arka, sağ"
+                  : "💡 For better results, add 2-4 photos from different angles: front, left, back, right"}
               </p>
             </div>
           </div>

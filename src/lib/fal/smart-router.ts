@@ -60,20 +60,15 @@ export function routeRequest(request: RouteRequest): RouteResult {
 function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
-      // 4 photos (or video frames) → Hunyuan3D V3 premium multi-view
-      if (imageCount >= 4) {
-        if (tier === "premium") return "hunyuan3d-v3"; // ~3min, PBR, 500k poly
-        if (tier === "fast") return "tripo-v25-mv";    // ~30s, named params
-        return "hunyuan3d-v3";                          // default: best quality
+      // Premium tier → always Hunyuan3D V3 (best quality, any image count)
+      if (tier === "premium") return "hunyuan3d-v3";
+      // Fast tier
+      if (tier === "fast") {
+        if (imageCount >= 2) return "tripo-v25-mv"; // multi-photo fast
+        return "trellis-v1";                          // single-photo fast
       }
-      // 2-3 photos → multi-image models (tier-based)
-      if (imageCount >= 2) {
-        if (tier === "fast") return "tripo-v25-mv";  // ~30s, standard texture
-        return "meshy-5-multi";                       // ~3min, PBR texture
-      }
-      // Single photo: tier-based TRELLIS
-      if (tier === "fast") return "trellis-v1";
-      return "trellis-2";
+      // Standard tier → Meshy 5 (great texture/PBR, any image count)
+      return "meshy-5-multi";
 
     case "bg-remove":
       return "birefnet";
