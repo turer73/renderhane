@@ -189,7 +189,7 @@ function ConfettiCanvas({ active }: { active: boolean }) {
       delay: Math.random() * 500,
     }));
 
-    let startTime = performance.now();
+    const startTime = performance.now();
 
     function animate(now: number) {
       const elapsed = now - startTime;
