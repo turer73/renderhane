@@ -37,16 +37,6 @@ function Viewer3DSkeleton() {
   );
 }
 
-/* ── Tool-specific icons as SVG ── */
-const TOOL_ICONS: Record<string, string> = {
-  "3d-model": "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z",
-  "bg-remove": "M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z",
-  enhance: "M12 3l1.5 3.5L17 8l-3.5 1.5L12 13l-1.5-3.5L7 8l3.5-1.5Z",
-  scene: "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2Z",
-  video: "M23 7l-7 5 7 5V7z M16 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z",
-  aplus: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
-};
-
 /* ── Tool gradients ── */
 const TOOL_GRADIENTS: Record<string, string> = {
   "3d-model": "from-violet-500 to-purple-600",
@@ -401,6 +391,7 @@ export function ProcessingModal() {
 
   // Watch shared polling data for job status changes.
   // Supports both single-job and multi-job (A+) tracking.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (state !== "processing") return;
 
@@ -446,6 +437,7 @@ export function ProcessingModal() {
       }
     }
   }, [polledJobs, state, jobId, multiJobIds]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Cleanup timeouts on unmount
   useEffect(() => {

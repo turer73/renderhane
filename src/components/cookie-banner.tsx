@@ -21,12 +21,12 @@ export function CookieBanner() {
   const locale = (params.locale as string) || "tr";
   const [visible, setVisible] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const consent = localStorage.getItem(CONSENT_KEY);
-    if (!consent) {
-      setVisible(true);
-    }
+    if (!consent) { setVisible(true); }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function accept(level: "all" | "essential") {
     localStorage.setItem(CONSENT_KEY, level);

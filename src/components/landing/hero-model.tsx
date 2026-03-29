@@ -97,6 +97,7 @@ class HeroModelErrorBoundary extends Component<
 /* ── Hook to detect mobile viewport for performance tuning ── */
 function useIsMobile() {
   const [mobile, setMobile] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
     setMobile(mq.matches);
@@ -104,6 +105,7 @@ function useIsMobile() {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return mobile;
 }
 
