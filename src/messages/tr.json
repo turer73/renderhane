@@ -20,7 +20,27 @@
     "scene": "Sahne Üret",
     "video": "Video Oluştur",
     "aplus": "A+ İçerik Üret",
-    "doAll": "Hepsini Yap"
+    "doAll": "Hepsini Yap",
+    "imageEdit": "Görsel Düzenle",
+    "socialKit": "Sosyal Medya Paketi",
+    "textToImage": "AI Görsel Üret",
+    "talkingAvatar": "Konuşan Avatar",
+    "logo": "Logo Üret",
+    "qrCode": "QR Kod Üret"
+  },
+  "toolDescriptions": {
+    "bgRemoveDesc": "Ürün fotoğrafından arka planı temizle",
+    "sceneDesc": "Ürününü profesyonel sahnelere yerleştir",
+    "aplusDesc": "4 farklı sahnede A+ içerik paketi",
+    "3dModelDesc": "Fotoğraftan 3D model oluştur",
+    "enhanceDesc": "Görseli yüksek çözünürlüğe taşı",
+    "videoDesc": "Ürün tanıtım videosu oluştur",
+    "imageEditDesc": "AI ile görseli düzenle ve değiştir",
+    "socialKitDesc": "Tek tıkla sosyal medya içerik paketi",
+    "textToImageDesc": "Metin açıklamasından görsel üret",
+    "talkingAvatarDesc": "Ürününü tanıtan konuşan video",
+    "logoDesc": "Marka için profesyonel logo tasarla",
+    "qrCodeDesc": "Standart veya AI sanatsal QR kod"
   },
   "credits": {
     "balance": "Bakiye",
@@ -47,6 +67,8 @@
     "consent": "Giriş yaparak <terms>Kullanım Koşullarını</terms> ve <privacy>Gizlilik Politikasını</privacy> kabul etmiş olursunuz."
   },
   "dashboard": {
+    "toolsTitle": "Araçlar",
+    "quickUploadTitle": "Hızlı Başlat",
     "dragDrop": "Sürükle & Bırak veya tıkla",
     "tapToUpload": "Dokunarak yükleyin veya fotoğraf çekin",
     "takePhoto": "Fotoğraf Çek",

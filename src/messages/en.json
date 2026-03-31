@@ -20,7 +20,27 @@
     "scene": "Generate Scene",
     "video": "Create Video",
     "aplus": "Generate A+ Content",
-    "doAll": "Do Everything"
+    "doAll": "Do Everything",
+    "imageEdit": "Edit Image",
+    "socialKit": "Social Media Kit",
+    "textToImage": "AI Image Generator",
+    "talkingAvatar": "Talking Avatar",
+    "logo": "Generate Logo",
+    "qrCode": "Generate QR Code"
+  },
+  "toolDescriptions": {
+    "bgRemoveDesc": "Remove background from product photos",
+    "sceneDesc": "Place your product in professional scenes",
+    "aplusDesc": "A+ content package with 4 scene variations",
+    "3dModelDesc": "Create 3D models from photos",
+    "enhanceDesc": "Upscale image to high resolution",
+    "videoDesc": "Create product showcase video",
+    "imageEditDesc": "Edit and modify images with AI",
+    "socialKitDesc": "One-click social media content package",
+    "textToImageDesc": "Generate images from text descriptions",
+    "talkingAvatarDesc": "Talking video presenting your product",
+    "logoDesc": "Design professional brand logos",
+    "qrCodeDesc": "Standard or AI artistic QR codes"
   },
   "credits": {
     "balance": "Balance",
@@ -47,6 +67,8 @@
     "consent": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "dashboard": {
+    "toolsTitle": "Tools",
+    "quickUploadTitle": "Quick Start",
     "dragDrop": "Drag & Drop or click",
     "tapToUpload": "Tap to upload or take a photo",
     "takePhoto": "Take Photo",

@@ -26,7 +26,14 @@ interface MultiImage {
 /** 10 MB — reject anything larger before uploading to Supabase */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-export function PhotoUpload() {
+interface PhotoUploadProps {
+  /** Pre-select a tool — used when navigating from /app/tools/<id> */
+  defaultTool?: ToolType;
+  /** Hide the tool selection cards (used on dedicated tool pages) */
+  hideToolCards?: boolean;
+}
+
+export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {}) {
   const t = useTranslations("common");
   const tDash = useTranslations("dashboard");
   const tTools = useTranslations("tools");
@@ -42,7 +49,7 @@ export function PhotoUpload() {
   // Multi-image state (for 3D tools)
   const [multiImages, setMultiImages] = useState<MultiImage[]>([]);
 
-  const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolType | null>(defaultTool ?? null);
   const [prompt, setPrompt] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -764,7 +771,7 @@ export function PhotoUpload() {
         )}
 
         {/* Tool Cards — colorful showcase-style, tap to instantly submit */}
-        {hasImage && !selectedTool && (
+        {hasImage && !selectedTool && !hideToolCards && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {(() => {
               const allTools = [
