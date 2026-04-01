@@ -10,6 +10,7 @@ import { CookieBanner } from "@/components/cookie-banner";
 import "@/app/globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || "";
 
 
 const geistSans = Geist({
@@ -170,6 +171,14 @@ export default async function LocaleLayout({
               {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_ID}');`}
             </Script>
           </>
+        )}
+        {ADSENSE_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
         )}
       </body>
     </html>
