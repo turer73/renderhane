@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/stuck-jobs",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-renew",
+      "schedule": "0 6 * * *"
     }
   ],
   "headers": [
