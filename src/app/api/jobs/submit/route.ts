@@ -4,13 +4,13 @@ import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
-import { TOOLS_MULTI_IMAGE, MAX_MULTI_IMAGES } from "@/lib/fal/models";
+import { TOOLS_MULTI_IMAGE, TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES } from "@/lib/fal/models";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 
 // Job submission can include auto bg-remove (~5s) + fal.ai queue submit
 export const maxDuration = 60;
 
-const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus", "image-edit"] as const;
+const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus", "image-edit", "text-to-image", "qr-code"] as const;
 
 /** Human-readable tool names for auto-created project titles */
 const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
@@ -21,6 +21,8 @@ const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
   video: "Video Oluştur",
   aplus: "A+ İçerik",
   "image-edit": "Görsel Düzenle",
+  "text-to-image": "AI Görsel Üret",
+  "qr-code": "QR Kod",
 };
 
 const ALLOWED_IMAGE_HOSTS = [
@@ -116,12 +118,21 @@ export async function POST(request: NextRequest) {
   }
 
   const isMultiImage = TOOLS_MULTI_IMAGE.includes(tool as ToolType);
+  const isTextOnly = TOOLS_TEXT_ONLY.includes(tool as ToolType);
 
   // Validate image inputs based on tool type
   let validatedImageUrl: string | undefined;
   let validatedImageUrls: string[] | undefined;
 
-  if (isMultiImage) {
+  if (isTextOnly) {
+    // Text-only tools: require prompt, no image needed
+    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+      return NextResponse.json(
+        { error: "prompt is required for this tool" },
+        { status: 400 }
+      );
+    }
+  } else if (isMultiImage) {
     // Multi-image tools: require imageUrls array
     if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
       return NextResponse.json(

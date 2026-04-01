@@ -166,11 +166,11 @@ export const TOOLS: ToolDefinition[] = [
     icon: "🖼️",
     gradient: "from-emerald-500/10 to-emerald-500/5",
     border: "border-emerald-200 hover:border-emerald-400 dark:border-emerald-800 dark:hover:border-emerald-600",
-    creditCost: 4,
+    creditCost: "2-4",
     inputType: "text-only",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/tools/text-to-image",
-    ready: false,
+    ready: true,
     descriptionKey: "textToImageDesc",
   },
   {
@@ -209,7 +209,7 @@ export const TOOLS: ToolDefinition[] = [
     inputType: "text-only",
     segments: ["ecommerce"],
     href: "/app/tools/qr-code",
-    ready: false,
+    ready: true,
     descriptionKey: "qrCodeDesc",
   },
 ];

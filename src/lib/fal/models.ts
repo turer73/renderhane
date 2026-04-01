@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code";
 
 export interface ModelConfig {
   id: string;
@@ -181,6 +181,56 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── Text-to-Image ───────────────────────── */
+  "flux-pro": {
+    id: "fal-ai/flux-pro/v1.1",
+    displayName: { tr: "FLUX Pro — Kaliteli", en: "FLUX Pro — Quality" },
+    tier: "standard",
+    creditCost: 4,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      width: 1024,
+      height: 1024,
+      num_inference_steps: 28,
+      guidance_scale: 3.5,
+      output_format: "png",
+    },
+  },
+  "flux-schnell": {
+    id: "fal-ai/flux/schnell",
+    displayName: { tr: "FLUX Schnell — Hızlı", en: "FLUX Schnell — Fast" },
+    tier: "fast",
+    creditCost: 2,
+    estimatedTime: "~3s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      image_size: "square_hd",
+      num_inference_steps: 4,
+      output_format: "png",
+    },
+  },
+
+  /* ── QR Code (AI Sanatsal) ─────────────────── */
+  "qr-code-ai": {
+    id: "fal-ai/flux-pro/v1.1",
+    displayName: { tr: "AI Sanatsal QR", en: "AI Artistic QR" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      width: 1024,
+      height: 1024,
+      num_inference_steps: 28,
+      guidance_scale: 3.5,
+      output_format: "png",
+    },
+  },
+
   /* ── A+ İçerik ────────────────────────────── */
   "bria-product-shot-hd": {
     id: "fal-ai/bria/product-shot",
@@ -205,6 +255,8 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "video": ["wan-i2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext"],
+  "text-to-image": ["flux-pro", "flux-schnell"],
+  "qr-code": ["qr-code-ai"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -215,6 +267,8 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   video: "video",
   aplus: "aplus",
   "image-edit": "imageEdit",
+  "text-to-image": "textToImage",
+  "qr-code": "qrCode",
 };
 
 /**
@@ -233,7 +287,10 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
 };
 
 /** Tools that accept a text prompt from the user */
-export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit"];
+export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "text-to-image", "qr-code"];
+
+/** Tools that DON'T need an image input (text-only) */
+export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "qr-code"];
 
 /** Tools that accept multiple images (multi-view) */
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];

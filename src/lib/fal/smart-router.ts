@@ -1,4 +1,4 @@
-import { MODELS, type ModelConfig, type ToolType, type ModelTier } from "./models";
+import { MODELS, TOOLS_TEXT_ONLY, type ModelConfig, type ToolType, type ModelTier } from "./models";
 
 interface RouteRequest {
   tool: ToolType;
@@ -28,8 +28,13 @@ export function routeRequest(request: RouteRequest): RouteResult {
     ...model.defaultParams,
   };
 
+  // Text-only tools: skip image input entirely
+  const isTextOnly = TOOLS_TEXT_ONLY.includes(tool);
+
   // Build the image input based on model type
-  if (model.namedImageParams && imageUrls) {
+  if (isTextOnly) {
+    // No image input needed — prompt is the only input
+  } else if (model.namedImageParams && imageUrls) {
     // Named multi-image params: map array positions to specific param names
     // e.g. Tripo: [0]→front, [1]→left, [2]→back, [3]→right
     for (let i = 0; i < model.namedImageParams.length; i++) {
@@ -87,6 +92,13 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
 
     case "image-edit":
       return "flux-kontext";
+
+    case "text-to-image":
+      if (tier === "fast") return "flux-schnell";  // 2 credits, ~3s
+      return "flux-pro";                            // 4 credits, ~10s
+
+    case "qr-code":
+      return "qr-code-ai";
 
     default:
       throw new Error(`Tool "${tool}" is not yet available`);
