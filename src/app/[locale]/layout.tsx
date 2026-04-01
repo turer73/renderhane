@@ -114,7 +114,7 @@ export default async function LocaleLayout({
             "@type": "Offer",
             price: "0",
             priceCurrency: "TRY",
-            description: locale === "tr" ? "20 ücretsiz kredi ile başla" : "Start with 20 free credits",
+            description: locale === "tr" ? "50 ücretsiz kredi ile başla" : "Start with 50 free credits",
           },
           {
             "@type": "Offer",

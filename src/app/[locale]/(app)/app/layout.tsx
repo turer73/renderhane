@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { JobPollingProvider } from "@/hooks/use-job-polling";
 import { ProcessingModal } from "@/components/app/processing-modal";
+import { UpgradeModal } from "@/components/app/upgrade-modal";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default async function AppLayout({
@@ -31,6 +32,7 @@ export default async function AppLayout({
         <JobPollingProvider>
           <AppShell>{children}</AppShell>
           <ProcessingModal />
+          <UpgradeModal />
         </JobPollingProvider>
       </ErrorBoundary>
       <Toaster />

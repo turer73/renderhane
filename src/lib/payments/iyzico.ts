@@ -5,6 +5,7 @@ import crypto from "crypto";
 // ---------------------------------------------------------------------------
 
 export const PACKAGES = {
+  monthly: { credits: 50, price: 99, name: "Aylık Başlangıç" },
   starter: { credits: 100, price: 199, name: "Starter" },
   standard: { credits: 300, price: 499, name: "Standard" },
   pro: { credits: 800, price: 999, name: "Professional" },

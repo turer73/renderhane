@@ -249,6 +249,7 @@ export function BatchUpload() {
               error: "Skipped — insufficient credits",
             });
           }
+          window.dispatchEvent(new CustomEvent("show-upgrade"));
           break;
         }
 

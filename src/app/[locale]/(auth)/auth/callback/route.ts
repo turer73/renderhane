@@ -37,20 +37,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Check if user needs onboarding (no segment selected yet)
-  let needsOnboarding = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("use_case")
-      .eq("id", user.id)
-      .single();
-    needsOnboarding = !profile?.use_case;
-  }
-
-  const destination = needsOnboarding
-    ? `${baseUrl}/${locale}/onboarding`
-    : `${baseUrl}/${locale}/app`;
+  // Segment selection is optional — always go to dashboard.
+  // Users can change their segment from dashboard settings.
+  const destination = `${baseUrl}/${locale}/app`;
 
   if (refCode) {
     const response = NextResponse.redirect(destination);

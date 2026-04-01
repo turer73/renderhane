@@ -164,7 +164,7 @@
     "stat2Sub": "Geleneksel fotoğrafçılığın %95 altında",
     "stat3": "2 dakikada hazır",
     "stat3Sub": "Günler yerine dakikalar",
-    "cta": "20 Ücretsiz Kredi ile Başla",
+    "cta": "50 Ücretsiz Kredi ile Başla",
     "socialProof": "500+ mağaza sahibi AI ile ürün görseli üretiyor",
     "nav": {
       "features": "Özellikler",
@@ -213,8 +213,17 @@
     },
     "pricing": {
       "title": "Basit ve Şeffaf Fiyatlandırma",
-      "subtitle": "İhtiyacınıza uygun paketi seçin. Abonelik yok, sadece kullandığınız kadar ödeyin.",
+      "subtitle": "İhtiyacınıza uygun paketi seçin. Kullandığınız kadar ödeyin.",
       "comingSoon": "Çok Yakında",
+      "monthly": {
+        "name": "Aylık Başlangıç",
+        "credits": "50 Kredi",
+        "price": "₺99",
+        "description": "Her ay düzenli kullanım için uygun fiyatlı paket.",
+        "feature1": "Tüm AI araçlarına erişim",
+        "feature2": "Standart işlem hızı",
+        "feature3": "E-posta destek"
+      },
       "starter": {
         "name": "Başlangıç",
         "credits": "100 Kredi",
@@ -421,7 +430,7 @@
       "section2Title": "Hesap Sorumlulukları",
       "section2Content": "• Hesabınızın güvenliğinden siz sorumlusunuz\n• Hesabınız üzerinden gerçekleştirilen tüm işlemlerden siz sorumlusunuz\n• Hesap bilgilerinizi üçüncü kişilerle paylaşmamalısınız\n• 18 yaşından büyük olmanız gerekmektedir",
       "section3Title": "Kredi Sistemi ve Ücretlendirme",
-      "section3Content": "• Hizmetler kredi tabanlı bir sistemle çalışır\n• Satın alınan krediler iade edilemez\n• Kredi fiyatları önceden bildirilmeksizin değişebilir\n• Her yeni hesaba 20 ücretsiz kredi tanımlanır\n• Kredilerin son kullanma tarihi yoktur",
+      "section3Content": "• Hizmetler kredi tabanlı bir sistemle çalışır\n• Satın alınan krediler iade edilemez\n• Kredi fiyatları önceden bildirilmeksizin değişebilir\n• Her yeni hesaba 50 ücretsiz kredi tanımlanır\n• Kredilerin son kullanma tarihi yoktur",
       "section4Title": "Fikri Mülkiyet",
       "section4Content": "• Yüklediğiniz görsellerin telif hakkı size aittir\n• Platform tarafından üretilen çıktılar (3D modeller, düzenlenmiş görseller vb.) üzerindeki kullanım hakkı size aittir\n• Renderhane markası, logosu ve platform tasarımı Renderhane'ye aittir\n• Platformu kullanarak ürettiğiniz içerikleri ticari amaçla kullanabilirsiniz",
       "section5Title": "Kabul Edilemez Kullanım",
@@ -552,6 +561,7 @@
     "3dprint": {
       "title": "3D Baskı",
       "description": "Fotoğraftan baskıya hazır yüksek detaylı 3D model oluşturma"
-    }
+    },
+    "skip": "Atla, sonra seçerim"
   }
 }

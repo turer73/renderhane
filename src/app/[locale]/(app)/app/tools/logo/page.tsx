@@ -58,7 +58,7 @@ export default function LogoPage() {
       });
 
       if (res.status === 402) {
-        setMessage({ type: "error", text: t("insufficientCredits") });
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
         setSubmitting(false);
         return;
       }

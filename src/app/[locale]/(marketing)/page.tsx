@@ -19,8 +19,8 @@ export async function generateMetadata({
       : "Renderhane — AI-Powered 3D Models, Product Visuals & Videos";
   const description =
     locale === "tr"
-      ? "E-ticaret, oyun geliştirme ve 3D baskı için AI destekli görsel üretim platformu. Tek fotoğraftan profesyonel 3D model, sahne ve video. 20 ücretsiz kredi ile başlayın."
-      : "AI-powered visual production for e-commerce, game development, and 3D printing. Professional 3D models, scenes, and videos from a single photo. Start with 20 free credits.";
+      ? "E-ticaret, oyun geliştirme ve 3D baskı için AI destekli görsel üretim platformu. Tek fotoğraftan profesyonel 3D model, sahne ve video. 50 ücretsiz kredi ile başlayın."
+      : "AI-powered visual production for e-commerce, game development, and 3D printing. Professional 3D models, scenes, and videos from a single photo. Start with 50 free credits.";
 
   return {
     title,

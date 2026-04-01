@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 
 import type { PackageKey } from "@/lib/payments/iyzico";
 
-const PACKAGE_KEYS: PackageKey[] = ["starter", "standard", "pro"];
+const PACKAGE_KEYS: PackageKey[] = ["monthly", "starter", "standard", "pro"];
 
 export default function CreditsPage() {
   const t = useTranslations("credits");

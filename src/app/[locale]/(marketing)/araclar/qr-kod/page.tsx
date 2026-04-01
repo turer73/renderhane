@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   ArrowLeft,
   Download,
-  Loader2,
   Link2,
   Phone,
   Mail,
@@ -18,6 +17,7 @@ import {
   User,
   MessageSquare,
   FileText,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import QRCode from "qrcode";
@@ -108,9 +108,7 @@ function buildPayload(type: ContentType, fields: Record<string, string>): string
 
 /* ── Page Component ────────────────────────────── */
 
-export default function QRCodePage() {
-  const t = useTranslations("dashboard");
-  const tTools = useTranslations("tools");
+export default function PublicQRCodePage() {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const tr = locale === "tr";
@@ -119,9 +117,7 @@ export default function QRCodePage() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [qrPngUrl, setQrPngUrl] = useState<string | null>(null);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
-  const [mode, setMode] = useState<"standard" | "ai">("standard");
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "error"; text: string } | null>(null);
 
   const setField = (key: string, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -137,7 +133,7 @@ export default function QRCodePage() {
 
   /* ── Generate Standard QR ──────────────────── */
 
-  const generateStandardQR = useCallback(async () => {
+  async function generateQR() {
     const data = buildPayload(contentType, fields);
     if (!data.trim()) {
       setMessage({ type: "error", text: tr ? "Lütfen gerekli alanları doldurun." : "Please fill required fields." });
@@ -165,54 +161,7 @@ export default function QRCodePage() {
     } catch {
       setMessage({ type: "error", text: tr ? "QR oluşturulamadı." : "Failed to generate QR." });
     }
-  }, [contentType, fields, tr]);
-
-  /* ── Generate AI QR ────────────────────────── */
-
-  const generateAIQR = useCallback(async () => {
-    const data = buildPayload(contentType, fields);
-    if (!data.trim()) {
-      setMessage({ type: "error", text: tr ? "Lütfen gerekli alanları doldurun." : "Please fill required fields." });
-      return;
-    }
-    setSubmitting(true);
-    setMessage(null);
-
-    try {
-      const qrPrompt = `A beautiful artistic QR code that encodes "${data}", modern design, scannable, creative pattern integrated with QR matrix, high contrast for scanning`;
-
-      const res = await fetch("/api/jobs/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool: "qr-code", prompt: qrPrompt }),
-      });
-
-      if (res.status === 402) {
-        window.dispatchEvent(new CustomEvent("show-upgrade"));
-        return;
-      }
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        setMessage({ type: "error", text: errBody?.error || t("jobError") });
-        return;
-      }
-
-      const result = await res.json();
-      window.dispatchEvent(
-        new CustomEvent("job-submitted", {
-          detail: { jobId: result.jobId, tool: "qr-code" },
-        })
-      );
-      setMessage({
-        type: "success",
-        text: tr ? "AI QR oluşturuluyor! ~10sn sürecek." : "AI QR generating! Will take ~10s.",
-      });
-    } catch {
-      setMessage({ type: "error", text: t("jobError") });
-    } finally {
-      setSubmitting(false);
-    }
-  }, [contentType, fields, tr, t]);
+  }
 
   /* ── Downloads ─────────────────────────────── */
 
@@ -413,156 +362,130 @@ export default function QRCodePage() {
   /* ── Render ─────────────────────────────────── */
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <a
-          href={`/${locale}/app`}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {tr ? "Geri" : "Back"}
-        </a>
-        <div>
-          <h1 className="text-lg font-bold flex items-center gap-2">
-            📷 {tTools("qrCode")}
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* Navbar */}
+      <nav className="border-b bg-background/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+          <Link
+            href={`/${locale}`}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {tr ? "Ana Sayfa" : "Home"}
+          </Link>
+          <Link
+            href={`/${locale}/login`}
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+          >
+            {tr ? "Giriş Yap" : "Sign In"}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </nav>
+
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold sm:text-3xl">
+            {tr ? "🔲 Ücretsiz QR Kod Oluşturucu" : "🔲 Free QR Code Generator"}
           </h1>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             {tr
-              ? "URL, kişi kartı, WiFi, telefon ve daha fazlası"
-              : "URL, contact card, WiFi, phone and more"}
+              ? "URL, kişi kartı, WiFi, telefon, e-posta ve daha fazlası — ücretsiz, kayıt gerektirmez"
+              : "URL, contact card, WiFi, phone, email and more — free, no registration required"}
           </p>
         </div>
-      </div>
 
-      {/* Content Type Selector */}
-      <div className="flex flex-wrap gap-2">
-        {CONTENT_TYPES.map(({ id, icon: Icon, labelTr, labelEn }) => (
-          <button
-            key={id}
-            onClick={() => { setContentType(id); setFields({}); resetPreview(); }}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-              contentType === id
-                ? "border-indigo-400 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                : "border-muted text-muted-foreground hover:border-indigo-300 hover:text-foreground"
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {tr ? labelTr : labelEn}
-          </button>
-        ))}
-      </div>
+        {/* Content Type Selector */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {CONTENT_TYPES.map(({ id, icon: Icon, labelTr, labelEn }) => (
+            <button
+              key={id}
+              onClick={() => { setContentType(id); setFields({}); resetPreview(); }}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                contentType === id
+                  ? "border-indigo-400 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                  : "border-muted text-muted-foreground hover:border-indigo-300 hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tr ? labelTr : labelEn}
+            </button>
+          ))}
+        </div>
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          {/* Dynamic Fields */}
-          {renderFields()}
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            {/* Dynamic Fields */}
+            {renderFields()}
 
-          {/* Mode Toggle */}
-          <div>
-            <label className="text-sm font-medium">
-              {tr ? "Tür" : "Type"}
-            </label>
-            <div className="mt-1.5 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => { setMode("standard"); resetPreview(); }}
-                className={`rounded-2xl border p-4 text-left transition-all ${
-                  mode === "standard"
-                    ? "border-emerald-400 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5"
-                    : "border-muted hover:border-emerald-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">⬛</span>
-                  <span className="text-sm font-semibold">{tr ? "Standart" : "Standard"}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {tr ? "Ücretsiz • Anında • PNG + SVG" : "Free • Instant • PNG + SVG"}
-                </span>
-              </button>
-              <button
-                onClick={() => { setMode("ai"); resetPreview(); }}
-                className={`rounded-2xl border p-4 text-left transition-all ${
-                  mode === "ai"
-                    ? "border-purple-400 bg-gradient-to-br from-purple-500/10 to-purple-500/5"
-                    : "border-muted hover:border-purple-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🎨</span>
-                  <span className="text-sm font-semibold">{tr ? "AI Sanatsal" : "AI Artistic"}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {tr ? "6 kredi • ~10sn • Stilize" : "6 credits • ~10s • Stylized"}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Generate Button */}
-          {mode === "standard" ? (
+            {/* Generate Button */}
             <Button
-              onClick={generateStandardQR}
+              onClick={generateQR}
               disabled={!isValid}
               className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800"
             >
-              {tr ? "⬛ QR Kod Oluştur (Ücretsiz)" : "⬛ Generate QR (Free)"}
+              {tr ? "🔲 QR Kod Oluştur (Ücretsiz)" : "🔲 Generate QR Code (Free)"}
             </Button>
-          ) : (
-            <Button
-              onClick={generateAIQR}
-              disabled={!isValid || submitting}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
-            >
-              {submitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("submitting")}</>
-              ) : (
-                tr ? "🎨 AI QR Oluştur (6 kredi)" : "🎨 Generate AI QR (6 credits)"
-              )}
+
+            {/* QR Preview + Downloads */}
+            {qrPngUrl && (
+              <div className="space-y-3 text-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrPngUrl}
+                  alt="QR Code"
+                  className="mx-auto h-64 w-64 rounded-xl border"
+                />
+
+                {/* Payload Preview */}
+                <div className="mx-auto max-w-sm rounded-lg border border-dashed border-muted-foreground/30 px-3 py-2">
+                  <p className="text-xs text-muted-foreground break-all line-clamp-3">{payload}</p>
+                </div>
+
+                {/* Download Buttons */}
+                <div className="flex items-center justify-center gap-3">
+                  <Button onClick={downloadPNG} variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    PNG
+                  </Button>
+                  <Button onClick={downloadSVG} variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    SVG
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Messages */}
+            {message && (
+              <div className="rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                {message.text}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upsell: AI QR + More Tools */}
+        <Card className="border-indigo-200 dark:border-indigo-800">
+          <CardContent className="p-6 text-center">
+            <p className="text-sm font-semibold">
+              {tr ? "🎨 Daha fazlasını mı istiyorsunuz?" : "🎨 Want more?"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {tr
+                ? "AI Sanatsal QR kodları, arka plan kaldırma, 3D model üretimi ve 12+ araç"
+                : "AI Artistic QR codes, background removal, 3D model generation and 12+ tools"}
+            </p>
+            <Button asChild variant="outline" className="mt-3 border-indigo-300 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-500/10">
+              <Link href={`/${locale}/login`}>
+                {tr ? "Ücretsiz Kayıt Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
             </Button>
-          )}
-
-          {/* Standard QR Preview + Downloads */}
-          {qrPngUrl && mode === "standard" && (
-            <div className="space-y-3 text-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={qrPngUrl}
-                alt="QR Code"
-                className="mx-auto h-64 w-64 rounded-xl border"
-              />
-
-              {/* Payload Preview */}
-              <div className="mx-auto max-w-sm rounded-lg border border-dashed border-muted-foreground/30 px-3 py-2">
-                <p className="text-xs text-muted-foreground break-all line-clamp-3">{payload}</p>
-              </div>
-
-              {/* Download Buttons */}
-              <div className="flex items-center justify-center gap-3">
-                <Button onClick={downloadPNG} variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  PNG
-                </Button>
-                <Button onClick={downloadSVG} variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  SVG
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Messages */}
-          {message && (
-            <div className={`rounded-lg px-4 py-3 text-sm ${
-              message.type === "error"
-                ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                : "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-            }`}>
-              {message.text}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

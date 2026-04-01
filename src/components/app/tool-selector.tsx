@@ -6,13 +6,19 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+/** Tools available for batch processing — ordered by batch relevance.
+ *  Text-only tools (text-to-image, logo, qr-code) and pipeline tools
+ *  (talking-avatar, social-kit) are excluded as they don't take image input
+ *  or have multi-step flows.
+ */
 const TOOL_ORDER: ToolType[] = [
-  "3d-model",
   "bg-remove",
   "enhance",
   "scene",
-  "video",
   "aplus",
+  "3d-model",
+  "video",
+  "image-edit",
 ];
 
 interface ToolSelectorProps {

@@ -89,6 +89,18 @@ export default function OnboardingPage() {
             </button>
           ))}
         </div>
+
+        {/* Skip — segment selection is optional */}
+        <div className="text-center">
+          <button
+            type="button"
+            disabled={selecting !== null}
+            onClick={() => router.push(`/${locale}/app`)}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4 disabled:opacity-50"
+          >
+            {t("skip")}
+          </button>
+        </div>
       </div>
     </div>
   );

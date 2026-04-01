@@ -11,6 +11,13 @@ import { TOOL_CREDITS, TOOL_KEYS, type ToolType } from "@/lib/fal/models";
 
 const packages = [
   {
+    key: "monthly" as const,
+    credits: 50,
+    priceValue: 99,
+    features: ["feature1", "feature2", "feature3"] as const,
+    popular: false,
+  },
+  {
     key: "starter" as const,
     credits: 100,
     priceValue: 199,
@@ -59,7 +66,7 @@ export function PricingSection() {
         </div>
 
         {/* Cards */}
-        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 sm:max-w-5xl sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 sm:max-w-6xl sm:grid-cols-2 lg:grid-cols-5">
           {packages.map((pkg) => {
             const isPopular = pkg.popular;
             const isEnterprise = pkg.key === "enterprise";
@@ -216,6 +223,7 @@ function CreditCalculator() {
   // Find recommended package
   function getRecommendedPackage(): string {
     if (totalCredits === 0) return "";
+    if (totalCredits <= 50) return "monthly";
     if (totalCredits <= 100) return "starter";
     if (totalCredits <= 300) return "standard";
     return "pro";

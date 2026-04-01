@@ -433,7 +433,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
       });
 
       if (res.status === 402) {
-        setMessage({ type: "error", text: tDash("insufficientCredits") });
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
         setSubmitting(false);
         return;
       }
