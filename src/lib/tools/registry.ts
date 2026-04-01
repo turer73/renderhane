@@ -183,7 +183,7 @@ export const TOOLS: ToolDefinition[] = [
     inputType: "image-text-audio",
     segments: ["ecommerce"],
     href: "/app/tools/talking-avatar",
-    ready: false,
+    ready: true,
     descriptionKey: "talkingAvatarDesc",
   },
   {
@@ -196,7 +196,7 @@ export const TOOLS: ToolDefinition[] = [
     inputType: "text-only",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/tools/logo",
-    ready: false,
+    ready: true,
     descriptionKey: "logoDesc",
   },
   {

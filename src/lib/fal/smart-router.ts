@@ -59,6 +59,12 @@ export function routeRequest(request: RouteRequest): RouteResult {
     input[model.promptParamKey] = prompt;
   }
 
+  // Special handling: talking-avatar passes audio URL via prompt field
+  if (tool === "talking-avatar" && prompt) {
+    input["audio_url"] = prompt;
+    delete input["_unused"];
+  }
+
   return { model, modelKey, input };
 }
 
@@ -99,6 +105,12 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
 
     case "qr-code":
       return "qr-code-ai";
+
+    case "talking-avatar":
+      return "omnihuman";
+
+    case "logo":
+      return "recraft-v3";
 
     default:
       throw new Error(`Tool "${tool}" is not yet available`);

@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code" | "talking-avatar" | "logo";
 
 export interface ModelConfig {
   id: string;
@@ -231,6 +231,49 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── Konuşan Avatar ─────────────────────── */
+  "omnihuman": {
+    id: "fal-ai/omnihuman-v1-5",
+    displayName: { tr: "OmniHuman — Konuşan Avatar", en: "OmniHuman — Talking Avatar" },
+    tier: "standard",
+    creditCost: 25,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "_unused",
+    defaultParams: {
+      resolution: 512,
+    },
+  },
+
+  /* ── TTS (Text-to-Speech) — Konuşan Avatar yardımcı modeli */
+  "f5-tts": {
+    id: "fal-ai/f5-tts",
+    displayName: { tr: "F5 TTS", en: "F5 TTS" },
+    tier: "fast",
+    creditCost: 0,
+    estimatedTime: "~5s",
+    imageParamKey: "_unused",
+    promptParamKey: "gen_text",
+    defaultParams: {
+      model_type: "F5-TTS",
+    },
+  },
+
+  /* ── Logo Üretimi ──────────────────────── */
+  "recraft-v3": {
+    id: "fal-ai/recraft-v3",
+    displayName: { tr: "Recraft V3 — Logo", en: "Recraft V3 — Logo" },
+    tier: "standard",
+    creditCost: 8,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      style: "vector_illustration",
+      image_size: "square",
+    },
+  },
+
   /* ── A+ İçerik ────────────────────────────── */
   "bria-product-shot-hd": {
     id: "fal-ai/bria/product-shot",
@@ -257,6 +300,8 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "image-edit": ["flux-kontext"],
   "text-to-image": ["flux-pro", "flux-schnell"],
   "qr-code": ["qr-code-ai"],
+  "talking-avatar": ["omnihuman"],
+  "logo": ["recraft-v3"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -269,6 +314,8 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   "image-edit": "imageEdit",
   "text-to-image": "textToImage",
   "qr-code": "qrCode",
+  "talking-avatar": "talkingAvatar",
+  "logo": "logo",
 };
 
 /**
@@ -287,10 +334,10 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
 };
 
 /** Tools that accept a text prompt from the user */
-export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "text-to-image", "qr-code"];
+export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "text-to-image", "qr-code", "logo"];
 
 /** Tools that DON'T need an image input (text-only) */
-export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "qr-code"];
+export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "qr-code", "logo"];
 
 /** Tools that accept multiple images (multi-view) */
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];
