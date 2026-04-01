@@ -35,7 +35,6 @@ const CONTENT = {
 
 export function buildReferralInviteEmail({ referrerName, referralLink, locale }: ReferralInviteProps) {
   const t = CONTENT[locale] || CONTENT.tr;
-  const safeName = escapeHtml(referrerName);
   // Validate referral link protocol to prevent javascript: injection
   const safeLink = referralLink.startsWith("https://") ? referralLink : "#";
 

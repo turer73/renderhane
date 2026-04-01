@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { HeroSection } from "@/components/landing/hero";
 import { SegmentsSection } from "@/components/landing/segments";

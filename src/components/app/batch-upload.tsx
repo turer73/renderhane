@@ -111,7 +111,7 @@ export function BatchUpload() {
 
       setImages((prev) => [...prev, ...newImages]);
     },
-    [images.length, t]
+    [images.length, t, tDash]
   );
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {

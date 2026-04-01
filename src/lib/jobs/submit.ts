@@ -70,7 +70,7 @@ export async function submitJob(input: SubmitJobInput) {
   }
 
   // 1. Route to correct model
-  const { model, modelKey, input: falInput } = routeRequest({
+  const { model, input: falInput } = routeRequest({
     tool,
     tier,
     imageUrl,

@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 const ASPECT_RATIOS = [
   { id: "1:1", label: "1:1", w: 1024, h: 1024 },

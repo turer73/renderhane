@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Set env vars before importing
 vi.stubEnv('IYZICO_API_KEY', 'test-api-key');

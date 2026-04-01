@@ -146,7 +146,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
       setFile(f);
       setPreview(URL.createObjectURL(f));
     }
-  }, [preview, imageSource]);
+  }, [preview, imageSource, tDash]);
 
   /* ── Multi-image handlers ── */
   async function addMultiFiles(files: FileList | File[]) {

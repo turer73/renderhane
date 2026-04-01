@@ -174,7 +174,7 @@ async function downloadImageAs(url: string, format: FormatOption, baseName: stri
 
 async function downloadModelAs(url: string, format: FormatOption, baseName: string) {
   // Dynamic imports to avoid bundling Three.js exporters eagerly
-  const THREE = await import("three");
+  await import("three");
   const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
 
   // Load the GLB

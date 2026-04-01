@@ -219,14 +219,13 @@ export function CommentSection({ slug, locale }: CommentSectionProps) {
 
 function CommentCard({
   comment,
-  locale,
   formatDate,
   onReply,
   t,
   isQuestion,
 }: {
   comment: Comment;
-  locale: string;
+  locale?: string;
   formatDate: (d: string) => string;
   onReply: (id: string) => void;
   t: (key: string) => string;

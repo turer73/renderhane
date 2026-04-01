@@ -31,7 +31,7 @@ const tools = [
 
 export function FeaturesSection() {
   const t = useTranslations("landing");
-  const tt = useTranslations("tools");
+
   const params = useParams();
   const locale = params.locale as string;
 

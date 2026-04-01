@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: "ok" });
     }
 
-    const { token, paymentConversationId, iyziEventType, status } = body;
+    const { token } = body;
 
     if (!token) {
       return NextResponse.json({ status: "ok" });
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     // processed (e.g. by the callback), and no duplicate credits were added.
     const supabase = getServiceClient();
 
-    const { data, error } = await supabase.rpc("add_credits", {
+    const { error } = await supabase.rpc("add_credits", {
       p_user_id: userId,
       p_amount: pkg.credits,
       p_payment_id: paymentId,

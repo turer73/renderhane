@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     // webhook), it returns NULL instead of inserting a duplicate.
     const supabase = getServiceClient();
 
-    const { data, error } = await supabase.rpc("add_credits", {
+    const { error } = await supabase.rpc("add_credits", {
       p_user_id: userId,
       p_amount: pkg.credits,
       p_payment_id: paymentId,
