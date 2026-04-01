@@ -18,9 +18,11 @@ import {
 import { resizeImageIfNeeded } from "@/lib/resize-image";
 
 /* ── Constants ── */
-const MAX_IMAGES = 20;
+const MAX_IMAGES = 50;
 /** 10 MB per file — reject oversized images early */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+/** Process this many images in parallel per chunk */
+const CONCURRENCY = 5;
 
 interface BatchImage {
   id: string;
@@ -185,7 +187,40 @@ export function BatchUpload() {
     return signedUrlData.signedUrl;
   }
 
-  /* ── Submit batch ── */
+  /* ── Process a single image: upload → submit ── */
+  async function processOneImage(
+    img: BatchImage,
+    tool: ToolType,
+    promptText: string
+  ): Promise<BatchResult> {
+    try {
+      const imageUrl = await uploadToSupabase(img.file);
+      if (!imageUrl) {
+        return { imageId: img.id, success: false, error: "Upload failed" };
+      }
+
+      const payload: Record<string, unknown> = { tool, imageUrl };
+      if (promptText) payload.prompt = promptText;
+
+      const res = await fetch("/api/jobs/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 402) {
+        return { imageId: img.id, success: false, error: "INSUFFICIENT" };
+      }
+      if (!res.ok) {
+        return { imageId: img.id, success: false, error: "Job submission failed" };
+      }
+      return { imageId: img.id, success: true };
+    } catch {
+      return { imageId: img.id, success: false, error: "Unexpected error" };
+    }
+  }
+
+  /* ── Submit batch — parallel in chunks of CONCURRENCY ── */
   async function handleSubmit() {
     if (!images.length) {
       setMessage({ type: "error", text: t("noImages") });
@@ -201,82 +236,55 @@ export function BatchUpload() {
     setResults([]);
     setCurrentIndex(0);
 
-    const batchResults: BatchResult[] = [];
+    const allResults: BatchResult[] = [];
+    const promptText = needsPrompt && prompt.trim() ? prompt.trim() : "";
+    let hitCreditLimit = false;
 
-    for (let i = 0; i < images.length; i++) {
-      setCurrentIndex(i + 1);
-      const img = images[i];
+    // Process images in parallel chunks
+    for (let i = 0; i < images.length; i += CONCURRENCY) {
+      if (hitCreditLimit) break;
 
-      try {
-        // Upload to Supabase
-        const imageUrl = await uploadToSupabase(img.file);
-        if (!imageUrl) {
-          batchResults.push({
-            imageId: img.id,
-            success: false,
-            error: "Upload failed",
-          });
-          continue;
+      const chunk = images.slice(i, i + CONCURRENCY);
+      const chunkResults = await Promise.allSettled(
+        chunk.map((img) => processOneImage(img, selectedTool, promptText))
+      );
+
+      for (const settled of chunkResults) {
+        const result =
+          settled.status === "fulfilled"
+            ? settled.value
+            : { imageId: "unknown", success: false, error: "Unexpected error" } as BatchResult;
+
+        if (result.error === "INSUFFICIENT") {
+          result.error = "Insufficient credits";
+          hitCreditLimit = true;
         }
+        allResults.push(result);
+      }
 
-        // Submit job
-        const payload: Record<string, unknown> = {
-          tool: selectedTool,
-          imageUrl,
-        };
+      setCurrentIndex(Math.min(i + CONCURRENCY, images.length));
 
-        if (needsPrompt && prompt.trim()) {
-          payload.prompt = prompt.trim();
-        }
-
-        const res = await fetch("/api/jobs/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.status === 402) {
-          batchResults.push({
-            imageId: img.id,
-            success: false,
-            error: "Insufficient credits",
-          });
-          // Stop further submissions — out of credits
-          for (let j = i + 1; j < images.length; j++) {
-            batchResults.push({
-              imageId: images[j].id,
+      // If credits ran out, mark remaining images as skipped
+      if (hitCreditLimit) {
+        const processedIds = new Set(allResults.map((r) => r.imageId));
+        for (const img of images) {
+          if (!processedIds.has(img.id)) {
+            allResults.push({
+              imageId: img.id,
               success: false,
               error: "Skipped — insufficient credits",
             });
           }
-          window.dispatchEvent(new CustomEvent("show-upgrade"));
-          break;
         }
-
-        if (!res.ok) {
-          batchResults.push({
-            imageId: img.id,
-            success: false,
-            error: "Job submission failed",
-          });
-          continue;
-        }
-
-        batchResults.push({ imageId: img.id, success: true });
-      } catch {
-        batchResults.push({
-          imageId: img.id,
-          success: false,
-          error: "Unexpected error",
-        });
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
       }
     }
 
-    setResults(batchResults);
+    setResults(allResults);
     setStatus("done");
 
-    const successCount = batchResults.filter((r) => r.success).length;
-    const failedCount = batchResults.length - successCount;
+    const successCount = allResults.filter((r) => r.success).length;
+    const failedCount = allResults.length - successCount;
 
     if (failedCount === 0) {
       setMessage({ type: "success", text: t("completed") });
@@ -285,7 +293,7 @@ export function BatchUpload() {
         type: "warning",
         text: t("partialError", {
           success: successCount,
-          total: batchResults.length,
+          total: allResults.length,
           failed: failedCount,
         }),
       });
