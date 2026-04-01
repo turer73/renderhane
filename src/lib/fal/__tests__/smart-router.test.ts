@@ -94,6 +94,64 @@ describe('routeRequest', () => {
     expect(input['scene_description']).toBeUndefined();
   });
 
+  // ── New tools (Faz 1-3) ─────────────────────────
+
+  it('routes image-edit to flux-kontext', () => {
+    const { modelKey } = routeRequest({ tool: 'image-edit', imageUrl: 'http://img/1.jpg' });
+    expect(modelKey).toBe('flux-kontext');
+  });
+
+  it('routes text-to-image standard to flux-pro', () => {
+    const { modelKey } = routeRequest({ tool: 'text-to-image', prompt: 'a cat' });
+    expect(modelKey).toBe('flux-pro');
+  });
+
+  it('routes text-to-image fast to flux-schnell', () => {
+    const { modelKey } = routeRequest({ tool: 'text-to-image', tier: 'fast', prompt: 'a cat' });
+    expect(modelKey).toBe('flux-schnell');
+  });
+
+  it('routes qr-code to qr-code-ai', () => {
+    const { modelKey } = routeRequest({ tool: 'qr-code', prompt: 'https://renderhane.com' });
+    expect(modelKey).toBe('qr-code-ai');
+  });
+
+  it('routes talking-avatar to omnihuman', () => {
+    const { modelKey } = routeRequest({ tool: 'talking-avatar', imageUrl: 'http://img/1.jpg' });
+    expect(modelKey).toBe('omnihuman');
+  });
+
+  it('routes logo to recraft-v3', () => {
+    const { modelKey } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
+    expect(modelKey).toBe('recraft-v3');
+  });
+
+  // ── Text-only tools skip image input ──────────
+
+  it('text-only tools do not set image param', () => {
+    const { input } = routeRequest({ tool: 'text-to-image', prompt: 'a sunset' });
+    expect(input['image_url']).toBeUndefined();
+    expect(input['prompt']).toBe('a sunset');
+  });
+
+  it('logo sets prompt and style defaults', () => {
+    const { input } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
+    expect(input['prompt']).toBe('Renderhane logo');
+    expect(input['style']).toBe('vector_illustration');
+  });
+
+  // ── Talking avatar special handling ────────────
+
+  it('talking-avatar maps prompt to audio_url', () => {
+    const { input } = routeRequest({
+      tool: 'talking-avatar',
+      imageUrl: 'http://img/face.jpg',
+      prompt: 'http://audio/speech.wav',
+    });
+    expect(input['audio_url']).toBe('http://audio/speech.wav');
+    expect(input['image_url']).toBe('http://img/face.jpg');
+  });
+
   // ── Error case ─────────────────────────────────
 
   it('throws for unknown tool', () => {
