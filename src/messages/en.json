@@ -156,8 +156,8 @@
   },
   "landing": {
     "badge": "AI-Powered",
-    "hero": "Turn Your Product Photos Into Professional Assets",
-    "heroSub": "3D models, clean backgrounds, scenes, videos — from a single photo, in minutes.",
+    "hero": "Generate 3D Models, Scenes & Videos from Photos",
+    "heroSub": "AI-powered visual production for e-commerce, game development, and 3D printing. From a single photo, in minutes.",
     "stat1": "94-250% conversion boost",
     "stat1Sub": "Proven impact of 3D product visuals",
     "stat2": "Starting at ₺2 per task",
@@ -169,11 +169,12 @@
     "nav": {
       "features": "Features",
       "pricing": "Pricing",
-      "demo": "Demo"
+      "demo": "Demo",
+      "tools": "Free Tools"
     },
     "features": {
-      "title": "6 AI Tools, One Platform",
-      "subtitle": "Take your product visuals to the next level — no studio or photographer needed.",
+      "title": "12+ AI Tools, One Platform",
+      "subtitle": "E-commerce visuals, game assets, or 3D print models — produce them all from one platform.",
       "3dModel": {
         "title": "Turn Your Product Into 3D",
         "description": "Create interactive 3D models from a single photo. Let customers rotate and explore your product in 360°.",
@@ -313,8 +314,15 @@
       "tryNow": "Try Now"
     },
     "footer": {
-      "description": "AI-powered visual production platform for your e-commerce store.",
+      "description": "AI-powered visual production platform for e-commerce, gaming, and 3D printing. API, Shopify integration, and Blender plugin support.",
       "product": "Product",
+      "tools": "Tools",
+      "freeTools": "Free Tools",
+      "bgRemoveFree": "Background Removal",
+      "qrCodeFree": "QR Code Generator",
+      "apiAccess": "Developer API",
+      "shopifyIntegration": "Shopify Integration",
+      "blenderPlugin": "Blender Plugin",
       "company": "Company",
       "legal": "Legal",
       "about": "About Us",

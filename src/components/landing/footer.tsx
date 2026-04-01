@@ -33,6 +33,14 @@ export function Footer() {
     { label: t("nav.demo"), action: () => scrollTo("demo") },
   ];
 
+  const toolLinks = [
+    { label: t("footer.bgRemoveFree"), href: `/${locale}/araclar/arka-plan-kaldirma` },
+    { label: t("footer.qrCodeFree"), href: `/${locale}/araclar/qr-kod` },
+    { label: t("footer.apiAccess"), href: `/${locale}/app/settings` },
+    { label: t("footer.shopifyIntegration"), href: `/${locale}/app` },
+    { label: t("footer.blenderPlugin"), href: "https://github.com/turer73/renderhane/tree/master/plugins/blender" },
+  ];
+
   const companyLinks = [
     { label: t("footer.blog"), href: `/${locale}/blog` },
     { label: t("footer.contact"), href: "mailto:info@renderhane.com" },
@@ -48,9 +56,9 @@ export function Footer() {
   return (
     <footer className="border-t border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950 dark:from-slate-950 dark:to-black">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-6">
           {/* Brand */}
-          <div className="col-span-2 sm:col-span-4 lg:col-span-1">
+          <div className="col-span-2 sm:col-span-4 lg:col-span-2">
             <Link
               href={`/${locale}`}
               className="flex items-center gap-2 font-bold text-lg tracking-tight text-white"
@@ -84,6 +92,26 @@ export function Footer() {
                   >
                     {link.label}
                   </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Tools & Integrations */}
+          <div>
+            <h4 className="text-sm font-semibold text-white">
+              {t("footer.tools")}
+            </h4>
+            <ul className="mt-4 space-y-3">
+              {toolLinks.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                    {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>

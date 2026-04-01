@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Box, Globe, Menu, X, ArrowRight } from "lucide-react";
+import { Box, Globe, Menu, X, ArrowRight, Eraser, QrCode, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export function LandingHeader() {
@@ -17,8 +17,14 @@ export function LandingHeader() {
   const pathname = usePathname();
   const locale = params.locale as string;
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   const otherLocale = locale === "tr" ? "en" : "tr";
+
+  const freeTools = [
+    { label: t("footer.bgRemoveFree"), href: `/${locale}/araclar/arka-plan-kaldirma`, icon: Eraser },
+    { label: t("footer.qrCodeFree"), href: `/${locale}/araclar/qr-kod`, icon: QrCode },
+  ];
 
   function switchLanguage() {
     router.replace(pathname, { locale: otherLocale });
@@ -61,6 +67,36 @@ export function LandingHeader() {
               {item.label}
             </button>
           ))}
+
+          {/* Free Tools dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={() => setToolsOpen(true)}
+            onMouseLeave={() => setToolsOpen(false)}
+          >
+            <button
+              className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("nav.tools")}
+              <ChevronDown className="size-3.5" />
+            </button>
+            {toolsOpen && (
+              <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-border/60 bg-background/95 p-2 shadow-xl backdrop-blur-md">
+                {freeTools.map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    onClick={() => setToolsOpen(false)}
+                  >
+                    <tool.icon className="size-4 text-indigo-500" />
+                    {tool.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           <Link
             href={`/${locale}/blog`}
             className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -131,6 +167,23 @@ export function LandingHeader() {
                 {item.label}
               </button>
             ))}
+            {/* Free Tools — mobile */}
+            <div className="mt-1 border-t border-border/40 pt-1">
+              <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {t("nav.tools")}
+              </p>
+              {freeTools.map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <tool.icon className="size-4 text-indigo-500" />
+                  {tool.label}
+                </Link>
+              ))}
+            </div>
             <Link
               href={`/${locale}/blog`}
               className="rounded-md px-3 py-2.5 text-left text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

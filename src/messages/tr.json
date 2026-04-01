@@ -156,8 +156,8 @@
   },
   "landing": {
     "badge": "Yapay Zeka Destekli",
-    "hero": "Ürün Fotoğraflarınızı Profesyonele Dönüştürün",
-    "heroSub": "3D model, temiz arka plan, sahne, video — tek fotoğraftan, dakikalar içinde.",
+    "hero": "Fotoğraftan 3D Model, Sahne ve Video Üretin",
+    "heroSub": "E-ticaret, oyun geliştirme ve 3D baskı için AI destekli görsel üretim. Tek fotoğraftan dakikalar içinde.",
     "stat1": "%94-250 dönüşüm artışı",
     "stat1Sub": "3D ürün görsellerinin kanıtlanmış etkisi",
     "stat2": "₺2'den başlayan işlem",
@@ -169,11 +169,12 @@
     "nav": {
       "features": "Özellikler",
       "pricing": "Fiyatlandırma",
-      "demo": "Demo"
+      "demo": "Demo",
+      "tools": "Ücretsiz Araçlar"
     },
     "features": {
-      "title": "6 AI Aracı, Tek Platform",
-      "subtitle": "Ürün görsellerinizi profesyonel seviyeye taşıyın — stüdyo veya fotoğrafçıya gerek yok.",
+      "title": "12+ AI Aracı, Tek Platform",
+      "subtitle": "E-ticaret görseli, oyun asseti veya 3D baskı modeli — hepsini tek platformdan üretin.",
       "3dModel": {
         "title": "Ürününüzü 3D'ye Çevirin",
         "description": "Tek bir fotoğraftan interaktif 3D model oluşturun. Müşterileriniz ürünü 360° döndürerek incelesin.",
@@ -313,8 +314,15 @@
       "tryNow": "Şimdi Dene"
     },
     "footer": {
-      "description": "E-ticaret mağazanız için AI destekli görsel üretim platformu.",
+      "description": "E-ticaret, oyun ve 3D baskı için AI destekli görsel üretim platformu. API, Shopify entegrasyonu ve Blender plugin desteği.",
       "product": "Ürün",
+      "tools": "Araçlar",
+      "freeTools": "Ücretsiz Araçlar",
+      "bgRemoveFree": "Arka Plan Kaldırma",
+      "qrCodeFree": "QR Kod Oluşturucu",
+      "apiAccess": "Geliştirici API",
+      "shopifyIntegration": "Shopify Entegrasyonu",
+      "blenderPlugin": "Blender Plugin",
       "company": "Şirket",
       "legal": "Yasal",
       "about": "Hakkımızda",
