@@ -10,7 +10,7 @@ import { CookieBanner } from "@/components/cookie-banner";
 import "@/app/globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
-
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || "";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -149,6 +149,14 @@ export default async function LocaleLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* AdSense verification — must be in <head> for Google to detect it */}
+        {ADSENSE_ID && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
+            crossOrigin="anonymous"
+          />
+        )}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
