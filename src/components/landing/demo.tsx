@@ -69,7 +69,7 @@ export function DemoSection() {
   return (
     <section
       id="demo"
-      className="relative scroll-mt-20 py-20 sm:py-28 bg-gradient-to-b from-slate-50/50 to-background dark:from-slate-900/30 dark:to-background"
+      className="relative scroll-mt-20 py-12 sm:py-28 bg-gradient-to-b from-slate-50/50 to-background dark:from-slate-900/30 dark:to-background"
     >
       {/* Radial gradient glow — indigo tint */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_oklch(0.55_0.2_275_/_0.06)_0%,transparent_60%)]" />
@@ -82,19 +82,19 @@ export function DemoSection() {
             <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 opacity-75" />
             <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 opacity-20 blur-xl" />
 
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#1e1b4b] via-[#1e1b4b] to-[#0f0a2e] px-6 py-10 shadow-2xl shadow-indigo-500/30 sm:px-10 sm:py-14">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#1e1b4b] via-[#1e1b4b] to-[#0f0a2e] px-4 py-8 shadow-2xl shadow-indigo-500/30 sm:rounded-3xl sm:px-10 sm:py-14">
               {/* Header */}
               <div className="mx-auto max-w-2xl text-center">
-                <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                <h2 className="text-2xl font-bold tracking-tight text-white sm:text-4xl">
                   {t("demo.title")}
                 </h2>
-                <p className="mt-4 text-lg text-indigo-200/70">
+                <p className="mt-2 text-base text-indigo-200/70 sm:mt-4 sm:text-lg">
                   {t("demo.subtitle")}
                 </p>
               </div>
 
               {/* Before/After visual */}
-              <div className="mx-auto mt-12 max-w-3xl">
+              <div className="mx-auto mt-8 max-w-3xl sm:mt-12">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                   {/* Before — Original photo */}
                   <div className="overflow-hidden rounded-2xl border border-indigo-400/20 bg-white/5">
@@ -164,16 +164,16 @@ export function DemoSection() {
               <div className="mx-auto mt-10 max-w-xs border-t border-indigo-400/15" />
 
               {/* Steps */}
-              <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3">
+              <div className="mx-auto mt-8 grid max-w-3xl grid-cols-3 gap-3 sm:mt-10 sm:gap-6">
                 {steps.map((step) => (
                   <div key={step.num} className="group flex flex-col items-center text-center">
-                    <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-300 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:bg-indigo-500/25 group-hover:shadow-md group-hover:shadow-indigo-500/20">
-                      <step.icon className="size-5" />
+                    <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-300 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:bg-indigo-500/25 group-hover:shadow-md group-hover:shadow-indigo-500/20 sm:mb-3 sm:size-12">
+                      <step.icon className="size-4 sm:size-5" />
                     </div>
-                    <div className="mb-1 text-sm font-bold text-indigo-300">
+                    <div className="mb-0.5 text-xs font-bold text-indigo-300 sm:mb-1 sm:text-sm">
                       {step.num}
                     </div>
-                    <p className="text-sm text-indigo-200/60">{step.text}</p>
+                    <p className="text-[11px] text-indigo-200/60 sm:text-sm">{step.text}</p>
                   </div>
                 ))}
               </div>

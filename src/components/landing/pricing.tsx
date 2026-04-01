@@ -53,20 +53,20 @@ export function PricingSection() {
   const locale = params.locale as string;
 
   return (
-    <section id="pricing" className="relative scroll-mt-20 bg-gradient-to-b from-muted/40 to-background py-20 transition-colors sm:py-28">
+    <section id="pricing" className="relative scroll-mt-20 bg-gradient-to-b from-muted/40 to-background py-12 transition-colors sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
             {t("pricing.title")}
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground sm:mt-4 sm:text-lg">
             {t("pricing.subtitle")}
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="mx-auto mt-10 grid grid-cols-1 gap-4 sm:max-w-6xl sm:grid-cols-2 lg:grid-cols-5">
+        {/* Cards — horizontal scroll on mobile, grid on desktop */}
+        <div className="mx-auto mt-8 flex gap-4 overflow-x-auto scrollbar-hide px-1 pb-4 snap-x snap-mandatory sm:mt-10 sm:grid sm:max-w-6xl sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-5">
           {packages.map((pkg) => {
             const isPopular = pkg.popular;
             const isEnterprise = pkg.key === "enterprise";
@@ -80,9 +80,9 @@ export function PricingSection() {
             return (
               <div
                 key={pkg.key}
-                className={`relative flex flex-col rounded-3xl p-6 transition-all duration-300 ${
+                className={`relative flex min-w-[260px] shrink-0 snap-start flex-col rounded-3xl p-5 transition-all duration-300 sm:min-w-0 sm:shrink sm:p-6 ${
                   isPopular
-                    ? "overflow-visible bg-gradient-to-b from-indigo-800 to-indigo-950 text-white shadow-2xl shadow-indigo-900/30 z-10 md:scale-105 ring-1 ring-indigo-500/30"
+                    ? "overflow-visible bg-gradient-to-b from-indigo-800 to-indigo-950 text-white shadow-2xl shadow-indigo-900/30 z-10 sm:scale-105 ring-1 ring-indigo-500/30"
                     : "overflow-hidden border border-border/60 bg-card text-foreground shadow-sm hover:border-indigo-300/60 hover:shadow-lg hover:shadow-indigo-100/30 dark:border-border/40 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/20"
                 }`}
               >
@@ -232,7 +232,7 @@ function CreditCalculator() {
   const recommended = getRecommendedPackage();
 
   return (
-    <div className="mx-auto mt-20 max-w-2xl">
+    <div className="mx-auto mt-12 max-w-2xl sm:mt-20">
       <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm backdrop-blur-sm dark:border-border/40 sm:p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10">
@@ -267,7 +267,7 @@ function CreditCalculator() {
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 sm:gap-2">
                   <button
                     onClick={() =>
                       setCounts((prev) => ({
@@ -276,11 +276,11 @@ function CreditCalculator() {
                       }))
                     }
                     disabled={count === 0}
-                    className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-sm font-bold transition-colors hover:bg-muted disabled:opacity-30"
+                    className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-background text-sm font-bold transition-colors hover:bg-muted disabled:opacity-30 sm:size-8"
                   >
                     −
                   </button>
-                  <span className="w-8 text-center text-sm font-bold tabular-nums">
+                  <span className="w-7 text-center text-sm font-bold tabular-nums sm:w-8">
                     {count}
                   </span>
                   <button
@@ -290,7 +290,7 @@ function CreditCalculator() {
                         [tool]: Math.min(100, prev[tool] + 1),
                       }))
                     }
-                    className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-sm font-bold transition-colors hover:bg-muted"
+                    className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-background text-sm font-bold transition-colors hover:bg-muted sm:size-8"
                   >
                     +
                   </button>

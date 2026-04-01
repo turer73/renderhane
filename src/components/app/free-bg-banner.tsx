@@ -50,7 +50,7 @@ export function FreeBgBanner() {
           <Link
             key={tool.href}
             href={tool.href}
-            className={`group relative flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${tool.gradient} ${tool.hoverGradient} p-5 text-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]`}
+            className={`group relative flex flex-col overflow-hidden rounded-xl bg-gradient-to-br ${tool.gradient} ${tool.hoverGradient} p-4 text-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] sm:rounded-2xl sm:p-5`}
           >
             {/* Glow effect */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.15),transparent)]" />

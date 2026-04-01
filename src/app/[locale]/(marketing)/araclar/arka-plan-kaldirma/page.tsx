@@ -204,7 +204,7 @@ export default function PublicBgRemovePage() {
             {tr ? "AI Destekli • Ücretsiz" : "AI-Powered • Free"}
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
             {tr ? "Arka Planı" : "Remove"}
             <span className="block bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
               {tr ? "Anında Kaldır" : "Backgrounds Instantly"}
@@ -232,7 +232,7 @@ export default function PublicBgRemovePage() {
           <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-2xl shadow-indigo-200/30 dark:shadow-indigo-900/20 sm:p-8">
             {!preview ? (
               <div
-                className={`flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 ${
+                className={`flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 sm:min-h-[280px] ${
                   dragOver
                     ? "border-indigo-500 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/10 scale-[1.01]"
                     : "border-muted-foreground/20 hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/50 dark:hover:from-indigo-500/5 dark:hover:to-purple-500/5"
@@ -351,17 +351,17 @@ export default function PublicBgRemovePage() {
         <AdSlot slot="bg-remove-top" format="horizontal" className="mb-8" />
 
         {/* Feature Cards */}
-        <div className="mb-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:mb-12 sm:grid-cols-4 sm:gap-4">
           {features.map((f, i) => (
             <div
               key={i}
-              className="group rounded-2xl border border-border/60 bg-card p-5 text-center transition-all duration-300 hover:border-indigo-200 hover:shadow-lg dark:hover:border-indigo-800"
+              className="group rounded-xl border border-border/60 bg-card p-3 text-center transition-all duration-300 hover:border-indigo-200 hover:shadow-lg dark:hover:border-indigo-800 sm:rounded-2xl sm:p-5"
             >
-              <div className={`mx-auto mb-3 flex size-12 items-center justify-center rounded-xl ${f.bg} transition-transform group-hover:scale-110`}>
-                <f.icon className={`size-6 ${f.color}`} />
+              <div className={`mx-auto mb-2 flex size-10 items-center justify-center rounded-lg ${f.bg} transition-transform group-hover:scale-110 sm:mb-3 sm:size-12 sm:rounded-xl`}>
+                <f.icon className={`size-5 ${f.color} sm:size-6`} />
               </div>
-              <h3 className="text-sm font-bold">{f.title}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{f.desc}</p>
+              <h3 className="text-xs font-bold sm:text-sm">{f.title}</h3>
+              <p className="mt-0.5 text-[10px] text-muted-foreground sm:mt-1 sm:text-xs">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -397,7 +397,7 @@ export default function PublicBgRemovePage() {
         </div>
 
         {/* Upsell CTA */}
-        <div className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-fuchsia-600 p-8 text-center text-white shadow-xl shadow-indigo-200/30 dark:shadow-indigo-900/20 sm:p-12">
+        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-fuchsia-600 p-6 text-center text-white shadow-xl shadow-indigo-200/30 dark:shadow-indigo-900/20 sm:rounded-3xl sm:p-12">
           <div className="mx-auto max-w-2xl">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
               <Star className="size-4 text-amber-300" fill="currentColor" />

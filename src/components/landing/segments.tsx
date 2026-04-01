@@ -44,18 +44,18 @@ export function SegmentsSection() {
   const locale = params.locale as string;
 
   return (
-    <section className="border-t border-border/30 bg-background py-16 transition-colors sm:py-24">
+    <section className="border-t border-border/30 bg-background py-10 transition-colors sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
             {t("title")}
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground sm:mt-4 sm:text-lg">
             {t("subtitle")}
           </p>
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-3">
+        <div className="mx-auto mt-8 grid max-w-6xl grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-3 sm:gap-6">
           {SEGMENTS.map(({ id, icon: Icon, bg, border, iconBg, iconColor, badgeColor }) => (
             <div
               key={id}

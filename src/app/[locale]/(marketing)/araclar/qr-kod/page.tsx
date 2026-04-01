@@ -265,7 +265,7 @@ export default function PublicQRCodePage() {
             {tr ? "Tamamen Ücretsiz • Sınırsız" : "Completely Free • Unlimited"}
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
             {tr ? "QR Kod" : "QR Code"}
             <span className="block bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
               {tr ? "Oluşturucu" : "Generator"}
@@ -289,19 +289,19 @@ export default function PublicQRCodePage() {
               <p className="mb-3 text-sm font-medium text-muted-foreground">
                 {tr ? "İçerik Tipi Seçin:" : "Choose Content Type:"}
               </p>
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x sm:grid sm:grid-cols-8 sm:overflow-visible sm:pb-0">
                 {CONTENT_TYPES.map(({ id, icon: Icon, labelTr, labelEn, color }) => (
                   <button
                     key={id}
                     onClick={() => { setContentType(id); setFields({}); resetPreview(); }}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all ${
+                    className={`flex shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all min-w-[72px] sm:min-w-0 sm:shrink ${
                       contentType === id
                         ? "border-emerald-400 bg-emerald-50 shadow-sm dark:border-emerald-600 dark:bg-emerald-500/10"
                         : "border-border/40 hover:border-emerald-300 hover:bg-muted/50 dark:hover:border-emerald-700"
                     }`}
                   >
                     <Icon className={`size-5 ${contentType === id ? color : "text-muted-foreground"}`} />
-                    <span className={`text-[10px] font-medium leading-tight ${contentType === id ? "text-foreground" : "text-muted-foreground"}`}>
+                    <span className={`text-[10px] font-medium leading-tight whitespace-nowrap ${contentType === id ? "text-foreground" : "text-muted-foreground"}`}>
                       {tr ? labelTr : labelEn}
                     </span>
                   </button>
@@ -367,20 +367,20 @@ export default function PublicQRCodePage() {
         <AdSlot slot="qr-code-top" format="horizontal" className="mb-8" />
 
         {/* Feature Cards */}
-        <div className="mb-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:mb-12 sm:grid-cols-4 sm:gap-4">
           {features.map((f, i) => (
-            <div key={i} className="group rounded-2xl border border-border/60 bg-card p-5 text-center transition-all duration-300 hover:border-emerald-200 hover:shadow-lg dark:hover:border-emerald-800">
-              <div className={`mx-auto mb-3 flex size-12 items-center justify-center rounded-xl ${f.bg} transition-transform group-hover:scale-110`}>
-                <f.icon className={`size-6 ${f.color}`} />
+            <div key={i} className="group rounded-xl border border-border/60 bg-card p-3 text-center transition-all duration-300 hover:border-emerald-200 hover:shadow-lg dark:hover:border-emerald-800 sm:rounded-2xl sm:p-5">
+              <div className={`mx-auto mb-2 flex size-10 items-center justify-center rounded-lg ${f.bg} transition-transform group-hover:scale-110 sm:mb-3 sm:size-12 sm:rounded-xl`}>
+                <f.icon className={`size-5 ${f.color} sm:size-6`} />
               </div>
-              <h3 className="text-sm font-bold">{f.title}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{f.desc}</p>
+              <h3 className="text-xs font-bold sm:text-sm">{f.title}</h3>
+              <p className="mt-0.5 text-[10px] text-muted-foreground sm:mt-1 sm:text-xs">{f.desc}</p>
             </div>
           ))}
         </div>
 
         {/* Upsell CTA */}
-        <div className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-8 text-center text-white shadow-xl shadow-emerald-200/30 dark:shadow-emerald-900/20 sm:p-12">
+        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-6 text-center text-white shadow-xl shadow-emerald-200/30 dark:shadow-emerald-900/20 sm:rounded-3xl sm:p-12">
           <div className="mx-auto max-w-2xl">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
               <Star className="size-4 text-amber-300" fill="currentColor" />

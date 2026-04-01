@@ -36,24 +36,24 @@ export function FeaturesSection() {
   const locale = params.locale as string;
 
   return (
-    <section id="features" className="scroll-mt-20 border-t border-border/30 bg-background py-20 transition-colors sm:py-28">
+    <section id="features" className="scroll-mt-20 border-t border-border/30 bg-background py-12 transition-colors sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
             {t("features.title")}
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground sm:mt-4 sm:text-lg">
             {t("features.subtitle")}
           </p>
         </div>
 
         {/* Grid */}
-        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto mt-8 grid max-w-5xl grid-cols-2 gap-3 sm:mt-16 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {tools.map((tool, i) => (
               <div
                 key={tool.key}
-                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-6 backdrop-blur-sm transition-all duration-300 hover:border-indigo-300/60 hover:bg-card hover:shadow-xl hover:shadow-indigo-100/40 dark:border-border/40 dark:bg-card/60 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/30 sm:p-8"
+                className="group relative overflow-hidden rounded-xl border border-border/60 bg-card/90 p-4 backdrop-blur-sm transition-all duration-300 hover:border-indigo-300/60 hover:bg-card hover:shadow-xl hover:shadow-indigo-100/40 dark:border-border/40 dark:bg-card/60 dark:hover:border-indigo-600/40 dark:hover:shadow-indigo-900/30 sm:rounded-2xl sm:p-6 lg:p-8"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
                 {/* Subtle gradient accent on hover */}
@@ -61,8 +61,8 @@ export function FeaturesSection() {
 
                 {/* Icon + Tip */}
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex size-14 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50/80 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-indigo-100/50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:group-hover:shadow-indigo-900/30">
-                    <tool.icon className="size-7 text-indigo-600 dark:text-indigo-400" />
+                  <div className="flex size-10 items-center justify-center rounded-lg border border-indigo-100 bg-indigo-50/80 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-indigo-100/50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:group-hover:shadow-indigo-900/30 sm:size-14 sm:rounded-xl">
+                    <tool.icon className="size-5 text-indigo-600 dark:text-indigo-400 sm:size-7" />
                   </div>
 
                   {/* Tip popover — works on both touch and mouse */}
@@ -89,12 +89,12 @@ export function FeaturesSection() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-bold text-foreground">
+                <h3 className="text-base font-bold text-foreground sm:text-xl">
                   {t(`features.${tool.key}.title`)}
                 </h3>
 
                 {/* Description */}
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:mt-2 sm:text-base">
                   {t(`features.${tool.key}.description`)}
                 </p>
 

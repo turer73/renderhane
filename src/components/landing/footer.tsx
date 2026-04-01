@@ -55,10 +55,10 @@ export function Footer() {
 
   return (
     <footer className="border-t border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950 dark:from-slate-950 dark:to-black">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-6">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8 lg:grid-cols-6">
           {/* Brand */}
-          <div className="col-span-2 sm:col-span-4 lg:col-span-2">
+          <div className="col-span-2 lg:col-span-2">
             <Link
               href={`/${locale}`}
               className="flex items-center gap-2 font-bold text-lg tracking-tight text-white"
