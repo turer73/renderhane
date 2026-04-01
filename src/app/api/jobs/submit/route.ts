@@ -10,7 +10,7 @@ import type { ToolType, ModelTier } from "@/lib/fal/models";
 // Job submission can include auto bg-remove (~5s) + fal.ai queue submit
 export const maxDuration = 60;
 
-const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus"] as const;
+const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus", "image-edit"] as const;
 
 /** Human-readable tool names for auto-created project titles */
 const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
@@ -20,6 +20,7 @@ const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
   scene: "Sahne Üret",
   video: "Video Oluştur",
   aplus: "A+ İçerik",
+  "image-edit": "Görsel Düzenle",
 };
 
 const ALLOWED_IMAGE_HOSTS = [

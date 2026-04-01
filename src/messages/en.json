@@ -99,6 +99,7 @@
     "promptPlaceholderScene": "e.g. Professional product photo on marble surface with natural lighting",
     "promptPlaceholderVideo": "e.g. Smooth product showcase with gentle camera movement",
     "promptPlaceholderAplus": "e.g. Premium e-commerce photography, lifestyle setting with studio lighting",
+    "promptPlaceholderImageEdit": "e.g. Change background to winter scene, make product color red",
     "presetHint": "Pick a ready-made scene or write your own description below:",
     "presetDialogTitle": "Choose a Scene",
     "presetDialogSubmit": "Start with this scene",

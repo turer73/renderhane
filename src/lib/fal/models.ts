@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit";
 
 export interface ModelConfig {
   id: string;
@@ -112,6 +112,22 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── Görsel Düzenleme ─────────────────────── */
+  "flux-kontext": {
+    id: "fal-ai/flux-kontext/pro/v1",
+    displayName: { tr: "FLUX Kontext — Düzenle", en: "FLUX Kontext — Edit" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~10s",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      guidance_scale: 4.0,
+      num_inference_steps: 25,
+      output_format: "png",
+    },
+  },
+
   /* ── Arka Plan Kaldır ─────────────────────── */
   "birefnet": {
     id: "fal-ai/birefnet/v2",
@@ -188,6 +204,7 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "scene": ["bria-product-shot"],
   "video": ["wan-i2v"],
   "aplus": ["bria-product-shot-hd"],
+  "image-edit": ["flux-kontext"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -197,6 +214,7 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   scene: "scene",
   video: "video",
   aplus: "aplus",
+  "image-edit": "imageEdit",
 };
 
 /**
@@ -215,7 +233,7 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
 };
 
 /** Tools that accept a text prompt from the user */
-export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video"];
+export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit"];
 
 /** Tools that accept multiple images (multi-view) */
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];

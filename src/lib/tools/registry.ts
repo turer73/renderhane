@@ -144,7 +144,7 @@ export const TOOLS: ToolDefinition[] = [
     inputType: "image-text",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/tools/image-edit",
-    ready: false,
+    ready: true,
     descriptionKey: "imageEditDesc",
   },
   {
@@ -157,7 +157,7 @@ export const TOOLS: ToolDefinition[] = [
     inputType: "pipeline",
     segments: ["ecommerce"],
     href: "/app/tools/social-kit",
-    ready: false,
+    ready: true,
     descriptionKey: "socialKitDesc",
   },
   {

@@ -85,6 +85,9 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
     case "aplus":
       return "bria-product-shot-hd";
 
+    case "image-edit":
+      return "flux-kontext";
+
     default:
       throw new Error(`Tool "${tool}" is not yet available`);
   }

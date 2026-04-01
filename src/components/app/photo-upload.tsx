@@ -359,6 +359,12 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
     const anyImage = preview || multiImages.length > 0;
     if (!anyImage || !activeTool) return;
 
+    // Image edit requires a prompt — user must describe what to change
+    if (activeTool === "image-edit" && !prompt.trim()) {
+      setMessage({ type: "error", text: locale === "tr" ? "Lütfen düzenleme talimatı yazın." : "Please describe what to edit." });
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
 
@@ -473,6 +479,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
       case "scene": return tDash("promptPlaceholderScene");
       case "video": return tDash("promptPlaceholderVideo");
       case "aplus": return tDash("promptPlaceholderAplus");
+      case "image-edit": return tDash("promptPlaceholderImageEdit");
       default: return "";
     }
   }
@@ -778,6 +785,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
                 { tool: "bg-remove" as ToolType, icon: "🧹", color: "from-rose-500/10 to-rose-500/5", border: "border-rose-200 dark:border-rose-800", hover: "hover:border-rose-400 dark:hover:border-rose-600" },
                 { tool: "enhance" as ToolType, icon: "✨", color: "from-amber-500/10 to-amber-500/5", border: "border-amber-200 dark:border-amber-800", hover: "hover:border-amber-400 dark:hover:border-amber-600" },
                 { tool: "scene" as ToolType, icon: "🎬", color: "from-indigo-500/10 to-indigo-500/5", border: "border-indigo-200 dark:border-indigo-800", hover: "hover:border-indigo-400 dark:hover:border-indigo-600" },
+                { tool: "image-edit" as ToolType, icon: "🖌️", color: "from-orange-500/10 to-orange-500/5", border: "border-orange-200 dark:border-orange-800", hover: "hover:border-orange-400 dark:hover:border-orange-600" },
                 { tool: "3d-model" as ToolType, icon: "📦", color: "from-emerald-500/10 to-emerald-500/5", border: "border-emerald-200 dark:border-emerald-800", hover: "hover:border-emerald-400 dark:hover:border-emerald-600" },
                 { tool: "video" as ToolType, icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
                 { tool: "aplus" as ToolType, icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
@@ -785,9 +793,9 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
               // Filter + order based on user segment
               // Segment determines ORDER only — all tools visible to everyone
               const segmentOrder: Record<string, ToolType[]> = {
-                ecommerce: ["bg-remove", "scene", "aplus", "3d-model", "enhance", "video"],
-                gaming: ["3d-model", "enhance", "bg-remove", "scene", "video", "aplus"],
-                "3dprint": ["3d-model", "enhance", "bg-remove", "scene", "video", "aplus"],
+                ecommerce: ["bg-remove", "scene", "image-edit", "aplus", "3d-model", "enhance", "video"],
+                gaming: ["3d-model", "image-edit", "enhance", "bg-remove", "scene", "video", "aplus"],
+                "3dprint": ["3d-model", "image-edit", "enhance", "bg-remove", "scene", "video", "aplus"],
               };
               const order = userSegment ? segmentOrder[userSegment] : null;
               const sorted = order
