@@ -47,14 +47,22 @@ export default function SocialKitPage() {
     setMessage(null);
 
     try {
-      // Upload to Supabase
+      // Upload to Supabase — must use "uploads" bucket + user.id prefix (RLS policy)
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setMessage({ type: "error", text: t("uploadError") });
+        setSubmitting(false);
+        return;
+      }
+
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `uploads/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/${Date.now()}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("images")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .from("uploads")
+        .upload(path, file, { contentType: file.type });
 
       if (uploadError) {
         setMessage({ type: "error", text: t("uploadError") });
@@ -63,7 +71,7 @@ export default function SocialKitPage() {
       }
 
       const { data: signedData } = await supabase.storage
-        .from("images")
+        .from("uploads")
         .createSignedUrl(path, 3600);
 
       if (!signedData?.signedUrl) {
