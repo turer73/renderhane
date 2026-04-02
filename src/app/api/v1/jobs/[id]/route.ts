@@ -45,15 +45,15 @@ export async function GET(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  // Get output if completed
+  // Get output if completed — job ownership already verified above
   let output = null;
   if (job.status === "completed") {
     const { data: outputData } = await supabase
       .from("outputs")
       .select("r2_url, fal_url, thumbnail_url, metadata")
       .eq("job_id", id)
-      .eq("user_id", auth.userId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (outputData) {
       let url = outputData.r2_url || outputData.fal_url;
