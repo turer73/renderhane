@@ -120,8 +120,9 @@ export async function submitJob(input: SubmitJobInput) {
 
   if (jobError || !job) {
     // Refund if job creation fails (only if credits were reserved)
+    console.error("[submitJob] DB insert error:", jobError?.message, jobError?.code, jobError?.details);
     if (txId) await refundCredits(txId);
-    throw new Error("Failed to create job");
+    throw new Error(`Failed to create job: ${jobError?.message || "no job returned"}`);
   }
 
   // 4. Submit to fal.ai queue with webhook

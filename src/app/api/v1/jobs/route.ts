@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const message = error instanceof Error ? error.message : "Internal error";
+    console.error("[api/v1/jobs] submit error:", message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
