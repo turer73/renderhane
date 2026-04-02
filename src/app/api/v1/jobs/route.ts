@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "@/lib/api-keys/middleware";
 import { submitJob } from "@/lib/jobs/submit";
+import { submitJobSync } from "@/lib/jobs/submit-sync";
 import { CreditError } from "@/lib/credits/engine";
 import { TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
 import type { ModelTier } from "@/lib/fal/models";
@@ -19,11 +20,12 @@ const VALID_TOOLS = Object.keys(TOOL_CREDITS);
  *     "imageUrl": "https://...",
  *     "imageUrls": ["https://...", ...],   // optional, for multi-image tools
  *     "tier": "standard",                   // optional: fast|standard|premium
- *     "prompt": "..."                       // optional, for scene/video/text tools
+ *     "prompt": "...",                       // optional, for scene/video/text tools
+ *     "sync": true                           // optional: wait for result (default: false)
  *   }
  *
- * Returns:
- *   { "jobId": "uuid", "creditCost": 1, "estimatedTime": "~3s" }
+ * Returns (async): { "jobId": "uuid", "creditCost": 1, "estimatedTime": "~3s" }
+ * Returns (sync):  { "jobId": "uuid", "creditCost": 1, "status": "completed", "output": { "url": "..." } }
  */
 export async function POST(request: NextRequest) {
   const auth = await authenticateApiRequest(request);
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { tool, imageUrl, imageUrls, tier, prompt } = body;
+    const { tool, imageUrl, imageUrls, tier, prompt, sync } = body;
 
     if (!tool || !VALID_TOOLS.includes(tool)) {
       return NextResponse.json(
@@ -40,6 +42,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (sync) {
+      // Synchronous mode — wait for fal.ai result and return it directly
+      const result = await submitJobSync({
+        userId: auth.userId,
+        tool: tool as ToolType,
+        tier: tier as ModelTier | undefined,
+        imageUrl,
+        imageUrls,
+        prompt,
+      });
+      const status = result.status === "completed" ? 201 : 500;
+      return NextResponse.json(result, { status });
+    }
+
+    // Async mode — submit to queue with webhook callback
     const result = await submitJob({
       userId: auth.userId,
       tool: tool as ToolType,
