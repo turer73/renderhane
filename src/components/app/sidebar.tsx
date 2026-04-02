@@ -15,6 +15,7 @@ import {
   CreditCard,
   Gift,
   Shield,
+  Settings,
   Plus,
   LogOut,
 } from "lucide-react";
@@ -114,6 +115,12 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       href: `/${locale}/app#referral`,
       label: tRef("title"),
       icon: Gift,
+      disabled: false,
+    },
+    {
+      href: `/${locale}/app/settings`,
+      label: tSidebar("settings"),
+      icon: Settings,
       disabled: false,
     },
     ...(isAdminUser
