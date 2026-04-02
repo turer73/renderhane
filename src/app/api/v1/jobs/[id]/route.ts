@@ -50,14 +50,26 @@ export async function GET(
   if (job.status === "completed") {
     const { data: outputData } = await supabase
       .from("outputs")
-      .select("r2_url, fal_url, thumbnail_url")
+      .select("r2_url, fal_url, thumbnail_url, metadata")
       .eq("job_id", id)
       .eq("user_id", auth.userId)
       .single();
 
     if (outputData) {
+      let url = outputData.r2_url || outputData.fal_url;
+
+      // Fallback: extract URL from metadata if fal_url/r2_url are null
+      if (!url && outputData.metadata) {
+        const m = outputData.metadata as Record<string, unknown>;
+        const image = m.image as { url?: string } | undefined;
+        const images = m.images as { url?: string }[] | undefined;
+        const video = m.video as { url?: string } | undefined;
+        url = image?.url || images?.[0]?.url || video?.url ||
+              (typeof m.result_url === "string" ? m.result_url : null);
+      }
+
       output = {
-        url: outputData.r2_url || outputData.fal_url,
+        url: url || null,
         thumbnailUrl: outputData.thumbnail_url || null,
       };
     }

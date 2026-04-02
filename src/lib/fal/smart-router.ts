@@ -62,8 +62,10 @@ export function routeRequest(request: RouteRequest): RouteResult {
   // Special handling: talking-avatar passes audio URL via prompt field
   if (tool === "talking-avatar" && prompt) {
     input["audio_url"] = prompt;
-    delete input["_unused"];
   }
+
+  // Clean up _unused placeholder key — fal.ai rejects unknown params
+  delete input["_unused"];
 
   return { model, modelKey, input };
 }
