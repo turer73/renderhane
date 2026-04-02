@@ -206,6 +206,11 @@ function extractOutputUrl(payload: Record<string, unknown>): string | null {
     }
   }
 
+  // Last resort: recursively find any HTTP URL in nested arrays/objects
+  const jsonStr = JSON.stringify(payload);
+  const urlMatch = jsonStr.match(/"url"\s*:\s*"(https?:\/\/[^"]+)"/);
+  if (urlMatch) return urlMatch[1];
+
   return null;
 }
 
