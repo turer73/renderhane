@@ -173,15 +173,14 @@ export default function PublicBgRemovePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 pb-16 pt-8 text-white">
+      {/* Compact Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 pb-12 pt-4 text-white sm:pb-14 sm:pt-6">
         <div className="absolute inset-0">
-          <div className="absolute left-1/4 top-0 h-[400px] w-[400px] rounded-full bg-white/5 blur-[100px]" />
-          <div className="absolute right-1/4 bottom-0 h-[300px] w-[300px] rounded-full bg-fuchsia-400/10 blur-[80px]" />
+          <div className="absolute left-1/4 top-0 h-[300px] w-[300px] rounded-full bg-white/5 blur-[100px]" />
         </div>
 
         {/* Top bar */}
-        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 pb-8">
+        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 pb-4 sm:pb-6">
           <Link
             href={`/${locale}`}
             className="flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white transition-colors"
@@ -191,7 +190,7 @@ export default function PublicBgRemovePage() {
           </Link>
           <Link
             href={`/${locale}/login`}
-            className="rounded-full bg-white/15 px-5 py-2 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25"
+            className="rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25"
           >
             {tr ? "Giriş Yap" : "Sign In"}
             <ArrowRight className="ml-1.5 inline size-3.5" />
@@ -199,26 +198,26 @@ export default function PublicBgRemovePage() {
         </div>
 
         <div className="relative mx-auto max-w-3xl px-4 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
-            <Sparkles className="size-4" />
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm sm:text-sm">
+            <Sparkles className="size-3.5" />
             {tr ? "AI Destekli • Ücretsiz" : "AI-Powered • Free"}
           </div>
 
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-            {tr ? "Arka Planı" : "Remove"}
-            <span className="block bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
+            {tr ? "Arka Planı " : "Remove "}
+            <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
               {tr ? "Anında Kaldır" : "Backgrounds Instantly"}
             </span>
           </h1>
 
-          <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
+          <p className="mx-auto mt-2 max-w-lg text-sm text-white/75 sm:text-base">
             {tr
-              ? "Fotoğraflardan arka planı saniyeler içinde kaldırın. Kayıt gerektirmez, günde 3 ücretsiz hak."
-              : "Remove backgrounds from photos in seconds. No signup required, 3 free uses per day."}
+              ? "Fotoğraflardan arka planı saniyeler içinde kaldırın. Kayıt gerektirmez, günde 3 hak."
+              : "Remove backgrounds from photos in seconds. No signup required, 3 free per day."}
           </p>
 
           {remaining !== null && (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm backdrop-blur-sm">
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs backdrop-blur-sm sm:text-sm">
               <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
               {tr ? `Kalan hak: ${remaining}/3` : `Remaining: ${remaining}/3`}
             </div>

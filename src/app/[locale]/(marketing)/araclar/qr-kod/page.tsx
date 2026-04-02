@@ -239,43 +239,41 @@ export default function PublicQRCodePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 pb-16 pt-8 text-white">
+      {/* Compact Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 pb-12 pt-4 text-white sm:pb-14 sm:pt-6">
         <div className="absolute inset-0">
-          <div className="absolute left-1/3 top-0 h-[400px] w-[400px] rounded-full bg-white/5 blur-[100px]" />
-          <div className="absolute right-1/4 bottom-0 h-[300px] w-[300px] rounded-full bg-cyan-400/10 blur-[80px]" />
-          {/* QR pattern overlay */}
+          <div className="absolute left-1/3 top-0 h-[300px] w-[300px] rounded-full bg-white/5 blur-[100px]" />
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
         </div>
 
         {/* Top bar */}
-        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 pb-8">
+        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 pb-4 sm:pb-6">
           <Link href={`/${locale}`} className="flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white transition-colors">
             <Box className="size-5" />
             Renderhane
           </Link>
-          <Link href={`/${locale}/login`} className="rounded-full bg-white/15 px-5 py-2 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25">
+          <Link href={`/${locale}/login`} className="rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25">
             {tr ? "Giriş Yap" : "Sign In"}<ArrowRight className="ml-1.5 inline size-3.5" />
           </Link>
         </div>
 
         <div className="relative mx-auto max-w-3xl px-4 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
-            <QrCode className="size-4" />
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm sm:text-sm">
+            <QrCode className="size-3.5" />
             {tr ? "Tamamen Ücretsiz • Sınırsız" : "Completely Free • Unlimited"}
           </div>
 
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-            {tr ? "QR Kod" : "QR Code"}
-            <span className="block bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
+            {tr ? "QR Kod " : "QR Code "}
+            <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
               {tr ? "Oluşturucu" : "Generator"}
             </span>
           </h1>
 
-          <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
+          <p className="mx-auto mt-2 max-w-lg text-sm text-white/75 sm:text-base">
             {tr
-              ? "URL, kişi kartı, WiFi, telefon, e-posta, konum — 8 farklı içerik tipinde QR kod oluşturun."
-              : "URL, contact card, WiFi, phone, email, location — generate QR codes for 8 different content types."}
+              ? "URL, vCard, WiFi, telefon, konum — 8 farklı içerik tipinde QR kod oluşturun."
+              : "URL, vCard, WiFi, phone, location — generate QR codes for 8 different content types."}
           </p>
         </div>
       </section>
