@@ -29,6 +29,18 @@ export async function generateMetadata({
       locale === "tr"
         ? ["3D model", "ürün fotoğrafı", "AI görsel", "e-ticaret", "oyun asset", "3D baskı", "STL", "PBR", "arka plan silme", "sahne üretimi"]
         : ["3D model", "product photo", "AI visual", "e-commerce", "game asset", "3D printing", "STL", "PBR", "background removal", "scene generation"],
+    alternates: {
+      canonical: `/${locale}`,
+      languages: { tr: "/tr", en: "/en" },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `/${locale}`,
+      siteName: "Renderhane",
+      type: "website",
+      locale: locale === "tr" ? "tr_TR" : "en_US",
+    },
   };
 }
 

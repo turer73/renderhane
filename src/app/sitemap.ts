@@ -10,13 +10,16 @@ const locales = ["tr", "en"] as const;
  * sitemap entries whose lastModified changes on every crawl.
  */
 const staticPages: { path: string; lastModified: string; changeFreq: "weekly" | "monthly"; priority: number }[] = [
-  { path: "",         lastModified: "2026-03-23", changeFreq: "weekly",  priority: 1.0 },
+  { path: "",         lastModified: "2026-04-02", changeFreq: "weekly",  priority: 1.0 },
   { path: "/blog",    lastModified: "2025-03-01", changeFreq: "weekly",  priority: 0.8 },
   { path: "/privacy", lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/terms",   lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/kvkk",    lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/cookie-policy", lastModified: "2026-03-16", changeFreq: "monthly", priority: 0.3 },
   { path: "/login",   lastModified: "2026-03-23", changeFreq: "monthly", priority: 0.4 },
+  // Free tools — high SEO value
+  { path: "/araclar/arka-plan-kaldirma", lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
+  { path: "/araclar/qr-kod",            lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
