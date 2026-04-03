@@ -37,7 +37,7 @@ export function HeroSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden pt-10 pb-12 sm:pt-24 sm:pb-28 lg:pt-32 lg:pb-32">
+    <section className="relative overflow-hidden pt-4 pb-12 sm:pt-10 sm:pb-28 lg:pt-14 lg:pb-32">
       {/* Layered background glow — indigo + purple + ambient */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-b from-indigo-300/25 via-purple-200/15 to-transparent blur-[120px] dark:from-indigo-600/15 dark:via-purple-800/10 dark:to-transparent" />
