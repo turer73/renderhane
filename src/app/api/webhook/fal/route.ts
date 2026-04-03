@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
       // Always create output record (even if URL extraction failed,
       // we store metadata for debugging)
-      await supabase.from("outputs").insert({
+      const { error: outputError } = await supabase.from("outputs").insert({
         job_id: jobId,
         user_id: job.user_id,
         project_id: job.project_id,
@@ -107,6 +107,13 @@ export async function POST(request: NextRequest) {
         file_size: fileSize,
         metadata: payload,
       });
+
+      if (outputError) {
+        console.error(
+          `[webhook] Output INSERT failed for job ${jobId}:`,
+          outputError.message, outputError.code, outputError.details
+        );
+      }
 
       // Update project thumbnail with the permanent R2 URL
       const permanentUrl = r2Url || outputUrl;

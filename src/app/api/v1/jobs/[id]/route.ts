@@ -1,3 +1,4 @@
+import { fal } from "@fal-ai/client";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "@/lib/api-keys/middleware";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,7 +37,7 @@ export async function GET(
   // Get job — must belong to the API key owner
   const { data: job, error } = await supabase
     .from("jobs")
-    .select("id, tool, status, credit_cost, created_at, completed_at, error_message")
+    .select("id, tool, model_id, status, credit_cost, created_at, completed_at, error_message, fal_request_id")
     .eq("id", id)
     .eq("user_id", auth.userId)
     .single();
@@ -60,18 +61,40 @@ export async function GET(
 
       // Fallback: extract URL from metadata if fal_url/r2_url are null
       if (!url && outputData.metadata) {
-        const m = outputData.metadata as Record<string, unknown>;
-        const image = m.image as { url?: string } | undefined;
-        const images = m.images as { url?: string }[] | undefined;
-        const video = m.video as { url?: string } | undefined;
-        url = image?.url || images?.[0]?.url || video?.url ||
-              (typeof m.result_url === "string" ? m.result_url : null);
+        url = extractUrlFromPayload(outputData.metadata as Record<string, unknown>);
       }
 
       output = {
         url: url || null,
         thumbnailUrl: outputData.thumbnail_url || null,
       };
+    }
+
+    // Self-healing: if no output record exists but job completed,
+    // try to recover the result from fal.ai using the request ID
+    if (!output && job.fal_request_id && job.model_id) {
+      try {
+        const falResult = await fal.queue.result(job.model_id, {
+          requestId: job.fal_request_id,
+        });
+        const payload = falResult.data as Record<string, unknown>;
+        const url = extractUrlFromPayload(payload);
+
+        if (url) {
+          output = { url, thumbnailUrl: null };
+
+          // Backfill the missing output record for future requests
+          await supabase.from("outputs").insert({
+            job_id: id,
+            user_id: auth.userId,
+            type: job.tool === "3d-model" ? "glb" : job.tool === "video" ? "video" : "image",
+            fal_url: url,
+            metadata: payload,
+          });
+        }
+      } catch (err) {
+        console.error(`[v1/jobs] Self-healing fal.queue.result failed for ${id}:`, err);
+      }
     }
   }
 
@@ -85,4 +108,34 @@ export async function GET(
     error: job.error_message || null,
     output,
   });
+}
+
+/** Extract the primary output URL from a fal.ai result payload. */
+function extractUrlFromPayload(payload: Record<string, unknown>): string | null {
+  const image = payload.image as { url?: string } | undefined;
+  if (image?.url) return image.url;
+
+  const images = payload.images as { url?: string }[] | undefined;
+  if (images?.[0]?.url) return images[0].url;
+
+  const video = payload.video as { url?: string } | undefined;
+  if (video?.url) return video.url;
+
+  if (typeof payload.result_url === "string") return payload.result_url;
+
+  const modelMesh = payload.model_mesh as { url?: string } | undefined;
+  if (modelMesh?.url) return modelMesh.url;
+
+  const output = payload.output as { url?: string } | undefined;
+  if (output?.url) return output.url;
+
+  // Deep URL search
+  for (const value of Object.values(payload)) {
+    if (typeof value === "object" && value !== null && "url" in value) {
+      const url = (value as { url?: string }).url;
+      if (typeof url === "string" && url.startsWith("http")) return url;
+    }
+  }
+
+  return null;
 }
