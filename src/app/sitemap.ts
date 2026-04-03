@@ -20,6 +20,17 @@ const staticPages: { path: string; lastModified: string; changeFreq: "weekly" | 
   // Free tools — high SEO value
   { path: "/araclar/arka-plan-kaldirma", lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
   { path: "/araclar/qr-kod",            lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
+  // Tool landing pages — SEO
+  { path: "/araclar/sahne-olustur",      lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/aplus-icerik",       lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/3d-model",           lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/gorsel-iyilestir",   lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/video-olustur",      lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/gorsel-duzenle",     lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/sosyal-medya-paketi",lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/ai-gorsel-uret",     lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/konusan-avatar",     lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/logo-tasarla",       lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
