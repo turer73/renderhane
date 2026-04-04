@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Download,
-  Loader2,
   Link2,
   Phone,
   Mail,
@@ -109,7 +108,6 @@ function buildPayload(type: ContentType, fields: Record<string, string>): string
 /* ── Page Component ────────────────────────────── */
 
 export default function QRCodePage() {
-  const t = useTranslations("dashboard");
   const tTools = useTranslations("tools");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
@@ -119,8 +117,6 @@ export default function QRCodePage() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [qrPngUrl, setQrPngUrl] = useState<string | null>(null);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
-  const [mode, setMode] = useState<"standard" | "ai">("standard");
-  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const setField = (key: string, value: string) =>
@@ -166,53 +162,6 @@ export default function QRCodePage() {
       setMessage({ type: "error", text: tr ? "QR oluşturulamadı." : "Failed to generate QR." });
     }
   }, [contentType, fields, tr]);
-
-  /* ── Generate AI QR ────────────────────────── */
-
-  const generateAIQR = useCallback(async () => {
-    const data = buildPayload(contentType, fields);
-    if (!data.trim()) {
-      setMessage({ type: "error", text: tr ? "Lütfen gerekli alanları doldurun." : "Please fill required fields." });
-      return;
-    }
-    setSubmitting(true);
-    setMessage(null);
-
-    try {
-      const qrPrompt = `A beautiful artistic QR code that encodes "${data}", modern design, scannable, creative pattern integrated with QR matrix, high contrast for scanning`;
-
-      const res = await fetch("/api/jobs/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool: "qr-code", prompt: qrPrompt }),
-      });
-
-      if (res.status === 402) {
-        window.dispatchEvent(new CustomEvent("show-upgrade"));
-        return;
-      }
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        setMessage({ type: "error", text: errBody?.error || t("jobError") });
-        return;
-      }
-
-      const result = await res.json();
-      window.dispatchEvent(
-        new CustomEvent("job-submitted", {
-          detail: { jobId: result.jobId, tool: "qr-code" },
-        })
-      );
-      setMessage({
-        type: "success",
-        text: tr ? "AI QR oluşturuluyor! ~10sn sürecek." : "AI QR generating! Will take ~10s.",
-      });
-    } catch {
-      setMessage({ type: "error", text: t("jobError") });
-    } finally {
-      setSubmitting(false);
-    }
-  }, [contentType, fields, tr, t]);
 
   /* ── Downloads ─────────────────────────────── */
 
@@ -458,72 +407,17 @@ export default function QRCodePage() {
           {/* Dynamic Fields */}
           {renderFields()}
 
-          {/* Mode Toggle */}
-          <div>
-            <label className="text-sm font-medium">
-              {tr ? "Tür" : "Type"}
-            </label>
-            <div className="mt-1.5 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => { setMode("standard"); resetPreview(); }}
-                className={`rounded-2xl border p-4 text-left transition-all ${
-                  mode === "standard"
-                    ? "border-emerald-400 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5"
-                    : "border-muted hover:border-emerald-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">⬛</span>
-                  <span className="text-sm font-semibold">{tr ? "Standart" : "Standard"}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {tr ? "Ücretsiz • Anında • PNG + SVG" : "Free • Instant • PNG + SVG"}
-                </span>
-              </button>
-              <button
-                onClick={() => { setMode("ai"); resetPreview(); }}
-                className={`rounded-2xl border p-4 text-left transition-all ${
-                  mode === "ai"
-                    ? "border-purple-400 bg-gradient-to-br from-purple-500/10 to-purple-500/5"
-                    : "border-muted hover:border-purple-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🎨</span>
-                  <span className="text-sm font-semibold">{tr ? "AI Sanatsal" : "AI Artistic"}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {tr ? "6 kredi • ~10sn • Stilize" : "6 credits • ~10s • Stylized"}
-                </span>
-              </button>
-            </div>
-          </div>
-
           {/* Generate Button */}
-          {mode === "standard" ? (
-            <Button
-              onClick={generateStandardQR}
-              disabled={!isValid}
-              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800"
-            >
-              {tr ? "⬛ QR Kod Oluştur (Ücretsiz)" : "⬛ Generate QR (Free)"}
-            </Button>
-          ) : (
-            <Button
-              onClick={generateAIQR}
-              disabled={!isValid || submitting}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
-            >
-              {submitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("submitting")}</>
-              ) : (
-                tr ? "🎨 AI QR Oluştur (6 kredi)" : "🎨 Generate AI QR (6 credits)"
-              )}
-            </Button>
-          )}
+          <Button
+            onClick={generateStandardQR}
+            disabled={!isValid}
+            className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800"
+          >
+            {tr ? "QR Kod Oluştur (Ücretsiz)" : "Generate QR Code (Free)"}
+          </Button>
 
           {/* Standard QR Preview + Downloads */}
-          {qrPngUrl && mode === "standard" && (
+          {qrPngUrl && (
             <div className="space-y-3 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
