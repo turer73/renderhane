@@ -26,6 +26,7 @@
     "textToImage": "AI Image Generator",
     "talkingAvatar": "Talking Avatar",
     "logo": "Generate Logo",
+    "virtualTryon": "Virtual Try-On",
     "qrCode": "Generate QR Code"
   },
   "toolDescriptions": {
@@ -40,7 +41,8 @@
     "textToImageDesc": "Generate images from text descriptions",
     "talkingAvatarDesc": "Talking video presenting your product",
     "logoDesc": "Design professional brand logos",
-    "qrCodeDesc": "Standard or AI artistic QR codes"
+    "qrCodeDesc": "Standard or AI artistic QR codes",
+    "virtualTryonDesc": "See clothing on a model with AI"
   },
   "credits": {
     "balance": "Balance",

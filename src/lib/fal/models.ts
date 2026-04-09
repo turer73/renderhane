@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit" | "virtual-tryon";
 
 export interface ModelConfig {
   id: string;
@@ -131,12 +131,40 @@ export const MODELS: Record<string, ModelConfig> = {
   /* ── Arka Plan Kaldır ─────────────────────── */
   "birefnet": {
     id: "fal-ai/birefnet/v2",
-    displayName: { tr: "Arka Plan Kaldır", en: "Remove Background" },
+    displayName: { tr: "BiRefNet — Hassas", en: "BiRefNet — Precise" },
     tier: "fast",
     creditCost: 1,
     estimatedTime: "~3s",
     imageParamKey: "image_url",
     defaultParams: {},
+  },
+  "bria-rmbg": {
+    id: "fal-ai/bria/background/remove",
+    displayName: { tr: "Bria RMBG 2.0 — Ticari", en: "Bria RMBG 2.0 — Commercial" },
+    tier: "fast",
+    creditCost: 1,
+    estimatedTime: "~3s",
+    imageParamKey: "image_url",
+    defaultParams: {},
+  },
+
+  /* ── Virtual Try-On (Kıyafet Giydirme) ──── */
+  "fashn-tryon": {
+    id: "fal-ai/fashn/tryon/v1.6",
+    displayName: { tr: "FASHN — Kıyafet Giydirme", en: "FASHN — Virtual Try-On" },
+    tier: "standard",
+    creditCost: 10,
+    estimatedTime: "~15s",
+    imageParamKey: "model_image",
+    multiImage: true,
+    namedImageParams: ["model_image", "garment_image"],
+    defaultParams: {
+      category: "auto",
+      mode: "quality",
+      garment_photo_type: "auto",
+      segmentation_free: true,
+      output_format: "png",
+    },
   },
 
   /* ── Görseli İyileştir ────────────────────── */
@@ -183,18 +211,32 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── Text-to-Image ───────────────────────── */
   "flux-pro": {
-    id: "fal-ai/flux-pro/v1.1",
-    displayName: { tr: "FLUX Pro — Kaliteli", en: "FLUX Pro — Quality" },
+    id: "fal-ai/flux-2-pro",
+    displayName: { tr: "FLUX 2 Pro — En Kaliteli", en: "FLUX 2 Pro — Best Quality" },
     tier: "standard",
     creditCost: 4,
-    estimatedTime: "~10s",
+    estimatedTime: "~8s",
     imageParamKey: "_unused",
     promptParamKey: "prompt",
     defaultParams: {
-      width: 1024,
-      height: 1024,
+      image_size: "square_hd",
       num_inference_steps: 28,
-      guidance_scale: 3.5,
+      guidance_scale: 7.5,
+      output_format: "png",
+    },
+  },
+  "flux-dev": {
+    id: "fal-ai/flux-2",
+    displayName: { tr: "FLUX 2 Dev — Dengeli", en: "FLUX 2 Dev — Balanced" },
+    tier: "standard",
+    creditCost: 3,
+    estimatedTime: "~6s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      image_size: "square_hd",
+      num_inference_steps: 28,
+      guidance_scale: 2.5,
       output_format: "png",
     },
   },
@@ -292,17 +334,18 @@ export const MODELS: Record<string, ModelConfig> = {
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
   "3d-model": ["trellis-v1", "tripo-v25-mv", "meshy-5-multi", "hunyuan3d-v3"],
-  "bg-remove": ["birefnet"],
+  "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
   "video": ["wan-i2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext"],
-  "text-to-image": ["flux-pro", "flux-schnell"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell"],
   "qr-code": ["qr-code-ai"],
   "talking-avatar": ["omnihuman"],
   "logo": ["recraft-v3"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
+  "virtual-tryon": ["fashn-tryon"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -316,8 +359,9 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   "text-to-image": "textToImage",
   "qr-code": "qrCode",
   "talking-avatar": "talkingAvatar",
-  "logo": "logo",
+  logo: "logo",
   "social-kit": "socialKit",
+  "virtual-tryon": "virtualTryon",
 };
 
 /**
@@ -344,8 +388,8 @@ export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "t
 /** Tools that DON'T need an image input (text-only) */
 export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "qr-code", "logo"];
 
-/** Tools that accept multiple images (multi-view) */
-export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model"];
+/** Tools that accept multiple images (multi-view or dual-input) */
+export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model", "virtual-tryon"];
 
 /** Max images for multi-image tools */
 export const MAX_MULTI_IMAGES = 4;

@@ -26,6 +26,7 @@
     "textToImage": "AI Görsel Üret",
     "talkingAvatar": "Konuşan Avatar",
     "logo": "Logo Üret",
+    "virtualTryon": "Kıyafet Giydirme",
     "qrCode": "QR Kod Üret"
   },
   "toolDescriptions": {
@@ -40,7 +41,8 @@
     "textToImageDesc": "Metin açıklamasından görsel üret",
     "talkingAvatarDesc": "Ürününü tanıtan konuşan video",
     "logoDesc": "Marka için profesyonel logo tasarla",
-    "qrCodeDesc": "Standart veya AI sanatsal QR kod"
+    "qrCodeDesc": "Standart veya AI sanatsal QR kod",
+    "virtualTryonDesc": "Kıyafet fotoğrafını model üzerinde gör"
   },
   "credits": {
     "balance": "Bakiye",
