@@ -25,6 +25,7 @@ const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
   "qr-code": "QR Kod",
   "talking-avatar": "Konuşan Avatar",
   "logo": "Logo Üret",
+  "social-kit": "Sosyal Medya Paketi",
 };
 
 const ALLOWED_IMAGE_HOSTS = [
