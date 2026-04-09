@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code" | "talking-avatar" | "logo";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit";
 
 export interface ModelConfig {
   id: string;
@@ -302,6 +302,7 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "qr-code": ["qr-code-ai"],
   "talking-avatar": ["omnihuman"],
   "logo": ["recraft-v3"],
+  "social-kit": [], // Orchestration tool — uses scene + video internally
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -316,6 +317,7 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   "qr-code": "qrCode",
   "talking-avatar": "talkingAvatar",
   "logo": "logo",
+  "social-kit": "socialKit",
 };
 
 /**
@@ -325,12 +327,15 @@ export const TOOL_KEYS: Record<ToolType, string> = {
  */
 export const TOOL_CREDITS: Record<ToolType, number> = {
   ...(Object.fromEntries(
-    (Object.keys(TOOL_MODELS) as ToolType[]).map((tool) => [
-      tool,
-      MODELS[TOOL_MODELS[tool][0]].creditCost,
-    ])
+    (Object.keys(TOOL_MODELS) as ToolType[])
+      .filter((tool) => TOOL_MODELS[tool].length > 0)
+      .map((tool) => [
+        tool,
+        MODELS[TOOL_MODELS[tool][0]].creditCost,
+      ])
   ) as Record<ToolType, number>),
-  aplus: 32, // 4 scenes × 8 credits
+  aplus: 32,          // 4 scenes × 8 credits
+  "social-kit": 40,   // 4 scenes (32) + 1 video (20) — package discount
 };
 
 /** Tools that accept a text prompt from the user */

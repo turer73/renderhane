@@ -114,6 +114,11 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
     case "logo":
       return "recraft-v3";
 
+    case "social-kit":
+      // Orchestration tool — should not reach selectModel directly.
+      // Handled by orchestration layer in the API route.
+      throw new Error("social-kit is an orchestration tool — use the orchestration handler");
+
     default:
       throw new Error(`Tool "${tool}" is not yet available`);
   }

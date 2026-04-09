@@ -18,6 +18,10 @@ interface SubmitSyncInput {
   imageUrl?: string;
   imageUrls?: string[];
   prompt?: string;
+  /** Text script for talking-avatar TTS — converted to audio before submission */
+  script?: string;
+  /** Pre-made audio URL for talking-avatar — skips TTS */
+  audioUrl?: string;
 }
 
 interface SubmitSyncResult {
@@ -29,8 +33,29 @@ interface SubmitSyncResult {
 }
 
 export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncResult> {
-  const { userId, tool, tier, imageUrl, imageUrls, prompt } = input;
+  const { userId, tool, tier, imageUrl, imageUrls, script, audioUrl } = input;
+  let { prompt } = input;
   const supabase = createAdminClient();
+
+  // Talking-avatar TTS pipeline: convert script text → audio URL
+  if (tool === "talking-avatar" && script && !audioUrl) {
+    const ttsResult = await fal.subscribe("fal-ai/f5-tts", {
+      input: {
+        gen_text: script,
+        model_type: "F5-TTS",
+        ref_audio_url:
+          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
+        ref_text: "",
+      },
+    });
+    const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
+    if (!ttsOutput.audio_url?.url) {
+      return { jobId: "", creditCost: 0, status: "failed", error: "TTS generation failed — no audio produced" };
+    }
+    prompt = ttsOutput.audio_url.url;
+  } else if (tool === "talking-avatar" && audioUrl) {
+    prompt = audioUrl;
+  }
 
   // 1. Route to model
   const { model, input: falInput } = routeRequest({ tool, tier, imageUrl, imageUrls, prompt });
