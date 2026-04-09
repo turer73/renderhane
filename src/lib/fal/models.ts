@@ -92,15 +92,15 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
-  /* ── 3D Model — Hunyuan3D V3 (Video/4-Açı) ── */
+  /* ── 3D Model — Hunyuan3D V3 (4-Açı) ──────── */
   "hunyuan3d-v3": {
     id: "fal-ai/hunyuan3d-v3/image-to-3d",
     displayName: {
-      tr: "Hunyuan3D V3 — Premium",
-      en: "Hunyuan3D V3 — Premium",
+      tr: "Hunyuan3D V3",
+      en: "Hunyuan3D V3",
     },
-    tier: "premium",
-    creditCost: 30,
+    tier: "standard",
+    creditCost: 20,
     estimatedTime: "~3min",
     imageParamKey: "input_image_url",
     multiImage: true,
@@ -109,6 +109,89 @@ export const MODELS: Record<string, ModelConfig> = {
       enable_pbr: true,
       face_count: 500000,
       generate_type: "Normal",
+    },
+  },
+
+  /* ── 3D Model — Hunyuan3D V3.1 Pro (8-Açı, Premium) ── */
+  "hunyuan3d-v31-pro": {
+    id: "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d",
+    displayName: {
+      tr: "Hunyuan3D V3.1 Pro — 8K PBR",
+      en: "Hunyuan3D V3.1 Pro — 8K PBR",
+    },
+    tier: "premium",
+    creditCost: 40,
+    estimatedTime: "~4min",
+    imageParamKey: "input_image_url",
+    multiImage: true,
+    namedImageParams: [
+      "input_image_url", "left_image_url", "back_image_url", "right_image_url",
+      "top_image_url", "bottom_image_url", "left_front_image_url", "right_front_image_url",
+    ],
+    defaultParams: {
+      enable_pbr: true,
+      face_count: 1000000,
+      generate_type: "Normal",
+    },
+  },
+
+  /* ── 3D Model — Meshy 6 Text-to-3D (Rigging + Animasyon) ── */
+  "meshy-6-text": {
+    id: "fal-ai/meshy/v6/text-to-3d",
+    displayName: {
+      tr: "Meshy 6 — Metin → 3D + Animasyon",
+      en: "Meshy 6 — Text → 3D + Animation",
+    },
+    tier: "standard",
+    creditCost: 22,
+    estimatedTime: "~2min",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      mode: "full",
+      art_style: "realistic",
+      topology: "triangle",
+      target_polycount: 30000,
+      should_remesh: true,
+      enable_pbr: true,
+      symmetry_mode: "auto",
+    },
+  },
+
+  /* ── 3D Model — Meshy 6 Image-to-3D ──────── */
+  "meshy-6-image": {
+    id: "fal-ai/meshy/v6/image-to-3d",
+    displayName: {
+      tr: "Meshy 6 — Foto → 3D",
+      en: "Meshy 6 — Image → 3D",
+    },
+    tier: "standard",
+    creditCost: 18,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    defaultParams: {
+      topology: "triangle",
+      target_polycount: 30000,
+      should_remesh: true,
+      enable_pbr: true,
+      symmetry_mode: "auto",
+    },
+  },
+
+  /* ── 3D Model — TripoSR Hızlı Önizleme ──── */
+  "triposr": {
+    id: "fal-ai/triposr",
+    displayName: {
+      tr: "TripoSR — Anlık Önizleme",
+      en: "TripoSR — Instant Preview",
+    },
+    tier: "fast",
+    creditCost: 2,
+    estimatedTime: "~1s",
+    imageParamKey: "image_url",
+    defaultParams: {
+      mc_resolution: 256,
+      output_format: "glb",
     },
   },
 
@@ -333,7 +416,7 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["trellis-v1", "tripo-v25-mv", "meshy-5-multi", "hunyuan3d-v3"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-5-multi", "meshy-6-text", "tripo-v25-mv", "hunyuan3d-v3", "hunyuan3d-v31-pro"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
