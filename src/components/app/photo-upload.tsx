@@ -880,7 +880,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
                   <span className="text-xs text-muted-foreground">
                     {multiImages.length >= 2
                       ? (locale === "tr" ? "~30s • 10 kredi • Tripo 2.5" : "~30s • 10 credits • Tripo 2.5")
-                      : (locale === "tr" ? "~15s • 5 kredi • TRELLIS v1" : "~15s • 5 credits • TRELLIS v1")}
+                      : (locale === "tr" ? "~1s • 2 kredi • TripoSR Önizleme" : "~1s • 2 credits • TripoSR Preview")}
                   </span>
                 </button>
                 {/* Kaliteli */}
@@ -895,7 +895,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
                     <span className="text-sm font-semibold">{locale === "tr" ? "Kaliteli" : "Quality"}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {locale === "tr" ? "~3dk • 15 kredi • Meshy 5" : "~3min • 15 credits • Meshy 5"}
+                    {locale === "tr" ? "~2dk • 18 kredi • Meshy 6" : "~2min • 18 credits • Meshy 6"}
                   </span>
                 </button>
                 {/* Premium */}
@@ -910,7 +910,7 @@ export function PhotoUpload({ defaultTool, hideToolCards }: PhotoUploadProps = {
                     <span className="text-sm font-semibold">{locale === "tr" ? "Premium" : "Premium"}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {locale === "tr" ? "~3dk • 30 kredi • Hunyuan3D V3" : "~3min • 30 credits • Hunyuan3D V3"}
+                    {locale === "tr" ? "~4dk • 40 kredi • Hunyuan3D V3.1 Pro" : "~4min • 40 credits • Hunyuan3D V3.1 Pro"}
                   </span>
                 </button>
               </div>
