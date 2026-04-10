@@ -4,9 +4,9 @@ import { routeRequest } from '../smart-router';
 describe('routeRequest', () => {
   // ── 3D Model routing ──────────────────────────
 
-  it('routes 3d-model fast + single image to trellis-v1', () => {
+  it('routes 3d-model fast + single image to triposr (instant preview)', () => {
     const { modelKey } = routeRequest({ tool: '3d-model', tier: 'fast', imageUrl: 'http://img/1.jpg' });
-    expect(modelKey).toBe('trellis-v1');
+    expect(modelKey).toBe('triposr');
   });
 
   it('routes 3d-model fast + multi image to tripo-v25-mv', () => {
@@ -14,26 +14,31 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('tripo-v25-mv');
   });
 
-  it('routes 3d-model standard to meshy-5-multi', () => {
+  it('routes 3d-model standard + single image to meshy-6-image', () => {
     const { modelKey } = routeRequest({ tool: '3d-model', tier: 'standard', imageUrl: 'http://img/1.jpg' });
+    expect(modelKey).toBe('meshy-6-image');
+  });
+
+  it('routes 3d-model standard + multi image to meshy-5-multi', () => {
+    const { modelKey } = routeRequest({ tool: '3d-model', tier: 'standard', imageUrls: ['a', 'b'] });
     expect(modelKey).toBe('meshy-5-multi');
   });
 
-  it('routes 3d-model premium to hunyuan3d-v3', () => {
+  it('routes 3d-model premium to hunyuan3d-v31-pro', () => {
     const { modelKey } = routeRequest({ tool: '3d-model', tier: 'premium', imageUrl: 'http://img/1.jpg' });
-    expect(modelKey).toBe('hunyuan3d-v3');
+    expect(modelKey).toBe('hunyuan3d-v31-pro');
   });
 
-  it('defaults to standard tier', () => {
+  it('defaults to standard tier (meshy-6-image for single)', () => {
     const { modelKey } = routeRequest({ tool: '3d-model', imageUrl: 'http://img/1.jpg' });
-    expect(modelKey).toBe('meshy-5-multi');
+    expect(modelKey).toBe('meshy-6-image');
   });
 
   // ── Other tools ────────────────────────────────
 
-  it('routes bg-remove to birefnet', () => {
+  it('routes bg-remove to bria-rmbg (commercial license)', () => {
     const { modelKey } = routeRequest({ tool: 'bg-remove', imageUrl: 'http://img/1.jpg' });
-    expect(modelKey).toBe('birefnet');
+    expect(modelKey).toBe('bria-rmbg');
   });
 
   it('routes enhance to aura-sr', () => {
@@ -63,10 +68,10 @@ describe('routeRequest', () => {
     expect(input['image_url']).toBe('http://img/photo.jpg');
   });
 
-  it('sets multi-image array for trellis with single image', () => {
+  it('sets single image for triposr (fast single)', () => {
     const { input } = routeRequest({ tool: '3d-model', tier: 'fast', imageUrl: 'a.jpg' });
-    // trellis-v1 is multiImage, wraps single URL in array
-    expect(input['image_urls']).toEqual(['a.jpg']);
+    // triposr is single-image model
+    expect(input['image_url']).toBe('a.jpg');
   });
 
   it('maps named image params for tripo', () => {
@@ -101,8 +106,13 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('flux-kontext');
   });
 
-  it('routes text-to-image standard to flux-pro', () => {
+  it('routes text-to-image standard to flux-dev (balanced)', () => {
     const { modelKey } = routeRequest({ tool: 'text-to-image', prompt: 'a cat' });
+    expect(modelKey).toBe('flux-dev');
+  });
+
+  it('routes text-to-image premium to flux-pro', () => {
+    const { modelKey } = routeRequest({ tool: 'text-to-image', tier: 'premium', prompt: 'a cat' });
     expect(modelKey).toBe('flux-pro');
   });
 

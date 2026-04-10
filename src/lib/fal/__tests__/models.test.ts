@@ -4,10 +4,11 @@ import {
   TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES, type ToolType,
 } from '../models';
 
-/** All 12 tools in the platform */
+/** All 13 tools in the platform */
 const ALL_TOOLS: ToolType[] = [
   '3d-model', 'bg-remove', 'enhance', 'scene', 'video', 'aplus',
   'image-edit', 'text-to-image', 'qr-code', 'talking-avatar', 'logo',
+  'virtual-tryon',
 ];
 
 /** Helper models that are not user-facing (0 credit cost is valid) */
@@ -53,9 +54,14 @@ describe('MODELS', () => {
     expect(MODELS['trellis-v1'].creditCost).toBe(5);
   });
 
-  it('hunyuan3d-v3 is premium tier', () => {
-    expect(MODELS['hunyuan3d-v3'].tier).toBe('premium');
-    expect(MODELS['hunyuan3d-v3'].creditCost).toBe(30);
+  it('hunyuan3d-v3 is standard tier', () => {
+    expect(MODELS['hunyuan3d-v3'].tier).toBe('standard');
+    expect(MODELS['hunyuan3d-v3'].creditCost).toBe(20);
+  });
+
+  it('hunyuan3d-v31-pro is premium tier', () => {
+    expect(MODELS['hunyuan3d-v31-pro'].tier).toBe('premium');
+    expect(MODELS['hunyuan3d-v31-pro'].creditCost).toBe(40);
   });
 
   it('f5-tts is a free helper model for talking avatar pipeline', () => {
@@ -73,7 +79,7 @@ describe('MODELS', () => {
 });
 
 describe('TOOL_MODELS', () => {
-  it('maps all 12 tool types to model arrays', () => {
+  it('maps all tool types to model arrays (social-kit excluded — orchestration)', () => {
     for (const tool of ALL_TOOLS) {
       expect(TOOL_MODELS[tool], `${tool} missing from TOOL_MODELS`).toBeDefined();
       expect(TOOL_MODELS[tool].length, `${tool} has no models`).toBeGreaterThan(0);
@@ -103,11 +109,11 @@ describe('TOOL_CREDITS', () => {
     expect(TOOL_CREDITS['aplus']).toBe(32);
   });
 
-  it('bg-remove matches birefnet cost', () => {
-    expect(TOOL_CREDITS['bg-remove']).toBe(MODELS['birefnet'].creditCost);
+  it('bg-remove matches bria-rmbg cost', () => {
+    expect(TOOL_CREDITS['bg-remove']).toBe(MODELS['bria-rmbg'].creditCost);
   });
 
-  it('all 12 tool types have credit costs', () => {
+  it('all tool types have credit costs', () => {
     for (const tool of ALL_TOOLS) {
       expect(TOOL_CREDITS[tool], `${tool} missing credit cost`).toBeGreaterThan(0);
     }
