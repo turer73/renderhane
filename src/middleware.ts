@@ -15,11 +15,11 @@ export async function middleware(request: NextRequest) {
   // Three.js needs 'unsafe-eval' (shader compilation) and blob: (texture fetch + workers)
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://analytics.panola.app https://pagead2.googlesyndication.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.fal.media https://assets.renderhane.com https://*.supabase.co https://*.r2.dev",
     "font-src 'self' data:",
-    "connect-src 'self' blob: https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://*.r2.dev https://*.r2.cloudflarestorage.com https://raw.githack.com https://raw.githubusercontent.com",
+    "connect-src 'self' blob: https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://analytics.panola.app https://*.r2.dev https://*.r2.cloudflarestorage.com https://raw.githack.com https://raw.githubusercontent.com",
     "media-src 'self' blob: https://assets.renderhane.com https://*.fal.media",
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
