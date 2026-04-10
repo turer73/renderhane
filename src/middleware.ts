@@ -26,7 +26,18 @@ export async function middleware(request: NextRequest) {
     "object-src 'none'",
     "base-uri 'self'",
     `frame-ancestors ${isEmbed ? "'self'" : "'none'"}`,
+    "report-uri https://csp.3d-labx.com/csp-report",
   ].join("; ");
+
+  // Report-To header (modern browsers)
+  response.headers.set(
+    "Report-To",
+    JSON.stringify({
+      group: "csp-endpoint",
+      max_age: 86400,
+      endpoints: [{ url: "https://csp.3d-labx.com/csp-report" }],
+    })
+  );
 
   response.headers.set("Content-Security-Policy", cspDirectives);
   response.headers.set("X-Frame-Options", isEmbed ? "SAMEORIGIN" : "DENY");
