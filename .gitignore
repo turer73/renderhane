@@ -38,6 +38,12 @@ yarn-error.log*
 .claude/
 .playwright-mcp/
 
+# playwright e2e
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
+
 # vercel
 .vercel
 

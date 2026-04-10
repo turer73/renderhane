@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/app/", "/ref/", "/embed/"],
       },
     ],
-    sitemap: "https://renderhane.com/sitemap.xml",
+    sitemap: "https://www.renderhane.com/sitemap.xml",
   };
 }
