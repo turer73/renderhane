@@ -128,8 +128,12 @@ export async function POST(request: NextRequest) {
   let validatedImageUrl: string | undefined;
   let validatedImageUrls: string[] | undefined;
 
-  if (isTextOnly) {
-    // Text-only tools: require prompt, no image needed
+  // Some tools support BOTH text-only and image modes (video: Kling t2v vs Wan i2v)
+  const hasPromptOnly = prompt && typeof prompt === "string" && prompt.trim() && !imageUrl && !imageUrls;
+  const isHybridTool = ["video", "3d-model"].includes(tool as string);
+
+  if (isTextOnly || (isHybridTool && hasPromptOnly)) {
+    // Text-only mode: require prompt, no image needed
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return NextResponse.json(
         { error: "prompt is required for this tool" },

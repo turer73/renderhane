@@ -279,7 +279,7 @@ export const MODELS: Record<string, ModelConfig> = {
   /* ── Video Oluştur ────────────────────────── */
   "wan-i2v": {
     id: "wan/v2.6/image-to-video",
-    displayName: { tr: "Wan 2.6 Video", en: "Wan 2.6 Video" },
+    displayName: { tr: "Wan 2.6 — Görsel→Video", en: "Wan 2.6 — Image→Video" },
     tier: "standard",
     creditCost: 20,
     estimatedTime: "~2min",
@@ -289,6 +289,19 @@ export const MODELS: Record<string, ModelConfig> = {
       prompt: "A smooth product showcase with gentle camera movement, professional lighting",
       resolution: "720p",
       duration: "5",
+    },
+  },
+  "kling-t2v": {
+    id: "fal-ai/kling-video/v2.6/pro/text-to-video",
+    displayName: { tr: "Kling 2.6 — Metin→Video", en: "Kling 2.6 — Text→Video" },
+    tier: "standard",
+    creditCost: 25,
+    estimatedTime: "~2min",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      duration: "5",
+      aspect_ratio: "16:9",
     },
   },
 
@@ -420,7 +433,7 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
-  "video": ["wan-i2v"],
+  "video": ["wan-i2v", "kling-t2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext"],
   "text-to-image": ["flux-pro", "flux-dev", "flux-schnell"],

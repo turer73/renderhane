@@ -17,7 +17,8 @@ export type ToolId =
   | "text-to-image"
   | "talking-avatar"
   | "logo"
-  | "qr-code";
+  | "qr-code"
+  | "virtual-tryon";
 
 export type InputType =
   | "single-image"       // 1 image upload
@@ -99,7 +100,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "📦",
     gradient: "from-blue-500/10 to-blue-500/5",
     border: "border-blue-200 hover:border-blue-400 dark:border-blue-800 dark:hover:border-blue-600",
-    creditCost: "5-30",
+    creditCost: "2-40",
     inputType: "multi-image",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/tools/3d-model",
@@ -125,7 +126,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "🎬",
     gradient: "from-pink-500/10 to-pink-500/5",
     border: "border-pink-200 hover:border-pink-400 dark:border-pink-800 dark:hover:border-pink-600",
-    creditCost: 20,
+    creditCost: "20-25",
     inputType: "image-text",
     segments: ["ecommerce"],
     href: "/app/tools/video",
@@ -198,6 +199,19 @@ export const TOOLS: ToolDefinition[] = [
     href: "/app/tools/logo",
     ready: true,
     descriptionKey: "logoDesc",
+  },
+  {
+    id: "virtual-tryon",
+    i18nKey: "virtualTryon",
+    icon: "👗",
+    gradient: "from-fuchsia-500/10 to-fuchsia-500/5",
+    border: "border-fuchsia-200 hover:border-fuchsia-400 dark:border-fuchsia-800 dark:hover:border-fuchsia-600",
+    creditCost: 10,
+    inputType: "multi-image",
+    segments: ["ecommerce"],
+    href: "/app/tools/virtual-tryon",
+    ready: true,
+    descriptionKey: "virtualTryonDesc",
   },
   {
     id: "qr-code",

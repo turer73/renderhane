@@ -28,11 +28,12 @@ export function routeRequest(request: RouteRequest): RouteResult {
     ...model.defaultParams,
   };
 
-  // Text-only tools: skip image input entirely
+  // Text-only tools OR hybrid tools in text-only mode (no image provided)
   const isTextOnly = TOOLS_TEXT_ONLY.includes(tool);
+  const isTextOnlyMode = !imageUrl && (!imageUrls || imageUrls.length === 0) && prompt;
 
   // Build the image input based on model type
-  if (isTextOnly) {
+  if (isTextOnly || isTextOnlyMode) {
     // No image input needed — prompt is the only input
   } else if (model.namedImageParams && imageUrls) {
     // Named multi-image params: map array positions to specific param names
@@ -73,18 +74,21 @@ export function routeRequest(request: RouteRequest): RouteResult {
 function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
   switch (tool) {
     case "3d-model":
-      // Premium tier → always Hunyuan3D V3 (best quality, any image count)
-      if (tier === "premium") return "hunyuan3d-v3";
+      // Text-only → Meshy 6 text-to-3d (with rigging support)
+      if (imageCount === 0) return "meshy-6-text";
+      // Premium tier → Hunyuan3D V3.1 Pro (8 angles, 1.5M poly, 8K PBR)
+      if (tier === "premium") return "hunyuan3d-v31-pro";
       // Fast tier
       if (tier === "fast") {
-        if (imageCount >= 2) return "tripo-v25-mv"; // multi-photo fast
-        return "trellis-v1";                          // single-photo fast
+        if (imageCount >= 2) return "tripo-v25-mv";
+        return "triposr";  // instant preview <1s
       }
-      // Standard tier → Meshy 5 (great texture/PBR, any image count)
-      return "meshy-5-multi";
+      // Standard tier
+      if (imageCount >= 2) return "meshy-5-multi";
+      return "meshy-6-image";  // best single-image quality
 
     case "bg-remove":
-      return "birefnet";
+      return "bria-rmbg";  // commercial license clean (was birefnet)
 
     case "enhance":
       return "aura-sr";
@@ -93,6 +97,9 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
       return "bria-product-shot";
 
     case "video":
+      // Text-only → Kling 2.6 text-to-video
+      if (imageCount === 0) return "kling-t2v";
+      // Image → Wan 2.6 image-to-video
       return "wan-i2v";
 
     case "aplus":
@@ -102,8 +109,9 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
       return "flux-kontext";
 
     case "text-to-image":
-      if (tier === "fast") return "flux-schnell";  // 2 credits, ~3s
-      return "flux-pro";                            // 4 credits, ~10s
+      if (tier === "fast") return "flux-schnell";
+      if (tier === "standard") return "flux-dev";  // balanced (LoRA)
+      return "flux-pro";                            // best quality
 
     case "qr-code":
       return "qr-code-ai";
@@ -114,9 +122,10 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
     case "logo":
       return "recraft-v3";
 
+    case "virtual-tryon":
+      return "fashn-tryon";
+
     case "social-kit":
-      // Orchestration tool — should not reach selectModel directly.
-      // Handled by orchestration layer in the API route.
       throw new Error("social-kit is an orchestration tool — use the orchestration handler");
 
     default:
