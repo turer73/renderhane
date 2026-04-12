@@ -197,7 +197,7 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── Görsel Düzenleme ─────────────────────── */
   "flux-kontext": {
-    id: "fal-ai/flux-kontext/pro/v1",
+    id: "fal-ai/flux-pro/kontext",
     displayName: { tr: "FLUX Kontext — Düzenle", en: "FLUX Kontext — Edit" },
     tier: "standard",
     creditCost: 6,
