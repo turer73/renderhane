@@ -74,8 +74,9 @@ export async function uploadToR2(
     throw new Error(`File too large: ${fileSize} bytes exceeds ${MAX_FILE_SIZE} limit`);
   }
 
-  // 2. Determine extension and content type
-  const { ext, contentType } = getFileInfo(falUrl, type);
+  // 2. Determine extension and content type from response headers first
+  const responseContentType = response.headers.get("content-type") || "";
+  const { ext, contentType } = getFileInfo(falUrl, type, responseContentType);
 
   // 3. Upload to R2
   const r2 = getR2();
@@ -98,26 +99,34 @@ export async function uploadToR2(
 
 function getFileInfo(
   url: string,
-  type: "glb" | "image" | "video"
+  type: "glb" | "image" | "video",
+  responseContentType: string = ""
 ): { ext: string; contentType: string } {
   // Try to extract from URL
   const urlPath = new URL(url).pathname;
   const urlExt = urlPath.split(".").pop()?.toLowerCase();
 
+  // Prefer response Content-Type over URL guessing
+  const rct = responseContentType.split(";")[0].trim().toLowerCase();
+
   switch (type) {
     case "glb":
       return { ext: "glb", contentType: "model/gltf-binary" };
     case "video":
-      return {
-        ext: urlExt === "webm" ? "webm" : "mp4",
-        contentType: urlExt === "webm" ? "video/webm" : "video/mp4",
-      };
+      if (rct === "video/webm" || urlExt === "webm") {
+        return { ext: "webm", contentType: "video/webm" };
+      }
+      return { ext: "mp4", contentType: "video/mp4" };
     case "image":
     default:
-      if (urlExt === "jpg" || urlExt === "jpeg") {
+      // SVG detection — critical for logo/icon outputs (Recraft V3)
+      if (rct === "image/svg+xml" || urlExt === "svg") {
+        return { ext: "svg", contentType: "image/svg+xml" };
+      }
+      if (rct === "image/jpeg" || urlExt === "jpg" || urlExt === "jpeg") {
         return { ext: "jpg", contentType: "image/jpeg" };
       }
-      if (urlExt === "webp") {
+      if (rct === "image/webp" || urlExt === "webp") {
         return { ext: "webp", contentType: "image/webp" };
       }
       return { ext: "png", contentType: "image/png" };
