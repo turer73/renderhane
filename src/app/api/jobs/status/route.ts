@@ -27,9 +27,11 @@ export async function GET() {
     );
   }
 
-  // Flatten: attach output_url to each job for easy client access
+  // Flatten: attach output_url to each job for easy client access.
+  // outputs is a single object (one-to-one via unique job_id) or array (legacy).
   const enrichedJobs = (jobs ?? []).map((job) => {
-    const output = Array.isArray(job.outputs) ? job.outputs[0] : null;
+    const raw = job.outputs;
+    const output = Array.isArray(raw) ? raw[0] : raw ?? null;
     return {
       id: job.id,
       tool: job.tool,
