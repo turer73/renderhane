@@ -31,16 +31,15 @@ export async function GET(
   }
 
   // Validate redirect URL to prevent open redirect attacks
-  const ALLOWED_REDIRECT_HOSTS = [
-    "assets.renderhane.com",
-    "v3b.fal.media",
-    "fal.media",
-  ];
+  const ALLOWED_REDIRECT_HOSTS = ["assets.renderhane.com"];
+  function isFalMedia(hostname: string): boolean {
+    return hostname === "fal.media" || hostname.endsWith(".fal.media");
+  }
   try {
     const parsed = new URL(url);
     if (
       parsed.protocol !== "https:" ||
-      !ALLOWED_REDIRECT_HOSTS.some((h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`))
+      (!ALLOWED_REDIRECT_HOSTS.includes(parsed.hostname) && !isFalMedia(parsed.hostname))
     ) {
       return NextResponse.json({ error: "Invalid result URL" }, { status: 400 });
     }

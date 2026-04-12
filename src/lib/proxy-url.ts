@@ -9,13 +9,17 @@
  * Only proxies known external domains; leaves relative URLs untouched.
  */
 
-const PROXY_HOSTS = ["assets.renderhane.com", "v3b.fal.media", "fal.media"];
+const PROXY_HOSTS = ["assets.renderhane.com"];
+
+function isFalMedia(hostname: string): boolean {
+  return hostname === "fal.media" || hostname.endsWith(".fal.media");
+}
 
 export function proxyUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    // Exact hostname match only — no subdomain wildcard
-    const needsProxy = PROXY_HOSTS.includes(parsed.hostname);
+    const needsProxy =
+      PROXY_HOSTS.includes(parsed.hostname) || isFalMedia(parsed.hostname);
     if (needsProxy) {
       return `/api/assets/proxy?url=${encodeURIComponent(url)}`;
     }

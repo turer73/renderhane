@@ -20,11 +20,11 @@ function getAllowedOrigin(origin: string | null): string {
   return "https://renderhane.com";
 }
 
-const ALLOWED_HOSTS = [
-  "assets.renderhane.com",
-  "v3b.fal.media",       // fal.ai CDN (temporary URLs)
-  "fal.media",
-];
+const ALLOWED_HOSTS = ["assets.renderhane.com"];
+
+function isFalMedia(hostname: string): boolean {
+  return hostname === "fal.media" || hostname.endsWith(".fal.media");
+}
 
 export const runtime = "edge";
 
@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid url" }, { status: 400 });
   }
 
-  // Exact hostname match only — no subdomain wildcard to prevent SSRF
-  const isAllowed = ALLOWED_HOSTS.includes(parsed.hostname);
+  // Allow exact hosts + any fal.media subdomain
+  const isAllowed =
+    ALLOWED_HOSTS.includes(parsed.hostname) || isFalMedia(parsed.hostname);
 
   if (!isAllowed) {
     return NextResponse.json(

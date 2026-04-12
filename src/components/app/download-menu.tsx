@@ -148,14 +148,37 @@ async function downloadImageAs(url: string, format: FormatOption, baseName: stri
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
   const blob = await response.blob();
-  const bitmap = await createImageBitmap(blob);
+
+  // SVG images can't use createImageBitmap — rasterize via <img> instead
+  const isSvg = blob.type.includes("svg") || url.endsWith(".svg");
+
+  let bitmap: ImageBitmap | null = null;
+  let img: HTMLImageElement | null = null;
+  let width: number;
+  let height: number;
+
+  if (isSvg) {
+    // Load SVG into an <img> element, then draw onto canvas
+    img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("SVG image load failed"));
+      el.src = URL.createObjectURL(blob);
+    });
+    width = img.naturalWidth || 1024;
+    height = img.naturalHeight || 1024;
+  } else {
+    bitmap = await createImageBitmap(blob);
+    width = bitmap.width;
+    height = bitmap.height;
+  }
 
   const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
-  ctx.drawImage(bitmap, 0, 0);
+  ctx.drawImage(img ?? bitmap!, 0, 0, width, height);
 
   const quality = format.ext === "png" ? undefined : 0.92;
   const outputBlob = await new Promise<Blob>((resolve, reject) => {
@@ -167,7 +190,8 @@ async function downloadImageAs(url: string, format: FormatOption, baseName: stri
   });
 
   triggerDownload(outputBlob, `${baseName}.${format.ext}`);
-  bitmap.close();
+  if (bitmap) bitmap.close();
+  if (img) URL.revokeObjectURL(img.src);
 }
 
 // ─── 3D model conversion via Three.js exporters ───────────

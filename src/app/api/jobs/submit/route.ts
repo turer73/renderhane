@@ -29,11 +29,11 @@ const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
   "virtual-tryon": "Kıyafet Giydirme",
 };
 
-const ALLOWED_IMAGE_HOSTS = [
-  "assets.renderhane.com",
-  "v3b.fal.media",
-  "fal.media",
-];
+const ALLOWED_IMAGE_HOSTS = ["assets.renderhane.com"];
+
+function isFalMedia(hostname: string): boolean {
+  return hostname === "fal.media" || hostname.endsWith(".fal.media");
+}
 
 /** Validate a single image URL — returns error string or null if valid */
 export function validateImageUrl(url: unknown): string | null {
@@ -64,9 +64,8 @@ export function validateImageUrl(url: unknown): string | null {
     }
 
     const isSupabaseStorage = hostname.endsWith(".supabase.co");
-    const isAllowedHost = ALLOWED_IMAGE_HOSTS.some(
-      (h) => hostname === h || hostname.endsWith(`.${h}`)
-    );
+    const isAllowedHost =
+      ALLOWED_IMAGE_HOSTS.includes(hostname) || isFalMedia(hostname);
 
     if (!isAllowedHost && !isSupabaseStorage) {
       return "imageUrl must be from a supported domain";
