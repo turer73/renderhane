@@ -4,6 +4,10 @@ import { confirmSpend, refundCredits } from "@/lib/credits/engine";
 import { uploadToR2 } from "@/lib/r2/upload";
 import { NextRequest, NextResponse } from "next/server";
 
+// Video files can be 8-50MB — downloading from fal.ai + uploading to R2
+// needs more than the default Vercel timeout (10s hobby / 60s pro)
+export const maxDuration = 120;
+
 /**
  * Verify the HMAC signature from the webhook URL.
  * Uses timing-safe comparison to prevent timing attacks.
@@ -70,6 +74,22 @@ export async function POST(request: NextRequest) {
         `[webhook] extractOutputUrl returned null for job ${jobId}. Payload keys:`,
         Object.keys(payload)
       );
+
+      // Mark as failed instead of silently completing with no output
+      await supabase
+        .from("jobs")
+        .update({
+          status: "failed",
+          error_message: "Output could not be extracted from AI response",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+
+      if (txId) {
+        await refundCredits(txId);
+      }
+
+      return NextResponse.json({ received: true });
     }
 
     // Query job data for output record
@@ -82,61 +102,109 @@ export async function POST(request: NextRequest) {
     if (job) {
       const outputType = getOutputType(job.tool);
 
-      // Upload to R2 for permanent storage (only if URL was found)
-      let r2Url: string | null = null;
-      let fileSize: number | null = null;
-      if (outputUrl) {
-        try {
-          const r2Result = await uploadToR2(outputUrl, job.user_id, outputType);
-          r2Url = r2Result.r2Url;
-          fileSize = r2Result.fileSize;
-        } catch (err) {
-          console.error("R2 upload failed (fal_url still available):", err);
-        }
-      }
-
-      // Always create output record (even if URL extraction failed,
-      // we store metadata for debugging)
-      const { error: outputError } = await supabase.from("outputs").insert({
-        job_id: jobId,
-        user_id: job.user_id,
-        project_id: job.project_id,
-        type: outputType,
-        fal_url: outputUrl,
-        r2_url: r2Url,
-        file_size: fileSize,
-        metadata: payload,
-      });
+      // STEP 1: Create output record with fal_url IMMEDIATELY.
+      // This ensures the user can download even if R2 upload times out.
+      // fal.ai URLs are temporary (~24h) but better than nothing.
+      // Use upsert to prevent duplicate records on webhook retry.
+      const { data: outputRecord, error: outputError } = await supabase
+        .from("outputs")
+        .upsert(
+          {
+            job_id: jobId,
+            user_id: job.user_id,
+            project_id: job.project_id,
+            type: outputType,
+            fal_url: outputUrl,
+            r2_url: null,
+            file_size: null,
+            metadata: payload,
+          },
+          { onConflict: "job_id" }
+        )
+        .select("id")
+        .single();
 
       if (outputError) {
         console.error(
-          `[webhook] Output INSERT failed for job ${jobId}:`,
+          `[webhook] Output UPSERT failed for job ${jobId}:`,
           outputError.message, outputError.code, outputError.details
         );
       }
 
-      // Update project thumbnail with the permanent R2 URL
-      const permanentUrl = r2Url || outputUrl;
-      if (job.project_id && permanentUrl) {
-        await supabase
-          .from("projects")
-          .update({ thumbnail_url: permanentUrl })
-          .eq("id", job.project_id);
+      // STEP 2: Mark job as completed + confirm credits BEFORE R2 upload.
+      // This way the user sees "completed" immediately.
+      await supabase
+        .from("jobs")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+
+      if (txId) {
+        await confirmSpend(txId, jobId);
       }
-    }
 
-    // NOW mark job as completed — output record already exists
-    await supabase
-      .from("jobs")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", jobId);
+      // STEP 3: Upload to R2 for permanent storage (slow for video).
+      // If this times out, the fal_url is still available in the output record.
+      // Retry up to 2 times with backoff — fal.ai URLs expire in ~24h.
+      if (outputUrl && outputRecord) {
+        let r2Success = false;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            if (attempt > 0) {
+              await new Promise((r) => setTimeout(r, attempt * 2000));
+            }
+            const r2Result = await uploadToR2(outputUrl, job.user_id, outputType);
 
-    // Confirm credit spend (only if credits were reserved)
-    if (txId) {
-      await confirmSpend(txId, jobId);
+            // Update output record with permanent R2 URL
+            await supabase
+              .from("outputs")
+              .update({
+                r2_url: r2Result.r2Url,
+                file_size: r2Result.fileSize,
+              })
+              .eq("id", outputRecord.id);
+
+            // Update project thumbnail with permanent URL
+            if (job.project_id) {
+              await supabase
+                .from("projects")
+                .update({ thumbnail_url: r2Result.r2Url })
+                .eq("id", job.project_id);
+            }
+
+            r2Success = true;
+            break;
+          } catch (err) {
+            console.error(`[webhook] R2 upload attempt ${attempt + 1}/3 failed for job ${jobId}:`, err);
+          }
+        }
+
+        if (!r2Success) {
+          console.error(`[webhook] All R2 upload attempts failed for job ${jobId} — fal_url still available`);
+          // Fallback: use fal_url as project thumbnail
+          if (job.project_id && outputUrl) {
+            await supabase
+              .from("projects")
+              .update({ thumbnail_url: outputUrl })
+              .eq("id", job.project_id);
+          }
+        }
+      }
+    } else {
+      // Job data not found — still mark completed to avoid stuck state
+      await supabase
+        .from("jobs")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+
+      if (txId) {
+        await confirmSpend(txId, jobId);
+      }
     }
   } else {
     // ── Job failed — refund credits ──────────────────────
@@ -223,6 +291,6 @@ function extractOutputUrl(payload: Record<string, unknown>): string | null {
 
 function getOutputType(tool: string): "glb" | "image" | "video" {
   if (tool === "3d-model") return "glb";
-  if (tool === "video") return "video";
+  if (tool === "video" || tool === "talking-avatar") return "video";
   return "image";
 }

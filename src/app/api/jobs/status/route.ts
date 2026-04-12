@@ -18,7 +18,7 @@ export async function GET() {
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(25);
 
   if (error) {
     return NextResponse.json(
