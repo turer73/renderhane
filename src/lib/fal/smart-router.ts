@@ -76,15 +76,18 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
     case "3d-model":
       // Text-only → Meshy 6 text-to-3d (with rigging support)
       if (imageCount === 0) return "meshy-6-text";
-      // Premium tier → Hunyuan3D V3.1 Pro (8 angles, 1.5M poly, 8K PBR)
-      if (tier === "premium") return "hunyuan3d-v31-pro";
+      // Premium tier
+      if (tier === "premium") {
+        if (imageCount >= 2) return "hunyuan3d-v31-pro"; // 8 angles, 1.5M poly, 8K PBR
+        return "hyper3d-rodin";                           // Rodin premium single-image
+      }
       // Fast tier
       if (tier === "fast") {
         if (imageCount >= 2) return "tripo-v25-mv";
         return "triposr";  // instant preview <1s
       }
       // Standard tier
-      if (imageCount >= 2) return "meshy-5-multi";
+      if (imageCount >= 2) return "hunyuan3d-v3"; // 4-angle multi-view (replaced meshy-5-multi)
       return "meshy-6-image";  // best single-image quality
 
     case "bg-remove":
@@ -97,16 +100,26 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
       return "bria-product-shot";
 
     case "video":
-      // Text-only → Kling 2.6 text-to-video
+      // Text-only → Kling 3.0 Pro text-to-video (native audio)
       if (imageCount === 0) return "kling-t2v";
-      // Image → Wan 2.6 image-to-video
+      // Premium tier image → Kling 3.0 Pro image-to-video (native audio)
+      if (tier === "premium") return "kling-i2v";
+      // Standard/fast image → Wan 2.6 image-to-video (cheapest)
       return "wan-i2v";
 
     case "aplus":
       return "bria-product-shot-hd";
 
     case "image-edit":
+      // Premium tier → Kontext Max (better prompt adherence + typography)
+      if (tier === "premium") return "flux-kontext-max";
       return "flux-kontext";
+
+    case "inpainting":
+      return "flux-fill";
+
+    case "object-removal":
+      return "object-removal";
 
     case "text-to-image":
       if (tier === "fast") return "flux-schnell";
@@ -120,7 +133,8 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
       return "omnihuman";
 
     case "logo":
-      return "recraft-v3";
+      // Default raster; SVG variant is selected via explicit model choice in UI
+      return "recraft-v4";
 
     case "virtual-tryon":
       return "fashn-tryon";

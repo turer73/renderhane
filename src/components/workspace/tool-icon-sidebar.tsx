@@ -7,6 +7,7 @@ import {
   Video,
   ShoppingBag,
   Palette,
+  Eraser,
 } from "lucide-react";
 import {
   Tooltip,
@@ -26,7 +27,7 @@ const toolCategories = [
     id: "image",
     label: "Görüntü",
     icon: Image,
-    tools: ["bg-remove", "enhance", "text-to-image", "image-edit"],
+    tools: ["bg-remove", "enhance", "text-to-image", "image-edit", "object-removal"],
   },
   {
     id: "video",

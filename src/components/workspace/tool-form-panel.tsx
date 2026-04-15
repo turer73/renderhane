@@ -50,28 +50,28 @@ import { showToast } from "./workspace-toast";
 const AI_MODELS_3D = [
   { id: "trellis-v1", name: "TRELLIS v1", credits: 5, time: "~15 sn", tier: "fast" },
   { id: "tripo-2.5", name: "Tripo 2.5", credits: 10, time: "~30 sn", tier: "fast" },
-  { id: "meshy-5", name: "Meshy 5", credits: 15, time: "~3 dk", tier: "standard" },
   { id: "meshy-6", name: "Meshy 6", credits: 18, time: "~2 dk", tier: "standard" },
-  { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 30, time: "~3 dk", tier: "premium" },
+  { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 20, time: "~3 dk", tier: "standard" },
+  { id: "rodin", name: "Rodin Premium", credits: 35, time: "~2 dk", tier: "premium" },
 ];
 
 const IMAGE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
   "bg-remove": { model: "birefnet v2", credits: 1, time: "~5 sn" },
   "enhance": { model: "Aura SR", credits: 4, time: "~10 sn" },
-  "text-to-image": { model: "Flux 1.1 Pro", credits: 12, time: "~15 sn" },
-  "image-edit": { model: "Bria Edit", credits: 8, time: "~20 sn" },
+  "text-to-image": { model: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
+  "image-edit": { model: "FLUX Kontext", credits: 6, time: "~10 sn" },
+  "object-removal": { model: "Object Removal", credits: 3, time: "~5 sn" },
 };
 
 const VIDEO_MODELS = [
-  { id: "wan-v2.6", name: "WAN v2.6", credits: 20, time: "~30 sn", tier: "fast" },
-  { id: "minimax", name: "Minimax Video", credits: 30, time: "~60 sn", tier: "standard" },
-  { id: "kling-v2", name: "Kling v2", credits: 40, time: "~90 sn", tier: "premium" },
+  { id: "wan-v2.6", name: "Wan 2.6", credits: 20, time: "~2 dk", tier: "fast" },
+  { id: "kling-3.0", name: "Kling 3.0 Pro", credits: 25, time: "~2 dk", tier: "premium" },
 ];
 
 const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
-  "image-to-video": { model: "WAN v2.6", credits: 20, time: "~30 sn" },
-  "text-to-video": { model: "Minimax Video", credits: 30, time: "~60 sn" },
-  "talking-avatar": { model: "SadTalker", credits: 15, time: "~20 sn" },
+  "image-to-video": { model: "Wan 2.6", credits: 20, time: "~2 dk" },
+  "text-to-video": { model: "Kling 3.0 Pro", credits: 25, time: "~2 dk" },
+  "talking-avatar": { model: "OmniHuman v1.5", credits: 25, time: "~2 dk" },
 };
 
 const TABS_VIDEO = [
@@ -93,8 +93,8 @@ const TABS_ECOMMERCE = [
 ];
 
 const DESIGN_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
-  "logo": { model: "Flux Logo", credits: 6, time: "~10 sn" },
-  "qr-code": { model: "QR Monster", credits: 4, time: "~8 sn" },
+  "logo": { model: "Recraft V4", credits: 8, time: "~10 sn" },
+  "qr-code": { model: "FLUX 2 Pro QR", credits: 6, time: "~10 sn" },
 };
 
 const TABS_DESIGN = [
@@ -113,6 +113,7 @@ const TABS_IMAGE = [
   { id: "enhance", label: "İyileştir", icon: ZoomIn },
   { id: "text-to-image", label: "Oluştur", icon: PenLine },
   { id: "image-edit", label: "Düzenle", icon: Brush },
+  { id: "object-removal", label: "Nesne Sil", icon: Eraser },
 ];
 
 const DEFAULT_TABS: Record<string, typeof TABS_3D> = {
@@ -147,6 +148,7 @@ const TAB_TO_API_TOOL: Record<string, string> = {
   "enhance": "enhance",
   "text-to-image": "text-to-image",
   "image-edit": "image-edit",
+  "object-removal": "object-removal",
   // Video
   "image-to-video": "video",
   "text-to-video": "video",
@@ -164,16 +166,15 @@ const TAB_TO_API_TOOL: Record<string, string> = {
 const MODEL_TO_TIER: Record<string, string> = {
   "trellis-v1": "fast",
   "tripo-2.5": "fast",
-  "meshy-5": "standard",
   "meshy-6": "standard",
-  "hunyuan3d-v3": "premium",
+  "hunyuan3d-v3": "standard",
+  "rodin": "premium",
 };
 
 /** Map video model select IDs to API tier */
 const VIDEO_MODEL_TO_TIER: Record<string, string> = {
   "wan-v2.6": "fast",
-  "minimax": "standard",
-  "kling-v2": "premium",
+  "kling-3.0": "premium",
 };
 
 /* ═══════════════════════════════════════════════ */
@@ -407,7 +408,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
     // --- Validation ---
     const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code"];
     const needsImage = !textOnlyTabs.includes(activeTab);
-    const needsPrompt = ["text-to-3d", "text-to-image", "text-to-video"].includes(activeTab);
+    const needsPrompt = ["text-to-3d", "text-to-image", "text-to-video", "object-removal"].includes(activeTab);
 
     if (needsImage && !uploadedImageUrl) {
       showToast("Lütfen önce bir görsel yükle", "error");
@@ -1068,6 +1069,41 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
           </>
         )}
 
+        {/* Nesne Silme (Object Removal) */}
+        {activeTab === "object-removal" && (
+          <>
+            {renderImageUpload("Nesne silinecek görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Neyi silelim?</Label>
+              <Textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                placeholder="Silinecek nesneyi tanımla...&#10;&#10;ör: Sağdaki bardak, arka plandaki logo, yerdeki gölge"
+                className="mt-1.5 min-h-[80px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Ürün görseli nesne temizleme" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Eraser className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">AI Object Removal</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">3 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Görseldeki istenmeyen nesneleri AI ile otomatik sil ve arka planı doldur.
+              </p>
+            </div>
+          </>
+        )}
+
         {/* ═══════════════════════════════════════
             VIDEO TABS
            ═══════════════════════════════════════ */}
@@ -1154,11 +1190,11 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <Video className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">Minimax Video</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">30 kredi</Badge>
+                <span className="text-xs font-medium text-foreground">Kling 3.0 Pro</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">25 kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Metin açıklamasından yüksek kaliteli video üretimi. Ürün tanıtımları için ideal.
+                Native ses desteği ile metin-video dönüşümü. Multi-shot ve 15 sn&apos;ye kadar.
               </p>
             </div>
 
@@ -1435,11 +1471,11 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <Crown className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">Flux Logo</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">6 kredi</Badge>
+                <span className="text-xs font-medium text-foreground">Recraft V4</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">8 kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                AI destekli profesyonel logo tasarımı. Farklı stillerde 4 varyasyon üretir.
+                AI destekli profesyonel logo tasarımı. Raster ve SVG vektör formatında.
               </p>
             </div>
 
@@ -1487,8 +1523,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <QrCode className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">QR Monster</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">4 kredi</Badge>
+                <span className="text-xs font-medium text-foreground">FLUX 2 Pro QR</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">6 kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 AI ile sanatsal QR kod oluştur. Taranabilirliği koruyarak estetik tasarım.

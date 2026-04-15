@@ -19,13 +19,18 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('meshy-6-image');
   });
 
-  it('routes 3d-model standard + multi image to meshy-5-multi', () => {
+  it('routes 3d-model standard + multi image to hunyuan3d-v3', () => {
     const { modelKey } = routeRequest({ tool: '3d-model', tier: 'standard', imageUrls: ['a', 'b'] });
-    expect(modelKey).toBe('meshy-5-multi');
+    expect(modelKey).toBe('hunyuan3d-v3');
   });
 
-  it('routes 3d-model premium to hunyuan3d-v31-pro', () => {
+  it('routes 3d-model premium + single image to hyper3d-rodin', () => {
     const { modelKey } = routeRequest({ tool: '3d-model', tier: 'premium', imageUrl: 'http://img/1.jpg' });
+    expect(modelKey).toBe('hyper3d-rodin');
+  });
+
+  it('routes 3d-model premium + multi image to hunyuan3d-v31-pro', () => {
+    const { modelKey } = routeRequest({ tool: '3d-model', tier: 'premium', imageUrls: ['a', 'b'] });
     expect(modelKey).toBe('hunyuan3d-v31-pro');
   });
 
@@ -131,9 +136,24 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('omnihuman');
   });
 
-  it('routes logo to recraft-v3', () => {
+  it('routes logo to recraft-v4', () => {
     const { modelKey } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
-    expect(modelKey).toBe('recraft-v3');
+    expect(modelKey).toBe('recraft-v4');
+  });
+
+  it('routes object-removal to object-removal', () => {
+    const { modelKey } = routeRequest({ tool: 'object-removal', imageUrl: 'http://img/1.jpg', prompt: 'remove cup' });
+    expect(modelKey).toBe('object-removal');
+  });
+
+  it('routes image-edit premium to flux-kontext-max', () => {
+    const { modelKey } = routeRequest({ tool: 'image-edit', tier: 'premium', imageUrl: 'http://img/1.jpg' });
+    expect(modelKey).toBe('flux-kontext-max');
+  });
+
+  it('routes inpainting to flux-fill', () => {
+    const { modelKey } = routeRequest({ tool: 'inpainting', imageUrl: 'http://img/1.jpg', prompt: 'fill sky' });
+    expect(modelKey).toBe('flux-fill');
   });
 
   // ── Text-only tools skip image input ──────────
@@ -144,10 +164,10 @@ describe('routeRequest', () => {
     expect(input['prompt']).toBe('a sunset');
   });
 
-  it('logo sets prompt and style defaults', () => {
+  it('logo sets prompt and image_size defaults', () => {
     const { input } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
     expect(input['prompt']).toBe('Renderhane logo');
-    expect(input['style']).toBe('vector_illustration');
+    expect(input['image_size']).toBe('square_hd');
   });
 
   // ── Talking avatar special handling ────────────

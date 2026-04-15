@@ -4,11 +4,11 @@ import {
   TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES, type ToolType,
 } from '../models';
 
-/** All 13 tools in the platform */
+/** All 15 tools in the platform */
 const ALL_TOOLS: ToolType[] = [
   '3d-model', 'bg-remove', 'enhance', 'scene', 'video', 'aplus',
-  'image-edit', 'text-to-image', 'qr-code', 'talking-avatar', 'logo',
-  'virtual-tryon',
+  'image-edit', 'inpainting', 'object-removal', 'text-to-image', 'qr-code',
+  'talking-avatar', 'logo', 'virtual-tryon',
 ];
 
 /** Helper models that are not user-facing (0 credit cost is valid) */
@@ -29,8 +29,15 @@ describe('MODELS', () => {
     expect(keys).toContain('flux-schnell');
     expect(keys).toContain('qr-code-ai');
     expect(keys).toContain('omnihuman');
-    expect(keys).toContain('recraft-v3');
+    expect(keys).toContain('recraft-v4');
+    expect(keys).toContain('recraft-v4-svg');
     expect(keys).toContain('f5-tts');
+    // New models
+    expect(keys).toContain('flux-kontext-max');
+    expect(keys).toContain('flux-fill');
+    expect(keys).toContain('object-removal');
+    expect(keys).toContain('hyper3d-rodin');
+    expect(keys).toContain('kling-i2v');
   });
 
   it('every model has required fields', () => {
@@ -73,8 +80,21 @@ describe('MODELS', () => {
     expect(MODELS['omnihuman'].creditCost).toBe(25);
   });
 
-  it('recraft-v3 costs 8 credits for logo generation', () => {
-    expect(MODELS['recraft-v3'].creditCost).toBe(8);
+  it('recraft-v4 costs 8 credits for logo generation', () => {
+    expect(MODELS['recraft-v4'].creditCost).toBe(8);
+  });
+
+  it('object-removal costs 3 credits', () => {
+    expect(MODELS['object-removal'].creditCost).toBe(3);
+  });
+
+  it('hyper3d-rodin is premium tier', () => {
+    expect(MODELS['hyper3d-rodin'].tier).toBe('premium');
+    expect(MODELS['hyper3d-rodin'].creditCost).toBe(35);
+  });
+
+  it('triposr costs 3 credits (updated from 2)', () => {
+    expect(MODELS['triposr'].creditCost).toBe(3);
   });
 });
 
@@ -123,6 +143,8 @@ describe('TOOL_CREDITS', () => {
     expect(TOOL_CREDITS['image-edit']).toBe(6);
     expect(TOOL_CREDITS['talking-avatar']).toBe(25);
     expect(TOOL_CREDITS['logo']).toBe(8);
+    expect(TOOL_CREDITS['object-removal']).toBe(3);
+    expect(TOOL_CREDITS['inpainting']).toBe(6);
   });
 });
 

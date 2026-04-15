@@ -139,7 +139,7 @@ export async function POST(
 /** Best-effort reverse lookup for legacy jobs: model_id → tier */
 function reverseLookupTier(modelId: string): "fast" | "standard" | "premium" {
   const FAST = ["triposr", "tripo-v25-mv", "flux-schnell"];
-  const PREMIUM = ["hunyuan3d-v31-pro", "flux-pro"];
+  const PREMIUM = ["hunyuan3d-v31-pro", "hyper3d-rodin", "flux-pro", "flux-kontext-max"];
   if (FAST.includes(modelId)) return "fast";
   if (PREMIUM.includes(modelId)) return "premium";
   return "standard";

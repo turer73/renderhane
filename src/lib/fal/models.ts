@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit" | "virtual-tryon";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "inpainting" | "object-removal" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit" | "virtual-tryon";
 
 export interface ModelConfig {
   id: string;
@@ -70,25 +70,22 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
-  /* ── 3D Model — Çoklu Fotoğraf (Kaliteli) ─── */
-  "meshy-5-multi": {
-    id: "fal-ai/meshy/v5/multi-image-to-3d",
+  /* ── 3D Model — Hyper3D Rodin (Premium) ───── */
+  "hyper3d-rodin": {
+    id: "fal-ai/hyper3d/rodin",
     displayName: {
-      tr: "Meshy 5 — Kaliteli Çoklu",
-      en: "Meshy 5 — Quality Multi",
+      tr: "Rodin — Premium 3D",
+      en: "Rodin — Premium 3D",
     },
-    tier: "standard",
-    creditCost: 15,
-    estimatedTime: "~3min",
-    imageParamKey: "image_urls",
+    tier: "premium",
+    creditCost: 35,
+    estimatedTime: "~2min",
+    imageParamKey: "input_image_urls",
     multiImage: true,
     defaultParams: {
-      topology: "triangle",
-      target_polycount: 50000,
-      should_remesh: true,
-      should_texture: true,
-      enable_pbr: true,
-      symmetry_mode: "auto",
+      geometry_file_format: "glb",
+      material: "PBR",
+      quality_mesh_option: "500K Triangle",
     },
   },
 
@@ -186,7 +183,7 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "TripoSR — Instant Preview",
     },
     tier: "fast",
-    creditCost: 2,
+    creditCost: 3,
     estimatedTime: "~1s",
     imageParamKey: "image_url",
     defaultParams: {
@@ -207,6 +204,35 @@ export const MODELS: Record<string, ModelConfig> = {
     defaultParams: {
       guidance_scale: 4.0,
       num_inference_steps: 25,
+      output_format: "png",
+    },
+  },
+
+  /* ── Görsel Düzenleme — Premium ────────────── */
+  "flux-kontext-max": {
+    id: "fal-ai/flux-pro/kontext/max",
+    displayName: { tr: "FLUX Kontext Max — Premium", en: "FLUX Kontext Max — Premium" },
+    tier: "premium",
+    creditCost: 10,
+    estimatedTime: "~15s",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      guidance_scale: 3.5,
+      output_format: "png",
+    },
+  },
+
+  /* ── Inpainting (FLUX Fill) ──────────────── */
+  "flux-fill": {
+    id: "fal-ai/flux-pro/v1/fill",
+    displayName: { tr: "FLUX Fill — Inpainting", en: "FLUX Fill — Inpainting" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~10s",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
       output_format: "png",
     },
   },
@@ -261,6 +287,21 @@ export const MODELS: Record<string, ModelConfig> = {
     defaultParams: {},
   },
 
+  /* ── Nesne Silme ──────────────────────────── */
+  "object-removal": {
+    id: "fal-ai/object-removal",
+    displayName: { tr: "Nesne Silme", en: "Object Removal" },
+    tier: "fast",
+    creditCost: 3,
+    estimatedTime: "~5s",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      model: "best_quality",
+      mask_expansion: 15,
+    },
+  },
+
   /* ── Sahne Üret ───────────────────────────── */
   "bria-product-shot": {
     id: "fal-ai/bria/product-shot",
@@ -292,8 +333,8 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
   "kling-t2v": {
-    id: "fal-ai/kling-video/v2.6/pro/text-to-video",
-    displayName: { tr: "Kling 2.6 — Metin→Video", en: "Kling 2.6 — Text→Video" },
+    id: "fal-ai/kling-video/v3/pro/text-to-video",
+    displayName: { tr: "Kling 3.0 Pro — Metin→Video", en: "Kling 3.0 Pro — Text→Video" },
     tier: "standard",
     creditCost: 25,
     estimatedTime: "~2min",
@@ -302,6 +343,20 @@ export const MODELS: Record<string, ModelConfig> = {
     defaultParams: {
       duration: "5",
       aspect_ratio: "16:9",
+      generate_audio: true,
+    },
+  },
+  "kling-i2v": {
+    id: "fal-ai/kling-video/v3/pro/image-to-video",
+    displayName: { tr: "Kling 3.0 Pro — Görsel→Video", en: "Kling 3.0 Pro — Image→Video" },
+    tier: "standard",
+    creditCost: 25,
+    estimatedTime: "~2min",
+    imageParamKey: "start_image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      duration: "5",
+      generate_audio: true,
     },
   },
 
@@ -353,7 +408,7 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── QR Code (AI Sanatsal) ─────────────────── */
   "qr-code-ai": {
-    id: "fal-ai/flux-pro/v1.1",
+    id: "fal-ai/flux-2-pro",
     displayName: { tr: "AI Sanatsal QR", en: "AI Artistic QR" },
     tier: "standard",
     creditCost: 6,
@@ -361,10 +416,9 @@ export const MODELS: Record<string, ModelConfig> = {
     imageParamKey: "_unused",
     promptParamKey: "prompt",
     defaultParams: {
-      width: 1024,
-      height: 1024,
+      image_size: "square_hd",
       num_inference_steps: 28,
-      guidance_scale: 3.5,
+      guidance_scale: 7.5,
       output_format: "png",
     },
   },
@@ -398,17 +452,28 @@ export const MODELS: Record<string, ModelConfig> = {
   },
 
   /* ── Logo Üretimi ──────────────────────── */
-  "recraft-v3": {
-    id: "fal-ai/recraft-v3",
-    displayName: { tr: "Recraft V3 — Logo", en: "Recraft V3 — Logo" },
+  "recraft-v4": {
+    id: "fal-ai/recraft/v4/text-to-image",
+    displayName: { tr: "Recraft V4 — Logo", en: "Recraft V4 — Logo" },
     tier: "standard",
     creditCost: 8,
     estimatedTime: "~10s",
     imageParamKey: "_unused",
     promptParamKey: "prompt",
     defaultParams: {
-      style: "vector_illustration",
-      image_size: "square",
+      image_size: "square_hd",
+    },
+  },
+  "recraft-v4-svg": {
+    id: "fal-ai/recraft/v4/text-to-vector",
+    displayName: { tr: "Recraft V4 — SVG Vektör", en: "Recraft V4 — SVG Vector" },
+    tier: "standard",
+    creditCost: 10,
+    estimatedTime: "~12s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      image_size: "square_hd",
     },
   },
 
@@ -429,17 +494,19 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-5-multi", "meshy-6-text", "tripo-v25-mv", "hunyuan3d-v3", "hunyuan3d-v31-pro"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-6-text", "tripo-v25-mv", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["aura-sr"],
   "scene": ["bria-product-shot"],
-  "video": ["wan-i2v", "kling-t2v"],
+  "video": ["wan-i2v", "kling-t2v", "kling-i2v"],
   "aplus": ["bria-product-shot-hd"],
-  "image-edit": ["flux-kontext"],
+  "image-edit": ["flux-kontext", "flux-kontext-max"],
+  "inpainting": ["flux-fill"],
+  "object-removal": ["object-removal"],
   "text-to-image": ["flux-pro", "flux-dev", "flux-schnell"],
   "qr-code": ["qr-code-ai"],
   "talking-avatar": ["omnihuman"],
-  "logo": ["recraft-v3"],
+  "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],
 };
@@ -452,6 +519,8 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   video: "video",
   aplus: "aplus",
   "image-edit": "imageEdit",
+  inpainting: "inpainting",
+  "object-removal": "objectRemoval",
   "text-to-image": "textToImage",
   "qr-code": "qrCode",
   "talking-avatar": "talkingAvatar",
@@ -479,7 +548,7 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
 };
 
 /** Tools that accept a text prompt from the user */
-export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "text-to-image", "qr-code", "logo"];
+export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "inpainting", "object-removal", "text-to-image", "qr-code", "logo"];
 
 /** Tools that DON'T need an image input (text-only) */
 export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "qr-code", "logo"];
