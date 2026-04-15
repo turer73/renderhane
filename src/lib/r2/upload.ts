@@ -1,5 +1,5 @@
 import "server-only";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
 /** Max file size: 500 MB */
@@ -131,4 +131,29 @@ function getFileInfo(
       }
       return { ext: "png", contentType: "image/png" };
   }
+}
+
+/**
+ * Delete a file from R2 by its public URL.
+ * Extracts the object key from the URL and issues a DeleteObject command.
+ * Silently succeeds if the object doesn't exist (idempotent).
+ */
+export async function deleteFromR2(r2Url: string): Promise<void> {
+  const publicUrl = getPublicUrl(); // e.g. https://assets.renderhane.com
+  if (!r2Url.startsWith(publicUrl)) {
+    // Not an R2 URL — skip silently
+    return;
+  }
+
+  // Extract key: "https://assets.renderhane.com/outputs/userId/uuid.png" → "outputs/userId/uuid.png"
+  const key = r2Url.slice(publicUrl.length + 1); // +1 for the "/"
+  if (!key) return;
+
+  const r2 = getR2();
+  await r2.send(
+    new DeleteObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+    })
+  );
 }

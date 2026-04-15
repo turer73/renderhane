@@ -103,6 +103,13 @@ export async function submitJob(input: SubmitJobInput) {
   }
 
   // 3. Create job record
+  // Store original request params (pre-processing) for reliable regeneration.
+  // input_params has fal.ai-routed URLs (may expire); original_request has user's uploads.
+  const originalRequest: Record<string, unknown> = { tool, tier };
+  if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
+  if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
+  if (input.prompt) originalRequest.prompt = input.prompt;
+
   const { data: job, error: jobError } = await supabase
     .from("jobs")
     .insert({
@@ -112,6 +119,7 @@ export async function submitJob(input: SubmitJobInput) {
       model_id: model.id,
       status: "pending",
       input_params: falInput,
+      original_request: originalRequest,
       credit_cost: creditCost,
       credit_tx_id: txId,
     })

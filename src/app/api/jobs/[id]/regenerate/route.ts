@@ -11,8 +11,8 @@ export const maxDuration = 60;
 
 /**
  * POST /api/jobs/:id/regenerate
- * Re-submits a job using the original parameters stored in input_params.
- * Extracts imageUrl/prompt from the fal.ai-formatted input using model config.
+ * Re-submits a job using the stored original_request (pre-processing params).
+ * Falls back to extracting from input_params for legacy jobs without original_request.
  */
 export async function POST(
   _request: NextRequest,
@@ -37,11 +37,11 @@ export async function POST(
     );
   }
 
-  // Fetch original job
+  // Fetch original job (include original_request + input_params for fallback)
   const admin = createAdminClient();
   const { data: job, error: fetchErr } = await admin
     .from("jobs")
-    .select("id, user_id, tool, model_id, input_params")
+    .select("id, user_id, tool, model_id, original_request, input_params")
     .eq("id", id)
     .single();
 
@@ -54,51 +54,60 @@ export async function POST(
   }
 
   const tool = job.tool as ToolType;
-  const modelId = job.model_id as string;
-  const inputParams = (job.input_params ?? {}) as Record<string, unknown>;
+  const originalReq = (job.original_request ?? {}) as Record<string, unknown>;
+  const hasOriginal = Object.keys(originalReq).length > 0;
 
-  // Extract original image URL(s) and prompt from stored fal.ai input
-  const model = MODELS[modelId];
   let imageUrl: string | undefined;
   let imageUrls: string[] | undefined;
   let prompt: string | undefined;
+  let tier: "fast" | "standard" | "premium";
 
-  if (model) {
-    const imgKey = model.imageParamKey;
-    const promptKey = model.promptParamKey;
+  if (hasOriginal) {
+    // ── Primary path: use original_request (pre-processing, reliable URLs) ──
+    if (typeof originalReq.imageUrl === "string") imageUrl = originalReq.imageUrl;
+    if (Array.isArray(originalReq.imageUrls)) {
+      imageUrls = originalReq.imageUrls.filter((u): u is string => typeof u === "string");
+    }
+    if (typeof originalReq.prompt === "string") prompt = originalReq.prompt;
+    tier = (typeof originalReq.tier === "string" ? originalReq.tier : "standard") as "fast" | "standard" | "premium";
+  } else {
+    // ── Fallback: extract from input_params (legacy jobs without original_request) ──
+    const modelId = job.model_id as string;
+    const inputParams = (job.input_params ?? {}) as Record<string, unknown>;
+    const model = MODELS[modelId];
 
-    // Extract image(s)
-    if (imgKey && imgKey !== "_unused") {
-      const imgVal = inputParams[imgKey];
-      if (Array.isArray(imgVal)) {
-        imageUrls = imgVal.filter((u): u is string => typeof u === "string");
-      } else if (typeof imgVal === "string" && imgVal) {
-        imageUrl = imgVal;
+    if (model) {
+      const imgKey = model.imageParamKey;
+      const promptKey = model.promptParamKey;
+
+      if (imgKey && imgKey !== "_unused") {
+        const imgVal = inputParams[imgKey];
+        if (Array.isArray(imgVal)) {
+          imageUrls = imgVal.filter((u): u is string => typeof u === "string");
+        } else if (typeof imgVal === "string" && imgVal) {
+          imageUrl = imgVal;
+        }
+      }
+
+      // Named multi-image params (e.g. Tripo: front_image_url, left_image_url)
+      if (model.namedImageParams) {
+        const urls = model.namedImageParams
+          .map((key) => inputParams[key])
+          .filter((u): u is string => typeof u === "string" && !!u);
+        if (urls.length > 0) {
+          imageUrls = urls;
+          imageUrl = undefined;
+        }
+      }
+
+      if (promptKey && promptKey !== "_unused") {
+        const pVal = inputParams[promptKey];
+        if (typeof pVal === "string" && pVal) prompt = pVal;
       }
     }
 
-    // For named multi-image params (e.g. Tripo: front_image_url, left_image_url, etc.)
-    if (model.namedImageParams) {
-      const urls = model.namedImageParams
-        .map((key) => inputParams[key])
-        .filter((u): u is string => typeof u === "string" && !!u);
-      if (urls.length > 0) {
-        imageUrls = urls;
-        imageUrl = undefined; // use imageUrls instead
-      }
-    }
-
-    // Extract prompt
-    if (promptKey && promptKey !== "_unused") {
-      const pVal = inputParams[promptKey];
-      if (typeof pVal === "string" && pVal) {
-        prompt = pVal;
-      }
-    }
+    tier = reverseLookupTier(modelId);
   }
-
-  // Determine tier from model_id (reverse lookup)
-  const tier = reverseLookupTier(tool, modelId);
 
   try {
     const result = await submitJob({
@@ -124,24 +133,11 @@ export async function POST(
   }
 }
 
-/** Best-effort reverse lookup: model_id → tier */
-function reverseLookupTier(
-  tool: ToolType,
-  modelId: string
-): "fast" | "standard" | "premium" {
-  // Known fast-tier models
-  const FAST_MODELS = [
-    "triposr",
-    "tripo-v25-mv",
-    "flux-schnell",
-  ];
-  // Known premium-tier models
-  const PREMIUM_MODELS = [
-    "hunyuan3d-v31-pro",
-    "flux-pro",
-  ];
-
-  if (FAST_MODELS.includes(modelId)) return "fast";
-  if (PREMIUM_MODELS.includes(modelId)) return "premium";
+/** Best-effort reverse lookup for legacy jobs: model_id → tier */
+function reverseLookupTier(modelId: string): "fast" | "standard" | "premium" {
+  const FAST = ["triposr", "tripo-v25-mv", "flux-schnell"];
+  const PREMIUM = ["hunyuan3d-v31-pro", "flux-pro"];
+  if (FAST.includes(modelId)) return "fast";
+  if (PREMIUM.includes(modelId)) return "premium";
   return "standard";
 }
