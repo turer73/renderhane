@@ -223,6 +223,7 @@ export function WorkspaceLayout({
         ...(payload.imageUrl ? { imageUrl: payload.imageUrl } : {}),
         ...(payload.imageUrls ? { imageUrls: payload.imageUrls } : {}),
         ...(payload.prompt ? { prompt: payload.prompt } : {}),
+        ...(payload.autoEnhance ? { autoEnhance: true } : {}),
       };
 
       const res = await fetch("/api/jobs/submit", {

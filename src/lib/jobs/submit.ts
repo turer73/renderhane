@@ -33,6 +33,33 @@ async function removeBackgrounds(imageUrls: string[]): Promise<string[]> {
 }
 
 /**
+ * Auto-enhance images using aura-sr super-resolution.
+ * Uses fal.subscribe for synchronous result.
+ * Returns enhanced image URLs from fal.ai CDN.
+ */
+async function enhanceImages(imageUrls: string[]): Promise<string[]> {
+  const enhanced: string[] = [];
+  for (const url of imageUrls) {
+    try {
+      const result = await fal.subscribe("fal-ai/aura-sr", {
+        input: { image_url: url },
+      });
+      const output = result.data as { image?: { url?: string } };
+      if (output.image?.url) {
+        enhanced.push(output.image.url);
+      } else {
+        // Fallback to original if enhance output is unexpected
+        enhanced.push(url);
+      }
+    } catch (err) {
+      console.error("Auto enhance failed for URL, using original:", err);
+      enhanced.push(url);
+    }
+  }
+  return enhanced;
+}
+
+/**
  * Generate an HMAC signature for webhook verification.
  * This replaces passing the raw secret in the URL query string.
  */
@@ -52,10 +79,12 @@ interface SubmitJobInput {
   imageUrls?: string[];
   /** Optional user-provided text prompt (scene description, video prompt, etc.) */
   prompt?: string;
+  /** Auto-enhance input images via aura-sr before 3D generation */
+  autoEnhance?: boolean;
 }
 
 export async function submitJob(input: SubmitJobInput) {
-  const { userId, projectId, tool, tier, prompt } = input;
+  const { userId, projectId, tool, tier, prompt, autoEnhance } = input;
   let imageUrl = input.imageUrl;
   let imageUrls = input.imageUrls;
   const supabase = createAdminClient();
@@ -66,6 +95,15 @@ export async function submitJob(input: SubmitJobInput) {
       imageUrls = await removeBackgrounds(imageUrls);
     } else if (imageUrl) {
       [imageUrl] = await removeBackgrounds([imageUrl]);
+    }
+  }
+
+  // 0b. Auto-enhance for 3D models — aura-sr upscale improves detail for 3D generation
+  if (tool === "3d-model" && autoEnhance) {
+    if (imageUrls && imageUrls.length > 0) {
+      imageUrls = await enhanceImages(imageUrls);
+    } else if (imageUrl) {
+      [imageUrl] = await enhanceImages([imageUrl]);
     }
   }
 
@@ -80,7 +118,8 @@ export async function submitJob(input: SubmitJobInput) {
 
   // 2. Check free bg-remove eligibility BEFORE reserving credits
   let txId: string | null = null;
-  let creditCost = model.creditCost;
+  // Add auto-enhance cost (+4 per image) to the base model cost
+  let creditCost = model.creditCost + (autoEnhance ? 4 : 0);
 
   if (tool === "bg-remove") {
     const { data: isFree, error: freeCheckError } = await supabase.rpc(
@@ -109,6 +148,7 @@ export async function submitJob(input: SubmitJobInput) {
   if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
   if (input.prompt) originalRequest.prompt = input.prompt;
+  if (autoEnhance) originalRequest.autoEnhance = true;
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")

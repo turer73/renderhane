@@ -61,6 +61,7 @@ export async function POST(
   let imageUrls: string[] | undefined;
   let prompt: string | undefined;
   let tier: "fast" | "standard" | "premium";
+  let autoEnhance = false;
 
   if (hasOriginal) {
     // ── Primary path: use original_request (pre-processing, reliable URLs) ──
@@ -70,6 +71,7 @@ export async function POST(
     }
     if (typeof originalReq.prompt === "string") prompt = originalReq.prompt;
     tier = (typeof originalReq.tier === "string" ? originalReq.tier : "standard") as "fast" | "standard" | "premium";
+    if (originalReq.autoEnhance === true) autoEnhance = true;
   } else {
     // ── Fallback: extract from input_params (legacy jobs without original_request) ──
     const modelId = job.model_id as string;
@@ -117,6 +119,7 @@ export async function POST(
       imageUrl,
       imageUrls,
       prompt,
+      autoEnhance,
     });
 
     return NextResponse.json({

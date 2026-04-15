@@ -204,6 +204,8 @@ export interface GeneratePayload {
   imageUrl?: string;
   imageUrls?: string[];
   prompt?: string;
+  /** Auto-enhance input image via aura-sr before 3D generation (+4 credits) */
+  autoEnhance?: boolean;
 }
 
 interface ToolFormPanelProps {
@@ -225,6 +227,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
     return tabs ? tabs[0].id : "img-to-3d";
   });
   const [selectedModel, setSelectedModel] = useState("trellis-v1");
+  const [autoEnhance, setAutoEnhance] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -302,12 +305,13 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       return info ? { time: info.time, credits: info.credits } : { time: "~10 sn", credits: 5 };
     }
     if (activeTool === "3d-model") {
+      const enhanceExtra = (autoEnhance && activeTab === "img-to-3d") ? 4 : 0;
       const map: Record<string, { time: string; credits: number }> = {
-        "img-to-3d": { time: currentModel3D.time, credits: currentModel3D.credits },
+        "img-to-3d": { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra },
         "text-to-3d": { time: "~2 dk", credits: 22 },
         "texture": { time: "~1 dk", credits: 8 },
       };
-      return map[activeTab] ?? { time: currentModel3D.time, credits: currentModel3D.credits };
+      return map[activeTab] ?? { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra };
     }
     if (activeTool === "video") {
       if (activeTab === "image-to-video") {
@@ -548,6 +552,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       payload.model = currentModel3D.name;
       payload.credits = currentModel3D.credits;
       payload.tier = MODEL_TO_TIER[selectedModel];
+      if (autoEnhance && activeTab === "img-to-3d") {
+        payload.autoEnhance = true;
+        payload.credits += 4;
+      }
     }
 
     onGenerate?.(payload);
@@ -692,22 +700,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               </select>
             </div>
 
-            <div className="space-y-3 pt-1 border-t border-border/40 opacity-50">
-              <div className="flex items-center gap-2">
-                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Gelişmiş Ayarlar</Label>
-                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-500/40 text-amber-500">Yakında</Badge>
-              </div>
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Gelişmiş Ayarlar</Label>
               <div className="flex items-center justify-between">
-                <Label htmlFor="enhance" className="text-xs text-muted-foreground">Otomatik İyileştirme</Label>
-                <Switch id="enhance" checked={false} disabled />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="multiview" className="text-xs text-muted-foreground">Çoklu Açı</Label>
-                <Switch id="multiview" checked={false} disabled />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="autorig" className="text-xs text-muted-foreground">Otomatik Rig</Label>
-                <Switch id="autorig" checked={false} disabled />
+                <div className="space-y-0.5">
+                  <Label htmlFor="enhance" className="text-xs text-muted-foreground cursor-pointer">Otomatik İyileştirme</Label>
+                  <p className="text-[10px] text-muted-foreground/50">Girdi görselini iyileştir (+4 kredi)</p>
+                </div>
+                <Switch id="enhance" checked={autoEnhance} onCheckedChange={setAutoEnhance} />
               </div>
             </div>
           </>
