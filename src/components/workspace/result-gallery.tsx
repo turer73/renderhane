@@ -84,6 +84,9 @@ const T = {
   batchBg: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect fill="#1a1a2e" width="120" height="120"/><rect x="10" y="10" width="40" height="40" rx="4" fill="#2a2a4a" stroke="#4a4a8a" stroke-width="1"/><rect x="60" y="10" width="40" height="40" rx="4" fill="#2a2a4a" stroke="#4a4a8a" stroke-width="1"/><rect x="10" y="60" width="40" height="40" rx="4" fill="#2a2a4a" stroke="#4a4a8a" stroke-width="1"/><rect x="60" y="60" width="40" height="40" rx="4" fill="#2a2a4a" stroke="#4a4a8a" stroke-width="1"/><pattern id="cb" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="4" height="4" fill="#3a3a4e"/><rect x="4" y="4" width="4" height="4" fill="#3a3a4e"/></pattern><rect x="12" y="12" width="36" height="36" rx="2" fill="url(#cb)"/><circle cx="30" cy="30" r="10" fill="#3a3a6a"/><circle cx="80" cy="30" r="10" fill="#3a3a6a"/><circle cx="30" cy="80" r="10" fill="#3a3a6a"/><circle cx="80" cy="80" r="10" fill="#3a3a6a"/></svg>')}`,
 };
 
+/** Fallback thumbnail shown when image URL fails to load (expired / deleted) */
+const FALLBACK_THUMB = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect fill="#1a1a2e" width="120" height="120"/><rect x="25" y="25" width="70" height="70" rx="12" fill="#2a2a4a" stroke="#3a3a6a" stroke-width="1.5"/><path d="M50 55 L60 45 L70 55" stroke="#5a5a8a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="60" cy="65" r="2" fill="#5a5a8a"/></svg>')}`;
+
 /* ═══════════════════════════════════════════════
    Mock jobs per tool category
    ═══════════════════════════════════════════════ */
@@ -348,9 +351,10 @@ function timeAgo(dateStr: string): string {
 interface ResultGalleryProps {
   activeTool?: string;
   polledJobs?: PolledJobInput[];
+  onRefetch?: () => void;
 }
 
-export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: ResultGalleryProps) {
+export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefetch }: ResultGalleryProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -366,7 +370,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: Resu
       status: j.status === "completed" ? "completed" as const
            : j.status === "failed" ? "failed" as const
            : "processing" as const,
-      thumbnails: j.output_url ? [j.output_url] : [],
+      thumbnails: j.output_url ? [j.output_url] : [FALLBACK_THUMB],
       createdAt: timeAgo(j.created_at),
       credits: j.credit_cost,
       model: TOOL_DISPLAY_NAMES[j.tool] ?? j.tool,
@@ -467,7 +471,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: Resu
                     </Badge>
                   )}
                 </div>
-                <JobDropdown job={job} />
+                <JobDropdown job={job} onRefetch={onRefetch} />
               </div>
 
               <div className="flex gap-2">
@@ -479,7 +483,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: Resu
                       job.status === "processing" && "opacity-60"
                     )}
                   >
-                    <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" />
+                    <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                     {job.status === "processing" && (
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
                     )}
@@ -525,7 +529,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: Resu
                 "relative h-10 w-10 rounded-md border border-border/30 overflow-hidden flex-none",
                 job.status === "processing" && "opacity-60"
               )}>
-                <img src={job.thumbnails[0]} alt={job.name} className="w-full h-full object-cover" />
+                <img src={job.thumbnails[0]} alt={job.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                 {job.status === "processing" && (
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
                 )}
@@ -555,7 +559,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: Resu
                     <Download className="h-3 w-3" />
                   </Button>
                 )}
-                <JobDropdown job={job} />
+                <JobDropdown job={job} onRefetch={onRefetch} />
               </div>
             </div>
           )
@@ -572,9 +576,11 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [] }: Resu
 }
 
 /* ═══ Shared dropdown menu ═══ */
-function JobDropdown({ job }: { job: MockJob }) {
+function JobDropdown({ job, onRefetch }: { job: MockJob; onRefetch?: () => void }) {
   const url = job.outputUrl ?? job.thumbnails[0];
+  const isMockJob = job.id.includes("-"); // mock IDs: "3d-1", "img-2" etc — real IDs are UUIDs
   const hasOutput = job.status === "completed" && !!url;
+  const isRealJob = !isMockJob;
 
   const handleDownload = async () => {
     if (!url) { showToast("İndirilebilir dosya yok", "error"); return; }
@@ -597,6 +603,64 @@ function JobDropdown({ job }: { job: MockJob }) {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const handleShare = async () => {
+    if (!url) { showToast("Paylaşılacak dosya yok", "error"); return; }
+    // Web Share API (mobile-friendly)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: job.name, url });
+        return;
+      } catch {
+        // User cancelled or API failed — fall through to clipboard
+      }
+    }
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link panoya kopyalandı", "success");
+    } catch {
+      showToast("Paylaşım başarısız", "error");
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!isRealJob) { showToast("Demo verilerinde yeniden üretim yapılamaz", "info"); return; }
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/regenerate`, { method: "POST" });
+      if (res.status === 402) {
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
+        showToast("Yetersiz kredi", "error");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        showToast(body?.error ?? "Yeniden üretim başarısız", "error");
+        return;
+      }
+      showToast("Yeniden üretim başlatıldı!", "success");
+      window.dispatchEvent(new Event("job-submitted"));
+      onRefetch?.();
+    } catch {
+      showToast("Bağlantı hatası", "error");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isRealJob) { showToast("Demo verileri silinemez", "info"); return; }
+    try {
+      const res = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        showToast(body?.error ?? "Silme başarısız", "error");
+        return;
+      }
+      showToast("Proje silindi", "success");
+      onRefetch?.();
+    } catch {
+      showToast("Bağlantı hatası", "error");
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -614,14 +678,14 @@ function JobDropdown({ job }: { job: MockJob }) {
         <DropdownMenuItem onClick={handleCopyLink} disabled={!hasOutput}>
           <Copy className="h-3.5 w-3.5 mr-2" />Linki Kopyala
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => showToast("Paylaşım özelliği yakında!", "info")}>
+        <DropdownMenuItem onClick={handleShare} disabled={!hasOutput}>
           <Share2 className="h-3.5 w-3.5 mr-2" />Paylaş
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => showToast("Yeniden üretim yakında!", "info")}>
+        <DropdownMenuItem onClick={handleRegenerate} disabled={!isRealJob}>
           <RefreshCw className="h-3.5 w-3.5 mr-2" />Yeniden Üret
         </DropdownMenuItem>
-        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => showToast("Silme özelliği yakında!", "info")}>
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete} disabled={!isRealJob || job.status === "processing"}>
           <Trash2 className="h-3.5 w-3.5 mr-2" />Sil
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -314,7 +314,7 @@ export function WorkspaceLayout({
         </button>
         {mobileGalleryOpen && (
           <div className="mt-1 h-[300px] overflow-hidden rounded-2xl border border-border bg-card animate-in slide-in-from-top-2 duration-200">
-            <ResultGallery activeTool={activeTool} polledJobs={jobs} />
+            <ResultGallery activeTool={activeTool} polledJobs={jobs} onRefetch={refetch} />
           </div>
         )}
       </div>
@@ -358,7 +358,7 @@ export function WorkspaceLayout({
         </PanelResizeHandle>
 
         <Panel defaultSize="45%" minSize="25%">
-          <ResultGallery activeTool={activeTool} polledJobs={jobs} />
+          <ResultGallery activeTool={activeTool} polledJobs={jobs} onRefetch={refetch} />
         </Panel>
       </PanelGroup>
     </div>

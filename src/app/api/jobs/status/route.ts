@@ -17,6 +17,7 @@ export async function GET() {
       "id, tool, status, credit_cost, created_at, completed_at, error_message, outputs(id, r2_url, fal_url, type)"
     )
     .eq("user_id", user.id)
+    .neq("status", "cancelled")
     .order("created_at", { ascending: false })
     .limit(25);
 
