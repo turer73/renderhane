@@ -49,14 +49,23 @@ test.describe("Login Page", () => {
     expect(page.url()).toContain("/login");
   });
 
-  test("unauthenticated workspace page redirects to login", async ({ page }) => {
-    await page.goto("/tr/app/workspace?tool=bg-remove", { waitUntil: "domcontentloaded" });
+  test("unauthenticated /app/workspace redirects through /app to login", async ({ page }) => {
+    await page.goto("/tr/app/workspace", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(3_000);
+
+    // /app/workspace redirects to /app, which then redirects to /login
+    expect(page.url()).toContain("/login");
+  });
+
+  test("unauthenticated /app?tool=X redirects to login", async ({ page }) => {
+    await page.goto("/tr/app?tool=bg-remove", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3_000);
 
     expect(page.url()).toContain("/login");
   });
 
   test("unauthenticated old tool URL redirects through to login", async ({ page }) => {
+    // /app/tools/bg-remove → /app?tool=bg-remove → /login
     await page.goto("/tr/app/tools/bg-remove", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3_000);
 

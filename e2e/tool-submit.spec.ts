@@ -29,7 +29,7 @@ async function gotoOrSkipAuth(page: import("@playwright/test").Page, urlPath: st
 
 test.describe("Submit — Validation", () => {
   test("workspace image tab: file input present", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=bg-remove");
+    await gotoOrSkipAuth(page, "/tr/app?tool=bg-remove");
 
     const fileInput = page.locator("input[type='file']").first();
     const dropZone = page.locator("[class*='border-dashed']").first();
@@ -37,7 +37,7 @@ test.describe("Submit — Validation", () => {
   });
 
   test("workspace design tab: text input present", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=logo");
+    await gotoOrSkipAuth(page, "/tr/app?tool=logo");
 
     // Logo tab has text inputs (brand name, description)
     const input = page.locator("textarea, input[type='text']").first();
@@ -47,7 +47,7 @@ test.describe("Submit — Validation", () => {
 
 test.describe("Submit — File Upload", () => {
   test("workspace image tab: file upload shows preview", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=bg-remove");
+    await gotoOrSkipAuth(page, "/tr/app?tool=bg-remove");
 
     const fileInput = page.locator("input[type='file'][accept='image/*']").first();
     if (await fileInput.count() === 0) {
@@ -85,7 +85,7 @@ test.describe("Submit — API Mocking", () => {
       route.fulfill({ status: 402, contentType: "application/json", body: "{}" })
     );
 
-    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=bg-remove");
+    await gotoOrSkipAuth(page, "/tr/app?tool=bg-remove");
 
     const fileInput = page.locator("input[type='file'][accept='image/*']").first();
     if (await fileInput.count() === 0) { test.skip(true, "No file input"); return; }

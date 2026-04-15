@@ -95,7 +95,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
 
   const navItems = [
     {
-      href: `/${locale}/app/workspace`,
+      href: `/${locale}/app`,
       label: "Workspace",
       icon: Sparkles,
       disabled: false,
@@ -180,7 +180,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           )}
           onClick={onNavigate}
         >
-          <Link href={`/${locale}/app/workspace`}>
+          <Link href={`/${locale}/app`}>
             <Sparkles className="size-4" />
             {tSidebar("newProduction")}
           </Link>

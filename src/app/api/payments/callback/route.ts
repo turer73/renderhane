@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!token) {
       return NextResponse.redirect(
-        `${appUrl}/${locale}/app/credits?status=error`,
+        `${appUrl}/${locale}/app?payment=error`,
         { status: 303 }
       );
     }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (result.paymentStatus !== "SUCCESS") {
       console.error("Payment failed:", result.errorMessage ?? result.paymentStatus);
       return NextResponse.redirect(
-        `${appUrl}/${locale}/app/credits?status=error`,
+        `${appUrl}/${locale}/app?payment=error`,
         { status: 303 }
       );
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (!basketData || !isValidPackageKey(basketData.packageKey)) {
       console.error("Invalid or tampered basketId:", result.basketId);
       return NextResponse.redirect(
-        `${appUrl}/${locale}/app/credits?status=error`,
+        `${appUrl}/${locale}/app?payment=error`,
         { status: 303 }
       );
     }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Failed to add credits:", error.message);
       return NextResponse.redirect(
-        `${appUrl}/${locale}/app/credits?status=error`,
+        `${appUrl}/${locale}/app?payment=error`,
         { status: 303 }
       );
     }
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
     // data === null means duplicate (already processed) — that's OK
 
     return NextResponse.redirect(
-      `${appUrl}/${locale}/app/credits?status=success`,
+      `${appUrl}/${locale}/app?payment=success`,
       { status: 303 }
     );
   } catch (error) {
     console.error("Callback error:", error);
     return NextResponse.redirect(
-      `${appUrl}/${locale}/app/credits?status=error`,
+      `${appUrl}/${locale}/app?payment=error`,
       { status: 303 }
     );
   }

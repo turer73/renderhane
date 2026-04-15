@@ -15,8 +15,50 @@ export async function middleware(request: NextRequest) {
   if (toolMatch) {
     const [, locale, toolId] = toolMatch;
     return NextResponse.redirect(
-      new URL(`/${locale}/app/workspace?tool=${toolId}`, request.url)
+      new URL(`/${locale}/app?tool=${toolId}`, request.url)
     );
+  }
+
+  // Redirect /app/workspace → /app (workspace is now the root)
+  const workspaceMatch = request.nextUrl.pathname.match(
+    /^\/([a-z]{2})\/app\/workspace\b/
+  );
+  if (workspaceMatch) {
+    const [, wLocale] = workspaceMatch;
+    const target = new URL(`/${wLocale}/app`, request.url);
+    request.nextUrl.searchParams.forEach((v, k) => target.searchParams.set(k, v));
+    return NextResponse.redirect(target);
+  }
+
+  // Redirect /app/credits → /app (credits is now a Sheet panel)
+  // Preserve ?status= as ?payment= for iyzico callback compat
+  const creditsMatch = request.nextUrl.pathname.match(
+    /^\/([a-z]{2})\/app\/credits\b/
+  );
+  if (creditsMatch) {
+    const [, cLocale] = creditsMatch;
+    const target = new URL(`/${cLocale}/app`, request.url);
+    const status = request.nextUrl.searchParams.get("status");
+    if (status) target.searchParams.set("payment", status);
+    return NextResponse.redirect(target);
+  }
+
+  // Redirect /app/batch → /app (batch is a workspace category)
+  const batchMatch = request.nextUrl.pathname.match(
+    /^\/([a-z]{2})\/app\/batch\b/
+  );
+  if (batchMatch) {
+    const [, bLocale] = batchMatch;
+    return NextResponse.redirect(new URL(`/${bLocale}/app`, request.url));
+  }
+
+  // Redirect /app/settings → /app (settings is now a Sheet panel)
+  const settingsMatch = request.nextUrl.pathname.match(
+    /^\/([a-z]{2})\/app\/settings\b/
+  );
+  if (settingsMatch) {
+    const [, sLocale] = settingsMatch;
+    return NextResponse.redirect(new URL(`/${sLocale}/app`, request.url));
   }
 
   const response = intlMiddleware(request);

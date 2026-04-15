@@ -6,3 +6,7 @@ export { WorkspacePreview } from "./workspace-preview";
 export { ResultGallery } from "./result-gallery";
 export { WorkspaceHeader } from "./workspace-header";
 export { showToast } from "./workspace-toast";
+export { ReferralSheet } from "./referral-sheet";
+export { CreditsSheet } from "./credits-sheet";
+export { WorkspaceSidebar } from "./workspace-sidebar";
+export { SettingsSheet } from "./settings-sheet";

@@ -1,36 +1,27 @@
 /**
- * E2E Tests: Tool Grid (Dashboard)
+ * E2E Tests: Workspace Tool Categories
  *
- * Tests the ToolGrid component on the dashboard.
- * All 13 tool buttons should be visible, clickable, and navigate correctly.
+ * Tests the workspace UI at /app which replaced the old dashboard.
+ * The workspace uses ToolIconSidebar (6 categories) + ToolFormPanel (tabs per category).
+ * There is no longer a ToolGrid with 13 individual tool cards.
  */
 import { test, expect } from "@playwright/test";
 
-// All 13 tools from registry.ts
-const TOOLS = [
-  { id: "bg-remove", icon: "✂️", href: "/app/workspace?tool=bg-remove" },
-  { id: "scene", icon: "🎨", href: "/app/workspace?tool=scene" },
-  { id: "aplus", icon: "⭐", href: "/app/workspace?tool=aplus" },
-  { id: "3d-model", icon: "📦", href: "/app/workspace?tool=3d-model" },
-  { id: "enhance", icon: "✨", href: "/app/workspace?tool=enhance" },
-  { id: "video", icon: "🎬", href: "/app/workspace?tool=video" },
-  { id: "image-edit", icon: "🖌️", href: "/app/workspace?tool=image-edit" },
-  { id: "social-kit", icon: "📱", href: "/app/tools/social-kit" },
-  { id: "text-to-image", icon: "🖼️", href: "/app/workspace?tool=text-to-image" },
-  { id: "talking-avatar", icon: "🗣️", href: "/app/workspace?tool=talking-avatar" },
-  { id: "logo", icon: "💎", href: "/app/workspace?tool=logo" },
-  { id: "virtual-tryon", icon: "👗", href: "/app/workspace?tool=virtual-tryon" },
-  { id: "qr-code", icon: "📷", href: "/app/workspace?tool=qr-code" },
+// 6 workspace categories from ToolIconSidebar
+const TOOL_CATEGORIES = [
+  { id: "3d-model", label: "3D" },
+  { id: "image", label: "Görüntü" },
+  { id: "video", label: "Video" },
+  { id: "ecommerce", label: "E-ticaret" },
+  { id: "design", label: "Tasarım" },
+  { id: "batch", label: "Toplu" },
 ] as const;
 
 /**
- * Helper: navigate to dashboard, skip if auth is required.
- * Uses domcontentloaded to avoid SSR timeout issues.
+ * Helper: navigate to workspace, skip if auth is required.
  */
-async function gotoDashboardOrSkip(page: import("@playwright/test").Page) {
+async function gotoWorkspaceOrSkip(page: import("@playwright/test").Page) {
   await page.goto("/tr/app", { waitUntil: "domcontentloaded", timeout: 25_000 });
-
-  // Wait a moment for client-side redirect
   await page.waitForTimeout(2_000);
 
   if (page.url().includes("/login")) {
@@ -38,88 +29,82 @@ async function gotoDashboardOrSkip(page: import("@playwright/test").Page) {
   }
 }
 
-test.describe("Tool Grid — Dashboard", () => {
-  test("dashboard loads with tool grid", async ({ page }) => {
-    await gotoDashboardOrSkip(page);
+test.describe("Workspace — Layout", () => {
+  test("workspace loads at /app without error", async ({ page }) => {
+    await gotoWorkspaceOrSkip(page);
 
-    const grid = page.locator(".grid.grid-cols-2");
-    await expect(grid).toBeVisible({ timeout: 15_000 });
+    const body = await page.textContent("body");
+    expect(body).not.toContain("Internal Server Error");
+    expect(body).not.toContain("Application error");
+  });
 
-    const buttons = grid.locator("button");
-    const count = await buttons.count();
+  test("workspace has tool category buttons", async ({ page }) => {
+    await gotoWorkspaceOrSkip(page);
+
+    // ToolIconSidebar renders 6 category buttons
+    // Each button contains an icon + label text (first word of category label)
+    const categoryButtons = page.locator("button").filter({
+      hasText: /3D|Görüntü|Video|E-ticaret|Tasarım|Toplu/,
+    });
+
+    const count = await categoryButtons.count();
     expect(count).toBeGreaterThanOrEqual(6);
   });
 
-  test("all 13 tool cards are rendered", async ({ page }) => {
-    await gotoDashboardOrSkip(page);
+  test("workspace has at least 6 category buttons visible", async ({ page }) => {
+    await gotoWorkspaceOrSkip(page);
 
-    const grid = page.locator(".grid.grid-cols-2");
-    await expect(grid).toBeVisible({ timeout: 15_000 });
-
-    const buttons = grid.locator("button");
-    await expect(buttons).toHaveCount(13);
-  });
-
-  test("each tool card shows icon and credit cost", async ({ page }) => {
-    await gotoDashboardOrSkip(page);
-
-    const grid = page.locator(".grid.grid-cols-2");
-    await expect(grid).toBeVisible({ timeout: 15_000 });
-
-    for (const tool of TOOLS) {
-      const card = grid.locator(`button:has-text("${tool.icon}")`);
-      await expect(card).toBeVisible();
-
-      const text = await card.textContent();
-      expect(text).toMatch(/kredi|Ücretsiz|credits|Free/);
+    // The sidebar should display all 6 categories
+    for (const cat of TOOL_CATEGORIES) {
+      const btn = page.locator("button").filter({
+        hasText: new RegExp(cat.label.split(" ")[0]),
+      });
+      await expect(btn.first()).toBeVisible({ timeout: 10_000 });
     }
   });
+});
 
-  for (const tool of TOOLS) {
-    test(`tool "${tool.id}" navigates to ${tool.href}`, async ({ page }) => {
-      await gotoDashboardOrSkip(page);
+test.describe("Workspace — Category Interaction", () => {
+  for (const cat of TOOL_CATEGORIES) {
+    test(`clicking "${cat.label}" category activates it`, async ({ page }) => {
+      await gotoWorkspaceOrSkip(page);
 
-      const grid = page.locator(".grid.grid-cols-2");
-      await expect(grid).toBeVisible({ timeout: 15_000 });
+      const btn = page.locator("button").filter({
+        hasText: new RegExp(cat.label.split(" ")[0]),
+      }).first();
 
-      const card = grid.locator(`button:has-text("${tool.icon}")`);
-      await expect(card).toBeVisible();
+      await expect(btn).toBeVisible({ timeout: 10_000 });
+      await btn.click();
+      await page.waitForTimeout(1_000);
 
-      await card.click();
-      // Escape /, ? and = for regex matching
-      const hrefPattern = tool.href.replace(/[/?=]/g, (c) => `\\${c}`);
-      await page.waitForURL(new RegExp(hrefPattern), {
-        timeout: 25_000,
-        waitUntil: "domcontentloaded",
-      });
-      expect(page.url()).toContain(tool.href);
+      // After click, the button should have the active style (bg-primary/15)
+      const classes = await btn.getAttribute("class");
+      expect(classes).toMatch(/bg-primary/);
     });
   }
+});
 
-  test("all tool cards are enabled (not disabled)", async ({ page }) => {
-    await gotoDashboardOrSkip(page);
+test.describe("Workspace — Tool Deep Links", () => {
+  const TOOL_LINKS = [
+    { tool: "bg-remove", category: "image" },
+    { tool: "scene", category: "ecommerce" },
+    { tool: "3d-model", category: "3d-model" },
+    { tool: "video", category: "video" },
+    { tool: "logo", category: "design" },
+  ];
 
-    const grid = page.locator(".grid.grid-cols-2");
-    await expect(grid).toBeVisible({ timeout: 15_000 });
+  for (const { tool } of TOOL_LINKS) {
+    test(`/app?tool=${tool} opens workspace with correct tool`, async ({ page }) => {
+      await page.goto(`/tr/app?tool=${tool}`, { waitUntil: "domcontentloaded", timeout: 25_000 });
+      await page.waitForTimeout(2_000);
 
-    const buttons = grid.locator("button");
-    const count = await buttons.count();
+      if (page.url().includes("/login")) {
+        test.skip(true, "Auth required");
+      }
 
-    for (let i = 0; i < count; i++) {
-      const btn = buttons.nth(i);
-      const isDisabled = await btn.getAttribute("disabled");
-      expect(isDisabled).toBeNull();
-    }
-  });
-
-  test("tool cards have cursor-pointer class", async ({ page }) => {
-    await gotoDashboardOrSkip(page);
-
-    const grid = page.locator(".grid.grid-cols-2");
-    await expect(grid).toBeVisible({ timeout: 15_000 });
-
-    const firstCard = grid.locator("button").first();
-    const classes = await firstCard.getAttribute("class");
-    expect(classes).toContain("cursor-pointer");
-  });
+      expect(page.url()).toContain(`tool=${tool}`);
+      const body = await page.textContent("body");
+      expect(body).not.toContain("Internal Server Error");
+    });
+  }
 });

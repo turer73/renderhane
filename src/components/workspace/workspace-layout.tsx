@@ -268,7 +268,7 @@ export function WorkspaceLayout({
   return (
     <>
     {/* ═══ Mobile layout (< md) ═══ */}
-    <div className="flex md:hidden h-[calc(100vh-56px)] w-full flex-col overflow-y-auto">
+    <div className="flex md:hidden h-full w-full flex-col overflow-y-auto">
       {/* Horizontal tool strip */}
       <ToolIconSidebar
         activeTool={activeTool}
@@ -321,7 +321,7 @@ export function WorkspaceLayout({
     </div>
 
     {/* ═══ Desktop layout (≥ md) ═══ */}
-    <div className="hidden md:flex h-[calc(100vh-56px)] w-full gap-3 px-2 pb-2">
+    <div className="hidden md:flex h-full w-full gap-3 px-2 pb-2">
       {/* Left: Icon Sidebar + Form Panel */}
       <div className="flex w-[344px] flex-none overflow-hidden rounded-2xl border border-border bg-card">
         <ToolIconSidebar

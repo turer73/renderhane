@@ -30,8 +30,10 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, [mobileOpen]);
 
-  // Workspace routes use their own full-screen layout (skip sidebar/topbar/bottomnav)
-  const isWorkspace = pathname?.includes("/workspace");
+  // Workspace mode: full-screen layout (no sidebar/topbar/bottomnav)
+  // Matches /xx/app (exact root = workspace now), /xx/app/workspace (backward compat)
+  const isWorkspace = pathname?.includes("/workspace") ||
+    /^\/[a-z]{2}\/app\/?$/.test(pathname ?? "");
 
   if (isWorkspace) {
     return <>{children}</>;

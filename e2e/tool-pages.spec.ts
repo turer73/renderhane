@@ -1,8 +1,9 @@
 /**
  * E2E Tests: Workspace Tool Pages
  *
- * Tools are accessed via /app/workspace?tool=<id>.
- * Old /app/tools/<id> URLs redirect to workspace via middleware.
+ * Tools are accessed via /app?tool=<id>.
+ * Old /app/tools/<id> URLs redirect to /app?tool=<id> via middleware.
+ * /app/workspace redirects to /app via middleware.
  */
 import { test, expect } from "@playwright/test";
 
@@ -31,8 +32,8 @@ async function gotoOrSkipAuth(page: import("@playwright/test").Page, path: strin
 
 test.describe("Workspace — Direct Access", () => {
   for (const tool of WORKSPACE_TOOLS) {
-    test(`workspace?tool=${tool.id} loads without error`, async ({ page }) => {
-      await gotoOrSkipAuth(page, `/tr/app/workspace?tool=${tool.id}`);
+    test(`/app?tool=${tool.id} loads without error`, async ({ page }) => {
+      await gotoOrSkipAuth(page, `/tr/app?tool=${tool.id}`);
       expect(page.url()).toContain(`tool=${tool.id}`);
 
       const body = await page.textContent("body");
@@ -41,8 +42,8 @@ test.describe("Workspace — Direct Access", () => {
     });
   }
 
-  test("workspace loads with default 3d-model category", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/workspace");
+  test("workspace loads with default category at /app", async ({ page }) => {
+    await gotoOrSkipAuth(page, "/tr/app");
     // Workspace should render without errors
     const body = await page.textContent("body");
     expect(body).not.toContain("Internal Server Error");
@@ -51,11 +52,12 @@ test.describe("Workspace — Direct Access", () => {
 
 test.describe("Workspace — Old URL Redirects", () => {
   for (const tool of WORKSPACE_TOOLS) {
-    test(`/app/tools/${tool.id} redirects to workspace`, async ({ page }) => {
+    test(`/app/tools/${tool.id} redirects to /app?tool=${tool.id}`, async ({ page }) => {
       await gotoOrSkipAuth(page, `/tr/app/tools/${tool.id}`);
-      // Should end up at workspace with tool param
-      expect(page.url()).toContain("/workspace");
+      // Should end up at /app with tool param (not /workspace)
+      expect(page.url()).toContain("/app");
       expect(page.url()).toContain(`tool=${tool.id}`);
+      expect(page.url()).not.toContain("/workspace");
     });
   }
 
@@ -65,23 +67,14 @@ test.describe("Workspace — Old URL Redirects", () => {
   });
 });
 
-test.describe("Workspace — Navigation Round-trip", () => {
-  test("dashboard → tool card → workspace → back", async ({ page }) => {
+test.describe("Workspace — Tool Selection", () => {
+  test("/app shows workspace with tool category sidebar", async ({ page }) => {
     await gotoOrSkipAuth(page, "/tr/app");
 
-    const grid = page.locator(".grid.grid-cols-2");
-    await expect(grid).toBeVisible({ timeout: 20_000 });
-
-    // Click bg-remove card
-    const card = grid.locator("button:has-text('✂️')");
-    await card.click();
-
-    await page.waitForTimeout(3_000);
-    expect(page.url()).toContain("/workspace");
-
-    // Go back to dashboard
-    await page.goBack();
-    await page.waitForTimeout(3_000);
-    expect(page.url()).toMatch(/\/app/);
+    // Workspace should have category buttons (ToolIconSidebar)
+    // Categories: 3D, image, video, ecommerce, design, batch
+    const buttons = page.locator("button");
+    const count = await buttons.count();
+    expect(count).toBeGreaterThanOrEqual(6);
   });
 });
