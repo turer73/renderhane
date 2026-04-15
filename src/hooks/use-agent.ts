@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { handleSupportMessage, checkUserCredits } from "@/lib/agents/support-agent";
-import { 
-  getUserJobs, 
-  getJobDetails, 
+import {
+  getUserJobs,
+  getJobDetails,
   getUserJobStats,
   getJobRecommendations,
   analyzeJobsWithAI,
   type Job,
-  type JobStats 
+  type JobStats,
+  type JobType,
+  type JobStatus,
 } from "@/lib/agents/job-tracker";
 
 interface ConversationMessage {
@@ -130,7 +132,7 @@ export function useJobTracker({ userId }: UseAgentOptions) {
   const fetchJobs = useCallback(async (options?: { type?: string; status?: string; limit?: number }) => {
     setIsLoading(true);
     try {
-      const fetchedJobs = await getUserJobs(userId, options as any);
+      const fetchedJobs = await getUserJobs(userId, options as { type?: JobType; status?: JobStatus; limit?: number });
       setJobs(fetchedJobs);
       return fetchedJobs;
     } catch (error) {
@@ -211,7 +213,7 @@ export function useJobTracker({ userId }: UseAgentOptions) {
 /**
  * Tek bir işin detaylarını getir
  */
-export async function useJobDetail(jobId: string, userId: string) {
+export function useJobDetail(jobId: string, userId: string) {
   const [job, setJob] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -231,5 +233,3 @@ export async function useJobDetail(jobId: string, userId: string) {
 
   return { job, isLoading };
 }
-
-import { useEffect } from "react";

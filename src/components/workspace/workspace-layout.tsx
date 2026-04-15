@@ -10,7 +10,7 @@ import { ToolIconSidebar } from "./tool-icon-sidebar";
 import { ToolFormPanel, type GeneratePayload } from "./tool-form-panel";
 import { WorkspacePreview } from "./workspace-preview";
 import { ResultGallery } from "./result-gallery";
-import { useJobPolling, type PolledJob } from "@/hooks/use-job-polling";
+import { useJobPolling } from "@/hooks/use-job-polling";
 import { showToast } from "./workspace-toast";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Settings2, LayoutGrid } from "lucide-react";
@@ -130,41 +130,49 @@ export function WorkspaceLayout({
   // Find active polled job by ID
   const polledJob = activeJobId ? jobs.find((j) => j.id === activeJobId) : null;
 
-  // Clear active job when switching tools
-  useEffect(() => {
+  // Reset state when tool changes — useState pattern (React-recommended: refs can't be
+  // accessed during render with React compiler, and useEffect setState causes cascading renders)
+  const [prevTool, setPrevTool] = useState(activeTool);
+  if (prevTool !== activeTool) {
+    setPrevTool(activeTool);
     setActiveJobId(null);
     setActiveJobMeta(null);
     setEstimatedProgress(0);
-    if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
-  }, [activeTool]);
+  }
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-  }, []);
+  // Derive initial progress from job status during render
+  const [prevJobState, setPrevJobState] = useState<{ id: string | null; status: string | undefined }>({ id: null, status: undefined });
+  const currentJobId = polledJob?.id ?? null;
+  const currentJobStatus = polledJob?.status;
+  if (prevJobState.id !== currentJobId || prevJobState.status !== currentJobStatus) {
+    setPrevJobState({ id: currentJobId, status: currentJobStatus });
+    if (currentJobStatus === "processing" || currentJobStatus === "pending") {
+      setEstimatedProgress(currentJobStatus === "pending" ? 5 : 15);
+    } else if (currentJobStatus === "completed") {
+      setEstimatedProgress(100);
+    } else {
+      setEstimatedProgress(0);
+    }
+  }
 
-  // Estimated progress for processing jobs (fal.ai doesn't return real progress)
-  // Reset timer when job ID or status changes
+  // Progress animation interval + cleanup (ref access is safe inside effects)
   useEffect(() => {
-    // Always clear previous interval first
     if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
 
     if (polledJob?.status === "processing" || polledJob?.status === "pending") {
       startTimeRef.current = Date.now();
-      setEstimatedProgress(polledJob.status === "pending" ? 5 : 15);
       progressIntervalRef.current = setInterval(() => {
         const elapsed = (Date.now() - startTimeRef.current) / 1000;
         // Asymptotic progress: approaches 95% but never reaches 100%
         const progress = Math.min(95, Math.round(15 + (80 * (1 - Math.exp(-elapsed / 30)))));
         setEstimatedProgress(progress);
       }, 500);
-    } else {
-      if (polledJob?.status === "completed") setEstimatedProgress(100);
-      if (polledJob?.status === "failed") setEstimatedProgress(0);
     }
-  }, [activeJobId, polledJob?.status]);
+
+    return () => {
+      if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
+    };
+  }, [activeTool, activeJobId, polledJob?.status]);
 
   // Notify on completion
   useEffect(() => {

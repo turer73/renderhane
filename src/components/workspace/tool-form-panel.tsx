@@ -1236,7 +1236,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">Yakında</Badge>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Metin-ses dönüşümü (TTS) pipeline'ı hazırlanıyor. Fotoğraftan konuşan avatar videosu oluşturma özelliği yakında aktif olacak.
+                Metin-ses dönüşümü (TTS) pipeline&apos;ı hazırlanıyor. Fotoğraftan konuşan avatar videosu oluşturma özelliği yakında aktif olacak.
               </p>
             </div>
           </div>

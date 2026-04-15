@@ -75,7 +75,7 @@ export async function checkUserCredits(userId: string): Promise<number> {
 export async function getUserJobHistory(
   userId: string,
   limit = 5
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("jobs")

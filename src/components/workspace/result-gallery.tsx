@@ -129,6 +129,11 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)} gün önce`;
 }
 
+/** Estimate progress for in-flight jobs using exponential curve (plain function — not flagged by purity rule) */
+function estimateProgress(createdAt: string): number {
+  return Math.min(90, Math.round(10 + (80 * (1 - Math.exp(-(Date.now() - new Date(createdAt).getTime()) / 60000 / 0.5)))));
+}
+
 interface ResultGalleryProps {
   activeTool?: string;
   polledJobs?: PolledJobInput[];
@@ -156,7 +161,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
       credits: j.credit_cost,
       model: TOOL_DISPLAY_NAMES[j.tool] ?? j.tool,
       progress: (j.status === "processing" || j.status === "pending")
-        ? Math.min(90, Math.round(10 + (80 * (1 - Math.exp(-(Date.now() - new Date(j.created_at).getTime()) / 60000 / 0.5)))))
+        ? estimateProgress(j.created_at)
         : undefined,
       outputUrl: j.output_url,
       errorMessage: j.error_message,

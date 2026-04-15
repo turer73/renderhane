@@ -196,7 +196,7 @@ export async function processJobWebhook(
 ) {
   const supabase = await createClient();
   
-  const updateData: any = {
+  const updateData: Record<string, string | number | undefined> = {
     status,
     ...data,
   };
