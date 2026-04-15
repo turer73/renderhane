@@ -19,6 +19,7 @@ import {
   Plus,
   LogOut,
   Sparkles,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -93,7 +94,9 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     window.location.href = `/${locale}/login`;
   }
 
-  const navItems = [
+  const isOnAdmin = pathname.startsWith(`/${locale}/app/admin`);
+
+  const userNavItems = [
     {
       href: `/${locale}/app`,
       label: "Workspace",
@@ -142,6 +145,23 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       : []),
   ];
 
+  const adminNavItems = [
+    {
+      href: `/${locale}/app`,
+      label: "Uygulamaya Dön",
+      icon: ArrowLeft,
+      disabled: false,
+    },
+    {
+      href: `/${locale}/app/admin`,
+      label: tSidebar("admin"),
+      icon: Shield,
+      disabled: false,
+    },
+  ];
+
+  const navItems = isOnAdmin ? adminNavItems : userNavItems;
+
   function isActive(href: string) {
     if (href === "#") return false;
     return pathname.startsWith(href);
@@ -168,24 +188,21 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         <span className="text-lg font-bold tracking-tight">renderhane.</span>
       </div>
 
-      {/* New Production CTA */}
-      <div className="px-4 pb-4">
-        <Button
-          asChild
-          className={cn(
-            "w-full gap-2 font-semibold",
-            isDashboard
-              ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-              : "bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-          )}
-          onClick={onNavigate}
-        >
-          <Link href={`/${locale}/app`}>
-            <Sparkles className="size-4" />
-            {tSidebar("newProduction")}
-          </Link>
-        </Button>
-      </div>
+      {/* New Production CTA — hidden on admin pages */}
+      {!isOnAdmin && (
+        <div className="px-4 pb-4">
+          <Button
+            asChild
+            className="w-full gap-2 font-semibold bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+            onClick={onNavigate}
+          >
+            <Link href={`/${locale}/app`}>
+              <Sparkles className="size-4" />
+              {tSidebar("newProduction")}
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Menu label */}
       <div className="px-5 pb-2">
@@ -248,17 +265,19 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
                 style={{ width: `${creditPercent}%` }}
               />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-              asChild
-              onClick={onNavigate}
-            >
-              <Link href={`/${locale}/app/credits`}>
-                {tSidebar("loadCredits")}
-              </Link>
-            </Button>
+            {!isOnAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                asChild
+                onClick={onNavigate}
+              >
+                <Link href={`/${locale}/app/credits`}>
+                  {tSidebar("loadCredits")}
+                </Link>
+              </Button>
+            )}
           </div>
         )}
 
