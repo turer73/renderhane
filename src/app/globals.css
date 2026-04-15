@@ -123,10 +123,12 @@
     @apply border-border outline-ring/50;
   }
   html {
+    height: 100%;
     touch-action: manipulation;
     overflow-x: hidden;
   }
   body {
+    height: 100%;
     @apply bg-background text-foreground;
     overflow-x: hidden;
   }

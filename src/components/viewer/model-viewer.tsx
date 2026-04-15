@@ -102,7 +102,7 @@ export function ModelViewer({
   return (
     <ViewerErrorBoundary fallback={errorFallback}>
       <div className={`${className} rounded-lg border bg-black/5`}>
-        <Canvas camera={{ position: [0, 1, 3], fov: 50 }}>
+        <Canvas camera={{ position: [0, 1, 3], fov: 50 }} style={{ width: "100%", height: "100%" }}>
           <Suspense fallback={<Loader />}>
             <ambientLight intensity={0.5} />
             <directionalLight position={[5, 5, 5]} intensity={1} />

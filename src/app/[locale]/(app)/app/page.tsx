@@ -90,7 +90,7 @@ function WorkspaceContent() {
           onMobileClose={() => setSidebarMobileOpen(false)}
         />
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 h-full">
           <WorkspaceLayout
             activeTool={activeTool}
             onToolChange={setActiveTool}
