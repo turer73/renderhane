@@ -1,11 +1,24 @@
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 import { updateSession } from "./lib/supabase/middleware";
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
+  // Redirect old /app/tools/<id> → /app/workspace?tool=<id>
+  // Keeps backward compat for bookmarks, Google index, shared links.
+  // social-kit excluded — it has its own dedicated pipeline page.
+  const toolMatch = request.nextUrl.pathname.match(
+    /^\/([a-z]{2})\/app\/tools\/(?!social-kit)([a-z0-9-]+)/
+  );
+  if (toolMatch) {
+    const [, locale, toolId] = toolMatch;
+    return NextResponse.redirect(
+      new URL(`/${locale}/app/workspace?tool=${toolId}`, request.url)
+    );
+  }
+
   const response = intlMiddleware(request);
 
   // Use a precise regex to detect embed routes (prevents path traversal)

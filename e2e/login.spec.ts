@@ -49,7 +49,14 @@ test.describe("Login Page", () => {
     expect(page.url()).toContain("/login");
   });
 
-  test("unauthenticated tool page redirect goes to login", async ({ page }) => {
+  test("unauthenticated workspace page redirects to login", async ({ page }) => {
+    await page.goto("/tr/app/workspace?tool=bg-remove", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(3_000);
+
+    expect(page.url()).toContain("/login");
+  });
+
+  test("unauthenticated old tool URL redirects through to login", async ({ page }) => {
     await page.goto("/tr/app/tools/bg-remove", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3_000);
 

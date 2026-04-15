@@ -2,7 +2,7 @@
  * Shared image resize utility.
  *
  * Client-only — uses the browser Canvas API (zero server cost).
- * Both PhotoUpload and BatchUpload import from here
+ * Workspace and BatchUpload import from here
  * to avoid duplicate implementations.
  */
 

@@ -8,19 +8,19 @@ import { test, expect } from "@playwright/test";
 
 // All 13 tools from registry.ts
 const TOOLS = [
-  { id: "bg-remove", icon: "✂️", href: "/app/tools/bg-remove" },
-  { id: "scene", icon: "🎨", href: "/app/tools/scene" },
-  { id: "aplus", icon: "⭐", href: "/app/tools/aplus" },
-  { id: "3d-model", icon: "📦", href: "/app/tools/3d-model" },
-  { id: "enhance", icon: "✨", href: "/app/tools/enhance" },
-  { id: "video", icon: "🎬", href: "/app/tools/video" },
-  { id: "image-edit", icon: "🖌️", href: "/app/tools/image-edit" },
+  { id: "bg-remove", icon: "✂️", href: "/app/workspace?tool=bg-remove" },
+  { id: "scene", icon: "🎨", href: "/app/workspace?tool=scene" },
+  { id: "aplus", icon: "⭐", href: "/app/workspace?tool=aplus" },
+  { id: "3d-model", icon: "📦", href: "/app/workspace?tool=3d-model" },
+  { id: "enhance", icon: "✨", href: "/app/workspace?tool=enhance" },
+  { id: "video", icon: "🎬", href: "/app/workspace?tool=video" },
+  { id: "image-edit", icon: "🖌️", href: "/app/workspace?tool=image-edit" },
   { id: "social-kit", icon: "📱", href: "/app/tools/social-kit" },
-  { id: "text-to-image", icon: "🖼️", href: "/app/tools/text-to-image" },
-  { id: "talking-avatar", icon: "🗣️", href: "/app/tools/talking-avatar" },
-  { id: "logo", icon: "💎", href: "/app/tools/logo" },
-  { id: "virtual-tryon", icon: "👗", href: "/app/tools/virtual-tryon" },
-  { id: "qr-code", icon: "📷", href: "/app/tools/qr-code" },
+  { id: "text-to-image", icon: "🖼️", href: "/app/workspace?tool=text-to-image" },
+  { id: "talking-avatar", icon: "🗣️", href: "/app/workspace?tool=talking-avatar" },
+  { id: "logo", icon: "💎", href: "/app/workspace?tool=logo" },
+  { id: "virtual-tryon", icon: "👗", href: "/app/workspace?tool=virtual-tryon" },
+  { id: "qr-code", icon: "📷", href: "/app/workspace?tool=qr-code" },
 ] as const;
 
 /**
@@ -86,7 +86,9 @@ test.describe("Tool Grid — Dashboard", () => {
       await expect(card).toBeVisible();
 
       await card.click();
-      await page.waitForURL(new RegExp(tool.href.replace(/\//g, "\\/")), {
+      // Escape /, ? and = for regex matching
+      const hrefPattern = tool.href.replace(/[/?=]/g, (c) => `\\${c}`);
+      await page.waitForURL(new RegExp(hrefPattern), {
         timeout: 25_000,
         waitUntil: "domcontentloaded",
       });

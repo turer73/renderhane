@@ -18,6 +18,7 @@ import {
   Settings,
   Plus,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -93,6 +94,12 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   }
 
   const navItems = [
+    {
+      href: `/${locale}/app/workspace`,
+      label: "Workspace",
+      icon: Sparkles,
+      disabled: false,
+    },
     {
       href: `/${locale}/app/projects`,
       label: t("projects"),
@@ -173,8 +180,8 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           )}
           onClick={onNavigate}
         >
-          <Link href={`/${locale}/app`}>
-            <Plus className="size-4" />
+          <Link href={`/${locale}/app/workspace`}>
+            <Sparkles className="size-4" />
             {tSidebar("newProduction")}
           </Link>
         </Button>

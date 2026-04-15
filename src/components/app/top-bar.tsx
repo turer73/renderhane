@@ -60,6 +60,9 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     if (pathname === `${base}/admin`) {
       return tAdmin("title");
     }
+    if (pathname.startsWith(`${base}/workspace`)) {
+      return "Workspace";
+    }
     return t("appName");
   }
 

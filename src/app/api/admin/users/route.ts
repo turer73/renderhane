@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/auth/admin-check";
 
 export async function GET(request: NextRequest) {
+  try {
   // 1. Auth + admin check
   const supabase = await createClient();
   const {
@@ -135,4 +136,11 @@ export async function GET(request: NextRequest) {
       activeUsers7d,
     },
   });
+  } catch (error) {
+    console.error("[admin/users] Unexpected error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

@@ -12,19 +12,27 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *   { "balance": 42 }
  */
 export async function GET(request: NextRequest) {
-  const auth = await authenticateApiRequest(request);
-  if (auth instanceof NextResponse) return auth;
+  try {
+    const auth = await authenticateApiRequest(request);
+    if (auth instanceof NextResponse) return auth;
 
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("credit_balance")
-    .eq("id", auth.userId)
-    .single();
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("credit_balance")
+      .eq("id", auth.userId)
+      .single();
 
-  if (error || !data) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    if (error || !data) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ balance: data.credit_balance });
+  } catch (error) {
+    console.error("[v1/balance] Unexpected error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ balance: data.credit_balance });
 }

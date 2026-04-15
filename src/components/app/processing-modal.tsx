@@ -321,7 +321,7 @@ export function ProcessingModal() {
         : PROCESSING_MESSAGES_EN[tool] || PROCESSING_MESSAGES_EN["enhance"]
       : [];
 
-  // Listen for job-submitted events from PhotoUpload
+  // Listen for job-submitted events from Workspace
   useEffect(() => {
     function handleJobSubmitted(e: Event) {
       const detail = (e as CustomEvent).detail as {

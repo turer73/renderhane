@@ -10,12 +10,20 @@ import { NextResponse } from "next/server";
  * Target: < 50ms response time (even on cold start).
  */
 export async function GET() {
-  return NextResponse.json(
-    { status: "ok", ts: Date.now() },
-    {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-      },
-    }
-  );
+  try {
+    return NextResponse.json(
+      { status: "ok", ts: Date.now() },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("[health/ping] Unexpected error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

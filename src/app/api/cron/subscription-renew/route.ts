@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getResend, FROM_EMAIL } from "@/lib/email/resend";
 
 /**
  * Cron job: Check for subscriptions due for renewal.
@@ -41,8 +42,10 @@ export async function GET(request: NextRequest) {
 
   for (const sub of dueSubscriptions) {
     try {
-      // TODO: In production, trigger iyzico stored card payment here.
-      // For now, mark as past_due — user will be prompted to pay manually.
+      // Mark as past_due — user will be prompted to pay manually.
+      // Note: iyzico stored card (recurring) payment requires a separate
+      // agreement with iyzico + cardToken integration. Until then, we
+      // notify the user via email to renew manually.
       await supabase
         .from("subscriptions")
         .update({
@@ -51,8 +54,39 @@ export async function GET(request: NextRequest) {
         })
         .eq("id", sub.id);
 
-      // TODO: Send renewal reminder email via Resend
-      console.log(`[cron/subscription-renew] Subscription ${sub.id} marked as past_due`);
+      // Get user email for notification
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", sub.user_id)
+        .single();
+
+      if (profile?.email) {
+        try {
+          const resend = getResend();
+          await resend.emails.send({
+            from: FROM_EMAIL,
+            to: profile.email,
+            subject: "Renderhane aboneliğiniz yenilenmeli",
+            html: `
+              <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+                <h2 style="color:#6366f1">Abonelik Yenileme</h2>
+                <p>Merhaba,</p>
+                <p><strong>${sub.package_key}</strong> aboneliğinizin yenileme tarihi geldi. Hizmetinizin kesintisiz devam etmesi için lütfen kredi satın alın.</p>
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com"}/tr/app/credits"
+                   style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:500;margin-top:12px">
+                  Kredi Satın Al
+                </a>
+                <p style="color:#888;font-size:13px;margin-top:24px">Renderhane — AI Görsel Stüdyosu</p>
+              </div>
+            `,
+          });
+        } catch (emailErr) {
+          console.error(`[cron/subscription-renew] Email failed for ${sub.user_id}:`, emailErr);
+        }
+      }
+
+      console.log(`[cron/subscription-renew] Subscription ${sub.id} marked as past_due, email sent`);
       renewed++;
     } catch (err) {
       console.error(`[cron/subscription-renew] Failed for ${sub.id}:`, err);

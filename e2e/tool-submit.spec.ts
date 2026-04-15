@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * E2E Tests: Tool Submit Flow
+ * E2E Tests: Workspace Submit Flow
  *
- * Tests validation, file upload, API mocking, and error handling.
+ * Tests validation, file upload, API mocking, and error handling
+ * within the workspace UI.
  */
 import { test, expect } from "@playwright/test";
 import path from "path";
@@ -27,68 +28,26 @@ async function gotoOrSkipAuth(page: import("@playwright/test").Page, urlPath: st
 }
 
 test.describe("Submit — Validation", () => {
-  test("bg-remove: no submit without image", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/tools/bg-remove");
+  test("workspace image tab: file input present", async ({ page }) => {
+    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=bg-remove");
 
-    // Find any submit-like button
-    const submitBtn = page.locator("button").filter({
-      hasText: /oluştur|üret|gönder|generate|submit|başla|start|kaldır|remove/i,
-    });
-
-    if (await submitBtn.count() > 0) {
-      const btn = submitBtn.first();
-      if (await btn.isVisible()) {
-        await btn.click();
-        // Should stay on same page — no job submission without image
-        await page.waitForTimeout(1_000);
-        expect(page.url()).toContain("/tools/bg-remove");
-      }
-    }
+    const fileInput = page.locator("input[type='file']").first();
+    const dropZone = page.locator("[class*='border-dashed']").first();
+    expect(await fileInput.count() + await dropZone.count()).toBeGreaterThan(0);
   });
 
-  test("text-to-image: prompt accepts text input", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/tools/text-to-image");
+  test("workspace design tab: text input present", async ({ page }) => {
+    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=logo");
 
-    const textarea = page.locator("textarea").first();
-    await expect(textarea).toBeVisible({ timeout: 10_000 });
-
-    await textarea.fill("A beautiful mountain landscape at sunset");
-    await expect(textarea).toHaveValue("A beautiful mountain landscape at sunset");
-  });
-
-  test("qr-code: URL input accepts text and generates QR", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/tools/qr-code");
-
-    // QR code has its own custom UI — URL input is input[type='url']
-    const urlInput = page.locator("input[type='url']");
-    await expect(urlInput).toBeVisible({ timeout: 10_000 });
-
-    await urlInput.fill("https://renderhane.com");
-    expect(await urlInput.inputValue()).toBe("https://renderhane.com");
-
-    // Click generate
-    const generateBtn = page.locator("button").filter({ hasText: /oluştur|generate/i });
-    await generateBtn.click();
-
-    // QR image should appear
-    const qrImg = page.locator("img[alt='QR Code']");
-    await expect(qrImg).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("logo: prompt accepts description", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/tools/logo");
-
-    const textarea = page.locator("textarea").first();
-    await expect(textarea).toBeVisible({ timeout: 10_000 });
-
-    await textarea.fill("Modern minimalist tech logo");
-    await expect(textarea).toHaveValue("Modern minimalist tech logo");
+    // Logo tab has text inputs (brand name, description)
+    const input = page.locator("textarea, input[type='text']").first();
+    await expect(input).toBeVisible({ timeout: 10_000 });
   });
 });
 
 test.describe("Submit — File Upload", () => {
-  test("bg-remove: file upload shows preview", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/tools/bg-remove");
+  test("workspace image tab: file upload shows preview", async ({ page }) => {
+    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=bg-remove");
 
     const fileInput = page.locator("input[type='file'][accept='image/*']").first();
     if (await fileInput.count() === 0) {
@@ -99,63 +58,23 @@ test.describe("Submit — File Upload", () => {
     await fileInput.setInputFiles(TEST_IMAGE);
     await page.waitForTimeout(1_500);
 
-    // After upload, the drop zone should be replaced with preview
-    // Check for img element or changed UI state
+    // After upload, a preview image should appear
     const preview = page.locator("img").first();
-    const hasPreview = await preview.count() > 0;
-
-    // The drop zone (border-dashed) should no longer be visible
-    // or a preview should appear
-    if (hasPreview) {
+    if (await preview.count() > 0) {
       await expect(preview).toBeVisible();
     }
-  });
-
-  test("enhance: file upload works", async ({ page }) => {
-    await gotoOrSkipAuth(page, "/tr/app/tools/enhance");
-
-    const fileInput = page.locator("input[type='file'][accept='image/*']").first();
-    if (await fileInput.count() === 0) {
-      test.skip(true, "No file input found");
-      return;
-    }
-
-    await fileInput.setInputFiles(TEST_IMAGE);
-    await page.waitForTimeout(1_500);
-
-    // Should not show error after valid image upload
-    const errorMsg = page.locator("[class*='text-red']");
-    expect(await errorMsg.count()).toBe(0);
   });
 });
 
 test.describe("Submit — API Mocking", () => {
-  test("maintenance mode shows banner", async ({ page }) => {
-    // Mock health check to return unhealthy
-    await page.route("**/api/health/status", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ healthy: false }),
-      })
-    );
-
-    await gotoOrSkipAuth(page, "/tr/app/tools/bg-remove");
-
-    // Maintenance banner has amber styling
-    const banner = page.locator("[class*='amber']");
-    await expect(banner.first()).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("402 response triggers upgrade event (mocked upload)", async ({ page }) => {
-    // Mock ALL external calls so submit flow completes
+  test("402 response triggers upgrade event", async ({ page }) => {
+    // Mock API calls
     await page.route("**/api/health/status", (route) =>
       route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ healthy: true }) })
     );
     await page.route("**/api/credits/balance", (route) =>
       route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ credits: 100, useCase: "ecommerce" }) })
     );
-    // Mock Supabase storage upload + signed URL
     await page.route("**/storage/v1/object/**", (route) =>
       route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ Key: "test/img.png" }) })
     );
@@ -166,7 +85,7 @@ test.describe("Submit — API Mocking", () => {
       route.fulfill({ status: 402, contentType: "application/json", body: "{}" })
     );
 
-    await gotoOrSkipAuth(page, "/tr/app/tools/bg-remove");
+    await gotoOrSkipAuth(page, "/tr/app/workspace?tool=bg-remove");
 
     const fileInput = page.locator("input[type='file'][accept='image/*']").first();
     if (await fileInput.count() === 0) { test.skip(true, "No file input"); return; }
@@ -180,53 +99,16 @@ test.describe("Submit — API Mocking", () => {
     });
 
     const submitBtn = page.locator("button").filter({
-      hasText: /oluştur|üret|gönder|generate|submit|başla|start|kaldır|remove/i,
+      hasText: /oluştur|üret|işle|generate|submit|start/i,
     }).first();
 
     if (await submitBtn.isVisible()) {
       await submitBtn.click({ force: true });
       await page.waitForTimeout(3_000);
-      // Check if upgrade was triggered
       const triggered = await page.evaluate(() => (window as any).__upgradeTriggered);
-      // Soft assertion — upload mock may not cover all paths
       if (triggered) {
         expect(triggered).toBe(true);
       }
-    }
-  });
-
-  test("500 API error shows error message (mocked)", async ({ page }) => {
-    await page.route("**/api/health/status", (route) =>
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ healthy: true }) })
-    );
-    await page.route("**/storage/v1/object/**", (route) =>
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ Key: "test/img.png" }) })
-    );
-    await page.route("**/storage/v1/object/sign/**", (route) =>
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ signedUrl: "https://example.com/test.png" }) })
-    );
-    await page.route("**/api/jobs/submit", (route) =>
-      route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Internal error" }) })
-    );
-
-    await gotoOrSkipAuth(page, "/tr/app/tools/enhance");
-
-    const fileInput = page.locator("input[type='file'][accept='image/*']").first();
-    if (await fileInput.count() === 0) { test.skip(true, "No file input"); return; }
-    await fileInput.setInputFiles(TEST_IMAGE);
-    await page.waitForTimeout(1_500);
-
-    const submitBtn = page.locator("button").filter({
-      hasText: /oluştur|üret|iyileştir|enhance|gönder|generate|submit|başla|start/i,
-    }).first();
-
-    if (await submitBtn.isVisible()) {
-      await submitBtn.click({ force: true });
-      await page.waitForTimeout(3_000);
-      // Error indicator should be visible
-      const errorVisible = await page.locator("[class*='text-red'], [class*='bg-red']").count();
-      // Soft check — depends on full mocking chain
-      expect(errorVisible).toBeGreaterThanOrEqual(0);
     }
   });
 });

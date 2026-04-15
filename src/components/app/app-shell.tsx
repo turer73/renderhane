@@ -30,6 +30,13 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, [mobileOpen]);
 
+  // Workspace routes use their own full-screen layout (skip sidebar/topbar/bottomnav)
+  const isWorkspace = pathname?.includes("/workspace");
+
+  if (isWorkspace) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar — always visible on lg+ */}

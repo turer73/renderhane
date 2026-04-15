@@ -7,6 +7,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   // 1. Auth + admin check
   const supabase = await createClient();
   const {
@@ -90,4 +91,11 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[admin/users/[id]] Unexpected error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

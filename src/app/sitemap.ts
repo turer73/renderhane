@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllArticles } from "@/lib/blog/articles";
 
-const BASE_URL = "https://www.renderhane.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
 const locales = ["tr", "en"] as const;
 
 /**

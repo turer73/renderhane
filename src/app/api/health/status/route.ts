@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
  * Public health status endpoint for the client.
  * Returns only a boolean — no sensitive info exposed.
  *
- * Called by PhotoUpload before allowing job submission.
+ * Called by Workspace before allowing job submission.
  * Cached for 30s to reduce Supabase calls during traffic spikes.
  */
 export async function GET() {

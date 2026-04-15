@@ -84,7 +84,7 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
     fetchJobs();
   }, [fetchJobs]);
 
-  // Immediate refetch when a new job is submitted (PhotoUpload / BatchUpload).
+  // Immediate refetch when a new job is submitted (Workspace / BatchUpload).
   useEffect(() => {
     const handle = () => fetchJobs();
     window.addEventListener("job-submitted", handle);

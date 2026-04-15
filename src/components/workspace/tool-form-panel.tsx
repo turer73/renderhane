@@ -1,0 +1,1828 @@
+"use client";
+
+import { useState, useRef, useCallback, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Upload,
+  X,
+  Sparkles,
+  Clock,
+  Coins,
+  Loader2,
+  ImageIcon,
+  Type,
+  Wand2,
+  PenLine,
+  Brush,
+  Scissors,
+  ZoomIn,
+  Rocket,
+  Palette,
+  Eraser,
+  Maximize2,
+  SunMedium,
+  Video,
+  Film,
+  User,
+  Mic,
+  ShoppingBag,
+  Camera,
+  Shirt,
+  LayoutGrid,
+  QrCode,
+  Crown,
+  FolderUp,
+  FileStack,
+} from "lucide-react";
+import { showToast } from "./workspace-toast";
+
+/* ═══════════════════════════════════════════════
+   AI Model & Tab configs
+   ═══════════════════════════════════════════════ */
+
+const AI_MODELS_3D = [
+  { id: "trellis-v1", name: "TRELLIS v1", credits: 5, time: "~15 sn", tier: "fast" },
+  { id: "tripo-2.5", name: "Tripo 2.5", credits: 10, time: "~30 sn", tier: "fast" },
+  { id: "meshy-5", name: "Meshy 5", credits: 15, time: "~3 dk", tier: "standard" },
+  { id: "meshy-6", name: "Meshy 6", credits: 18, time: "~2 dk", tier: "standard" },
+  { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 30, time: "~3 dk", tier: "premium" },
+];
+
+const IMAGE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
+  "bg-remove": { model: "birefnet v2", credits: 1, time: "~5 sn" },
+  "enhance": { model: "Aura SR", credits: 4, time: "~10 sn" },
+  "text-to-image": { model: "Flux 1.1 Pro", credits: 12, time: "~15 sn" },
+  "image-edit": { model: "Bria Edit", credits: 8, time: "~20 sn" },
+};
+
+const VIDEO_MODELS = [
+  { id: "wan-v2.6", name: "WAN v2.6", credits: 20, time: "~30 sn", tier: "fast" },
+  { id: "minimax", name: "Minimax Video", credits: 30, time: "~60 sn", tier: "standard" },
+  { id: "kling-v2", name: "Kling v2", credits: 40, time: "~90 sn", tier: "premium" },
+];
+
+const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
+  "image-to-video": { model: "WAN v2.6", credits: 20, time: "~30 sn" },
+  "text-to-video": { model: "Minimax Video", credits: 30, time: "~60 sn" },
+  "talking-avatar": { model: "SadTalker", credits: 15, time: "~20 sn" },
+};
+
+const TABS_VIDEO = [
+  { id: "image-to-video", label: "Görsel", icon: Film },
+  { id: "text-to-video", label: "Metin", icon: Type },
+  { id: "talking-avatar", label: "Avatar", icon: User },
+];
+
+const ECOMMERCE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
+  "scene": { model: "Bria Product Shot", credits: 8, time: "~15 sn" },
+  "aplus": { model: "Bria Product Shot HD", credits: 8, time: "~20 sn" },
+  "virtual-tryon": { model: "IDM-VTON", credits: 10, time: "~25 sn" },
+};
+
+const TABS_ECOMMERCE = [
+  { id: "scene", label: "Sahne", icon: Camera },
+  { id: "aplus", label: "A+", icon: LayoutGrid },
+  { id: "virtual-tryon", label: "Deneme", icon: Shirt },
+];
+
+const DESIGN_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
+  "logo": { model: "Flux Logo", credits: 6, time: "~10 sn" },
+  "qr-code": { model: "QR Monster", credits: 4, time: "~8 sn" },
+};
+
+const TABS_DESIGN = [
+  { id: "logo", label: "Logo", icon: Crown },
+  { id: "qr-code", label: "QR Kod", icon: QrCode },
+];
+
+const BATCH_TOOL_INFO: Record<string, { model: string; credits: number; time: string; perImage: number }> = {
+  "batch-bg": { model: "birefnet v2", credits: 1, time: "~5 sn", perImage: 1 },
+  "batch-enhance": { model: "Aura SR", credits: 4, time: "~10 sn", perImage: 4 },
+  "batch-resize": { model: "Smart Resize", credits: 2, time: "~3 sn", perImage: 2 },
+};
+
+const TABS_BATCH = [
+  { id: "batch-bg", label: "Arkaplan", icon: Scissors },
+  { id: "batch-enhance", label: "İyileştir", icon: ZoomIn },
+  { id: "batch-resize", label: "Boyutla", icon: Maximize2 },
+];
+
+const TABS_3D = [
+  { id: "img-to-3d", label: "Fotoğraf", icon: ImageIcon },
+  { id: "text-to-3d", label: "Metin", icon: Type },
+  { id: "texture", label: "Doku", icon: Wand2 },
+];
+
+const TABS_IMAGE = [
+  { id: "bg-remove", label: "Arkaplan", icon: Scissors },
+  { id: "enhance", label: "İyileştir", icon: ZoomIn },
+  { id: "text-to-image", label: "Oluştur", icon: PenLine },
+  { id: "image-edit", label: "Düzenle", icon: Brush },
+];
+
+const DEFAULT_TABS: Record<string, typeof TABS_3D> = {
+  "3d-model": TABS_3D,
+  "image": TABS_IMAGE,
+  "video": TABS_VIDEO,
+  "ecommerce": TABS_ECOMMERCE,
+  "design": TABS_DESIGN,
+  "batch": TABS_BATCH,
+};
+
+const EDIT_ACTIONS = [
+  { id: "recolor", label: "Renk Değiştir", icon: Palette, desc: "Ürün veya arkaplan rengini değiştir" },
+  { id: "bg-swap", label: "Arkaplan Değiştir", icon: ImageIcon, desc: "Arkaplanı kaldır, değiştir veya bulanıklaştır" },
+  { id: "remove-obj", label: "Nesne Kaldır", icon: Eraser, desc: "İstenmeyen nesneleri otomatik sil" },
+  { id: "retouch", label: "Rötuş", icon: Sparkles, desc: "Parlaklık, kontrast, netlik düzelt" },
+  { id: "style", label: "Stil Uygula", icon: Wand2, desc: "Farklı bir sanat stili transfer et" },
+  { id: "resize", label: "Boyutla", icon: Maximize2, desc: "Kırp, ölçekle veya yeniden boyutla" },
+];
+
+/* ═══════════════════════════════════════════════
+   Tab → API tool name mapping
+   ═══════════════════════════════════════════════ */
+
+/** Map workspace tab IDs to API tool names for /api/jobs/submit */
+const TAB_TO_API_TOOL: Record<string, string> = {
+  // 3D
+  "img-to-3d": "3d-model",
+  "text-to-3d": "3d-model",
+  "texture": "3d-model",
+  // Image
+  "bg-remove": "bg-remove",
+  "enhance": "enhance",
+  "text-to-image": "text-to-image",
+  "image-edit": "image-edit",
+  // Video
+  "image-to-video": "video",
+  "text-to-video": "video",
+  "talking-avatar": "talking-avatar",
+  // E-commerce
+  "scene": "scene",
+  "aplus": "aplus",
+  "virtual-tryon": "virtual-tryon",
+  // Design
+  "logo": "logo",
+  "qr-code": "qr-code",
+  // Batch (not yet API-backed)
+  "batch-bg": "bg-remove",
+  "batch-enhance": "enhance",
+  "batch-resize": "enhance",
+};
+
+/** Map 3D model select IDs to API tier */
+const MODEL_TO_TIER: Record<string, string> = {
+  "trellis-v1": "fast",
+  "tripo-2.5": "fast",
+  "meshy-5": "standard",
+  "meshy-6": "standard",
+  "hunyuan3d-v3": "premium",
+};
+
+/** Map video model select IDs to API tier */
+const VIDEO_MODEL_TO_TIER: Record<string, string> = {
+  "wan-v2.6": "fast",
+  "minimax": "standard",
+  "kling-v2": "premium",
+};
+
+/* ═══════════════════════════════════════════════ */
+
+export interface GeneratePayload {
+  name: string;
+  model: string;
+  credits: number;
+  apiTool: string;
+  tier?: string;
+  imageUrl?: string;
+  imageUrls?: string[];
+  prompt?: string;
+}
+
+interface ToolFormPanelProps {
+  activeTool: string;
+  onGenerate?: (payload: GeneratePayload) => void;
+  /** Pre-select a specific tab on first mount (deep link from dashboard) */
+  initialTab?: string;
+}
+
+export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPanelProps) {
+  const initialTabRef = useRef(initialTab);
+  const [activeTab, setActiveTab] = useState(() => {
+    // If deep-linked to a specific tab, use it
+    if (initialTab) {
+      const allTabs = Object.values(DEFAULT_TABS).flat();
+      if (allTabs.some((t) => t.id === initialTab)) return initialTab;
+    }
+    const tabs = DEFAULT_TABS[activeTool];
+    return tabs ? tabs[0].id : "img-to-3d";
+  });
+  const [selectedModel, setSelectedModel] = useState("trellis-v1");
+  const [projectName, setProjectName] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [editAction, setEditAction] = useState<string | null>(null);
+  const [editColor, setEditColor] = useState("#ef4444");
+  const [editColorArea, setEditColorArea] = useState("product");
+  const [editBgType, setEditBgType] = useState("blur");
+  const [editStyle, setEditStyle] = useState("oil");
+  const [editStyleStrength, setEditStyleStrength] = useState("medium");
+  const [editAspect, setEditAspect] = useState("1:1");
+  const [selectedVideoModel, setSelectedVideoModel] = useState("wan-v2.6");
+  const [batchFileCount, setBatchFileCount] = useState(0);
+
+  // Upload state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [promptText, setPromptText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const modelFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Virtual try-on: second image (model/person photo)
+  const [modelPhotoPreview, setModelPhotoPreview] = useState<string | null>(null);
+  const [modelPhotoUrl, setModelPhotoUrl] = useState<string | null>(null);
+  const [modelPhotoUploading, setModelPhotoUploading] = useState(false);
+  const modelPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset active tab when tool category changes
+  useEffect(() => {
+    // On first mount with deep-linked tab, skip reset
+    if (initialTabRef.current) {
+      initialTabRef.current = undefined;
+      return;
+    }
+    const tabs = DEFAULT_TABS[activeTool];
+    if (tabs) {
+      setActiveTab(tabs[0].id);
+    }
+    // Clear preview and edit action when switching tools
+    if (preview) {
+      URL.revokeObjectURL(preview);
+      setPreview(null);
+    }
+    setEditAction(null);
+    setProjectName("");
+    setUploadedFile(null);
+    setUploadedImageUrl(null);
+    setUploading(false);
+    setPromptText("");
+    // Clear model photo state (virtual try-on)
+    if (modelPhotoPreview) URL.revokeObjectURL(modelPhotoPreview);
+    setModelPhotoPreview(null);
+    setModelPhotoUrl(null);
+    setModelPhotoUploading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTool]);
+
+  // Cleanup blob URL on unmount to prevent memory leak
+  const previewRef = useRef(preview);
+  previewRef.current = preview;
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
+
+  const currentModel3D = AI_MODELS_3D.find((m) => m.id === selectedModel) ?? AI_MODELS_3D[0];
+  const currentVideoModel = VIDEO_MODELS.find((m) => m.id === selectedVideoModel) ?? VIDEO_MODELS[0];
+  const tabs = DEFAULT_TABS[activeTool];
+
+  // Footer info based on tool + tab
+  const footerInfo = (() => {
+    if (activeTool === "image") {
+      const info = IMAGE_TOOL_INFO[activeTab];
+      return info ? { time: info.time, credits: info.credits } : { time: "~10 sn", credits: 5 };
+    }
+    if (activeTool === "3d-model") {
+      const map: Record<string, { time: string; credits: number }> = {
+        "img-to-3d": { time: currentModel3D.time, credits: currentModel3D.credits },
+        "text-to-3d": { time: "~2 dk", credits: 22 },
+        "texture": { time: "~1 dk", credits: 8 },
+      };
+      return map[activeTab] ?? { time: currentModel3D.time, credits: currentModel3D.credits };
+    }
+    if (activeTool === "video") {
+      if (activeTab === "image-to-video") {
+        return { time: currentVideoModel.time, credits: currentVideoModel.credits };
+      }
+      const info = VIDEO_TOOL_INFO[activeTab];
+      return info ? { time: info.time, credits: info.credits } : { time: "~30 sn", credits: 20 };
+    }
+    if (activeTool === "ecommerce") {
+      const info = ECOMMERCE_TOOL_INFO[activeTab];
+      return info ? { time: info.time, credits: info.credits } : { time: "~15 sn", credits: 8 };
+    }
+    if (activeTool === "design") {
+      const info = DESIGN_TOOL_INFO[activeTab];
+      return info ? { time: info.time, credits: info.credits } : { time: "~10 sn", credits: 6 };
+    }
+    if (activeTool === "batch") {
+      const info = BATCH_TOOL_INFO[activeTab];
+      const count = Math.max(1, batchFileCount);
+      return info ? { time: `~${Math.round(parseInt(info.time.replace(/\D/g,"")) * count * 0.6)} sn`, credits: info.perImage * count } : { time: "—", credits: 0 };
+    }
+    return { time: "—", credits: 0 };
+  })();
+
+  /** Upload a file to Supabase Storage and get a signed URL for job submission */
+  const uploadToSupabase = useCallback(async (f: File): Promise<string | null> => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const timestamp = Date.now();
+    const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${user.id}/${timestamp}-${safeName}`;
+
+    const { error } = await supabase.storage
+      .from("uploads")
+      .upload(path, f, { contentType: f.type });
+    if (error) return null;
+
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from("uploads")
+      .createSignedUrl(path, 3600);
+    if (signedUrlError || !signedUrlData?.signedUrl) return null;
+    return signedUrlData.signedUrl;
+  }, []);
+
+  const handleFile = useCallback((f: File) => {
+    if (!f.type.startsWith("image/")) return;
+    // Set blob preview immediately
+    setPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(f);
+    });
+    // Store file for later upload + clear stale URL
+    setUploadedFile(f);
+    setUploadedImageUrl(null);
+    // Start background upload
+    setUploading(true);
+    uploadToSupabase(f).then((url) => {
+      setUploadedImageUrl(url);
+      setUploading(false);
+      if (!url) showToast("Görsel yüklenemedi, tekrar dene", "error");
+    }).catch(() => {
+      setUploading(false);
+      showToast("Görsel yüklenemedi, tekrar dene", "error");
+    });
+  }, [uploadToSupabase]);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const f = e.dataTransfer.files?.[0];
+      if (f) handleFile(f);
+    },
+    [handleFile]
+  );
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const f = item.getAsFile();
+          if (f) handleFile(f);
+          break;
+        }
+      }
+    },
+    [handleFile]
+  );
+
+  /** Upload model/person photo for virtual try-on (second image) */
+  const handleModelPhoto = useCallback((f: File) => {
+    if (!f.type.startsWith("image/")) return;
+    setModelPhotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(f);
+    });
+    setModelPhotoUrl(null);
+    setModelPhotoUploading(true);
+    uploadToSupabase(f).then((url) => {
+      setModelPhotoUrl(url);
+      setModelPhotoUploading(false);
+      if (!url) showToast("Model fotoğrafı yüklenemedi", "error");
+    }).catch(() => {
+      setModelPhotoUploading(false);
+      showToast("Model fotoğrafı yüklenemedi", "error");
+    });
+  }, [uploadToSupabase]);
+
+  const handleGenerate = () => {
+    const name = projectName.trim() || "Yeni Proje";
+    const apiTool = TAB_TO_API_TOOL[activeTab] ?? activeTool;
+
+    // --- Validation ---
+    const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code"];
+    const needsImage = !textOnlyTabs.includes(activeTab);
+    const needsPrompt = ["text-to-3d", "text-to-image", "text-to-video"].includes(activeTab);
+
+    if (needsImage && !uploadedImageUrl) {
+      showToast("Lütfen önce bir görsel yükle", "error");
+      return;
+    }
+    if (needsPrompt && !promptText.trim()) {
+      showToast("Lütfen bir açıklama yaz", "error");
+      return;
+    }
+    if (activeTab === "virtual-tryon" && !modelPhotoUrl) {
+      showToast("Lütfen model fotoğrafı da yükle", "error");
+      return;
+    }
+    if (activeTab === "qr-code" && !projectName.trim()) {
+      showToast("Lütfen QR kodu için bir URL gir", "error");
+      return;
+    }
+    if (activeTab === "logo" && !projectName.trim()) {
+      showToast("Lütfen marka adı gir", "error");
+      return;
+    }
+    if (activeTab === "image-edit" && !editAction) {
+      showToast("Lütfen bir düzenleme aksiyonu seç", "error");
+      return;
+    }
+    if (activeTab === "image-edit" && !promptText.trim()) {
+      showToast("Lütfen düzenleme açıklaması yaz", "error");
+      return;
+    }
+    if (uploading || modelPhotoUploading) {
+      showToast("Yükleme devam ediyor, lütfen bekle", "error");
+      return;
+    }
+
+    // Build base payload
+    const payload: GeneratePayload = {
+      name,
+      model: "",
+      credits: footerInfo.credits,
+      apiTool,
+      imageUrl: uploadedImageUrl ?? undefined,
+      prompt: promptText.trim() || undefined,
+    };
+
+    // Multi-image tools: send imageUrls array instead of imageUrl
+    if (activeTab === "img-to-3d" || activeTab === "texture") {
+      if (uploadedImageUrl) {
+        payload.imageUrls = [uploadedImageUrl];
+        payload.imageUrl = undefined;
+      }
+    } else if (activeTab === "virtual-tryon") {
+      if (modelPhotoUrl && uploadedImageUrl) {
+        payload.imageUrls = [modelPhotoUrl, uploadedImageUrl];
+        payload.imageUrl = undefined;
+      }
+    }
+
+    // Logo: compose prompt with brand name
+    if (activeTab === "logo") {
+      const brand = projectName.trim();
+      const slogan = promptText.trim();
+      payload.prompt = `Logo for "${brand || "Brand"}". ${slogan ? `Tagline: ${slogan}.` : ""} Professional, clean design.`;
+    }
+
+    // QR: send URL as prompt
+    if (activeTab === "qr-code") {
+      const targetUrl = projectName.trim();
+      payload.prompt = `QR code for ${targetUrl || "https://example.com"}. Artistic, visually appealing, scannable.`;
+    }
+
+    // image-edit: compose prompt from editAction + sub-options + user text
+    if (activeTab === "image-edit" && editAction) {
+      const actionLabel = EDIT_ACTIONS.find((a) => a.id === editAction)?.label ?? editAction;
+      let composed = `[${actionLabel}] `;
+      if (editAction === "recolor") composed += `Target color: ${editColor}, area: ${editColorArea}. `;
+      if (editAction === "bg-swap") composed += `Background: ${editBgType}. `;
+      if (editAction === "style") composed += `Style: ${editStyle}, strength: ${editStyleStrength}. `;
+      if (editAction === "resize") composed += `Aspect: ${editAspect}. `;
+      composed += promptText.trim();
+      payload.prompt = composed;
+    }
+
+    if (activeTool === "image") {
+      const info = IMAGE_TOOL_INFO[activeTab];
+      payload.model = info?.model ?? "AI Model";
+      payload.credits = info?.credits ?? 5;
+    } else if (activeTool === "video") {
+      if (activeTab === "image-to-video") {
+        payload.model = currentVideoModel.name;
+        payload.credits = currentVideoModel.credits;
+        payload.tier = VIDEO_MODEL_TO_TIER[selectedVideoModel];
+      } else {
+        const info = VIDEO_TOOL_INFO[activeTab];
+        payload.model = info?.model ?? "AI Model";
+        payload.credits = info?.credits ?? 20;
+      }
+    } else if (activeTool === "ecommerce") {
+      const info = ECOMMERCE_TOOL_INFO[activeTab];
+      payload.model = info?.model ?? "AI Model";
+      payload.credits = info?.credits ?? 8;
+    } else if (activeTool === "design") {
+      const info = DESIGN_TOOL_INFO[activeTab];
+      payload.model = info?.model ?? "AI Model";
+      payload.credits = info?.credits ?? 6;
+    } else if (activeTool === "batch") {
+      const info = BATCH_TOOL_INFO[activeTab];
+      const count = Math.max(1, batchFileCount);
+      payload.name = name || `Toplu İşlem (${count} görsel)`;
+      payload.model = info?.model ?? "AI Model";
+      payload.credits = (info?.perImage ?? 2) * count;
+    } else if (activeTab === "text-to-3d") {
+      // text-to-3d always uses meshy-6-text (standard tier)
+      payload.model = "Meshy 6";
+      payload.credits = 22;
+      payload.tier = "standard";
+    } else {
+      // 3D model (img-to-3d, texture)
+      payload.model = currentModel3D.name;
+      payload.credits = currentModel3D.credits;
+      payload.tier = MODEL_TO_TIER[selectedModel];
+    }
+
+    onGenerate?.(payload);
+  };
+
+  /* ═══ "Yakında" placeholder for unimplemented tools ═══ */
+  if (!tabs) {
+    return (
+      <div className="flex w-full md:w-[280px] flex-col bg-card/50 md:rounded-l-2xl">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Rocket className="h-8 w-8 text-primary/60" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-sm font-semibold text-foreground">Yakında</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Bu araç kategorisi üzerinde çalışıyoruz. Çok yakında kullanıma açılacak!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══ Image upload zone (shared between tabs that need it) ═══ */
+  const renderImageUpload = (label: string, hint: string) => (
+    <div>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={cn(
+          "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
+          dragOver
+            ? "border-primary bg-primary/5"
+            : preview
+              ? "border-transparent"
+              : "border-border hover:border-primary/50 hover:bg-accent/30"
+        )}
+      >
+        {preview ? (
+          <div className="relative w-full h-[140px]">
+            <img src={preview} alt="Yüklenen görsel" className="w-full h-full object-contain rounded-lg" />
+            <button
+              onClick={(e) => { e.stopPropagation(); if (preview) URL.revokeObjectURL(preview); setPreview(null); setUploadedFile(null); setUploadedImageUrl(null); }}
+              className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <Upload className="h-6 w-6 text-primary/70" />
+            </div>
+            <p className="text-xs font-medium text-foreground/80">{label}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{hint}</p>
+          </>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className="flex w-full md:w-[280px] flex-col bg-card/50 md:rounded-l-2xl"
+      onPaste={handlePaste}
+    >
+      {/* Tabs — compact mode when 4+ tabs */}
+      {(() => { const compact = tabs.length > 3; return (
+      <div className={cn("flex p-3 pb-2 border-b border-border/40", compact ? "gap-1" : "gap-1.5")}>
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.id);
+                setPromptText("");
+                // Clear upload state on intra-tool tab switch
+                if (preview) URL.revokeObjectURL(preview);
+                setPreview(null);
+                setUploadedFile(null);
+                setUploadedImageUrl(null);
+                setUploading(false);
+                if (modelPhotoPreview) URL.revokeObjectURL(modelPhotoPreview);
+                setModelPhotoPreview(null);
+                setModelPhotoUrl(null);
+                setModelPhotoUploading(false);
+              }}
+              className={cn(
+                "flex-1 flex items-center justify-center rounded-lg font-medium cursor-pointer transition-all duration-200",
+                compact ? "gap-1 px-1 py-1.5 text-[10px]" : "gap-1.5 px-2 py-2 text-[11px]",
+                isActive
+                  ? "bg-primary/15 text-primary shadow-sm shadow-primary/10 border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
+              )}
+            >
+              <Icon className={cn(compact ? "h-3 w-3" : "h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      ); })()}
+
+      {/* Form content */}
+      <div className="flex flex-col gap-4 p-3 flex-1 overflow-y-auto">
+
+        {/* ═══════════════════════════════════════
+            3D MODEL TABS
+           ═══════════════════════════════════════ */}
+
+        {/* Fotoğraf → 3D */}
+        {activeTab === "img-to-3d" && (
+          <>
+            {renderImageUpload("Ürün fotoğrafını yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label htmlFor="model-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="model-name" placeholder="ör: Ürün kutusu, Vazo, Oyuncak araba" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">AI Model</Label>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                {AI_MODELS_3D.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} — {model.credits} kr
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40 opacity-50">
+              <div className="flex items-center gap-2">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Gelişmiş Ayarlar</Label>
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-500/40 text-amber-500">Yakında</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enhance" className="text-xs text-muted-foreground">Otomatik İyileştirme</Label>
+                <Switch id="enhance" checked={false} disabled />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="multiview" className="text-xs text-muted-foreground">Çoklu Açı</Label>
+                <Switch id="multiview" checked={false} disabled />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="autorig" className="text-xs text-muted-foreground">Otomatik Rig</Label>
+                <Switch id="autorig" checked={false} disabled />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Metin → 3D */}
+        {activeTab === "text-to-3d" && (
+          <>
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Açıklama</Label>
+              <Textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                placeholder="Oluşturmak istediğin 3D modeli detaylı anlat...&#10;&#10;ör: Kırmızı renkli, metal yüzeyli bir oyuncak araba. Parlak boya, gerçekçi tekerlekler."
+                className="mt-1.5 min-h-[140px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="text-model-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="text-model-name" placeholder="ör: Kırmızı oyuncak araba" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">AI Model</Label>
+              <select
+                defaultValue="meshy-6"
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                <option value="meshy-6">Meshy 6 — 22 kr</option>
+              </select>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Stil Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Sanat Stili</Label>
+                <select
+                  defaultValue="realistic"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="realistic">Gerçekçi</option>
+                  <option value="cartoon">Karikatür</option>
+                  <option value="lowpoly">Düşük Poli</option>
+                  <option value="sculpture">Heykel</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Negatif Prompt</Label>
+                <Switch />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Doku Üret */}
+        {activeTab === "texture" && (
+          <>
+            {renderImageUpload("Doku referans görseli yükle", "Tıkla, sürükle veya yapıştır • Ürün fotoğrafı veya referans")}
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Doku Açıklaması</Label>
+              <Textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                placeholder="Nasıl bir doku istiyorsun?&#10;&#10;ör: Paslı metal yüzey, çizikler ve aşınma izleri"
+                className="mt-1.5 min-h-[100px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Metal doku üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════
+            IMAGE TOOL TABS
+           ═══════════════════════════════════════ */}
+
+        {/* Arkaplan Kaldır */}
+        {activeTab === "bg-remove" && (
+          <>
+            {renderImageUpload("Arkaplanı kaldırılacak görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Ürün arka plan temizleme" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Scissors className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">birefnet v2</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">1 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Yüksek doğrulukla arkaplan kaldırma. Ürün fotoğrafları için ideal.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Seçenekler</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Kenar Yumuşatma</Label>
+                <Switch defaultChecked />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Çıktı Formatı</Label>
+                <select
+                  defaultValue="png"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="png">PNG (Şeffaf)</option>
+                  <option value="white">Beyaz Arkaplan</option>
+                  <option value="custom">Özel Renk</option>
+                </select>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* İyileştir (Enhance / Upscale) */}
+        {activeTab === "enhance" && (
+          <>
+            {renderImageUpload("İyileştirilecek görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Ürün görseli iyileştirme" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <ZoomIn className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Aura SR</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">4 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                AI destekli süper çözünürlük. Düşük kaliteli görselleri netleştir.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Ayarlar</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Büyütme Oranı</Label>
+                <select
+                  defaultValue="2x"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="2x">2× (Önerilen)</option>
+                  <option value="4x">4× (Yüksek Kalite)</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Gürültü Azaltma</Label>
+                <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Yüz İyileştirme</Label>
+                <Switch />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Metin → Görsel (Text to Image) */}
+        {activeTab === "text-to-image" && (
+          <>
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Açıklama</Label>
+              <Textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                placeholder="Oluşturmak istediğin görseli detaylı anlat...&#10;&#10;ör: Beyaz arka planda minimalist bir parfüm şişesi, stüdyo ışığı, profesyonel ürün fotoğrafı"
+                className="mt-1.5 min-h-[120px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Parfüm şişesi görseli" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Görsel Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Stil</Label>
+                <select
+                  defaultValue="photo"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="photo">Fotogerçekçi</option>
+                  <option value="illustration">İllüstrasyon</option>
+                  <option value="digital-art">Dijital Sanat</option>
+                  <option value="anime">Anime</option>
+                  <option value="3d-render">3D Render</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Boyut</Label>
+                <select
+                  defaultValue="1:1"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="1:1">1:1 Kare (1024×1024)</option>
+                  <option value="16:9">16:9 Yatay (1024×576)</option>
+                  <option value="9:16">9:16 Dikey (576×1024)</option>
+                  <option value="4:3">4:3 Yatay (1024×768)</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Negatif Prompt</Label>
+                <Switch />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Görsel Düzenle — Aksiyon Kartları */}
+        {activeTab === "image-edit" && (
+          <>
+            {renderImageUpload("Düzenlenecek görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            {/* Action cards grid */}
+            <div>
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2 block">Ne yapmak istiyorsun?</Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {EDIT_ACTIONS.map((action) => {
+                  const Icon = action.icon;
+                  const isSelected = editAction === action.id;
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={() => setEditAction(isSelected ? null : action.id)}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 rounded-xl p-2.5 text-center transition-all duration-200 cursor-pointer border",
+                        isSelected
+                          ? "bg-primary/15 border-primary/40 text-primary shadow-sm shadow-primary/10"
+                          : "bg-background/30 border-border/30 text-muted-foreground hover:border-primary/30 hover:bg-accent/20 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4", isSelected && "drop-shadow-[0_0_4px_rgba(99,102,241,0.4)]")} />
+                      <span className="text-[10px] font-medium leading-tight">{action.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action-specific options */}
+            {editAction === "recolor" && (
+              <div className="space-y-3 pt-1 border-t border-border/40 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Renk Ayarları</Label>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Hedef Renk</Label>
+                  <div className="flex gap-1.5 mt-1.5">
+                    {["#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6","#ec4899","#ffffff"].map((c) => (
+                      <button key={c} type="button" className={cn("h-6 w-6 rounded-full border-2 hover:scale-110 transition-transform", editColor === c ? "border-primary ring-2 ring-primary/30" : "border-border/50")} style={{ backgroundColor: c }} onClick={() => setEditColor(c)} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Uygulama Alanı</Label>
+                  <select value={editColorArea} onChange={(e) => setEditColorArea(e.target.value)} className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                    <option value="product">Sadece Ürün</option>
+                    <option value="background">Sadece Arkaplan</option>
+                    <option value="all">Tüm Görsel</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {editAction === "bg-swap" && (
+              <div className="space-y-3 pt-1 border-t border-border/40 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Arkaplan Ayarları</Label>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Yeni Arkaplan</Label>
+                  <select value={editBgType} onChange={(e) => setEditBgType(e.target.value)} className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                    <option value="blur">Bulanıklaştır</option>
+                    <option value="white">Beyaz</option>
+                    <option value="gradient">Gradyan</option>
+                    <option value="scene">Sahne Oluştur (AI)</option>
+                    <option value="transparent">Şeffaf (PNG)</option>
+                  </select>
+                </div>
+                {/* Scene prompt only when scene is selected */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Sahne Açıklaması</Label>
+                  <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: Mermer masa üstü, stüdyo ışığı" className="mt-1.5 h-8 text-sm bg-background/50" />
+                </div>
+              </div>
+            )}
+
+            {editAction === "remove-obj" && (
+              <div className="space-y-3 pt-1 border-t border-border/40 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Nesne Kaldırma</Label>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Neyi kaldıralım?</Label>
+                  <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: Sağ taraftaki gölge, sol alttaki logo" className="mt-1.5 h-8 text-sm bg-background/50" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Otomatik Dolgu</Label>
+                  <Switch defaultChecked />
+                </div>
+              </div>
+            )}
+
+            {editAction === "retouch" && (
+              <div className="space-y-3 pt-1 border-t border-border/40 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Rötuş Seçenekleri</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Netleştir</Label>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Parlaklık Düzelt</Label>
+                  <Switch />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Renk Dengesi</Label>
+                  <Switch />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Gürültü Azalt</Label>
+                  <Switch />
+                </div>
+              </div>
+            )}
+
+            {editAction === "style" && (
+              <div className="space-y-3 pt-1 border-t border-border/40 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Stil Seçenekleri</Label>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Sanat Stili</Label>
+                  <select value={editStyle} onChange={(e) => setEditStyle(e.target.value)} className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                    <option value="oil">Yağlıboya</option>
+                    <option value="watercolor">Suluboya</option>
+                    <option value="sketch">Karakalem</option>
+                    <option value="popart">Pop Art</option>
+                    <option value="anime">Anime</option>
+                    <option value="pixel">Piksel Sanatı</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Etki Gücü</Label>
+                  <select value={editStyleStrength} onChange={(e) => setEditStyleStrength(e.target.value)} className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                    <option value="light">Hafif — Dokunuş</option>
+                    <option value="medium">Orta — Dengeli</option>
+                    <option value="strong">Güçlü — Tam dönüşüm</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {editAction === "resize" && (
+              <div className="space-y-3 pt-1 border-t border-border/40 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Boyut Ayarları</Label>
+                <div>
+                  <Label className="text-xs text-muted-foreground">En Boy Oranı</Label>
+                  <select value={editAspect} onChange={(e) => setEditAspect(e.target.value)} className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                    <option value="1:1">1:1 Kare</option>
+                    <option value="4:3">4:3 Yatay</option>
+                    <option value="3:4">3:4 Dikey</option>
+                    <option value="16:9">16:9 Geniş</option>
+                    <option value="9:16">9:16 Hikaye</option>
+                    <option value="custom">Özel Boyut</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">AI ile Genişlet</Label>
+                  <Switch />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Ürün görseli düzenleme" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════
+            VIDEO TABS
+           ═══════════════════════════════════════ */}
+
+        {/* Görsel → Video */}
+        {activeTab === "image-to-video" && (
+          <>
+            {renderImageUpload("Video oluşturulacak görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label htmlFor="video-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="video-name" placeholder="ör: Ürün tanıtım videosu" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">AI Model</Label>
+              <select
+                value={selectedVideoModel}
+                onChange={(e) => setSelectedVideoModel(e.target.value)}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                {VIDEO_MODELS.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} — {model.credits} kr
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Video Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Süre</Label>
+                <select
+                  defaultValue="5"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="3">3 saniye</option>
+                  <option value="5">5 saniye (Önerilen)</option>
+                  <option value="10">10 saniye</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Kamera Hareketi</Label>
+                <select
+                  defaultValue="orbit"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="static">Sabit</option>
+                  <option value="orbit">Yörünge (Dönen)</option>
+                  <option value="zoom-in">Yakınlaşma</option>
+                  <option value="zoom-out">Uzaklaşma</option>
+                  <option value="pan">Kaydırma</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Yüksek Çözünürlük</Label>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Metin → Video */}
+        {activeTab === "text-to-video" && (
+          <>
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Video Açıklaması</Label>
+              <Textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                placeholder="Oluşturmak istediğin videoyu detaylı anlat...&#10;&#10;ör: Beyaz arka planda dönen bir parfüm şişesi, yumuşak stüdyo ışığı, yavaş hareket"
+                className="mt-1.5 min-h-[120px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="t2v-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="t2v-name" placeholder="ör: Parfüm tanıtım videosu" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Video className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Minimax Video</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">30 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Metin açıklamasından yüksek kaliteli video üretimi. Ürün tanıtımları için ideal.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Video Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Süre</Label>
+                <select
+                  defaultValue="5"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="3">3 saniye</option>
+                  <option value="5">5 saniye (Önerilen)</option>
+                  <option value="10">10 saniye</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">En Boy Oranı</Label>
+                <select
+                  defaultValue="16:9"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="16:9">16:9 Yatay (1280×720)</option>
+                  <option value="9:16">9:16 Dikey — Reels/TikTok</option>
+                  <option value="1:1">1:1 Kare</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Negatif Prompt</Label>
+                <Switch />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Konuşan Avatar */}
+        {activeTab === "talking-avatar" && (
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Mic className="h-7 w-7 text-primary/60" />
+            </div>
+            <div className="space-y-1.5 px-4">
+              <div className="flex items-center justify-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Konuşan Avatar</h3>
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">Yakında</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Metin-ses dönüşümü (TTS) pipeline'ı hazırlanıyor. Fotoğraftan konuşan avatar videosu oluşturma özelliği yakında aktif olacak.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════
+            E-TİCARET TABS
+           ═══════════════════════════════════════ */}
+
+        {/* Sahne Oluştur */}
+        {activeTab === "scene" && (
+          <>
+            {renderImageUpload("Ürün fotoğrafını yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label htmlFor="scene-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="scene-name" placeholder="ör: Parfüm stüdyo çekimi" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Camera className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Bria Product Shot</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">8 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Ürünü profesyonel stüdyo sahnelerine yerleştir. E-ticaret katalogları için ideal.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Sahne Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Sahne Türü</Label>
+                <select
+                  defaultValue="studio"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="studio">Stüdyo</option>
+                  <option value="lifestyle">Yaşam Tarzı</option>
+                  <option value="outdoor">Dış Mekan</option>
+                  <option value="minimal">Minimalist</option>
+                  <option value="luxury">Lüks</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Sahne Açıklaması</Label>
+                <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: Mermer masa, yumuşak ışık" className="mt-1.5 h-8 text-sm bg-background/50" />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Gölge Ekle</Label>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* A+ İçerik */}
+        {activeTab === "aplus" && (
+          <>
+            {renderImageUpload("Ana ürün görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label htmlFor="aplus-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="aplus-name" placeholder="ör: Ürün detay sayfası görseli" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <LayoutGrid className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Bria Product Shot HD</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">8 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Amazon, Trendyol ve Hepsiburada için zengin A+ içerik görselleri.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">A+ Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Platform</Label>
+                <select
+                  defaultValue="trendyol"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="trendyol">Trendyol</option>
+                  <option value="hepsiburada">Hepsiburada</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="n11">n11</option>
+                  <option value="custom">Özel Boyut</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Şablon</Label>
+                <select
+                  defaultValue="feature"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="feature">Özellik Vurgulama</option>
+                  <option value="comparison">Karşılaştırma</option>
+                  <option value="lifestyle">Yaşam Tarzı</option>
+                  <option value="infographic">İnfografik</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Ürün Açıklaması</Label>
+                <Input placeholder="ör: Paslanmaz çelik termos, 500ml" className="mt-1.5 h-8 text-sm bg-background/50" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Sanal Deneme */}
+        {activeTab === "virtual-tryon" && (
+          <>
+            {renderImageUpload("Kıyafet / aksesuar görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            {/* Second upload: Model/person photo */}
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Model Fotoğrafı</Label>
+              <div
+                onClick={() => modelPhotoInputRef.current?.click()}
+                className={cn(
+                  "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[100px]",
+                  modelPhotoPreview
+                    ? "border-transparent"
+                    : "border-border hover:border-primary/50 hover:bg-accent/30"
+                )}
+              >
+                {modelPhotoPreview ? (
+                  <div className="relative w-full h-[100px]">
+                    <img src={modelPhotoPreview} alt="Model fotoğrafı" className="w-full h-full object-contain rounded-lg" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (modelPhotoPreview) URL.revokeObjectURL(modelPhotoPreview);
+                        setModelPhotoPreview(null);
+                        setModelPhotoUrl(null);
+                      }}
+                      className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1.5">
+                      <User className="h-5 w-5 text-primary/70" />
+                    </div>
+                    <p className="text-xs font-medium text-foreground/80">Kişi / manken fotoğrafı yükle</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Kıyafetin giydirilmesini istediğin kişi</p>
+                  </>
+                )}
+                <input ref={modelPhotoInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelPhoto(f); e.target.value = ""; }}
+                />
+              </div>
+              {modelPhotoUploading && (
+                <div className="flex items-center gap-1.5 text-[10px] text-primary mt-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Yükleniyor...</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="tryon-name" className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="tryon-name" placeholder="ör: Kış koleksiyonu deneme" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Shirt className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">FASHN Try-On</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">10 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Kıyafet ve aksesuarları model üzerinde sanal olarak dene. Moda e-ticaret için ideal.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Deneme Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Kategori</Label>
+                <select
+                  defaultValue="auto"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="auto">Otomatik</option>
+                  <option value="upper">Üst Giyim</option>
+                  <option value="lower">Alt Giyim</option>
+                  <option value="full">Tam Kıyafet</option>
+                </select>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════
+            TASARIM TABS
+           ═══════════════════════════════════════ */}
+
+        {/* Logo Oluştur */}
+        {activeTab === "logo" && (
+          <>
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Marka / İşletme Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Renderhane" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Slogan (Opsiyonel)</Label>
+              <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: AI ile görsel üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Crown className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Flux Logo</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">6 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                AI destekli profesyonel logo tasarımı. Farklı stillerde 4 varyasyon üretir.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Logo Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Stil</Label>
+                <select
+                  defaultValue="minimal"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="minimal">Minimalist</option>
+                  <option value="modern">Modern</option>
+                  <option value="vintage">Vintage</option>
+                  <option value="playful">Eğlenceli</option>
+                  <option value="corporate">Kurumsal</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Renk Paleti</Label>
+                <div className="flex gap-1.5 mt-1.5">
+                  {["#4f46e5","#ef4444","#22c55e","#f97316","#8b5cf6","#ec4899","#0ea5e9","#1a1a2e"].map((c) => (
+                    <button key={c} type="button" className="h-6 w-6 rounded-full border border-border/50 hover:scale-110 transition-transform" style={{ backgroundColor: c }} onClick={() => showToast(`Renk seçildi: ${c}`, "success")} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Şeffaf Arkaplan</Label>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* QR Kod */}
+        {activeTab === "qr-code" && (
+          <>
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Hedef URL / Metin</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: https://renderhane.com" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <QrCode className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">QR Monster</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">4 kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                AI ile sanatsal QR kod oluştur. Taranabilirliği koruyarak estetik tasarım.
+              </p>
+            </div>
+
+            {renderImageUpload("Stil görseli yükle (opsiyonel)", "QR kod'un stilini belirleyecek referans görsel")}
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">QR Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Stil Açıklaması</Label>
+                <Input placeholder="ör: Çiçek desenleri, doğa temalı" className="mt-1.5 h-8 text-sm bg-background/50" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Hata Düzeltme</Label>
+                <select
+                  defaultValue="H"
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+                >
+                  <option value="L">Düşük (%7)</option>
+                  <option value="M">Orta (%15)</option>
+                  <option value="Q">Yüksek (%25)</option>
+                  <option value="H">En Yüksek (%30) — Önerilen</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Logo Ortada</Label>
+                <Switch />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════
+            TOPLU İŞLEM TABS
+           ═══════════════════════════════════════ */}
+
+        {/* Batch "yakinda" banner */}
+        {activeTab.startsWith("batch-") && (
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-none">
+              <FileStack className="h-4 w-4 text-amber-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-foreground">Toplu İşlem</span>
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-amber-500/40 text-amber-500">Yakında</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Toplu dosya yükleme ve işleme yakında aktif olacak.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Toplu Arkaplan Kaldır */}
+        {activeTab === "batch-bg" && (
+          <>
+            <div>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
+                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/30"
+                )}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const count = e.dataTransfer.files?.length || 0;
+                  if (count > 0) { setBatchFileCount(count); showToast(`${count} görsel yüklendi`, "success"); }
+                }}
+              >
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+                  <FolderUp className="h-6 w-6 text-primary/70" />
+                </div>
+                <p className="text-xs font-medium text-foreground/80">Görselleri toplu yükle</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Sürükle veya tıkla • Max 50 görsel</p>
+                {batchFileCount > 0 && (
+                  <Badge variant="secondary" className="mt-2 text-[10px] gap-1">
+                    <FileStack className="h-3 w-3" />
+                    {batchFileCount} görsel seçili
+                  </Badge>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={(e) => { const count = e.target.files?.length || 0; setBatchFileCount(count); if (count > 0) showToast(`${count} görsel yüklendi`, "success"); e.target.value = ""; }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Ürün katalog arkaplanları" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Scissors className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">birefnet v2</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">1 kr/görsel</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Her görselden arkaplanı otomatik kaldır. Toplu e-ticaret fotoğrafları için ideal.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Toplu Ayarlar</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Çıktı Formatı</Label>
+                <select defaultValue="png" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                  <option value="png">PNG (Şeffaf)</option>
+                  <option value="white">Beyaz Arkaplan</option>
+                  <option value="custom">Özel Renk</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Kenar Yumuşatma</Label>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Toplu İyileştir */}
+        {activeTab === "batch-enhance" && (
+          <>
+            <div>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
+                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/30"
+                )}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const count = e.dataTransfer.files?.length || 0;
+                  if (count > 0) { setBatchFileCount(count); showToast(`${count} görsel yüklendi`, "success"); }
+                }}
+              >
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+                  <FolderUp className="h-6 w-6 text-primary/70" />
+                </div>
+                <p className="text-xs font-medium text-foreground/80">Görselleri toplu yükle</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Sürükle veya tıkla • Max 50 görsel</p>
+                {batchFileCount > 0 && (
+                  <Badge variant="secondary" className="mt-2 text-[10px] gap-1">
+                    <FileStack className="h-3 w-3" />
+                    {batchFileCount} görsel seçili
+                  </Badge>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={(e) => { const count = e.target.files?.length || 0; setBatchFileCount(count); if (count > 0) showToast(`${count} görsel yüklendi`, "success"); e.target.value = ""; }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Katalog görselleri iyileştirme" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <ZoomIn className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Aura SR</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">4 kr/görsel</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Tüm görselleri toplu olarak AI ile iyileştir ve kaliteyi artır.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Toplu Ayarlar</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Büyütme Oranı</Label>
+                <select defaultValue="2x" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                  <option value="2x">2× (Önerilen)</option>
+                  <option value="4x">4× (Yüksek Kalite)</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Gürültü Azaltma</Label>
+                <Switch defaultChecked />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Toplu Boyutla */}
+        {activeTab === "batch-resize" && (
+          <>
+            <div>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
+                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/30"
+                )}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const count = e.dataTransfer.files?.length || 0;
+                  if (count > 0) { setBatchFileCount(count); showToast(`${count} görsel yüklendi`, "success"); }
+                }}
+              >
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+                  <FolderUp className="h-6 w-6 text-primary/70" />
+                </div>
+                <p className="text-xs font-medium text-foreground/80">Görselleri toplu yükle</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Sürükle veya tıkla • Max 50 görsel</p>
+                {batchFileCount > 0 && (
+                  <Badge variant="secondary" className="mt-2 text-[10px] gap-1">
+                    <FileStack className="h-3 w-3" />
+                    {batchFileCount} görsel seçili
+                  </Badge>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={(e) => { const count = e.target.files?.length || 0; setBatchFileCount(count); if (count > 0) showToast(`${count} görsel yüklendi`, "success"); e.target.value = ""; }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Sosyal medya boyutlandırma" className="mt-1.5 h-8 text-sm bg-background/50" />
+            </div>
+
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Boyut Ayarları</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Hedef Boyut</Label>
+                <select defaultValue="1:1" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                  <option value="1:1">1:1 Kare (1080×1080)</option>
+                  <option value="4:5">4:5 Instagram Portre</option>
+                  <option value="16:9">16:9 Yatay Banner</option>
+                  <option value="9:16">9:16 Hikaye/Reels</option>
+                  <option value="custom">Özel Boyut</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Çıktı Formatı</Label>
+                <select defaultValue="jpg" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
+                  <option value="jpg">JPG (Küçük Boyut)</option>
+                  <option value="png">PNG (Kaliteli)</option>
+                  <option value="webp">WebP (Optimize)</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">AI ile Genişlet</Label>
+                <Switch />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+      </div>
+
+      {/* Footer: Time + Credits + Submit */}
+      <div className="border-t border-border p-3 space-y-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{footerInfo.time}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Coins className="h-3.5 w-3.5 text-primary" />
+            <span className="font-semibold text-foreground">{footerInfo.credits} kredi</span>
+          </div>
+        </div>
+
+        {uploading && (
+          <div className="flex items-center gap-1.5 text-[10px] text-primary">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Görsel yükleniyor...</span>
+          </div>
+        )}
+
+        <Button
+          className="w-full h-9 font-semibold"
+          size="sm"
+          onClick={handleGenerate}
+          disabled={uploading || modelPhotoUploading || activeTab === "talking-avatar" || activeTab.startsWith("batch-")}
+        >
+          {uploading || modelPhotoUploading ? (
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-1.5" />
+          )}
+          {activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
+        </Button>
+      </div>
+    </div>
+  );
+}
