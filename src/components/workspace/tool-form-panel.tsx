@@ -102,18 +102,6 @@ const TABS_DESIGN = [
   { id: "qr-code", label: "QR Kod", icon: QrCode },
 ];
 
-const BATCH_TOOL_INFO: Record<string, { model: string; credits: number; time: string; perImage: number }> = {
-  "batch-bg": { model: "birefnet v2", credits: 1, time: "~5 sn", perImage: 1 },
-  "batch-enhance": { model: "Aura SR", credits: 4, time: "~10 sn", perImage: 4 },
-  "batch-resize": { model: "Smart Resize", credits: 2, time: "~3 sn", perImage: 2 },
-};
-
-const TABS_BATCH = [
-  { id: "batch-bg", label: "Arkaplan", icon: Scissors },
-  { id: "batch-enhance", label: "İyileştir", icon: ZoomIn },
-  { id: "batch-resize", label: "Boyutla", icon: Maximize2 },
-];
-
 const TABS_3D = [
   { id: "img-to-3d", label: "Fotoğraf", icon: ImageIcon },
   { id: "text-to-3d", label: "Metin", icon: Type },
@@ -133,7 +121,6 @@ const DEFAULT_TABS: Record<string, typeof TABS_3D> = {
   "video": TABS_VIDEO,
   "ecommerce": TABS_ECOMMERCE,
   "design": TABS_DESIGN,
-  "batch": TABS_BATCH,
 };
 
 const EDIT_ACTIONS = [
@@ -171,10 +158,6 @@ const TAB_TO_API_TOOL: Record<string, string> = {
   // Design
   "logo": "logo",
   "qr-code": "qr-code",
-  // Batch (not yet API-backed)
-  "batch-bg": "bg-remove",
-  "batch-enhance": "enhance",
-  "batch-resize": "enhance",
 };
 
 /** Map 3D model select IDs to API tier */
@@ -239,8 +222,6 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
   const [editStyleStrength, setEditStyleStrength] = useState("medium");
   const [editAspect, setEditAspect] = useState("1:1");
   const [selectedVideoModel, setSelectedVideoModel] = useState("wan-v2.6");
-  const [batchFileCount, setBatchFileCount] = useState(0);
-
   // Upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -327,11 +308,6 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
     if (activeTool === "design") {
       const info = DESIGN_TOOL_INFO[activeTab];
       return info ? { time: info.time, credits: info.credits } : { time: "~10 sn", credits: 6 };
-    }
-    if (activeTool === "batch") {
-      const info = BATCH_TOOL_INFO[activeTab];
-      const count = Math.max(1, batchFileCount);
-      return info ? { time: `~${Math.round(parseInt(info.time.replace(/\D/g,"")) * count * 0.6)} sn`, credits: info.perImage * count } : { time: "—", credits: 0 };
     }
     return { time: "—", credits: 0 };
   })();
@@ -536,12 +512,6 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       const info = DESIGN_TOOL_INFO[activeTab];
       payload.model = info?.model ?? "AI Model";
       payload.credits = info?.credits ?? 6;
-    } else if (activeTool === "batch") {
-      const info = BATCH_TOOL_INFO[activeTab];
-      const count = Math.max(1, batchFileCount);
-      payload.name = name || `Toplu İşlem (${count} görsel)`;
-      payload.model = info?.model ?? "AI Model";
-      payload.credits = (info?.perImage ?? 2) * count;
     } else if (activeTab === "text-to-3d") {
       // text-to-3d always uses meshy-6-text (standard tier)
       payload.model = "Meshy 6";
@@ -1553,237 +1523,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
           </>
         )}
 
-        {/* ═══════════════════════════════════════
-            TOPLU İŞLEM TABS
-           ═══════════════════════════════════════ */}
+        {/* Batch processing removed — will be added when backend is ready */}
 
-        {/* Batch "yakinda" banner */}
-        {activeTab.startsWith("batch-") && (
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-none">
-              <FileStack className="h-4 w-4 text-amber-500" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-foreground">Toplu İşlem</span>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-amber-500/40 text-amber-500">Yakında</Badge>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Toplu dosya yükleme ve işleme yakında aktif olacak.</p>
-            </div>
-          </div>
-        )}
 
-        {/* Toplu Arkaplan Kaldır */}
-        {activeTab === "batch-bg" && (
-          <>
-            <div>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
-                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/30"
-                )}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const count = e.dataTransfer.files?.length || 0;
-                  if (count > 0) { setBatchFileCount(count); showToast(`${count} görsel yüklendi`, "success"); }
-                }}
-              >
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-                  <FolderUp className="h-6 w-6 text-primary/70" />
-                </div>
-                <p className="text-xs font-medium text-foreground/80">Görselleri toplu yükle</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Sürükle veya tıkla • Max 50 görsel</p>
-                {batchFileCount > 0 && (
-                  <Badge variant="secondary" className="mt-2 text-[10px] gap-1">
-                    <FileStack className="h-3 w-3" />
-                    {batchFileCount} görsel seçili
-                  </Badge>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
-                  onChange={(e) => { const count = e.target.files?.length || 0; setBatchFileCount(count); if (count > 0) showToast(`${count} görsel yüklendi`, "success"); e.target.value = ""; }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Ürün katalog arkaplanları" className="mt-1.5 h-8 text-sm bg-background/50" />
-            </div>
-
-            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
-                  <Scissors className="h-3.5 w-3.5 text-primary" />
-                </div>
-                <span className="text-xs font-medium text-foreground">birefnet v2</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">1 kr/görsel</Badge>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Her görselden arkaplanı otomatik kaldır. Toplu e-ticaret fotoğrafları için ideal.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-1 border-t border-border/40">
-              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Toplu Ayarlar</Label>
-              <div>
-                <Label className="text-xs text-muted-foreground">Çıktı Formatı</Label>
-                <select defaultValue="png" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
-                  <option value="png">PNG (Şeffaf)</option>
-                  <option value="white">Beyaz Arkaplan</option>
-                  <option value="custom">Özel Renk</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Kenar Yumuşatma</Label>
-                <Switch defaultChecked />
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Toplu İyileştir */}
-        {activeTab === "batch-enhance" && (
-          <>
-            <div>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
-                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/30"
-                )}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const count = e.dataTransfer.files?.length || 0;
-                  if (count > 0) { setBatchFileCount(count); showToast(`${count} görsel yüklendi`, "success"); }
-                }}
-              >
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-                  <FolderUp className="h-6 w-6 text-primary/70" />
-                </div>
-                <p className="text-xs font-medium text-foreground/80">Görselleri toplu yükle</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Sürükle veya tıkla • Max 50 görsel</p>
-                {batchFileCount > 0 && (
-                  <Badge variant="secondary" className="mt-2 text-[10px] gap-1">
-                    <FileStack className="h-3 w-3" />
-                    {batchFileCount} görsel seçili
-                  </Badge>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
-                  onChange={(e) => { const count = e.target.files?.length || 0; setBatchFileCount(count); if (count > 0) showToast(`${count} görsel yüklendi`, "success"); e.target.value = ""; }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Katalog görselleri iyileştirme" className="mt-1.5 h-8 text-sm bg-background/50" />
-            </div>
-
-            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
-                  <ZoomIn className="h-3.5 w-3.5 text-primary" />
-                </div>
-                <span className="text-xs font-medium text-foreground">Aura SR</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">4 kr/görsel</Badge>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Tüm görselleri toplu olarak AI ile iyileştir ve kaliteyi artır.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-1 border-t border-border/40">
-              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Toplu Ayarlar</Label>
-              <div>
-                <Label className="text-xs text-muted-foreground">Büyütme Oranı</Label>
-                <select defaultValue="2x" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
-                  <option value="2x">2× (Önerilen)</option>
-                  <option value="4x">4× (Yüksek Kalite)</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Gürültü Azaltma</Label>
-                <Switch defaultChecked />
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Toplu Boyutla */}
-        {activeTab === "batch-resize" && (
-          <>
-            <div>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
-                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-accent/30"
-                )}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const count = e.dataTransfer.files?.length || 0;
-                  if (count > 0) { setBatchFileCount(count); showToast(`${count} görsel yüklendi`, "success"); }
-                }}
-              >
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-                  <FolderUp className="h-6 w-6 text-primary/70" />
-                </div>
-                <p className="text-xs font-medium text-foreground/80">Görselleri toplu yükle</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Sürükle veya tıkla • Max 50 görsel</p>
-                {batchFileCount > 0 && (
-                  <Badge variant="secondary" className="mt-2 text-[10px] gap-1">
-                    <FileStack className="h-3 w-3" />
-                    {batchFileCount} görsel seçili
-                  </Badge>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
-                  onChange={(e) => { const count = e.target.files?.length || 0; setBatchFileCount(count); if (count > 0) showToast(`${count} görsel yüklendi`, "success"); e.target.value = ""; }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-medium text-muted-foreground">Proje Adı</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Sosyal medya boyutlandırma" className="mt-1.5 h-8 text-sm bg-background/50" />
-            </div>
-
-            <div className="space-y-3 pt-1 border-t border-border/40">
-              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Boyut Ayarları</Label>
-              <div>
-                <Label className="text-xs text-muted-foreground">Hedef Boyut</Label>
-                <select defaultValue="1:1" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
-                  <option value="1:1">1:1 Kare (1080×1080)</option>
-                  <option value="4:5">4:5 Instagram Portre</option>
-                  <option value="16:9">16:9 Yatay Banner</option>
-                  <option value="9:16">9:16 Hikaye/Reels</option>
-                  <option value="custom">Özel Boyut</option>
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Çıktı Formatı</Label>
-                <select defaultValue="jpg" className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50">
-                  <option value="jpg">JPG (Küçük Boyut)</option>
-                  <option value="png">PNG (Kaliteli)</option>
-                  <option value="webp">WebP (Optimize)</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">AI ile Genişlet</Label>
-                <Switch />
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Spacer */}
         <div className="flex-1" />

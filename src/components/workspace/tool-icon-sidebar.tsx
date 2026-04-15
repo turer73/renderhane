@@ -7,7 +7,6 @@ import {
   Video,
   ShoppingBag,
   Palette,
-  Layers,
 } from "lucide-react";
 import {
   Tooltip,
@@ -46,12 +45,6 @@ const toolCategories = [
     label: "Tasarım",
     icon: Palette,
     tools: ["logo", "qr-code"],
-  },
-  {
-    id: "batch",
-    label: "Toplu İşlem",
-    icon: Layers,
-    tools: ["batch"],
   },
 ];
 
