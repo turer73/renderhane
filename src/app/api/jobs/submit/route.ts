@@ -215,13 +215,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log detailed error server-side, return generic message to client
+    // Log detailed error server-side
     const internalMessage =
       error instanceof Error ? error.message : "Job submission failed";
     console.error("Job submission failed:", internalMessage, error);
 
+    // Return a hint about the failure category (safe — no secrets exposed)
+    let errorHint = "Job submission failed. Please try again.";
+    if (internalMessage.includes("FAL_WEBHOOK_SECRET")) {
+      errorHint = "Server configuration error (webhook). Contact support.";
+    } else if (internalMessage.includes("FAL_KEY") || internalMessage.includes("fal")) {
+      errorHint = "AI service connection error. Please try again later.";
+    } else if (internalMessage.includes("SUPABASE") || internalMessage.includes("Missing")) {
+      errorHint = "Database configuration error. Contact support.";
+    } else if (internalMessage.includes("Failed to create job")) {
+      errorHint = "Database write error. Please try again.";
+    }
+
     return NextResponse.json(
-      { error: "Job submission failed. Please try again." },
+      { error: errorHint },
       { status: 500 }
     );
   }
