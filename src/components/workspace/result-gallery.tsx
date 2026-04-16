@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { proxyUrl } from "@/lib/proxy-url";
+import { ModelViewer } from "@/components/viewer/model-viewer";
 
 /** Fetch-based download that works for cross-origin URLs (Supabase, fal.media) */
 async function downloadFile(url: string, filename: string) {
@@ -489,7 +490,7 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
       </button>
 
       {/* Content */}
-      <div className="max-h-[85vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+      <div className={isGlb ? "w-[90vw] h-[85vh]" : "max-h-[85vh] max-w-[90vw]"} onClick={(e) => e.stopPropagation()}>
         {isVideo ? (
           <video
             src={proxyUrl(url)}
@@ -499,16 +500,11 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
             className="max-h-[85vh] max-w-[90vw] rounded-lg"
           />
         ) : isGlb ? (
-          <div className="flex flex-col items-center gap-4 text-white">
-            <p className="text-sm text-white/70">3D model tarayıcıda görüntülenemez</p>
-            <button
-              onClick={() => window.open(`https://3dviewer.net/#model=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer")}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Eye className="h-4 w-4" />
-              3D Viewer&apos;da Aç
-            </button>
-          </div>
+          <ModelViewer
+            url={proxyUrl(url)}
+            className="h-full w-full rounded-lg"
+            autoRotate={true}
+          />
         ) : (
           <img
             src={url}
