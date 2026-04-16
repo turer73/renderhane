@@ -229,7 +229,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
   const [uploading, setUploading] = useState(false);
   const [promptText, setPromptText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const modelFileInputRef = useRef<HTMLInputElement>(null);
+  const modelCameraInputRef = useRef<HTMLInputElement>(null);
 
   // Virtual try-on: second image (model/person photo)
   const [modelPhotoPreview, setModelPhotoPreview] = useState<string | null>(null);
@@ -558,14 +560,13 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[140px]",
+          "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all min-h-[140px]",
           dragOver
             ? "border-primary bg-primary/5"
             : preview
               ? "border-transparent"
-              : "border-border hover:border-primary/50 hover:bg-accent/30"
+              : "border-border"
         )}
       >
         {preview ? (
@@ -579,15 +580,38 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
             </button>
           </div>
         ) : (
-          <>
-            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-              <Upload className="h-6 w-6 text-primary/70" />
+          <div className="flex flex-col items-center gap-3 py-2">
+            {/* Two action buttons: Gallery + Camera */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+              >
+                <FolderUp className="h-4 w-4" />
+                <span className="hidden xs:inline">Galeri</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors cursor-pointer md:hidden"
+              >
+                <Camera className="h-4 w-4" />
+                <span>Kamera</span>
+              </button>
             </div>
-            <p className="text-xs font-medium text-foreground/80">{label}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{hint}</p>
-          </>
+            <div className="text-center">
+              <p className="text-[11px] font-medium text-foreground/70">{label}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>
+            </div>
+          </div>
         )}
+        {/* Gallery file input (no capture — shows file picker / gallery) */}
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+        />
+        {/* Camera capture input (capture=environment — opens rear camera directly) */}
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
         />
       </div>
@@ -1369,12 +1393,11 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
             <div>
               <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Model Fotoğrafı</Label>
               <div
-                onClick={() => modelPhotoInputRef.current?.click()}
                 className={cn(
-                  "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all min-h-[100px]",
+                  "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all min-h-[100px]",
                   modelPhotoPreview
                     ? "border-transparent"
-                    : "border-border hover:border-primary/50 hover:bg-accent/30"
+                    : "border-border"
                 )}
               >
                 {modelPhotoPreview ? (
@@ -1393,15 +1416,32 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1.5">
-                      <User className="h-5 w-5 text-primary/70" />
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); modelPhotoInputRef.current?.click(); }}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                      >
+                        <FolderUp className="h-3.5 w-3.5" />
+                        <span className="hidden xs:inline">Galeri</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); modelCameraInputRef.current?.click(); }}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors cursor-pointer md:hidden"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Kamera</span>
+                      </button>
                     </div>
-                    <p className="text-xs font-medium text-foreground/80">Kişi / manken fotoğrafı yükle</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Kıyafetin giydirilmesini istediğin kişi</p>
-                  </>
+                    <p className="text-[10px] text-muted-foreground">Kıyafetin giydirilmesini istediğin kişi</p>
+                  </div>
                 )}
                 <input ref={modelPhotoInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelPhoto(f); e.target.value = ""; }}
+                />
+                <input ref={modelCameraInputRef} type="file" accept="image/*" capture="user" className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelPhoto(f); e.target.value = ""; }}
                 />
               </div>
