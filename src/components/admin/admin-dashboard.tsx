@@ -24,6 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FalScannerPanel } from "./fal-scanner-panel";
 
 interface UserRow {
   id: string;
@@ -298,6 +299,9 @@ export function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* fal.ai Scanner */}
+      <FalScannerPanel />
 
       {/* Edit Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
