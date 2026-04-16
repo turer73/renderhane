@@ -102,6 +102,56 @@ const TABS_DESIGN = [
   { id: "qr-code", label: "QR Kod", icon: QrCode },
 ];
 
+/* ── Logo tool structured input options ─────────────────── */
+const LOGO_INDUSTRIES = [
+  { value: "technology", label: "Teknoloji" },
+  { value: "food-beverage", label: "Gıda & İçecek" },
+  { value: "fashion", label: "Moda & Giyim" },
+  { value: "healthcare", label: "Sağlık & Medikal" },
+  { value: "finance", label: "Finans & Bankacılık" },
+  { value: "education", label: "Eğitim" },
+  { value: "real-estate", label: "Gayrimenkul" },
+  { value: "sports", label: "Spor & Fitness" },
+  { value: "travel", label: "Seyahat & Turizm" },
+  { value: "entertainment", label: "Eğlence & Medya" },
+  { value: "beauty", label: "Güzellik & Bakım" },
+  { value: "automotive", label: "Otomotiv" },
+  { value: "agriculture", label: "Tarım & Gıda Üretimi" },
+  { value: "construction", label: "İnşaat & Mimarlık" },
+  { value: "other", label: "Diğer" },
+];
+
+const LOGO_STYLES = [
+  { value: "minimal", label: "Minimalist", recraftStyle: "logo" as const },
+  { value: "modern", label: "Modern", recraftStyle: "logo" as const },
+  { value: "vintage", label: "Vintage", recraftStyle: "digital_illustration" as const },
+  { value: "playful", label: "Eğlenceli", recraftStyle: "digital_illustration" as const },
+  { value: "corporate", label: "Kurumsal", recraftStyle: "logo" as const },
+  { value: "luxury", label: "Lüks & Premium", recraftStyle: "logo" as const },
+  { value: "handwritten", label: "El Yazısı", recraftStyle: "digital_illustration" as const },
+  { value: "geometric", label: "Geometrik", recraftStyle: "logo" as const },
+];
+
+const LOGO_COLOR_PALETTE = [
+  { hex: "#4f46e5", label: "İndigo" },
+  { hex: "#ef4444", label: "Kırmızı" },
+  { hex: "#22c55e", label: "Yeşil" },
+  { hex: "#f97316", label: "Turuncu" },
+  { hex: "#8b5cf6", label: "Mor" },
+  { hex: "#ec4899", label: "Pembe" },
+  { hex: "#0ea5e9", label: "Mavi" },
+  { hex: "#1a1a2e", label: "Koyu" },
+  { hex: "#f59e0b", label: "Altın" },
+  { hex: "#14b8a6", label: "Teal" },
+];
+
+function hexToRgb(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b];
+}
+
 const TABS_3D = [
   { id: "img-to-3d", label: "Fotoğraf", icon: ImageIcon },
   { id: "text-to-3d", label: "Metin", icon: Type },
@@ -190,6 +240,8 @@ export interface GeneratePayload {
   prompt?: string;
   /** Auto-enhance input image via aura-sr before 3D generation (+4 credits) */
   autoEnhance?: boolean;
+  /** Tool-specific API params (e.g. Recraft style/colors for logo) */
+  extraParams?: Record<string, unknown>;
 }
 
 interface ToolFormPanelProps {
@@ -233,6 +285,13 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
   const modelFileInputRef = useRef<HTMLInputElement>(null);
   const modelCameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Logo-specific state
+  const [logoIndustry, setLogoIndustry] = useState("technology");
+  const [logoStyle, setLogoStyle] = useState("minimal");
+  const [logoColors, setLogoColors] = useState<string[]>([]);
+  const [logoFormat, setLogoFormat] = useState<"png" | "svg">("png");
+  const [logoTransparentBg, setLogoTransparentBg] = useState(true);
+
   // Virtual try-on: second image (model/person photo)
   const [modelPhotoPreview, setModelPhotoPreview] = useState<string | null>(null);
   const [modelPhotoUrl, setModelPhotoUrl] = useState<string | null>(null);
@@ -261,6 +320,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
     setUploadedImageUrl(null);
     setUploading(false);
     setPromptText("");
+    // Clear logo state
+    setLogoIndustry("technology");
+    setLogoStyle("minimal");
+    setLogoColors([]);
+    setLogoFormat("png");
+    setLogoTransparentBg(true);
     // Clear model photo state (virtual try-on)
     if (modelPhotoPreview) URL.revokeObjectURL(modelPhotoPreview);
     setModelPhotoPreview(null);
@@ -309,6 +374,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       return info ? { time: info.time, credits: info.credits } : { time: "~15 sn", credits: 8 };
     }
     if (activeTool === "design") {
+      if (activeTab === "logo") {
+        const isSvg = logoFormat === "svg";
+        return { time: isSvg ? "~12 sn" : "~10 sn", credits: isSvg ? 10 : 8 };
+      }
       const info = DESIGN_TOOL_INFO[activeTab];
       return info ? { time: info.time, credits: info.credits } : { time: "~10 sn", credits: 6 };
     }
@@ -468,11 +537,31 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       }
     }
 
-    // Logo: compose prompt with brand name
+    // Logo: compose enriched prompt with industry, style, color, background preferences
     if (activeTab === "logo") {
       const brand = projectName.trim();
       const slogan = promptText.trim();
-      payload.prompt = `Logo for "${brand || "Brand"}". ${slogan ? `Tagline: ${slogan}.` : ""} Professional, clean design.`;
+      const industryObj = LOGO_INDUSTRIES.find(i => i.value === logoIndustry);
+      const styleObj = LOGO_STYLES.find(s => s.value === logoStyle);
+
+      const parts = [`Logo for "${brand || "Brand"}"`];
+      if (industryObj && logoIndustry !== "other") parts.push(`in the ${logoIndustry.replace("-", " & ")} industry`);
+      if (slogan) parts.push(`Tagline: "${slogan}"`);
+      parts.push(`${styleObj?.label ?? "Minimalist"} style, professional, clean design`);
+      if (logoColors.length > 0) parts.push(`using colors: ${logoColors.join(", ")}`);
+      if (logoTransparentBg) parts.push("on a transparent background");
+
+      payload.prompt = parts.join(". ") + ".";
+
+      // Build extraParams for Recraft V4 API-level params
+      const extraParams: Record<string, unknown> = {
+        style: styleObj?.recraftStyle ?? "logo",
+        outputFormat: logoFormat,
+      };
+      if (logoColors.length > 0) {
+        extraParams.colors = logoColors.map(hex => ({ rgb: hexToRgb(hex) }));
+      }
+      payload.extraParams = extraParams;
     }
 
     // QR: send URL as prompt
@@ -512,9 +601,15 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       payload.model = info?.model ?? "AI Model";
       payload.credits = info?.credits ?? 8;
     } else if (activeTool === "design") {
-      const info = DESIGN_TOOL_INFO[activeTab];
-      payload.model = info?.model ?? "AI Model";
-      payload.credits = info?.credits ?? 6;
+      if (activeTab === "logo") {
+        const isSvg = logoFormat === "svg";
+        payload.model = isSvg ? "Recraft V4 SVG" : "Recraft V4";
+        payload.credits = isSvg ? 10 : 8;
+      } else {
+        const info = DESIGN_TOOL_INFO[activeTab];
+        payload.model = info?.model ?? "AI Model";
+        payload.credits = info?.credits ?? 6;
+      }
     } else if (activeTab === "text-to-3d") {
       // text-to-3d always uses meshy-6-text (standard tier)
       payload.model = "Meshy 6";
@@ -1506,45 +1601,110 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: AI ile görsel üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">Sektör / Alan</Label>
+              <select
+                value={logoIndustry}
+                onChange={(e) => setLogoIndustry(e.target.value)}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                {LOGO_INDUSTRIES.map((ind) => (
+                  <option key={ind.value} value={ind.value}>{ind.label}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <Crown className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">Recraft V4</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">8 kredi</Badge>
+                <span className="text-xs font-medium text-foreground">
+                  {logoFormat === "svg" ? "Recraft V4 SVG" : "Recraft V4"}
+                </span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">
+                  {logoFormat === "svg" ? "10" : "8"} kredi
+                </Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                AI destekli profesyonel logo tasarımı. Raster ve SVG vektör formatında.
+                AI destekli profesyonel logo tasarımı. {logoFormat === "svg" ? "Vektör SVG formatında, sonsuz ölçeklenebilir." : "Yüksek çözünürlüklü PNG formatında."}
               </p>
             </div>
 
             <div className="space-y-3 pt-1 border-t border-border/40">
               <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Logo Ayarları</Label>
+
+              {/* Stil */}
               <div>
                 <Label className="text-xs text-muted-foreground">Stil</Label>
                 <select
-                  defaultValue="minimal"
+                  value={logoStyle}
+                  onChange={(e) => setLogoStyle(e.target.value)}
                   className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
                 >
-                  <option value="minimal">Minimalist</option>
-                  <option value="modern">Modern</option>
-                  <option value="vintage">Vintage</option>
-                  <option value="playful">Eğlenceli</option>
-                  <option value="corporate">Kurumsal</option>
+                  {LOGO_STYLES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
                 </select>
               </div>
+
+              {/* Renk Paleti (max 3) */}
               <div>
-                <Label className="text-xs text-muted-foreground">Renk Paleti</Label>
-                <div className="flex gap-1.5 mt-1.5">
-                  {["#4f46e5","#ef4444","#22c55e","#f97316","#8b5cf6","#ec4899","#0ea5e9","#1a1a2e"].map((c) => (
-                    <button key={c} type="button" className="h-6 w-6 rounded-full border border-border/50 hover:scale-110 transition-transform" style={{ backgroundColor: c }} onClick={() => showToast(`Renk seçildi: ${c}`, "success")} />
-                  ))}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Renk Paleti</Label>
+                  <span className="text-[10px] text-muted-foreground/50">{logoColors.length}/3 seçili</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {LOGO_COLOR_PALETTE.map((c) => {
+                    const isSelected = logoColors.includes(c.hex);
+                    return (
+                      <button
+                        key={c.hex}
+                        type="button"
+                        title={c.label}
+                        className={`h-7 w-7 rounded-full border-2 transition-all ${isSelected ? "border-foreground scale-110 ring-2 ring-primary/30" : "border-border/50 hover:scale-110"} ${!isSelected && logoColors.length >= 3 ? "opacity-40 cursor-not-allowed" : ""}`}
+                        style={{ backgroundColor: c.hex }}
+                        onClick={() => {
+                          if (isSelected) {
+                            setLogoColors(logoColors.filter(x => x !== c.hex));
+                          } else if (logoColors.length < 3) {
+                            setLogoColors([...logoColors, c.hex]);
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                {logoColors.length > 0 && (
+                  <button type="button" onClick={() => setLogoColors([])} className="text-[10px] text-muted-foreground/60 hover:text-foreground mt-1 underline">Temizle</button>
+                )}
+              </div>
+
+              {/* Çıktı Formatı */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Çıktı Formatı</Label>
+                <div className="flex gap-2 mt-1.5">
+                  <button
+                    type="button"
+                    className={`flex-1 h-8 rounded-md border text-xs font-medium transition-colors ${logoFormat === "png" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/50 text-muted-foreground hover:border-primary/40"}`}
+                    onClick={() => setLogoFormat("png")}
+                  >
+                    PNG (Raster)
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 h-8 rounded-md border text-xs font-medium transition-colors ${logoFormat === "svg" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/50 text-muted-foreground hover:border-primary/40"}`}
+                    onClick={() => setLogoFormat("svg")}
+                  >
+                    SVG (Vektör)
+                  </button>
                 </div>
               </div>
+
+              {/* Şeffaf Arkaplan */}
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Şeffaf Arkaplan</Label>
-                <Switch defaultChecked />
+                <Switch checked={logoTransparentBg} onCheckedChange={setLogoTransparentBg} />
               </div>
             </div>
           </>

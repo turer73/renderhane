@@ -81,6 +81,8 @@ interface SubmitJobInput {
   prompt?: string;
   /** Auto-enhance input images via aura-sr before 3D generation */
   autoEnhance?: boolean;
+  /** Tool-specific API params (e.g. Recraft style/colors). Merged into fal.ai input by smart-router. */
+  extraParams?: Record<string, unknown>;
 }
 
 export async function submitJob(input: SubmitJobInput) {
@@ -114,6 +116,7 @@ export async function submitJob(input: SubmitJobInput) {
     imageUrl,
     imageUrls,
     prompt,
+    extraParams: input.extraParams,
   });
 
   // 2. Check free bg-remove eligibility BEFORE reserving credits
@@ -149,6 +152,7 @@ export async function submitJob(input: SubmitJobInput) {
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
   if (input.prompt) originalRequest.prompt = input.prompt;
   if (autoEnhance) originalRequest.autoEnhance = true;
+  if (input.extraParams) originalRequest.extraParams = input.extraParams;
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")

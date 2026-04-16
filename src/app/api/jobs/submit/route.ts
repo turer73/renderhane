@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { tool, tier, imageUrl, imageUrls, projectId, prompt, autoEnhance } = body;
+  const { tool, tier, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams } = body;
 
   if (!tool) {
     return NextResponse.json(
@@ -194,6 +194,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate extraParams — must be a plain object if provided
+  let validatedExtraParams: Record<string, unknown> | undefined;
+  if (extraParams !== undefined && extraParams !== null) {
+    if (typeof extraParams !== "object" || Array.isArray(extraParams)) {
+      return NextResponse.json({ error: "extraParams must be an object" }, { status: 400 });
+    }
+    validatedExtraParams = extraParams as Record<string, unknown>;
+  }
+
   try {
     const result = await submitJob({
       userId: user.id,
@@ -204,6 +213,7 @@ export async function POST(request: NextRequest) {
       imageUrls: validatedImageUrls,
       prompt: typeof prompt === "string" ? prompt : undefined,
       autoEnhance: autoEnhance === true,
+      extraParams: validatedExtraParams,
     });
 
     return NextResponse.json(result);

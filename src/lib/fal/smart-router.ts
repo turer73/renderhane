@@ -9,6 +9,10 @@ interface RouteRequest {
   /** Optional user-provided text prompt (scene description, video prompt, etc.) */
   prompt?: string;
   locale?: string;
+  /** Tool-specific API params (e.g. Recraft style/colors, video duration).
+   *  Merged into fal.ai input after base params are built.
+   *  Meta keys like `outputFormat` are consumed by selectModel and stripped. */
+  extraParams?: Record<string, unknown>;
 }
 
 interface RouteResult {
@@ -18,10 +22,10 @@ interface RouteResult {
 }
 
 export function routeRequest(request: RouteRequest): RouteResult {
-  const { tool, tier = "standard", imageUrl, imageUrls, prompt } = request;
+  const { tool, tier = "standard", imageUrl, imageUrls, prompt, extraParams } = request;
 
   const imageCount = imageUrls?.length ?? (imageUrl ? 1 : 0);
-  const modelKey = selectModel(tool, tier, imageCount);
+  const modelKey = selectModel(tool, tier, imageCount, extraParams);
   const model = MODELS[modelKey];
 
   const input: Record<string, unknown> = {
@@ -65,13 +69,20 @@ export function routeRequest(request: RouteRequest): RouteResult {
     input["audio_url"] = prompt;
   }
 
+  // Merge tool-specific API params from extraParams (e.g. Recraft style, colors).
+  // Meta keys like outputFormat are consumed by selectModel — strip them here.
+  if (extraParams) {
+    const { outputFormat: _meta, ...apiParams } = extraParams;
+    Object.assign(input, apiParams);
+  }
+
   // Clean up _unused placeholder key — fal.ai rejects unknown params
   delete input["_unused"];
 
   return { model, modelKey, input };
 }
 
-function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): string {
+function selectModel(tool: ToolType, tier: ModelTier, imageCount: number, extraParams?: Record<string, unknown>): string {
   switch (tool) {
     case "3d-model":
       // Text-only → Meshy 6 text-to-3d (with rigging support)
@@ -133,7 +144,8 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number): strin
       return "omnihuman";
 
     case "logo":
-      // Default raster; SVG variant is selected via explicit model choice in UI
+      // SVG variant selected via extraParams.outputFormat from the UI toggle
+      if (extraParams?.outputFormat === "svg") return "recraft-v4-svg";
       return "recraft-v4";
 
     case "virtual-tryon":
