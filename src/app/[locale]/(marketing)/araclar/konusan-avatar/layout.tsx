@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TOOL_SEO } from "@/lib/seo/tool-jsonld";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
 
@@ -40,10 +41,22 @@ export async function generateMetadata({
   };
 }
 
-export default function KonusanAvatarLayout({
+export default async function KonusanAvatarLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
-  return <>{children}</>;
+  const { locale } = await params;
+  const seo = TOOL_SEO["konusan-avatar"];
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd(locale)) }}
+      />
+      {children}
+    </>
+  );
 }

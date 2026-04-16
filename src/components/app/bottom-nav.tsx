@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, FolderOpen, CreditCard, Settings } from "lucide-react";
+import { Home, FolderOpen, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -12,7 +12,6 @@ interface BottomNavProps {
 
 export function BottomNav({ onMenuClick }: BottomNavProps) {
   const t = useTranslations("common");
-  const tSidebar = useTranslations("sidebar");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
@@ -20,7 +19,6 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
   const isDashboard =
     pathname === `/${locale}/app` || pathname === `/${locale}/app/`;
   const isProjects = pathname.startsWith(`/${locale}/app/projects`);
-  const isCredits = pathname.startsWith(`/${locale}/app/credits`);
 
   const items = [
     {
@@ -36,15 +34,9 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
       active: isProjects,
     },
     {
-      href: `/${locale}/app/credits`,
-      label: tSidebar("creditsAndInvoices"),
-      icon: CreditCard,
-      active: isCredits,
-    },
-    {
-      href: "#settings",
-      label: t("settings"),
-      icon: Settings,
+      href: "#menu",
+      label: t("menu"),
+      icon: Menu,
       active: false,
       isMenu: true,
     },

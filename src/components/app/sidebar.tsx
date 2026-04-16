@@ -6,17 +6,11 @@ import { useTranslations } from "next-intl";
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Box,
   FolderOpen,
-  Layers,
-  CreditCard,
-  Gift,
   Shield,
-  Settings,
-  Plus,
   LogOut,
   Sparkles,
   ArrowLeft,
@@ -31,8 +25,6 @@ interface SidebarProps {
 export function Sidebar({ className, onNavigate }: SidebarProps) {
   const t = useTranslations("common");
   const tSidebar = useTranslations("sidebar");
-  const tDash = useTranslations("dashboard");
-  const tRef = useTranslations("referral");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
@@ -101,37 +93,13 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       href: `/${locale}/app`,
       label: "Workspace",
       icon: Sparkles,
-      disabled: false,
+
     },
     {
       href: `/${locale}/app/projects`,
       label: t("projects"),
       icon: FolderOpen,
-      disabled: false,
-    },
-    {
-      href: `/${locale}/app/batch`,
-      label: tSidebar("batchProcessing"),
-      icon: Layers,
-      disabled: false,
-    },
-    {
-      href: `/${locale}/app/credits`,
-      label: tSidebar("creditsAndInvoices"),
-      icon: CreditCard,
-      disabled: false,
-    },
-    {
-      href: `/${locale}/app#referral`,
-      label: tRef("title"),
-      icon: Gift,
-      disabled: false,
-    },
-    {
-      href: `/${locale}/app/settings`,
-      label: tSidebar("settings"),
-      icon: Settings,
-      disabled: false,
+
     },
     ...(isAdminUser
       ? [
@@ -139,7 +107,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
             href: `/${locale}/app/admin`,
             label: tSidebar("admin"),
             icon: Shield,
-            disabled: false,
+      
           },
         ]
       : []),
@@ -150,13 +118,13 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       href: `/${locale}/app`,
       label: "Uygulamaya Dön",
       icon: ArrowLeft,
-      disabled: false,
+
     },
     {
       href: `/${locale}/app/admin`,
       label: tSidebar("admin"),
       icon: Shield,
-      disabled: false,
+
     },
   ];
 
@@ -216,34 +184,20 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
-            <div key={item.label}>
-              {item.disabled ? (
-                <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground/50 cursor-not-allowed">
-                  <item.icon className="size-4" />
-                  <span>{item.label}</span>
-                  <Badge
-                    variant="secondary"
-                    className="ml-auto text-[10px] px-1.5 py-0"
-                  >
-                    {tDash("comingSoon")}
-                  </Badge>
-                </div>
-              ) : (
-                <Link
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="size-4" />
-                  <span>{item.label}</span>
-                </Link>
+            <Link
+              key={item.label}
+              href={item.href}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                active
+                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
-            </div>
+            >
+              <item.icon className="size-4" />
+              <span>{item.label}</span>
+            </Link>
           );
         })}
       </nav>
@@ -265,19 +219,6 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
                 style={{ width: `${creditPercent}%` }}
               />
             </div>
-            {!isOnAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-                asChild
-                onClick={onNavigate}
-              >
-                <Link href={`/${locale}/app/credits`}>
-                  {tSidebar("loadCredits")}
-                </Link>
-              </Button>
-            )}
           </div>
         )}
 

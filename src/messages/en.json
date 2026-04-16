@@ -11,7 +11,8 @@
     "processing": "Processing...",
     "download": "Download",
     "tryIt": "Try Free",
-    "dashboard": "Home"
+    "dashboard": "Home",
+    "menu": "Menu"
   },
   "tools": {
     "3dModel": "Generate 3D Model",
