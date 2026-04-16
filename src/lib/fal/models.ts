@@ -425,7 +425,7 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── Konuşan Avatar ─────────────────────── */
   "omnihuman": {
-    id: "fal-ai/omnihuman-v1-5",
+    id: "fal-ai/bytedance/omnihuman/v1.5",
     displayName: { tr: "OmniHuman — Konuşan Avatar", en: "OmniHuman — Talking Avatar" },
     tier: "standard",
     creditCost: 25,
@@ -433,7 +433,7 @@ export const MODELS: Record<string, ModelConfig> = {
     imageParamKey: "image_url",
     promptParamKey: "_unused",
     defaultParams: {
-      resolution: 512,
+      resolution: "1080p",
     },
   },
 
