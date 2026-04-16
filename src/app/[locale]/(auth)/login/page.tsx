@@ -16,10 +16,15 @@ export async function generateMetadata({
     locale === "tr"
       ? "Renderhane hesabınıza giriş yapın. AI destekli ürün görseli, 3D model ve video üretimine başlayın."
       : "Sign in to your Renderhane account. Start generating AI-powered product visuals, 3D models and videos.";
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
   return {
     title: `${t("login")} — ${t("appName")}`,
     description,
     robots: { index: true, follow: true },
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/login`,
+      languages: { tr: `${BASE_URL}/tr/login`, en: `${BASE_URL}/en/login` },
+    },
   };
 }
 

@@ -9,6 +9,8 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "legal" });
@@ -16,6 +18,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${t("cookiePolicy.title")} | Renderhane`,
     description: t("cookiePolicy.intro").slice(0, 160),
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/cookie-policy`,
+      languages: { tr: `${BASE_URL}/tr/cookie-policy`, en: `${BASE_URL}/en/cookie-policy` },
+    },
   };
 }
 

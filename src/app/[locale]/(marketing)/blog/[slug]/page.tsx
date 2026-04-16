@@ -23,7 +23,7 @@ interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, locale } = await params;
