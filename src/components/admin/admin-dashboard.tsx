@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FalScannerPanel } from "./fal-scanner-panel";
+import { HealthCheckPanel } from "./health-check-panel";
 
 interface UserRow {
   id: string;
@@ -299,6 +300,9 @@ export function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Health Check */}
+      <HealthCheckPanel />
 
       {/* fal.ai Scanner */}
       <FalScannerPanel />
