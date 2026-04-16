@@ -41,7 +41,7 @@ export function WorkspacePreview({ activeTool, activeJob }: WorkspacePreviewProp
               Kredin iade edildi. Tekrar deneyebilirsin.
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => showToast("Sol panelden tekrar Üret'e bas", "info")}>
+          <Button size="sm" variant="outline" onClick={() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info")}>
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
             Tekrar Dene
           </Button>
@@ -177,7 +177,7 @@ export function WorkspacePreview({ activeTool, activeJob }: WorkspacePreviewProp
             }}>
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => showToast("Sol panelden tekrar Üret'e bas", "info")}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info")}>
               <RotateCcw className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleDownload}>
@@ -311,7 +311,7 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
       title: "Ürünlerini 3D'ye Dönüştür",
       desc: "Fotoğraf yükle, AI modeli seç ve saniyeler içinde profesyonel 3D model oluştur. E-ticaret, oyun veya 3D baskı için hazır.",
       cta: "Hemen Başla",
-      toast: "Sol panelden fotoğraf yükle veya metin yaz, sonra Üret'e bas!",
+      toast: "Fotograf yukle veya metin yaz, sonra Uret'e bas!",
     },
     "image": {
       icons: (
@@ -333,7 +333,7 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
       title: "Görsellerini AI ile İşle",
       desc: "Arkaplan kaldır, kaliteyi artır, yeni görseller oluştur veya mevcut görselleri düzenle. E-ticaret ve sosyal medya için hazır.",
       cta: "Görsel Yükle",
-      toast: "Sol panelden görsel yükle, işlem seç ve İşle'ye bas!",
+      toast: "Gorsel yukle, islem sec ve Isle'ye bas!",
     },
     "video": {
       icons: (
@@ -355,7 +355,7 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
       title: "Ürün Videoları Oluştur",
       desc: "Ürün fotoğraflarından etkileyici videolar üret, metinden video oluştur veya konuşan avatar hazırla. Sosyal medya ve e-ticaret için hazır.",
       cta: "Hemen Başla",
-      toast: "Sol panelden görsel yükle veya metin yaz, sonra Video Üret'e bas!",
+      toast: "Gorsel yukle veya metin yaz, sonra Video Uret'e bas!",
     },
     "ecommerce": {
       icons: (
@@ -377,7 +377,7 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
       title: "E-ticaret Görselleri Oluştur",
       desc: "Ürün sahneleri oluştur, A+ içerik hazırla ve sanal deneme görselleri üret. Trendyol, Amazon ve Hepsiburada için hazır.",
       cta: "Hemen Başla",
-      toast: "Sol panelden ürün görseli yükle, işlem seç ve Oluştur'a bas!",
+      toast: "Urun gorseli yukle, islem sec ve Olustur'a bas!",
     },
     "design": {
       icons: (
@@ -399,7 +399,7 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
       title: "AI ile Tasarım Oluştur",
       desc: "Profesyonel logo tasarımı ve sanatsal QR kod oluştur. Marka kimliğini AI ile güçlendir.",
       cta: "Hemen Başla",
-      toast: "Sol panelden marka adını yaz veya URL gir, sonra Tasarla'ya bas!",
+      toast: "Marka adini yaz veya URL gir, sonra Tasarla'ya bas!",
     },
     "batch": {
       icons: (
@@ -421,6 +421,6 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
       title: "Toplu Görsel İşleme",
       desc: "Onlarca görseli aynı anda işle. Toplu arkaplan kaldırma, kalite artırma ve boyutlandırma.",
       cta: "Hemen Başla",
-      toast: "Sol panelden görselleri toplu yükle, işlem seç ve Toplu İşle'ye bas!",
+      toast: "Gorselleri toplu yukle, islem sec ve Toplu Isle'ye bas!",
     },
   };
