@@ -104,6 +104,9 @@ const API_TOOL_TO_CATEGORY: Record<string, string> = {
   "virtual-tryon": "ecommerce",
   "logo": "design",
   "qr-code": "design",
+  "inpainting": "image",
+  "object-removal": "image",
+  "social-kit": "ecommerce",
 };
 
 /** Human-readable tool display names */
@@ -113,6 +116,8 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   "enhance": "Görsel İyileştir",
   "text-to-image": "AI Görsel",
   "image-edit": "Görsel Düzenle",
+  "object-removal": "Nesne Sil",
+  "inpainting": "Inpainting",
   "video": "Video",
   "talking-avatar": "Konuşan Avatar",
   "scene": "Sahne Üret",
@@ -120,7 +125,54 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   "virtual-tryon": "Kıyafet Giydirme",
   "logo": "Logo Üret",
   "qr-code": "QR Kod",
+  "social-kit": "Sosyal Kit",
 };
+
+/** Map raw fal.ai model_id (DB) to friendly display name */
+const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  // 3D
+  "fal-ai/trellis/multi": "TRELLIS v1",
+  "fal-ai/trellis-2/multi": "TRELLIS 2",
+  "tripo3d/tripo/v2.5/multiview-to-3d": "Tripo 2.5",
+  "fal-ai/hyper3d/rodin": "Rodin Premium",
+  "fal-ai/hunyuan3d-v3/image-to-3d": "Hunyuan3D V3",
+  "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d": "Hunyuan3D V3.1 Pro",
+  "fal-ai/meshy/v6/text-to-3d": "Meshy 6",
+  "fal-ai/meshy/v6/image-to-3d": "Meshy 6",
+  "fal-ai/meshy/v5/multi-image-to-3d": "Meshy 5",
+  "fal-ai/triposr": "TripoSR",
+  // Image
+  "fal-ai/birefnet/v2": "BiRefNet",
+  "fal-ai/bria/background/remove": "Bria RMBG",
+  "fal-ai/aura-sr": "Aura SR",
+  "fal-ai/flux-pro/kontext": "FLUX Kontext",
+  "fal-ai/flux-pro/kontext/max": "FLUX Kontext Max",
+  "fal-ai/flux-pro/v1/fill": "FLUX Fill",
+  "fal-ai/object-removal": "Object Removal",
+  "fal-ai/flux-2-pro": "FLUX 2 Pro",
+  "fal-ai/flux-2": "FLUX 2 Dev",
+  "fal-ai/flux/schnell": "FLUX Schnell",
+  // Video
+  "wan/v2.6/image-to-video": "Wan 2.6",
+  "fal-ai/kling-video/v3/pro/text-to-video": "Kling 3.0 Pro",
+  "fal-ai/kling-video/v3/pro/image-to-video": "Kling 3.0 Pro",
+  // E-commerce
+  "fal-ai/bria/product-shot": "Bria Product Shot",
+  "fal-ai/fashn/tryon/v1.6": "FASHN Try-On",
+  // Design
+  "fal-ai/recraft/v4/text-to-image": "Recraft V4",
+  "fal-ai/recraft/v4/text-to-vector": "Recraft V4 SVG",
+  "fal-ai/recraft-v3": "Recraft V3",
+  // Avatar
+  "fal-ai/bytedance/omnihuman/v1.5": "OmniHuman",
+  "fal-ai/omnihuman-v1-5": "OmniHuman",
+  "fal-ai/f5-tts": "F5 TTS",
+};
+
+function getModelDisplayName(modelId: string | undefined, tool: string): string {
+  if (modelId && MODEL_DISPLAY_NAMES[modelId]) return MODEL_DISPLAY_NAMES[modelId];
+  return TOOL_DISPLAY_NAMES[tool] ?? tool;
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -172,7 +224,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
         thumbnails: [thumbUrl],
         createdAt: timeAgo(j.created_at),
         credits: j.credit_cost,
-        model: j.model_id ?? (TOOL_DISPLAY_NAMES[j.tool] ?? j.tool),
+        model: getModelDisplayName(j.model_id, j.tool),
         progress: (j.status === "processing" || j.status === "pending")
           ? estimateProgress(j.created_at)
           : undefined,
