@@ -391,7 +391,7 @@
   },
   "projects": {
     "title": "My Projects",
-    "empty": "No projects yet. Upload your first photo to get started!",
+    "empty": "No outputs yet. Go to the Studio to create your first visual!",
     "outputs": "{count, plural, one {# output} other {# outputs}}",
     "noOutputs": "No outputs yet",
     "created": "Created",
@@ -405,7 +405,25 @@
       "glb": "3D Model",
       "image": "Image",
       "video": "Video"
-    }
+    },
+    "filterAll": "All",
+    "filter3d": "3D Model",
+    "filterImage": "Image",
+    "filterVideo": "Video",
+    "filterDesign": "Design",
+    "searchPlaceholder": "Search by project name...",
+    "sortNewest": "Newest",
+    "sortOldest": "Oldest",
+    "emptyFilter": "No outputs found in this category",
+    "emptySearch": "No outputs match your search",
+    "deleteTitle": "Delete Output",
+    "deleteDescription": "This output will be permanently deleted. This action cannot be undone.",
+    "deleteConfirm": "Yes, Delete",
+    "deleteCancel": "Cancel",
+    "deleteSuccess": "Output deleted successfully",
+    "deleteError": "Failed to delete output",
+    "totalOutputs": "{count} outputs",
+    "goToStudio": "Go to Studio"
   },
   "output": {
     "title": "Output Detail",

@@ -391,7 +391,7 @@
   },
   "projects": {
     "title": "Projelerim",
-    "empty": "Henüz projeniz yok. İlk fotoğrafınızı yükleyerek başlayın!",
+    "empty": "Henüz çıktınız yok. Stüdyo'ya gidip ilk görselinizi oluşturun!",
     "outputs": "{count, plural, one {# çıktı} other {# çıktı}}",
     "noOutputs": "Henüz çıktı yok",
     "created": "Oluşturulma",
@@ -405,7 +405,25 @@
       "glb": "3D Model",
       "image": "Görsel",
       "video": "Video"
-    }
+    },
+    "filterAll": "Tümü",
+    "filter3d": "3D Model",
+    "filterImage": "Görsel",
+    "filterVideo": "Video",
+    "filterDesign": "Tasarım",
+    "searchPlaceholder": "Proje adı ile ara...",
+    "sortNewest": "En yeni",
+    "sortOldest": "En eski",
+    "emptyFilter": "Bu kategoride çıktı bulunamadı",
+    "emptySearch": "Aramanızla eşleşen çıktı bulunamadı",
+    "deleteTitle": "Çıktıyı Sil",
+    "deleteDescription": "Bu çıktı kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "deleteConfirm": "Evet, Sil",
+    "deleteCancel": "Vazgeç",
+    "deleteSuccess": "Çıktı başarıyla silindi",
+    "deleteError": "Silme işlemi başarısız oldu",
+    "totalOutputs": "{count} çıktı",
+    "goToStudio": "Stüdyo'ya Git"
   },
   "output": {
     "title": "Çıktı Detayı",
