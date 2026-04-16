@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdmin } from "@/lib/auth/admin-check";
 import { fal } from "@fal-ai/client";
 import { NextResponse } from "next/server";
 
@@ -16,17 +17,12 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Admin check
-  const adminClient = createAdminClient();
-  const { data: profile } = await adminClient
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") {
+  // Admin check — uses email-based allowlist (ADMIN_EMAILS env)
+  if (!isAdmin(user.email)) {
     return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
+
+  const adminClient = createAdminClient();
 
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
 
