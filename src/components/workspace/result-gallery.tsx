@@ -154,10 +154,11 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
       return category === activeTool;
     })
     .map((j) => {
-      // Pick best thumbnail: for GLB outputs use source image, for images/videos use output
+      // Pick best thumbnail: non-image outputs (GLB, video) can't render as <img>
       const isGlb = j.output_type === "glb" || (j.output_url?.includes(".glb") ?? false);
-      const thumbUrl = isGlb
-        ? (j.source_image || FALLBACK_THUMB) // GLB can't be shown as <img>
+      const isVideo = j.output_type === "video" || (j.output_url?.includes(".mp4") ?? false);
+      const thumbUrl = (isGlb || isVideo)
+        ? (j.source_image || FALLBACK_THUMB)
         : (j.output_url || j.source_image || FALLBACK_THUMB);
 
       return {
@@ -280,6 +281,13 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                     {job.outputType === "glb" && (
                       <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
+                    )}
+                    {(job.outputType === "video" || job.outputUrl?.includes(".mp4")) && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="rounded-full bg-black/50 p-1.5">
+                          <svg className="h-3 w-3 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                      </div>
                     )}
                     {job.status === "processing" && (
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
