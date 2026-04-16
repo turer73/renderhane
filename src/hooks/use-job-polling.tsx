@@ -16,6 +16,7 @@ import {
 export interface PolledJob {
   id: string;
   tool: string;
+  model_id?: string;
   status: "pending" | "processing" | "completed" | "failed";
   credit_cost: number;
   created_at: string;
@@ -24,6 +25,8 @@ export interface PolledJob {
   output_id: string | null;
   output_url: string | null;
   output_type: "glb" | "image" | "video" | null;
+  /** Source image used as input — for thumbnail when output is non-renderable (e.g. .glb) */
+  source_image: string | null;
 }
 
 // ─── Context ────────────────────────────────────────────────

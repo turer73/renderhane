@@ -70,6 +70,7 @@ interface GalleryJob {
   model: string;
   progress?: number;
   outputUrl?: string | null;
+  outputType?: "glb" | "image" | "video" | null;
   errorMessage?: string | null;
 }
 
@@ -77,6 +78,7 @@ interface GalleryJob {
 interface PolledJobInput {
   id: string;
   tool: string;
+  model_id?: string;
   status: "pending" | "processing" | "completed" | "failed";
   credit_cost: number;
   created_at: string;
@@ -84,6 +86,7 @@ interface PolledJobInput {
   error_message: string | null;
   output_url: string | null;
   output_type: "glb" | "image" | "video" | null;
+  source_image: string | null;
 }
 
 /** Map API tool names back to workspace tool categories for filtering */
@@ -150,22 +153,31 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
       const category = API_TOOL_TO_CATEGORY[j.tool] ?? j.tool;
       return category === activeTool;
     })
-    .map((j) => ({
-      id: j.id,
-      name: TOOL_DISPLAY_NAMES[j.tool] ?? j.tool,
-      status: j.status === "completed" ? "completed" as const
-           : j.status === "failed" ? "failed" as const
-           : "processing" as const,
-      thumbnails: j.output_url ? [j.output_url] : [FALLBACK_THUMB],
-      createdAt: timeAgo(j.created_at),
-      credits: j.credit_cost,
-      model: TOOL_DISPLAY_NAMES[j.tool] ?? j.tool,
-      progress: (j.status === "processing" || j.status === "pending")
-        ? estimateProgress(j.created_at)
-        : undefined,
-      outputUrl: j.output_url,
-      errorMessage: j.error_message,
-    }));
+    .map((j) => {
+      // Pick best thumbnail: for GLB outputs use source image, for images/videos use output
+      const isGlb = j.output_type === "glb" || (j.output_url?.includes(".glb") ?? false);
+      const thumbUrl = isGlb
+        ? (j.source_image || FALLBACK_THUMB) // GLB can't be shown as <img>
+        : (j.output_url || j.source_image || FALLBACK_THUMB);
+
+      return {
+        id: j.id,
+        name: TOOL_DISPLAY_NAMES[j.tool] ?? j.tool,
+        status: j.status === "completed" ? "completed" as const
+             : j.status === "failed" ? "failed" as const
+             : "processing" as const,
+        thumbnails: [thumbUrl],
+        createdAt: timeAgo(j.created_at),
+        credits: j.credit_cost,
+        model: j.model_id ?? (TOOL_DISPLAY_NAMES[j.tool] ?? j.tool),
+        progress: (j.status === "processing" || j.status === "pending")
+          ? estimateProgress(j.created_at)
+          : undefined,
+        outputUrl: j.output_url,
+        outputType: j.output_type,
+        errorMessage: j.error_message,
+      };
+    });
   const filteredJobs = searchQuery
     ? jobs.filter((j) => j.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : jobs;
@@ -266,12 +278,15 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     )}
                   >
                     <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                    {job.outputType === "glb" && (
+                      <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
+                    )}
                     {job.status === "processing" && (
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
                     )}
                     {job.status === "completed" && (
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => { const u = job.outputUrl ?? src; if (u) window.open(u, "_blank", "noopener,noreferrer"); }}><Eye className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => { const u = job.outputUrl ?? src; if (!u) return; const isGlb = job.outputType === "glb" || u.includes(".glb"); if (isGlb) { window.open(`https://3dviewer.net/#model=${encodeURIComponent(u)}`, "_blank", "noopener,noreferrer"); } else { window.open(u, "_blank", "noopener,noreferrer"); } }}><Eye className="h-3 w-3" /></Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => { const u = job.outputUrl ?? src; if (u) downloadFile(u, `${job.name.replace(/\s+/g, "_")}.${getFileExt(u)}`); }}><Download className="h-3 w-3" /></Button>
                       </div>
                     )}
@@ -380,7 +395,17 @@ function JobDropdown({ job, onRefetch }: { job: GalleryJob; onRefetch?: () => vo
 
   const handlePreview = () => {
     if (!url) { showToast("Önizlenecek dosya yok", "error"); return; }
-    window.open(url, "_blank", "noopener,noreferrer");
+    const isGlb = job.outputType === "glb" || url.includes(".glb");
+    if (isGlb) {
+      // Open 3D model in Google Model Viewer (free, no login needed)
+      window.open(
+        `https://3dviewer.net/#model=${encodeURIComponent(url)}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   };
 
   const handleShare = async () => {
