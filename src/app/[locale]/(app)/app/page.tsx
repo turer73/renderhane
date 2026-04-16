@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   WorkspaceLayout,
   WorkspaceHeader,
-  WorkspaceSidebar,
   CreditsSheet,
   ReferralSheet,
   SettingsSheet,
@@ -55,8 +54,7 @@ function WorkspaceContent() {
 
   const [activeTool, setActiveTool] = useState(initialCategory);
 
-  // Sidebar + Sheet states
-  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
+  // Sheet states
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -79,24 +77,18 @@ function WorkspaceContent() {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
-      <WorkspaceHeader onMenuClick={() => setSidebarMobileOpen((v) => !v)} />
+      <WorkspaceHeader
+        onCredits={() => setCreditsOpen(true)}
+        onReferral={() => setReferralOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
+      />
 
-      <div className="flex flex-1 overflow-hidden">
-        <WorkspaceSidebar
-          onCredits={() => setCreditsOpen(true)}
-          onReferral={() => setReferralOpen(true)}
-          onSettings={() => setSettingsOpen(true)}
-          mobileOpen={sidebarMobileOpen}
-          onMobileClose={() => setSidebarMobileOpen(false)}
+      <div className="flex-1 overflow-hidden">
+        <WorkspaceLayout
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          initialTab={initialTab}
         />
-
-        <div className="flex-1 min-w-0 h-full">
-          <WorkspaceLayout
-            activeTool={activeTool}
-            onToolChange={setActiveTool}
-            initialTab={initialTab}
-          />
-        </div>
       </div>
 
       {/* Sheet panels */}
