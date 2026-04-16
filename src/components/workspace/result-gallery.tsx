@@ -25,6 +25,7 @@ import {
   Trash2,
   Copy,
   ImageIcon,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { proxyUrl } from "@/lib/proxy-url";
@@ -146,6 +147,7 @@ interface ResultGalleryProps {
 export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefetch }: ResultGalleryProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewJob, setPreviewJob] = useState<GalleryJob | null>(null);
 
   // Convert polled jobs to GalleryJob format, filtered by current tool category
   const jobs: GalleryJob[] = polledJobs
@@ -266,11 +268,13 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     </Badge>
                   )}
                 </div>
-                <JobDropdown job={job} onRefetch={onRefetch} />
+                <JobDropdown job={job} onRefetch={onRefetch} onPreview={setPreviewJob} />
               </div>
 
               <div className="flex gap-2">
-                {job.thumbnails.map((src, idx) => (
+                {job.thumbnails.map((src, idx) => {
+                  const isJobVideo = job.outputType === "video" || (job.outputUrl?.includes(".mp4") ?? false);
+                  return (
                   <div
                     key={idx}
                     className={cn(
@@ -278,12 +282,24 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                       job.status === "processing" && "opacity-60"
                     )}
                   >
-                    <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                    {/* Video: use <video> for real frame thumbnail */}
+                    {isJobVideo && job.outputUrl ? (
+                      <video
+                        src={proxyUrl(job.outputUrl)}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                        onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
+                      />
+                    ) : (
+                      <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                    )}
                     {job.outputType === "glb" && (
                       <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
                     )}
-                    {(job.outputType === "video" || job.outputUrl?.includes(".mp4")) && (
-                      <div className="absolute inset-0 flex items-center justify-center">
+                    {isJobVideo && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="rounded-full bg-black/50 p-1.5">
                           <svg className="h-3 w-3 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                         </div>
@@ -294,12 +310,13 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     )}
                     {job.status === "completed" && (
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => { const u = job.outputUrl ?? src; if (!u) return; const isGlb = job.outputType === "glb" || u.includes(".glb"); if (isGlb) { window.open(`https://3dviewer.net/#model=${encodeURIComponent(u)}`, "_blank", "noopener,noreferrer"); } else { window.open(u, "_blank", "noopener,noreferrer"); } }}><Eye className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => setPreviewJob(job)}><Eye className="h-3 w-3" /></Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => { const u = job.outputUrl ?? src; if (u) downloadFile(u, `${job.name.replace(/\s+/g, "_")}.${getFileExt(u)}`); }}><Download className="h-3 w-3" /></Button>
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {job.status === "processing" && job.progress != null && (
@@ -364,7 +381,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     <Download className="h-3 w-3" />
                   </Button>
                 )}
-                <JobDropdown job={job} onRefetch={onRefetch} />
+                <JobDropdown job={job} onRefetch={onRefetch} onPreview={setPreviewJob} />
               </div>
             </div>
           )
@@ -376,12 +393,84 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
         <span>{filteredJobs.length} {label}</span>
         <span>Toplam {filteredJobs.reduce((s, j) => s + j.credits, 0)} kredi</span>
       </div>
+
+      {/* ═══ Preview Modal ═══ */}
+      {previewJob && <PreviewModal job={previewJob} onClose={() => setPreviewJob(null)} />}
+    </div>
+  );
+}
+
+/** Full-screen preview overlay — video/image/3D */
+function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }) {
+  const url = job.outputUrl;
+  if (!url) return null;
+
+  const isGlb = job.outputType === "glb" || url.includes(".glb");
+  const isVideo = job.outputType === "video" || url.includes(".mp4");
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-200"
+      onClick={onClose}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {/* Title bar */}
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+        <span className="text-sm font-medium text-white/90">{job.name}</span>
+        <Badge variant="secondary" className="text-[10px]">{job.model}</Badge>
+      </div>
+
+      {/* Download button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); downloadFile(url, `${job.name.replace(/\s+/g, "_")}.${getFileExt(url)}`); showToast("İndirme başlatıldı", "success"); }}
+        className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20 transition-colors"
+      >
+        <Download className="h-4 w-4" />
+        İndir
+      </button>
+
+      {/* Content */}
+      <div className="max-h-[85vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+        {isVideo ? (
+          <video
+            src={proxyUrl(url)}
+            controls
+            autoPlay
+            playsInline
+            className="max-h-[85vh] max-w-[90vw] rounded-lg"
+          />
+        ) : isGlb ? (
+          <div className="flex flex-col items-center gap-4 text-white">
+            <p className="text-sm text-white/70">3D model tarayıcıda görüntülenemez</p>
+            <button
+              onClick={() => window.open(`https://3dviewer.net/#model=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer")}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Eye className="h-4 w-4" />
+              3D Viewer&apos;da Aç
+            </button>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt={job.name}
+            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
+          />
+        )}
+      </div>
     </div>
   );
 }
 
 /* ═══ Shared dropdown menu ═══ */
-function JobDropdown({ job, onRefetch }: { job: GalleryJob; onRefetch?: () => void }) {
+function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch?: () => void; onPreview?: (job: GalleryJob) => void }) {
   const url = job.outputUrl ?? job.thumbnails[0];
   const hasOutput = job.status === "completed" && !!url;
 
@@ -403,14 +492,8 @@ function JobDropdown({ job, onRefetch }: { job: GalleryJob; onRefetch?: () => vo
 
   const handlePreview = () => {
     if (!url) { showToast("Önizlenecek dosya yok", "error"); return; }
-    const isGlb = job.outputType === "glb" || url.includes(".glb");
-    if (isGlb) {
-      // Open 3D model in Google Model Viewer (free, no login needed)
-      window.open(
-        `https://3dviewer.net/#model=${encodeURIComponent(url)}`,
-        "_blank",
-        "noopener,noreferrer"
-      );
+    if (onPreview) {
+      onPreview(job);
     } else {
       window.open(url, "_blank", "noopener,noreferrer");
     }
