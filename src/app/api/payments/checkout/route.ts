@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 5 checkout attempts per minute per user
-    const rl = rateLimit(`payment:${user.id}`, RATE_LIMITS.payment);
+    const rl = await rateLimit(`payment:${user.id}`, RATE_LIMITS.payment);
     if (!rl.success) {
       return NextResponse.json(
         { error: "Too many requests" },

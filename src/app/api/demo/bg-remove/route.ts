@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       "unknown";
 
     // Rate limit check
-    const rl = rateLimit(`demo-bg:${ip}`, DAILY_LIMIT);
+    const rl = await rateLimit(`demo-bg:${ip}`, DAILY_LIMIT);
     if (!rl.success) {
       return NextResponse.json(
         {

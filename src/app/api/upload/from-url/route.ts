@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: 10 URL uploads per minute
-  const rl = rateLimit(`url-upload:${user.id}`, RATE_LIMITS.jobSubmit);
+  const rl = await rateLimit(`url-upload:${user.id}`, RATE_LIMITS.jobSubmit);
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests" },

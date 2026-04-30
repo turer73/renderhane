@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rl = rateLimit(`job-submit-avatar:${user.id}`, RATE_LIMITS.jobSubmit);
+  const rl = await rateLimit(`job-submit-avatar:${user.id}`, RATE_LIMITS.jobSubmit);
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests. Please wait." },

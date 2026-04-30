@@ -32,7 +32,7 @@ export async function authenticateApiRequest(
   }
 
   // Rate limit per user
-  const rl = rateLimit(`api-v1:${result.userId}`, API_RATE_LIMIT);
+  const rl = await rateLimit(`api-v1:${result.userId}`, API_RATE_LIMIT);
   if (!rl.success) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Max 60 requests/minute." },

@@ -74,10 +74,14 @@ function renderMarkdown(md: string): string {
     text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     // Italic
     text = text.replace(/\*(.+?)\*/g, "<em>$1</em>");
-    // Links
+    // Links — escape href and label, and reject javascript:/data:/vbscript: schemes
+    // so a future user-generated markdown source cannot inject script execution.
     text = text.replace(
       /\[([^\]]+)\]\(([^)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+      (_match, label: string, href: string) => {
+        const safeHref = isSafeHref(href) ? escapeHtml(href) : "#";
+        return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+      }
     );
     return text;
   }
@@ -197,4 +201,13 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/** Allow http/https/mailto/tel/relative paths; reject javascript:, data:, vbscript: */
+function isSafeHref(href: string): boolean {
+  const trimmed = href.trim().toLowerCase();
+  if (trimmed.startsWith("javascript:") || trimmed.startsWith("data:") || trimmed.startsWith("vbscript:")) {
+    return false;
+  }
+  return true;
 }

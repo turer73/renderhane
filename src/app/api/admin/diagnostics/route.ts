@@ -33,11 +33,11 @@ export async function GET() {
   };
   checks["env:SUPABASE_SERVICE_ROLE_KEY"] = {
     ok: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    detail: process.env.SUPABASE_SERVICE_ROLE_KEY ? `set (${process.env.SUPABASE_SERVICE_ROLE_KEY.slice(0, 10)}...)` : "MISSING",
+    detail: process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "MISSING",
   };
   checks["env:FAL_KEY"] = {
     ok: !!process.env.FAL_KEY,
-    detail: process.env.FAL_KEY ? `set (${process.env.FAL_KEY.slice(0, 10)}...)` : "MISSING",
+    detail: process.env.FAL_KEY ? "set" : "MISSING",
   };
   checks["env:FAL_WEBHOOK_SECRET"] = {
     ok: !!process.env.FAL_WEBHOOK_SECRET,

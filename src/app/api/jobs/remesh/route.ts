@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit
-  const rl = rateLimit(`remesh:${user.id}`, RATE_LIMITS.jobSubmit);
+  const rl = await rateLimit(`remesh:${user.id}`, RATE_LIMITS.jobSubmit);
   if (!rl.success) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }

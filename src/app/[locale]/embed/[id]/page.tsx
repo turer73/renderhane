@@ -1,3 +1,4 @@
+import "server-only";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { getTranslations } from "next-intl/server";
 import { proxyUrl } from "@/lib/proxy-url";

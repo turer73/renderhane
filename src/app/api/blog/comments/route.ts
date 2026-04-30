@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 5 comments per minute per user
-    const rl = rateLimit(`blog-comment:${user.id}`, RATE_LIMITS.blogComment);
+    const rl = await rateLimit(`blog-comment:${user.id}`, RATE_LIMITS.blogComment);
     if (!rl.success) {
       return NextResponse.json({ error: "Too many comments, please wait" }, { status: 429 });
     }

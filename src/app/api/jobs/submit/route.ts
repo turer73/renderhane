@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: 10 job submissions per minute per user
-  const rl = rateLimit(`job-submit:${user.id}`, RATE_LIMITS.jobSubmit);
+  const rl = await rateLimit(`job-submit:${user.id}`, RATE_LIMITS.jobSubmit);
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests. Please wait." },

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: 5 invites per 5 minutes per user
-  const rl = rateLimit(`referral-invite:${user.id}`, RATE_LIMITS.referralInvite);
+  const rl = await rateLimit(`referral-invite:${user.id}`, RATE_LIMITS.referralInvite);
   if (!rl.success) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }

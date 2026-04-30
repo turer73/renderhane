@@ -1,4 +1,5 @@
 import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -77,4 +78,16 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+// Sentry's webpack plugin only runs at build time when SENTRY_AUTH_TOKEN is
+// available; without it, source-map upload is skipped silently. The wrapper
+// itself is safe to apply unconditionally.
+const sentryWebpackOptions = {
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  disableLogger: true,
+  hideSourceMaps: true,
+};
+
+export default withSentryConfig(withNextIntl(nextConfig), sentryWebpackOptions);
