@@ -221,10 +221,27 @@ const MODEL_TO_TIER: Record<string, string> = {
   "rodin": "premium",
 };
 
+/** Map 3D model select IDs to MODELS keys (src/lib/fal/models.ts).
+ *  Sent as `modelKey` so the API routes to the exact model the user picked,
+ *  rather than relying on tier (which collapses Meshy 6 and Hunyuan together). */
+const MODEL_TO_KEY: Record<string, string> = {
+  "trellis-v1": "trellis-v1",
+  "tripo-2.5": "tripo-v25-mv",
+  "meshy-6": "meshy-6-image",
+  "hunyuan3d-v3": "hunyuan3d-v3",
+  "rodin": "hyper3d-rodin",
+};
+
 /** Map video model select IDs to API tier */
 const VIDEO_MODEL_TO_TIER: Record<string, string> = {
   "wan-v2.6": "fast",
   "kling-3.0": "premium",
+};
+
+/** Map video model select IDs (image-to-video tab) to MODELS keys. */
+const VIDEO_MODEL_TO_KEY: Record<string, string> = {
+  "wan-v2.6": "wan-i2v",
+  "kling-3.0": "kling-i2v",
 };
 
 /* ═══════════════════════════════════════════════ */
@@ -235,6 +252,8 @@ export interface GeneratePayload {
   credits: number;
   apiTool: string;
   tier?: string;
+  /** Explicit MODELS key — sent when user picks a specific model in the UI. */
+  modelKey?: string;
   imageUrl?: string;
   imageUrls?: string[];
   prompt?: string;
@@ -591,6 +610,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         payload.model = currentVideoModel.name;
         payload.credits = currentVideoModel.credits;
         payload.tier = VIDEO_MODEL_TO_TIER[selectedVideoModel];
+        payload.modelKey = VIDEO_MODEL_TO_KEY[selectedVideoModel];
       } else {
         const info = VIDEO_TOOL_INFO[activeTab];
         payload.model = info?.model ?? "AI Model";
@@ -620,6 +640,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       payload.model = currentModel3D.name;
       payload.credits = currentModel3D.credits;
       payload.tier = MODEL_TO_TIER[selectedModel];
+      payload.modelKey = MODEL_TO_KEY[selectedModel];
       if (autoEnhance && activeTab === "img-to-3d") {
         payload.autoEnhance = true;
         payload.credits += 4;

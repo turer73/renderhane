@@ -30,6 +30,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { proxyUrl } from "@/lib/proxy-url";
 import { ModelViewer } from "@/components/viewer/model-viewer";
+import { DownloadMenu } from "@/components/app/download-menu";
+
+/** Pick the output type DownloadMenu expects, falling back to URL ext when missing. */
+function resolveOutputType(
+  outputType: "glb" | "image" | "video" | null | undefined,
+  url: string
+): "glb" | "image" | "video" {
+  if (outputType) return outputType;
+  if (url.includes(".glb")) return "glb";
+  if (url.includes(".mp4") || url.includes(".webm")) return "video";
+  return "image";
+}
 
 /** Fetch-based download that works for cross-origin URLs (Supabase, fal.media) */
 async function downloadFile(url: string, filename: string) {
@@ -364,7 +376,14 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     {job.status === "completed" && (
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => setPreviewJob(job)}><Eye className="h-3 w-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => { const u = job.outputUrl ?? src; if (u) downloadFile(u, `${job.name.replace(/\s+/g, "_")}.${getFileExt(u)}`); }}><Download className="h-3 w-3" /></Button>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DownloadMenu
+                            url={job.outputUrl ?? src}
+                            outputType={resolveOutputType(job.outputType, job.outputUrl ?? src)}
+                            fileName={job.name.replace(/\s+/g, "_")}
+                            compact
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -430,9 +449,12 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               <div className="flex items-center gap-2 flex-none">
                 <span className="text-[10px] text-muted-foreground">{job.credits} kr</span>
                 {job.status === "completed" && (job.outputUrl ?? job.thumbnails[0]) && (
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { const u = job.outputUrl ?? job.thumbnails[0]; if (u) downloadFile(u, `${job.name.replace(/\s+/g, "_")}.${getFileExt(u)}`); }}>
-                    <Download className="h-3 w-3" />
-                  </Button>
+                  <DownloadMenu
+                    url={(job.outputUrl ?? job.thumbnails[0]) as string}
+                    outputType={resolveOutputType(job.outputType, (job.outputUrl ?? job.thumbnails[0]) as string)}
+                    fileName={job.name.replace(/\s+/g, "_")}
+                    compact
+                  />
                 )}
                 <JobDropdown job={job} onRefetch={onRefetch} onPreview={setPreviewJob} />
               </div>
@@ -480,14 +502,14 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
         <Badge variant="secondary" className="text-[10px]">{job.model}</Badge>
       </div>
 
-      {/* Download button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); downloadFile(url, `${job.name.replace(/\s+/g, "_")}.${getFileExt(url)}`); showToast("İndirme başlatıldı", "success"); }}
-        className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20 transition-colors"
-      >
-        <Download className="h-4 w-4" />
-        İndir
-      </button>
+      {/* Download menu — format selection (GLB/STL/OBJ/GLTF for 3D, PNG/JPEG/WebP for images) */}
+      <div className="absolute bottom-4 right-4 z-10" onClick={(e) => e.stopPropagation()}>
+        <DownloadMenu
+          url={url}
+          outputType={resolveOutputType(job.outputType, url)}
+          fileName={job.name.replace(/\s+/g, "_")}
+        />
+      </div>
 
       {/* Content */}
       <div className={isGlb ? "w-[90vw] h-[85vh]" : "max-h-[85vh] max-w-[90vw]"} onClick={(e) => e.stopPropagation()}>

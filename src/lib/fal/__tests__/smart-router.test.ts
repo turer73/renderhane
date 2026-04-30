@@ -39,6 +39,42 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('meshy-6-image');
   });
 
+  // ── Explicit modelKey overrides tier-based routing ──
+  // Regression: the UI's 3D model dropdown collapsed Meshy 6 and Hunyuan to
+  // the same tier ("standard"), so picking Hunyuan with one image silently
+  // routed to Meshy. modelKey gives the UI a way to pin the exact choice.
+
+  it('honors explicit modelKey for hunyuan3d-v3 with single image (was meshy-6-image via tier)', () => {
+    const { modelKey } = routeRequest({
+      tool: '3d-model',
+      tier: 'standard',
+      modelKey: 'hunyuan3d-v3',
+      imageUrl: 'http://img/1.jpg',
+    });
+    expect(modelKey).toBe('hunyuan3d-v3');
+  });
+
+  it('falls back to tier routing when modelKey is unknown', () => {
+    const { modelKey } = routeRequest({
+      tool: '3d-model',
+      tier: 'standard',
+      modelKey: 'does-not-exist',
+      imageUrl: 'http://img/1.jpg',
+    });
+    expect(modelKey).toBe('meshy-6-image');
+  });
+
+  it('honors explicit modelKey for kling-i2v on video image-to-video', () => {
+    const { modelKey } = routeRequest({
+      tool: 'video',
+      tier: 'fast',
+      modelKey: 'kling-i2v',
+      imageUrl: 'http://img/1.jpg',
+      prompt: 'a smooth zoom',
+    });
+    expect(modelKey).toBe('kling-i2v');
+  });
+
   // ── Other tools ────────────────────────────────
 
   it('routes bg-remove to bria-rmbg (commercial license)', () => {

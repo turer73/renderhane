@@ -220,6 +220,7 @@ export function WorkspaceLayout({
       const body: Record<string, unknown> = {
         tool: payload.apiTool,
         ...(payload.tier ? { tier: payload.tier } : {}),
+        ...(payload.modelKey ? { modelKey: payload.modelKey } : {}),
         ...(payload.imageUrl ? { imageUrl: payload.imageUrl } : {}),
         ...(payload.imageUrls ? { imageUrls: payload.imageUrls } : {}),
         ...(payload.prompt ? { prompt: payload.prompt } : {}),

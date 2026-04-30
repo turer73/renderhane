@@ -74,6 +74,8 @@ interface SubmitJobInput {
   projectId?: string;
   tool: ToolType;
   tier?: ModelTier;
+  /** Explicit model key — when set, smart-router uses it directly and skips tier-based selection. */
+  modelKey?: string;
   imageUrl?: string;
   /** Multiple image URLs for multi-view models (e.g. 3D) */
   imageUrls?: string[];
@@ -113,6 +115,7 @@ export async function submitJob(input: SubmitJobInput) {
   const { model, input: falInput } = routeRequest({
     tool,
     tier,
+    modelKey: input.modelKey,
     imageUrl,
     imageUrls,
     prompt,
@@ -148,6 +151,7 @@ export async function submitJob(input: SubmitJobInput) {
   // Store original request params (pre-processing) for reliable regeneration.
   // input_params has fal.ai-routed URLs (may expire); original_request has user's uploads.
   const originalRequest: Record<string, unknown> = { tool, tier };
+  if (input.modelKey) originalRequest.modelKey = input.modelKey;
   if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
   if (input.prompt) originalRequest.prompt = input.prompt;

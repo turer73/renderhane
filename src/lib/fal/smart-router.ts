@@ -3,6 +3,8 @@ import { MODELS, TOOLS_TEXT_ONLY, type ModelConfig, type ToolType, type ModelTie
 interface RouteRequest {
   tool: ToolType;
   tier?: ModelTier;
+  /** Explicit model key from MODELS — when set, skips tier-based selection. */
+  modelKey?: string;
   imageUrl?: string;
   /** Multiple image URLs for multi-view models (e.g. 3D) */
   imageUrls?: string[];
@@ -25,7 +27,9 @@ export function routeRequest(request: RouteRequest): RouteResult {
   const { tool, tier = "standard", imageUrl, imageUrls, prompt, extraParams } = request;
 
   const imageCount = imageUrls?.length ?? (imageUrl ? 1 : 0);
-  const modelKey = selectModel(tool, tier, imageCount, extraParams);
+  const modelKey = request.modelKey && MODELS[request.modelKey]
+    ? request.modelKey
+    : selectModel(tool, tier, imageCount, extraParams);
   const model = MODELS[modelKey];
 
   const input: Record<string, unknown> = {

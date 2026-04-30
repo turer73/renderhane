@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { tool, tier, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams } = body;
+  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams } = body;
 
   if (!tool) {
     return NextResponse.json(
@@ -209,6 +209,7 @@ export async function POST(request: NextRequest) {
       projectId: resolvedProjectId,
       tool: tool as ToolType,
       tier: tier as ModelTier | undefined,
+      modelKey: typeof modelKey === "string" ? modelKey : undefined,
       imageUrl: validatedImageUrl,
       imageUrls: validatedImageUrls,
       prompt: typeof prompt === "string" ? prompt : undefined,
