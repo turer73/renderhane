@@ -246,6 +246,75 @@ const VIDEO_MODEL_TO_KEY: Record<string, string> = {
 
 /* ═══════════════════════════════════════════════ */
 
+/**
+ * "Akıllı İyileştir" — sends the user's raw prompt to /api/prompts/enrich,
+ * which uses fal.ai's any-llm endpoint to translate Turkish/casual input
+ * into a polished English production prompt. On success, replaces the
+ * Textarea content via `onResult`.
+ */
+function EnrichButton({
+  tool,
+  prompt,
+  onResult,
+  className,
+}: {
+  tool: string;
+  prompt: string;
+  onResult: (next: string) => void;
+  className?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const trimmed = prompt.trim();
+  const disabled = busy || trimmed.length < 4;
+
+  const handleClick = async () => {
+    if (disabled) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/prompts/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: trimmed, tool }),
+      });
+      if (!res.ok) {
+        let msg = "İyileştirme başarısız";
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (j?.error) msg = j.error;
+        } catch { /* keep default */ }
+        showToast(msg, "error");
+        return;
+      }
+      const data = (await res.json()) as { enrichedPrompt?: string };
+      if (data.enrichedPrompt) {
+        onResult(data.enrichedPrompt);
+        showToast("Prompt iyileştirildi", "success");
+      } else {
+        showToast("İyileştirme sonucu boş döndü", "error");
+      }
+    } catch {
+      showToast("Bağlantı hatası", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={cn("h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10", className)}
+      disabled={disabled}
+      onClick={handleClick}
+      title={trimmed.length < 4 ? "Önce kısa bir açıklama yaz" : "AI ile prompt'u zenginleştir"}
+    >
+      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+      Akıllı İyileştir
+    </Button>
+  );
+}
+
 export interface GeneratePayload {
   name: string;
   model: string;
@@ -828,7 +897,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         {activeTab === "text-to-3d" && (
           <>
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Açıklama</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Açıklama</Label>
+                <EnrichButton tool={TAB_TO_API_TOOL[activeTab] ?? "default"} prompt={promptText} onResult={setPromptText} />
+              </div>
               <Textarea
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
@@ -880,7 +952,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
             {renderImageUpload("Doku referans görseli yükle", "Tıkla, sürükle veya yapıştır • Ürün fotoğrafı veya referans")}
 
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Doku Açıklaması</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Doku Açıklaması</Label>
+                <EnrichButton tool={TAB_TO_API_TOOL[activeTab] ?? "default"} prompt={promptText} onResult={setPromptText} />
+              </div>
               <Textarea
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
@@ -995,7 +1070,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         {activeTab === "text-to-image" && (
           <>
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Açıklama</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Açıklama</Label>
+                <EnrichButton tool={TAB_TO_API_TOOL[activeTab] ?? "default"} prompt={promptText} onResult={setPromptText} />
+              </div>
               <Textarea
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
@@ -1215,7 +1293,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
             {renderImageUpload("Nesne silinecek görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
 
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Neyi silelim?</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Neyi silelim?</Label>
+                <EnrichButton tool={TAB_TO_API_TOOL[activeTab] ?? "default"} prompt={promptText} onResult={setPromptText} />
+              </div>
               <Textarea
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
@@ -1311,7 +1392,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         {activeTab === "text-to-video" && (
           <>
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Video Açıklaması</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Video Açıklaması</Label>
+                <EnrichButton tool={TAB_TO_API_TOOL[activeTab] ?? "default"} prompt={promptText} onResult={setPromptText} />
+              </div>
               <Textarea
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
