@@ -21,9 +21,13 @@ const ModelViewer = dynamic(
 interface WorkspacePreviewProps {
   activeTool: string;
   activeJob?: GenerationJob | null;
+  /** Re-run the last successful job with identical parameters. */
+  onRetry?: () => void;
+  /** Submit 3 parallel variations of the last successful job. */
+  onVariation?: () => void;
 }
 
-export function WorkspacePreview({ activeTool, activeJob }: WorkspacePreviewProps) {
+export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }: WorkspacePreviewProps) {
   // Failed state
   if (activeJob?.status === "failed") {
     return (
@@ -172,15 +176,20 @@ export function WorkspacePreview({ activeTool, activeJob }: WorkspacePreviewProp
             <span className="text-[10px] text-muted-foreground">• {activeJob.model}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Tam ekran aç" onClick={() => {
               if (outputUrl) window.open(outputUrl, "_blank");
             }}>
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info")}>
+            {onVariation && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" title="3 varyasyon üret (3× kredi)" onClick={onVariation}>
+                <Sparkles className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Aynı ayarlarla tekrar üret" onClick={onRetry ?? (() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info"))}>
               <RotateCcw className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleDownload}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="İndir" onClick={handleDownload}>
               <Download className="h-3.5 w-3.5" />
             </Button>
           </div>

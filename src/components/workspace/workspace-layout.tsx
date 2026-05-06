@@ -120,6 +120,7 @@ export function WorkspaceLayout({
   const [submitting, setSubmitting] = useState(false);
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
+  const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
   const startTimeRef = useRef<number>(0);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [estimatedProgress, setEstimatedProgress] = useState(0);
@@ -264,6 +265,7 @@ export function WorkspaceLayout({
       const data = await res.json();
       setActiveJobId(data.jobId);
       setSubmitting(false);
+      setLastPayload(payload);
 
       // Trigger credit refresh + polling refetch
       window.dispatchEvent(new Event("job-submitted"));
@@ -275,6 +277,35 @@ export function WorkspaceLayout({
       setActiveJobMeta(null);
     }
   }, [refetch]);
+
+  /** Re-run the last successful job with the same parameters (1x). */
+  const handleRetry = useCallback(() => {
+    if (!lastPayload) {
+      showToast("Önce bir üretim tamamla", "info");
+      return;
+    }
+    handleGenerate(lastPayload);
+  }, [lastPayload, handleGenerate]);
+
+  /** Submit 3 parallel variations of the last successful job (different seeds). */
+  const handleVariation = useCallback(async () => {
+    if (!lastPayload) {
+      showToast("Önce bir üretim tamamla", "info");
+      return;
+    }
+    const cost = lastPayload.credits * 3;
+    const ok = window.confirm(
+      `3 varyasyon üretilecek (toplam ${cost} kredi). Her biri farklı bir sonuç verecek. Devam edilsin mi?`
+    );
+    if (!ok) return;
+
+    showToast(`${cost} kredi ile 3 varyasyon başlatılıyor...`, "info");
+    // Stagger 200ms apart to avoid burst rate limit, but still mostly parallel.
+    for (let i = 0; i < 3; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 200));
+      handleGenerate(lastPayload);
+    }
+  }, [lastPayload, handleGenerate]);
 
   return (
     <>
@@ -289,7 +320,7 @@ export function WorkspaceLayout({
 
       {/* Preview */}
       <div className="min-h-[280px] px-2 pt-2">
-        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} />
+        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onRetry={handleRetry} onVariation={handleVariation} />
       </div>
 
       {/* Collapsible Form */}
@@ -345,7 +376,7 @@ export function WorkspaceLayout({
       {/* Right: Preview + Gallery (resizable) */}
       <PanelGroup orientation="horizontal" className="flex-1 min-w-0">
         <Panel defaultSize="55%" minSize="30%">
-          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} />
+          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onRetry={handleRetry} onVariation={handleVariation} />
         </Panel>
 
         <PanelResizeHandle
