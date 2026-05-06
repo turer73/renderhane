@@ -380,6 +380,11 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
   const [logoFormat, setLogoFormat] = useState<"png" | "svg">("png");
   const [logoTransparentBg, setLogoTransparentBg] = useState(true);
 
+  // AI image analysis (Florence-2 caption + tag-based tool suggestion)
+  interface ImageAnalysis { caption: string; tags: string[]; suggestedTools: string[] }
+  const [analysisResult, setAnalysisResult] = useState<ImageAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
   // Virtual try-on: second image (model/person photo)
   const [modelPhotoPreview, setModelPhotoPreview] = useState<string | null>(null);
   const [modelPhotoUrl, setModelPhotoUrl] = useState<string | null>(null);
@@ -504,12 +509,32 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
     // Store file for later upload + clear stale URL
     setUploadedFile(f);
     setUploadedImageUrl(null);
+    setAnalysisResult(null);
     // Start background upload
     setUploading(true);
     uploadToSupabase(f).then((url) => {
       setUploadedImageUrl(url);
       setUploading(false);
-      if (!url) showToast("Görsel yüklenemedi, tekrar dene", "error");
+      if (!url) {
+        showToast("Görsel yüklenemedi, tekrar dene", "error");
+        return;
+      }
+      // Background AI analysis — silent fail (UX should not block on this)
+      setAnalyzing(true);
+      fetch("/api/analyze/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url }),
+      })
+        .then(async (res) => {
+          if (!res.ok) return null;
+          return (await res.json()) as ImageAnalysis;
+        })
+        .then((data) => {
+          if (data && data.caption) setAnalysisResult(data);
+        })
+        .catch(() => { /* silent */ })
+        .finally(() => setAnalyzing(false));
     }).catch(() => {
       setUploading(false);
       showToast("Görsel yüklenemedi, tekrar dene", "error");
@@ -758,7 +783,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
           <div className="relative w-full h-[140px]">
             <img src={preview} alt="Yüklenen görsel" className="w-full h-full object-contain rounded-lg" />
             <button
-              onClick={(e) => { e.stopPropagation(); if (preview) URL.revokeObjectURL(preview); setPreview(null); setUploadedFile(null); setUploadedImageUrl(null); }}
+              onClick={(e) => { e.stopPropagation(); if (preview) URL.revokeObjectURL(preview); setPreview(null); setUploadedFile(null); setUploadedImageUrl(null); setAnalysisResult(null); }}
               className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
             >
               <X className="h-3 w-3" />
@@ -800,6 +825,31 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
         />
       </div>
+      {/* AI image analysis badge — silent fail (UX should not block on this) */}
+      {(analyzing || analysisResult) && preview && (
+        <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
+          {analyzing ? (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              <span>AI görseli analiz ediyor...</span>
+            </div>
+          ) : analysisResult ? (
+            <div className="space-y-1">
+              <div className="flex items-start gap-1.5">
+                <Wand2 className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                <p className="text-[10px] text-foreground/80 leading-tight line-clamp-2">{analysisResult.caption}</p>
+              </div>
+              {analysisResult.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 pl-4">
+                  {analysisResult.tags.slice(0, 5).map((t) => (
+                    <span key={t} className="rounded bg-primary/10 px-1 py-0.5 text-[9px] text-primary/80">{t}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 
