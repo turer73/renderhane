@@ -96,18 +96,7 @@ export async function middleware(request: NextRequest) {
 
   response.headers.set("Content-Security-Policy", cspDirectives);
   response.headers.set("X-Frame-Options", isEmbed ? "SAMEORIGIN" : "DENY");
-
-  // HSTS — critical for a site handling payments
-  response.headers.set(
-    "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains; preload"
-  );
-
-  // Permissions Policy — restrict browser feature access
-  response.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
+  // HSTS + Permissions-Policy vercel.json'da tanımlı — burada tekrar set etme.
 
   // Embed pages are public — skip auth session refresh
   if (isEmbed) {
