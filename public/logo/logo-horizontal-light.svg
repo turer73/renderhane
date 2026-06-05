@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <!-- Horizontal wordmark — icon + "Renderhane" -->
+  <defs>
+    <linearGradient id="rhh-grad" x1="0" y1="0" x2="64" y2="64">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#rhh-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M14 22 L14 50 L38 56 L38 28 Z"/>
+    <path d="M14 22 L30 14 L54 20 L38 28 Z"/>
+    <path d="M38 28 L54 20 L54 48 L38 56 Z"/>
+    <path d="M30 14 L30 42 L14 50" stroke-opacity="0.35"/>
+    <path d="M30 42 L54 48" stroke-opacity="0.35"/>
+  </g>
+  <text x="26" y="48" font-family="'Geist Sans', 'Inter', system-ui, sans-serif" font-weight="800" font-size="22" fill="#EC4899" text-anchor="middle">R</text>
+  <text x="78" y="42" font-family="'Geist Sans', 'Inter', system-ui, sans-serif" font-weight="700" font-size="26" fill="#0F172A" letter-spacing="-0.02em">Renderhane</text>
+</svg>

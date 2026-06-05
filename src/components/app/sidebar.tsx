@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslations } from "next-intl";
 import { useParams, usePathname } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Box,
   FolderOpen,
   Shield,
   LogOut,
@@ -150,9 +150,14 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-600 text-white dark:bg-indigo-500">
-          <Box className="size-4" />
-        </div>
+        <Image
+          src="/logo/icon-app.svg"
+          width={32}
+          height={32}
+          alt="Renderhane"
+          unoptimized
+          className="size-8 rounded-lg"
+        />
         <span className="text-lg font-bold tracking-tight">renderhane.</span>
       </div>
 

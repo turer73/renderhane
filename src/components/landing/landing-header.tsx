@@ -1,12 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Box, Globe, Menu, X, ArrowRight, Eraser, QrCode, ChevronDown } from "lucide-react";
+import { Globe, Menu, X, ArrowRight, Eraser, QrCode, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export function LandingHeader() {
@@ -52,7 +53,24 @@ export function LandingHeader() {
           href={`/${locale}`}
           className="flex items-center gap-2 font-bold text-lg tracking-tight text-foreground"
         >
-          <Box className="size-6 text-indigo-600 dark:text-indigo-400" />
+          <Image
+            src="/logo/icon-light.svg"
+            width={24}
+            height={24}
+            alt="Renderhane"
+            priority
+            unoptimized
+            className="size-6 dark:hidden"
+          />
+          <Image
+            src="/logo/icon-dark.svg"
+            width={24}
+            height={24}
+            alt="Renderhane"
+            priority
+            unoptimized
+            className="hidden size-6 dark:block"
+          />
           <span>{tc("appName")}</span>
         </Link>
 

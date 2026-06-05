@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Box, Globe, Mail } from "lucide-react";
+import { Globe, Mail } from "lucide-react";
 
 export function Footer() {
   const t = useTranslations("landing");
@@ -63,7 +64,14 @@ export function Footer() {
               href={`/${locale}`}
               className="flex items-center gap-2 font-bold text-lg tracking-tight text-white"
             >
-              <Box className="size-5 text-indigo-400" />
+              <Image
+                src="/logo/icon-dark.svg"
+                width={20}
+                height={20}
+                alt="Renderhane"
+                unoptimized
+                className="size-5"
+              />
               <span>{tc("appName")}</span>
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">

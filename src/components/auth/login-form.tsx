@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Box } from "lucide-react";
+import Image from "next/image";
 
 export function LoginForm() {
   const t = useTranslations("common");
@@ -82,7 +82,24 @@ export function LoginForm() {
     <Card className="w-full max-w-md border-border/50 shadow-xl shadow-indigo-100/20 dark:shadow-indigo-900/10">
       <CardHeader className="text-center space-y-3">
         <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10">
-          <Box className="size-6 text-indigo-600 dark:text-indigo-400" />
+          <Image
+            src="/logo/icon-light.svg"
+            width={28}
+            height={28}
+            alt="Renderhane"
+            unoptimized
+            priority
+            className="size-7 dark:hidden"
+          />
+          <Image
+            src="/logo/icon-dark.svg"
+            width={28}
+            height={28}
+            alt="Renderhane"
+            unoptimized
+            priority
+            className="hidden size-7 dark:block"
+          />
         </div>
         <CardTitle className="text-xl">{t("appName")}</CardTitle>
         <p className="text-muted-foreground text-sm">
