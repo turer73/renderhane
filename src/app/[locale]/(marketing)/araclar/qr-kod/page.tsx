@@ -211,7 +211,11 @@ export default function PublicQRCodePage() {
             <div><label className="text-sm font-medium">{tr ? "Web Sitesi" : "Website"}</label><Input value={fields.website || ""} onChange={(e) => { setField("website", e.target.value); resetPreview(); }} placeholder="https://renderhane.com" className={inputCls} type="url" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-sm font-medium">Instagram</label><Input value={fields.instagram || ""} onChange={(e) => { setField("instagram", e.target.value); resetPreview(); }} placeholder={tr ? "kullaniciadi" : "username"} className={inputCls} /></div>
-              <div><label className="text-sm font-medium">WhatsApp</label><Input value={fields.whatsapp || ""} onChange={(e) => { setField("whatsapp", e.target.value); resetPreview(); }} placeholder="905551234567" className={inputCls} type="tel" /></div>
+              <div>
+                <label className="text-sm font-medium">WhatsApp</label>
+                <Input value={fields.whatsapp || ""} onChange={(e) => { setField("whatsapp", e.target.value); resetPreview(); }} placeholder="905551234567" className={inputCls} type="tel" />
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{tr ? "Ülke koduyla, başında 0 olmadan (örn. 905551234567)" : "With country code, no leading 0 (e.g. 905551234567)"}</p>
+              </div>
             </div>
           </div>
         );
