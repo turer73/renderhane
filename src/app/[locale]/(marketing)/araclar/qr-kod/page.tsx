@@ -73,6 +73,29 @@ function buildPayload(type: ContentType, fields: Record<string, string>): string
       if (fields.title) lines.push(`TITLE:${fields.title}`);
       if (fields.address) lines.push(`ADR;TYPE=WORK:;;${fields.address};;;;`);
       if (fields.website) lines.push(`URL:${fields.website}`);
+      // Social links use Apple item-grouping (itemN.URL + X-ABLabel) so they
+      // show up labeled on iOS Contacts and as tappable URLs on Android.
+      let socialIdx = 1;
+      if (fields.instagram) {
+        const handle = fields.instagram
+          .trim()
+          .replace(/^@/, "")
+          .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+          .replace(/\/+$/, "");
+        if (handle) {
+          lines.push(`item${socialIdx}.URL:https://www.instagram.com/${handle}`);
+          lines.push(`item${socialIdx}.X-ABLabel:Instagram`);
+          socialIdx++;
+        }
+      }
+      if (fields.whatsapp) {
+        const num = fields.whatsapp.replace(/\D/g, "");
+        if (num) {
+          lines.push(`item${socialIdx}.URL:https://wa.me/${num}`);
+          lines.push(`item${socialIdx}.X-ABLabel:WhatsApp`);
+          socialIdx++;
+        }
+      }
       lines.push("END:VCARD");
       return lines.join("\n");
     }
@@ -186,6 +209,10 @@ export default function PublicQRCodePage() {
               <div><label className="text-sm font-medium">{tr ? "Unvan" : "Title"}</label><Input value={fields.title || ""} onChange={(e) => { setField("title", e.target.value); resetPreview(); }} placeholder={tr ? "Yazılım Müh." : "Software Eng."} className={inputCls} /></div>
             </div>
             <div><label className="text-sm font-medium">{tr ? "Web Sitesi" : "Website"}</label><Input value={fields.website || ""} onChange={(e) => { setField("website", e.target.value); resetPreview(); }} placeholder="https://renderhane.com" className={inputCls} type="url" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-sm font-medium">Instagram</label><Input value={fields.instagram || ""} onChange={(e) => { setField("instagram", e.target.value); resetPreview(); }} placeholder={tr ? "kullaniciadi" : "username"} className={inputCls} /></div>
+              <div><label className="text-sm font-medium">WhatsApp</label><Input value={fields.whatsapp || ""} onChange={(e) => { setField("whatsapp", e.target.value); resetPreview(); }} placeholder="905551234567" className={inputCls} type="tel" /></div>
+            </div>
           </div>
         );
       case "wifi":
