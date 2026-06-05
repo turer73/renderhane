@@ -6,6 +6,7 @@ import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { TOOLS_MULTI_IMAGE, TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES } from "@/lib/fal/models";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
+import type { PromptContext } from "@/lib/prompts/presets";
 
 // Job submission can include auto bg-remove (~5s) + fal.ai queue submit
 export const maxDuration = 60;
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams } = body;
+  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams, promptContext } = body;
 
   if (!tool) {
     return NextResponse.json(
@@ -203,6 +204,16 @@ export async function POST(request: NextRequest) {
     validatedExtraParams = extraParams as Record<string, unknown>;
   }
 
+  // Validate promptContext — structured input for server-side smart prompt
+  // composition (scene/aplus/image-edit). Plain object if provided.
+  let validatedPromptContext: PromptContext | undefined;
+  if (promptContext !== undefined && promptContext !== null) {
+    if (typeof promptContext !== "object" || Array.isArray(promptContext)) {
+      return NextResponse.json({ error: "promptContext must be an object" }, { status: 400 });
+    }
+    validatedPromptContext = promptContext as PromptContext;
+  }
+
   try {
     const result = await submitJob({
       userId: user.id,
@@ -215,6 +226,7 @@ export async function POST(request: NextRequest) {
       prompt: typeof prompt === "string" ? prompt : undefined,
       autoEnhance: autoEnhance === true,
       extraParams: validatedExtraParams,
+      promptContext: validatedPromptContext,
     });
 
     return NextResponse.json(result);

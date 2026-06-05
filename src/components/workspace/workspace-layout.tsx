@@ -13,7 +13,7 @@ import { ResultGallery } from "./result-gallery";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { showToast } from "./workspace-toast";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Settings2, LayoutGrid } from "lucide-react";
+import { ChevronDown, Settings2, LayoutGrid, Sparkles, X } from "lucide-react";
 
 export interface GenerationJob {
   id: string;
@@ -121,6 +121,8 @@ export function WorkspaceLayout({
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
+  /** The prompt the site auto-composed (scene/aplus/image-edit) — shown for transparency. */
+  const [smartPrompt, setSmartPrompt] = useState<string | null>(null);
   const startTimeRef = useRef<number>(0);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [estimatedProgress, setEstimatedProgress] = useState(0);
@@ -227,6 +229,7 @@ export function WorkspaceLayout({
         ...(payload.prompt ? { prompt: payload.prompt } : {}),
         ...(payload.autoEnhance ? { autoEnhance: true } : {}),
         ...(payload.extraParams ? { extraParams: payload.extraParams } : {}),
+        ...(payload.promptContext ? { promptContext: payload.promptContext } : {}),
       };
 
       const res = await fetch("/api/jobs/submit", {
@@ -266,6 +269,7 @@ export function WorkspaceLayout({
       setActiveJobId(data.jobId);
       setSubmitting(false);
       setLastPayload(payload);
+      setSmartPrompt(typeof data.composedPrompt === "string" ? data.composedPrompt : null);
 
       // Trigger credit refresh + polling refetch
       window.dispatchEvent(new Event("job-submitted"));
@@ -309,6 +313,27 @@ export function WorkspaceLayout({
 
   return (
     <>
+    {/* Smart-prompt transparency banner — what the site auto-composed */}
+    {smartPrompt && (
+      <div className="fixed bottom-4 left-1/2 z-50 w-[92%] max-w-xl -translate-x-1/2 rounded-xl border border-primary/30 bg-card/95 px-4 py-3 shadow-lg backdrop-blur animate-in fade-in-0 slide-in-from-bottom-2">
+        <div className="flex items-start gap-2">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-foreground">AI hazırladı</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-3">{smartPrompt}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSmartPrompt(null)}
+            className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label="Kapat"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    )}
+
     {/* ═══ Mobile layout (< md) ═══ */}
     <div className="flex md:hidden h-full w-full flex-col overflow-y-auto">
       {/* Horizontal tool strip */}
@@ -337,7 +362,7 @@ export function WorkspaceLayout({
         </button>
         {mobileFormOpen && (
           <div className="mt-1 overflow-hidden rounded-2xl border border-border bg-card animate-in slide-in-from-top-2 duration-200">
-            <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} />
+            <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} />
           </div>
         )}
       </div>
@@ -370,7 +395,7 @@ export function WorkspaceLayout({
           activeTool={activeTool}
           onToolChange={onToolChange}
         />
-        <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} />
+        <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} />
       </div>
 
       {/* Right: Preview + Gallery (resizable) */}

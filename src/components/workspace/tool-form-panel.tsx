@@ -42,6 +42,8 @@ import {
   FileStack,
 } from "lucide-react";
 import { showToast } from "./workspace-toast";
+import type { PromptContext } from "@/lib/prompts/presets";
+import { smartDefaultsFor, primaryToolTarget } from "@/lib/analysis/product-intel";
 
 /* ═══════════════════════════════════════════════
    AI Model & Tab configs
@@ -62,6 +64,25 @@ const IMAGE_TOOL_INFO: Record<string, { model: string; credits: number; time: st
   "image-edit": { model: "FLUX Kontext", credits: 6, time: "~10 sn" },
   "object-removal": { model: "Object Removal", credits: 3, time: "~5 sn" },
 };
+
+/* Model pickers — default option keeps today's behavior (no modelKey sent);
+   Nano Banana Pro routes explicitly via modelKey to the premium fal.ai model. */
+interface PickerModel { id: string; name: string; credits: number; time: string; modelKey?: string; tier?: string; }
+
+const EDIT_MODELS: PickerModel[] = [
+  { id: "flux-kontext", name: "FLUX Kontext", credits: 6, time: "~10 sn" },
+  { id: "nano-banana-pro-edit", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~20 sn", modelKey: "nano-banana-pro-edit", tier: "premium" },
+];
+
+const TEXT_MODELS: PickerModel[] = [
+  { id: "flux-2-pro", name: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
+  { id: "nano-banana-pro", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~12 sn", modelKey: "nano-banana-pro", tier: "premium" },
+];
+
+const SCENE_MODELS: PickerModel[] = [
+  { id: "bria-product-shot", name: "Bria Product Shot", credits: 8, time: "~15 sn" },
+  { id: "nano-banana-pro-edit", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~20 sn", modelKey: "nano-banana-pro-edit", tier: "premium" },
+];
 
 const VIDEO_MODELS = [
   { id: "wan-v2.6", name: "Wan 2.6", credits: 20, time: "~2 dk", tier: "fast" },
@@ -330,6 +351,8 @@ export interface GeneratePayload {
   autoEnhance?: boolean;
   /** Tool-specific API params (e.g. Recraft style/colors for logo) */
   extraParams?: Record<string, unknown>;
+  /** Structured context for server-side smart prompt composition (scene/aplus/image-edit) */
+  promptContext?: PromptContext;
 }
 
 interface ToolFormPanelProps {
@@ -337,9 +360,11 @@ interface ToolFormPanelProps {
   onGenerate?: (payload: GeneratePayload) => void;
   /** Pre-select a specific tab on first mount (deep link from dashboard) */
   initialTab?: string;
+  /** Switch the active tool group (used by code-only tool suggestions) */
+  onToolChange?: (tool: string) => void;
 }
 
-export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPanelProps) {
+export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange }: ToolFormPanelProps) {
   const initialTabRef = useRef(initialTab);
   const [activeTab, setActiveTab] = useState(() => {
     // If deep-linked to a specific tab, use it
@@ -363,6 +388,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
   const [editStyleStrength, setEditStyleStrength] = useState("medium");
   const [editAspect, setEditAspect] = useState("1:1");
   const [selectedVideoModel, setSelectedVideoModel] = useState("wan-v2.6");
+  const [selectedEditModel, setSelectedEditModel] = useState("flux-kontext");
+  const [selectedTextModel, setSelectedTextModel] = useState("flux-2-pro");
+  const [selectedSceneModel, setSelectedSceneModel] = useState("bria-product-shot");
+  // Smart-prompt structured inputs — the site composes the final prompt from these
+  const [sceneType, setSceneType] = useState("studio");
+  const [aplusTemplate, setAplusTemplate] = useState("feature");
+  const [aplusPlatform, setAplusPlatform] = useState("trendyol");
+  const [aplusProductDesc, setAplusProductDesc] = useState("");
   // Upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -438,11 +471,16 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
 
   const currentModel3D = AI_MODELS_3D.find((m) => m.id === selectedModel) ?? AI_MODELS_3D[0];
   const currentVideoModel = VIDEO_MODELS.find((m) => m.id === selectedVideoModel) ?? VIDEO_MODELS[0];
+  const currentEditModel = EDIT_MODELS.find((m) => m.id === selectedEditModel) ?? EDIT_MODELS[0];
+  const currentTextModel = TEXT_MODELS.find((m) => m.id === selectedTextModel) ?? TEXT_MODELS[0];
+  const currentSceneModel = SCENE_MODELS.find((m) => m.id === selectedSceneModel) ?? SCENE_MODELS[0];
   const tabs = DEFAULT_TABS[activeTool];
 
   // Footer info based on tool + tab
   const footerInfo = (() => {
     if (activeTool === "image") {
+      if (activeTab === "image-edit") return { time: currentEditModel.time, credits: currentEditModel.credits };
+      if (activeTab === "text-to-image") return { time: currentTextModel.time, credits: currentTextModel.credits };
       const info = IMAGE_TOOL_INFO[activeTab];
       return info ? { time: info.time, credits: info.credits } : { time: "~10 sn", credits: 5 };
     }
@@ -463,6 +501,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       return info ? { time: info.time, credits: info.credits } : { time: "~30 sn", credits: 20 };
     }
     if (activeTool === "ecommerce") {
+      if (activeTab === "scene") return { time: currentSceneModel.time, credits: currentSceneModel.credits };
       const info = ECOMMERCE_TOOL_INFO[activeTab];
       return info ? { time: info.time, credits: info.credits } : { time: "~15 sn", credits: 8 };
     }
@@ -531,7 +570,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
           return (await res.json()) as ImageAnalysis;
         })
         .then((data) => {
-          if (data && data.caption) setAnalysisResult(data);
+          if (data && data.caption) {
+            setAnalysisResult(data);
+            // Code-only smart default: auto-pick the best scene preset for the
+            // detected product type (user can still override the dropdown).
+            setSceneType(smartDefaultsFor(data.caption, data.tags ?? []).sceneType);
+          }
         })
         .catch(() => { /* silent */ })
         .finally(() => setAnalyzing(false));
@@ -696,9 +740,19 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
     }
 
     if (activeTool === "image") {
-      const info = IMAGE_TOOL_INFO[activeTab];
-      payload.model = info?.model ?? "AI Model";
-      payload.credits = info?.credits ?? 5;
+      if (activeTab === "image-edit") {
+        payload.model = currentEditModel.name;
+        payload.credits = currentEditModel.credits;
+        if (currentEditModel.modelKey) { payload.modelKey = currentEditModel.modelKey; payload.tier = currentEditModel.tier; }
+      } else if (activeTab === "text-to-image") {
+        payload.model = currentTextModel.name;
+        payload.credits = currentTextModel.credits;
+        if (currentTextModel.modelKey) { payload.modelKey = currentTextModel.modelKey; payload.tier = currentTextModel.tier; }
+      } else {
+        const info = IMAGE_TOOL_INFO[activeTab];
+        payload.model = info?.model ?? "AI Model";
+        payload.credits = info?.credits ?? 5;
+      }
     } else if (activeTool === "video") {
       if (activeTab === "image-to-video") {
         payload.model = currentVideoModel.name;
@@ -711,9 +765,15 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         payload.credits = info?.credits ?? 20;
       }
     } else if (activeTool === "ecommerce") {
-      const info = ECOMMERCE_TOOL_INFO[activeTab];
-      payload.model = info?.model ?? "AI Model";
-      payload.credits = info?.credits ?? 8;
+      if (activeTab === "scene") {
+        payload.model = currentSceneModel.name;
+        payload.credits = currentSceneModel.credits;
+        if (currentSceneModel.modelKey) { payload.modelKey = currentSceneModel.modelKey; payload.tier = currentSceneModel.tier; }
+      } else {
+        const info = ECOMMERCE_TOOL_INFO[activeTab];
+        payload.model = info?.model ?? "AI Model";
+        payload.credits = info?.credits ?? 8;
+      }
     } else if (activeTool === "design") {
       if (activeTab === "logo") {
         const isSvg = logoFormat === "svg";
@@ -741,7 +801,56 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
       }
     }
 
+    // Smart prompt context — the site composes the final prompt server-side from
+    // these structured inputs + the auto-detected product caption + user notes.
+    const caption = analysisResult?.caption?.trim() || undefined;
+    if (activeTab === "scene") {
+      payload.promptContext = { kind: "scene", sceneType, caption };
+    } else if (activeTab === "aplus") {
+      payload.promptContext = { kind: "aplus", template: aplusTemplate, platform: aplusPlatform, caption };
+      payload.prompt = aplusProductDesc.trim() || undefined;
+    } else if (activeTab === "image-edit") {
+      payload.promptContext = { kind: "image-edit", action: editAction ?? undefined, caption };
+    }
+
     onGenerate?.(payload);
+  };
+
+  /** One-click "Akıllı Üret": the site detects the product type, picks the best
+   *  scene preset + Nano Banana Pro, and generates — details chosen by the site. */
+  const handleSmartGenerate = () => {
+    if (!uploadedImageUrl) {
+      showToast("Lütfen önce bir ürün görseli yükle", "error");
+      return;
+    }
+    if (uploading) {
+      showToast("Yükleme devam ediyor, lütfen bekle", "error");
+      return;
+    }
+    const caption = analysisResult?.caption ?? "";
+    const smart = smartDefaultsFor(caption, analysisResult?.tags ?? []);
+    const isAplus = activeTab === "aplus";
+    const payload: GeneratePayload = {
+      name: projectName.trim() || `Akıllı ${isAplus ? "A+" : "Sahne"}`,
+      model: "Nano Banana Pro",
+      credits: 18,
+      apiTool: isAplus ? "aplus" : "scene",
+      imageUrl: uploadedImageUrl,
+      modelKey: "nano-banana-pro-edit",
+      tier: "premium",
+      promptContext: isAplus
+        ? { kind: "aplus", template: aplusTemplate, platform: aplusPlatform, caption }
+        : { kind: "scene", sceneType: smart.sceneType, caption },
+      prompt: isAplus ? (aplusProductDesc.trim() || undefined) : (promptText.trim() || undefined),
+    };
+    onGenerate?.(payload);
+  };
+
+  /** Navigate to a code-suggested tool: same group → switch tab; else switch group
+   *  (the group's reset effect lands on its default tab). */
+  const goToTool = (target: { group: string; tab: string }) => {
+    if (target.group === activeTool) setActiveTab(target.tab);
+    else onToolChange?.(target.group);
   };
 
   /* ═══ "Yakında" placeholder for unimplemented tools ═══ */
@@ -846,6 +955,36 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
                   ))}
                 </div>
               )}
+              {/* Code-only intelligence: detected product type + tool suggestion + one-click smart generate */}
+              {(() => {
+                const smart = smartDefaultsFor(analysisResult.caption, analysisResult.tags);
+                const suggestion = primaryToolTarget(analysisResult.suggestedTools);
+                const showSmartGen = activeTab === "scene" || activeTab === "aplus";
+                const suggestionRelevant = suggestion && !(suggestion.group === activeTool && suggestion.tab === activeTab);
+                return (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 pl-4">
+                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-medium text-primary" title={smart.note}>{smart.label}</span>
+                    {suggestionRelevant && (
+                      <button
+                        type="button"
+                        onClick={() => goToTool(suggestion!)}
+                        className="rounded border border-primary/30 px-1.5 py-0.5 text-[9px] text-primary hover:bg-primary/10"
+                      >
+                        Öneri: {suggestion!.label} →
+                      </button>
+                    )}
+                    {showSmartGen && (
+                      <button
+                        type="button"
+                        onClick={handleSmartGenerate}
+                        className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary/90"
+                      >
+                        <Sparkles className="h-3 w-3" /> Akıllı Üret
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ) : null}
         </div>
@@ -1137,6 +1276,19 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Parfüm şişesi görseli" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">AI Model</Label>
+              <select
+                value={selectedTextModel}
+                onChange={(e) => setSelectedTextModel(e.target.value)}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                {TEXT_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.credits} kr</option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-3 pt-1 border-t border-border/40">
               <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Görsel Ayarları</Label>
               <div>
@@ -1176,6 +1328,19 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
         {activeTab === "image-edit" && (
           <>
             {renderImageUpload("Düzenlenecek görseli yükle", "Tıkla, sürükle veya yapıştır • PNG, JPG, WebP")}
+
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">AI Model</Label>
+              <select
+                value={selectedEditModel}
+                onChange={(e) => setSelectedEditModel(e.target.value)}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                {EDIT_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.credits} kr</option>
+                ))}
+              </select>
+            </div>
 
             {/* Action cards grid */}
             <div>
@@ -1536,13 +1701,26 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} id="scene-name" placeholder="ör: Parfüm stüdyo çekimi" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground">AI Model</Label>
+              <select
+                value={selectedSceneModel}
+                onChange={(e) => setSelectedSceneModel(e.target.value)}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
+              >
+                {SCENE_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.credits} kr</option>
+                ))}
+              </select>
+            </div>
+
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <Camera className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">Bria Product Shot</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">8 kredi</Badge>
+                <span className="text-xs font-medium text-foreground">{currentSceneModel.name}</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">{currentSceneModel.credits} kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Ürünü profesyonel stüdyo sahnelerine yerleştir. E-ticaret katalogları için ideal.
@@ -1554,7 +1732,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               <div>
                 <Label className="text-xs text-muted-foreground">Sahne Türü</Label>
                 <select
-                  defaultValue="studio"
+                  value={sceneType}
+                  onChange={(e) => setSceneType(e.target.value)}
                   className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
                 >
                   <option value="studio">Stüdyo</option>
@@ -1604,7 +1783,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               <div>
                 <Label className="text-xs text-muted-foreground">Platform</Label>
                 <select
-                  defaultValue="trendyol"
+                  value={aplusPlatform}
+                  onChange={(e) => setAplusPlatform(e.target.value)}
                   className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
                 >
                   <option value="trendyol">Trendyol</option>
@@ -1617,7 +1797,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               <div>
                 <Label className="text-xs text-muted-foreground">Şablon</Label>
                 <select
-                  defaultValue="feature"
+                  value={aplusTemplate}
+                  onChange={(e) => setAplusTemplate(e.target.value)}
                   className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
                 >
                   <option value="feature">Özellik Vurgulama</option>
@@ -1628,7 +1809,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab }: ToolFormPa
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Ürün Açıklaması</Label>
-                <Input placeholder="ör: Paslanmaz çelik termos, 500ml" className="mt-1.5 h-8 text-sm bg-background/50" />
+                <Input value={aplusProductDesc} onChange={(e) => setAplusProductDesc(e.target.value)} placeholder="ör: Paslanmaz çelik termos, 500ml" className="mt-1.5 h-8 text-sm bg-background/50" />
               </div>
             </div>
           </>

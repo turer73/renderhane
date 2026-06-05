@@ -3,7 +3,12 @@ import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, refundCredits } from "@/lib/credits/engine";
 import { routeRequest } from "@/lib/fal/smart-router";
+import { composeSmartPrompt } from "@/lib/prompts/compose";
+import type { PromptContext } from "@/lib/prompts/presets";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
+
+/** Tools whose final prompt is composed server-side from structured context. */
+const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
 
 /**
  * Auto-remove backgrounds from images before 3D model generation.
@@ -85,6 +90,9 @@ interface SubmitJobInput {
   autoEnhance?: boolean;
   /** Tool-specific API params (e.g. Recraft style/colors). Merged into fal.ai input by smart-router. */
   extraParams?: Record<string, unknown>;
+  /** Structured context for server-side smart prompt composition (scene/aplus/image-edit).
+   *  Consumed here to build the final prompt — NOT forwarded to fal.ai. */
+  promptContext?: PromptContext;
 }
 
 export async function submitJob(input: SubmitJobInput) {
@@ -111,6 +119,21 @@ export async function submitJob(input: SubmitJobInput) {
     }
   }
 
+  // 0c. Smart prompt composition (hybrid: preset backbone + LLM blend) for
+  // scene / aplus / image-edit. The SITE builds the final prompt from the
+  // scene type + auto-detected product caption + user notes. Never throws and
+  // falls back to the deterministic backbone, so generation is never blocked.
+  let effectivePrompt = prompt;
+  const usedSmartPrompt = Boolean(input.promptContext && SMART_PROMPT_TOOLS.includes(tool));
+  if (usedSmartPrompt) {
+    effectivePrompt = await composeSmartPrompt({
+      tool: tool as "scene" | "aplus" | "image-edit",
+      modelKey: input.modelKey,
+      ctx: input.promptContext!,
+      userText: prompt,
+    });
+  }
+
   // 1. Route to correct model
   const { model, input: falInput } = routeRequest({
     tool,
@@ -118,7 +141,7 @@ export async function submitJob(input: SubmitJobInput) {
     modelKey: input.modelKey,
     imageUrl,
     imageUrls,
-    prompt,
+    prompt: effectivePrompt,
     extraParams: input.extraParams,
   });
 
@@ -154,7 +177,7 @@ export async function submitJob(input: SubmitJobInput) {
   if (input.modelKey) originalRequest.modelKey = input.modelKey;
   if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
-  if (input.prompt) originalRequest.prompt = input.prompt;
+  if (effectivePrompt) originalRequest.prompt = effectivePrompt;
   if (autoEnhance) originalRequest.autoEnhance = true;
   if (input.extraParams) originalRequest.extraParams = input.extraParams;
 
@@ -238,5 +261,6 @@ export async function submitJob(input: SubmitJobInput) {
     requestId: result.request_id,
     creditCost,
     estimatedTime: model.estimatedTime,
+    ...(usedSmartPrompt && effectivePrompt ? { composedPrompt: effectivePrompt } : {}),
   };
 }

@@ -148,6 +148,42 @@ describe('TOOL_CREDITS', () => {
   });
 });
 
+describe('Nano Banana Pro (Gemini 3 Pro Image)', () => {
+  it('nano-banana-pro-edit is premium, 18 credits, edit endpoint (image_urls array)', () => {
+    const m = MODELS['nano-banana-pro-edit'];
+    expect(m.tier).toBe('premium');
+    expect(m.creditCost).toBe(18);
+    expect(m.id).toBe('fal-ai/nano-banana-pro/edit');
+    expect(m.multiImage).toBe(true);
+    expect(m.imageParamKey).toBe('image_urls');
+    expect(m.promptParamKey).toBe('prompt');
+  });
+
+  it('nano-banana-pro is premium, 18 credits, generate endpoint', () => {
+    const m = MODELS['nano-banana-pro'];
+    expect(m.tier).toBe('premium');
+    expect(m.creditCost).toBe(18);
+    expect(m.id).toBe('fal-ai/nano-banana-pro');
+    expect(m.promptParamKey).toBe('prompt');
+  });
+
+  it('is added to image-edit, scene, and text-to-image as a non-default (appended) option', () => {
+    expect(TOOL_MODELS['image-edit']).toContain('nano-banana-pro-edit');
+    expect(TOOL_MODELS['scene']).toContain('nano-banana-pro-edit');
+    expect(TOOL_MODELS['text-to-image']).toContain('nano-banana-pro');
+    // Default (first) model unchanged → base pricing preserved
+    expect(TOOL_MODELS['image-edit'][0]).toBe('flux-kontext');
+    expect(TOOL_MODELS['scene'][0]).toBe('bria-product-shot');
+    expect(TOOL_MODELS['text-to-image'][0]).toBe('flux-pro');
+  });
+
+  it('does not change base tool credit costs (added as premium option, not default)', () => {
+    expect(TOOL_CREDITS['image-edit']).toBe(6);
+    expect(TOOL_CREDITS['scene']).toBe(8);
+    expect(TOOL_CREDITS['text-to-image']).toBe(4);
+  });
+});
+
 describe('constants', () => {
   it('TOOLS_WITH_PROMPT includes all prompt-based tools', () => {
     expect(TOOLS_WITH_PROMPT).toContain('scene');

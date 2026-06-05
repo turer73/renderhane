@@ -223,6 +223,27 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── Görsel Düzenleme / Sahne — Nano Banana Pro (Gemini 3 Pro Image) ──
+     Ürün fotoğrafçılığı benchmark #1. Maskesiz doğal-dil düzenleme,
+     etiket/ambalaj metni kusursuz, ürün tutarlılığı, 2K ekstra ücretsiz.
+     Tek model hem image-edit hem scene aracına hizmet eder. */
+  "nano-banana-pro-edit": {
+    id: "fal-ai/nano-banana-pro/edit",
+    displayName: { tr: "Nano Banana Pro — En Kaliteli", en: "Nano Banana Pro — Best Quality" },
+    tier: "premium",
+    creditCost: 18,
+    estimatedTime: "~20s",
+    imageParamKey: "image_urls",
+    multiImage: true,
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      resolution: "2K",
+      aspect_ratio: "auto",
+      output_format: "png",
+    },
+  },
+
   /* ── Inpainting (FLUX Fill) ──────────────── */
   "flux-fill": {
     id: "fal-ai/flux-pro/v1/fill",
@@ -406,6 +427,25 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── Text-to-Image — Nano Banana Pro (Gemini 3 Pro Image) ──
+     Sıfırdan görsel üretiminde en kaliteli; etiket/ambalaj metni kusursuz,
+     akıl-yürütmeli kompozisyon, 2K ekstra ücretsiz. */
+  "nano-banana-pro": {
+    id: "fal-ai/nano-banana-pro",
+    displayName: { tr: "Nano Banana Pro — En Kaliteli", en: "Nano Banana Pro — Best Quality" },
+    tier: "premium",
+    creditCost: 18,
+    estimatedTime: "~12s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      resolution: "2K",
+      aspect_ratio: "1:1",
+      output_format: "png",
+    },
+  },
+
   /* ── QR Code (AI Sanatsal) ─────────────────── */
   "qr-code-ai": {
     id: "fal-ai/flux-2-pro",
@@ -497,13 +537,13 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-6-text", "tripo-v25-mv", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["aura-sr"],
-  "scene": ["bria-product-shot"],
+  "scene": ["bria-product-shot", "nano-banana-pro-edit"],
   "video": ["wan-i2v", "kling-t2v", "kling-i2v"],
   "aplus": ["bria-product-shot-hd"],
-  "image-edit": ["flux-kontext", "flux-kontext-max"],
+  "image-edit": ["flux-kontext", "flux-kontext-max", "nano-banana-pro-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro"],
   "qr-code": ["qr-code-ai"],
   "talking-avatar": ["omnihuman"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
