@@ -82,9 +82,9 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('bria-rmbg');
   });
 
-  it('routes enhance to aura-sr', () => {
+  it('routes enhance to recraft-crisp-upscale (upgraded from aura-sr)', () => {
     const { modelKey } = routeRequest({ tool: 'enhance', imageUrl: 'http://img/1.jpg' });
-    expect(modelKey).toBe('aura-sr');
+    expect(modelKey).toBe('recraft-crisp-upscale');
   });
 
   it('routes scene to bria-product-shot', () => {
