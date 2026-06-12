@@ -536,6 +536,39 @@
       "section6Content": "Çerez politikamızla ilgili sorularınız için:\n\nE-posta: info@renderhane.com"
     }
   },
+  "about": {
+    "metaTitle": "Hakkımızda",
+    "metaDescription": "Renderhane, e-ticaret satıcıları için yapay zeka destekli görsel üretim stüdyosudur. Hikayemizi, misyonumuzu ve teknolojimizi keşfedin.",
+    "title": "Hakkımızda",
+    "intro": "Renderhane, e-ticaret satıcılarının ürün görsellerini profesyonel stüdyo kalitesine taşıyan yapay zeka destekli bir görsel üretim platformudur. Tek bir ürün fotoğrafından 3D modeller, sahne kurguları, A+ içerik görselleri, tanıtım videoları ve sosyal medya paketleri üretiyoruz — pahalı çekim ekipmanı, fotoğraf stüdyosu veya tasarım ekibi gerektirmeden.",
+    "missionTitle": "Misyonumuz",
+    "missionBody": "Küçük ve orta ölçekli işletmelerin, büyük markalarla aynı görsel kaliteyle rekabet edebilmesini sağlamak. İnanıyoruz ki harika bir ürünü olan her satıcı, bu ürünü en iyi şekilde gösterecek görsellere erişebilmeli. Geleneksel ürün çekimi günler sürer ve binlerce liraya mal olurken, Renderhane bunu dakikalara ve uygun maliyete indiriyor. Amacımız, görsel üretimini bir engel olmaktan çıkarıp büyümenin hızlandırıcısı haline getirmek.",
+    "howTitle": "Nasıl Çalışır?",
+    "howBody": "Süreç üç adımdan ibaret. Önce ürününüzün tek bir fotoğrafını yüklersiniz — telefonla çekilmiş sade bir kare bile yeterli. Ardından ne üretmek istediğinizi seçersiniz: arka planı temizlenmiş bir ürün görseli mi, ürünü bir yaşam alanında gösteren bir sahne mi, döndürülebilir bir 3D model mi, yoksa pazaryeri için A+ içerik mi. Son olarak yapay zeka motorlarımız saniyeler içinde sonucu üretir; beğenmezseniz farklı varyasyonlar deneyebilir, ince ayar yapabilirsiniz. Üretilen tüm çıktıların ticari kullanım hakkı size aittir.",
+    "techTitle": "Teknolojimiz",
+    "techBody": "Renderhane, alanında öncü yapay zeka modellerini tek bir kullanıcı dostu arayüzde birleştirir. 3D model üretimi için TRELLIS ve Hunyuan3D, arka plan kaldırma için BiRefNet, görsel üretimi ve iyileştirme için en güncel difüzyon modelleri kullanılır. Bu modelleri sizin için seçer, yapılandırır ve sürekli güncelleriz — siz hangi modelin ne işe yaradığını bilmek zorunda kalmazsınız. Altyapımız Türkiye pazarına göre optimize edilmiştir: Türkçe arayüz, iyzico ile yerel ödeme ve Türkçe destek.",
+    "whoTitle": "Kimler İçin?",
+    "whoBody": "Trendyol, Hepsiburada, Amazon ve Etsy gibi pazaryerlerinde satış yapan e-ticaret satıcıları; kendi web mağazasını işleten markalar; ürünlerini sosyal medyada tanıtan girişimciler ve müşterileri için hızlı görsel üreten ajanslar. İster tek kişilik bir işletme olun, ister yüzlerce ürünlü bir katalog yönetin — Renderhane ölçeğinize uyum sağlar. Ücretsiz araçlarımızla deneyebilir, ihtiyacınız büyüdükçe kredi paketlerine geçebilirsiniz.",
+    "ctaTitle": "Başlamaya hazır mısınız?",
+    "ctaBody": "Ücretsiz araçlarımızı kredi kartı gerekmeden deneyin veya hesap oluşturup tüm özelliklere erişin.",
+    "ctaButton": "Ücretsiz Dene",
+    "contactButton": "İletişime Geç"
+  },
+  "contact": {
+    "metaTitle": "İletişim",
+    "metaDescription": "Renderhane ile iletişime geçin. Sorularınız, destek talepleriniz ve iş birliği önerileriniz için bize ulaşın.",
+    "title": "İletişim",
+    "intro": "Sorularınız, destek talepleriniz veya iş birliği önerileriniz için bize ulaşmaktan çekinmeyin. Ekibimiz Türkçe ve İngilizce olarak yardımcı olmaktan memnuniyet duyar; e-postalara genellikle bir iş günü içinde yanıt veriyoruz.",
+    "emailTitle": "E-posta",
+    "emailBody": "Genel sorular, destek ve iş birlikleri için:",
+    "supportTitle": "Destek",
+    "supportBody": "Hesabınız, kredi paketleriniz veya bir üretim işiyle ilgili teknik bir sorun yaşıyorsanız, e-postanızda hesap e-posta adresinizi ve varsa ilgili işin numarasını belirtmeniz çözümü hızlandırır.",
+    "businessTitle": "İş Birliği ve Kurumsal",
+    "businessBody": "Ajanslar, yüksek hacimli satıcılar ve kurumsal entegrasyon (API erişimi, Shopify ve pazaryeri bağlantıları) talepleri için aynı e-posta üzerinden bizimle iletişime geçebilirsiniz. İhtiyaçlarınıza uygun bir çözüm için sizinle birlikte çalışırız.",
+    "hoursTitle": "Yanıt Süresi",
+    "hoursBody": "E-postalarınızı hafta içi her gün takip ediyoruz. Çoğu mesaja 24 saat içinde, en geç bir iş günü içinde yanıt veriyoruz.",
+    "ctaButton": "E-posta Gönder"
+  },
   "cookieBanner": {
     "message": "Web sitemizde deneyiminizi iyileştirmek için çerezler kullanıyoruz.",
     "learnMore": "Çerez Politikası",

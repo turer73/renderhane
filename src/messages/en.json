@@ -536,6 +536,39 @@
       "section6Content": "For questions about our cookie policy:\n\nEmail: info@renderhane.com"
     }
   },
+  "about": {
+    "metaTitle": "About Us",
+    "metaDescription": "Renderhane is an AI-powered visual production studio for e-commerce sellers. Discover our story, mission and technology.",
+    "title": "About Us",
+    "intro": "Renderhane is an AI-powered visual production platform that brings e-commerce sellers' product images up to professional studio quality. From a single product photo we generate 3D models, scene compositions, A+ content visuals, promotional videos and social media packs — without expensive shooting equipment, a photo studio or a design team.",
+    "missionTitle": "Our Mission",
+    "missionBody": "To let small and medium-sized businesses compete on the same visual quality as large brands. We believe every seller with a great product deserves access to visuals that show it at its best. While traditional product photography takes days and costs a fortune, Renderhane brings it down to minutes and an affordable price. Our goal is to turn visual production from a barrier into an accelerator of growth.",
+    "howTitle": "How It Works",
+    "howBody": "The process has just three steps. First you upload a single photo of your product — even a plain shot taken with your phone is enough. Then you choose what you want to create: a background-removed product image, a scene showing the product in a living space, a rotatable 3D model, or A+ content for a marketplace. Finally our AI engines produce the result in seconds; if you are not satisfied you can try different variations and fine-tune. You own the commercial rights to every output produced.",
+    "techTitle": "Our Technology",
+    "techBody": "Renderhane combines industry-leading AI models in a single, user-friendly interface. We use TRELLIS and Hunyuan3D for 3D model generation, BiRefNet for background removal, and the latest diffusion models for image generation and enhancement. We select, configure and continuously update these models for you — you never need to know which model does what. Our infrastructure is optimised for the Turkish market: a Turkish interface, local payments via iyzico and Turkish-language support.",
+    "whoTitle": "Who Is It For?",
+    "whoBody": "E-commerce sellers on marketplaces like Trendyol, Hepsiburada, Amazon and Etsy; brands running their own web stores; entrepreneurs promoting products on social media; and agencies producing fast visuals for their clients. Whether you are a one-person business or manage a catalogue of hundreds of products, Renderhane scales to fit. Try it with our free tools, then move to credit packs as your needs grow.",
+    "ctaTitle": "Ready to get started?",
+    "ctaBody": "Try our free tools with no credit card required, or create an account to access all features.",
+    "ctaButton": "Try for Free",
+    "contactButton": "Get in Touch"
+  },
+  "contact": {
+    "metaTitle": "Contact",
+    "metaDescription": "Get in touch with Renderhane. Reach us for questions, support requests and partnership proposals.",
+    "title": "Contact",
+    "intro": "Don't hesitate to reach out with your questions, support requests or partnership proposals. Our team is happy to help in Turkish and English, and we usually reply to emails within one business day.",
+    "emailTitle": "Email",
+    "emailBody": "For general questions, support and partnerships:",
+    "supportTitle": "Support",
+    "supportBody": "If you are experiencing a technical issue with your account, credit packs or a production job, including your account email and the relevant job number (if any) in your email helps us resolve it faster.",
+    "businessTitle": "Partnerships & Enterprise",
+    "businessBody": "For agencies, high-volume sellers and enterprise integration requests (API access, Shopify and marketplace connections), reach us at the same email address. We will work with you to find a solution that fits your needs.",
+    "hoursTitle": "Response Time",
+    "hoursBody": "We monitor incoming email every weekday. We reply to most messages within 24 hours, and at the latest within one business day.",
+    "ctaButton": "Send Email"
+  },
   "cookieBanner": {
     "message": "We use cookies to improve your experience on our website.",
     "learnMore": "Cookie Policy",
