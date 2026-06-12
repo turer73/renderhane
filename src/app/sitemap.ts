@@ -12,6 +12,8 @@ const locales = ["tr", "en"] as const;
 const staticPages: { path: string; lastModified: string; changeFreq: "weekly" | "monthly"; priority: number }[] = [
   { path: "",         lastModified: "2026-04-02", changeFreq: "weekly",  priority: 1.0 },
   { path: "/blog",    lastModified: "2025-03-01", changeFreq: "weekly",  priority: 0.8 },
+  { path: "/hakkimizda", lastModified: "2026-06-12", changeFreq: "monthly", priority: 0.5 },
+  { path: "/iletisim",   lastModified: "2026-06-12", changeFreq: "monthly", priority: 0.5 },
   { path: "/privacy", lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/terms",   lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/kvkk",    lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },

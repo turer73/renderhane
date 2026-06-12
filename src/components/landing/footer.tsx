@@ -43,8 +43,9 @@ export function Footer() {
   ];
 
   const companyLinks = [
+    { label: t("footer.about"), href: `/${locale}/hakkimizda` },
     { label: t("footer.blog"), href: `/${locale}/blog` },
-    { label: t("footer.contact"), href: "mailto:info@renderhane.com" },
+    { label: t("footer.contact"), href: `/${locale}/iletisim` },
   ];
 
   const legalLinks = [
