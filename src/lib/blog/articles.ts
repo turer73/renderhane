@@ -11,6 +11,128 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "ai-halusinasyonlari-urun-gorseli-marka-tutarliligi",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["AI Görsel", "Marka Tutarlılığı", "Kalite Kontrol"],
+    title: {
+      tr: "Ürün Görselinde AI Halüsinasyonları ve Marka Tutarlılığı: Nelere Dikkat Edilmeli",
+      en: "AI Hallucinations in Product Images and Brand Consistency: What to Watch For",
+    },
+    description: {
+      tr: "AI ürün görsellerinde halüsinasyon nedir, neden olur ve marka tutarlılığını nasıl bozar? Hataları yakalama ve önleme için pratik kontrol listesi.",
+      en: "What are hallucinations in AI product images, why they happen, and how they break brand consistency. A practical checklist to catch and prevent them.",
+    },
+    content: {
+      tr: `## AI Halüsinasyonu Ürün Görselinde Ne Demek?
+
+Metin üreten modellerde "halüsinasyon" uydurma bilgi anlamına gelir. Görsel üreten modellerde ise karşılığı, modelin gerçek ürününüzde olmayan detayları **eklemesi, çıkarması veya değiştirmesidir**. Tek bir fotoğraftan sahne kurgusu, 3D model veya A+ içerik üretirken model boşlukları kendi öğrendiği kalıplarla doldurur. Sonuç çoğu zaman göze hoş gelir ama ürünü yanlış temsil edebilir.
+
+E-ticarette bu sıradan bir estetik kusur değildir. Müşteri görselde gördüğü ürünü satın alır; eline geçen farklıysa iade, kötü yorum ve pazaryerinde "ürün açıklamayla uyuşmuyor" şikayeti gelir. Yani halüsinasyon doğrudan dönüşümü ve hesabınızın sağlığını etkiler.
+
+## Tipik Halüsinasyon Türleri
+
+### Logo ve metin bozulması
+En sık görülen sorun budur. AI modelleri yazıyı piksel deseni olarak öğrenir, harf olarak değil. Logonuzdaki yazı çarpılabilir, marka adı anlamsız karakterlere dönüşebilir veya ambalajdaki içerik metni okunamaz hale gelebilir. Küçük puntolu üretim bilgileri (içindekiler, gramaj, barkod) neredeyse her zaman bozulur.
+
+### Ürün geometrisinin değişmesi
+Bir ayakkabının dikiş sayısı, bir çantanın toka sayısı, bir mobilyanın bacak oranı değişebilir. Simetrik olması gereken yerlerde asimetri, düz olması gereken kenarlarda eğrilik ortaya çıkar. 3D modele dönüştürürken arkadan görünmeyen yüzeyler modelin tahminiyle doldurulur ve gerçek üründen sapabilir.
+
+### Renk ve malzeme kayması
+Markanızın belirli bir Pantone tonu varsa AI bunu "yakın bir renge" çekebilir. Mat bir yüzey parlak, dokulu bir kumaş düz görünebilir. Sahne ışığı eklendiğinde ürün rengi sıcak/soğuk yönde kayar.
+
+### Olmayan detayların eklenmesi
+Model, eğitildiği benzer ürünlerden esinlenerek olmayan düğme, yansıma, gölge veya desen ekleyebilir. "Daha gerçekçi" görünsün diye eklenen bu detaylar aslında yanlış beyandır.
+
+## Neden Olur?
+
+Görsel üreten modeller, milyonlarca örnekten istatistiksel kalıplar öğrenir. Sizin ürününüzü "tanımaz"; ona benzeyen şeyleri yeniden üretir. Girdi olarak verdiğiniz tek fotoğrafta görünmeyen her şey — arka yüz, iç kısım, küçük yazılar — model için bir tahmin alanıdır. Tahmin ne kadar çoksa sapma riski o kadar yüksektir. Bu, modelin "hatası" değil, çalışma biçiminin doğal sonucudur. Bu yüzden çözüm, modelin tahmin etmesi gereken alanı küçültmektir.
+
+## Marka Tutarlılığını Korumak İçin Pratik Yöntemler
+
+### 1. Referans girdisini zenginleştirin
+Tek fotoğraf yerine ürünü farklı açılardan gösteren birden çok kare verin. Model ne kadar çok gerçek veri görürse o kadar az tahmin eder. Logonun, etiketin ve kritik detayların net göründüğü kareleri mutlaka ekleyin.
+
+### 2. Metni sonradan ekleyin
+Logo, marka adı ve ürün metnini AI'ya ürettirmeyin. Görseli metinsiz üretip okunabilir logoyu ve yazıları sonradan vektörel olarak yerleştirin. Bu, en sık görülen halüsinasyon türünün riskini tek hamlede büyük ölçüde azaltır.
+
+### 3. Marka kitabınızı referans yapın
+Renk kodları, izin verilen arka planlar, oran kuralları ve yasak kullanımları yazılı bir kılavuza dökün. Her üretilen görseli bu kılavuza göre denetleyin. Tutarlılık göz kararıyla değil, sabit referansla sağlanır.
+
+### 4. Yan yana karşılaştırma yapın
+Üretilen görseli her zaman orijinal ürün fotoğrafıyla yan yana koyun. Şu sırayla bakın: önce yazı/logo, sonra geometri ve oranlar, sonra renk, en son ışık ve gölge. Bu sıra, en kritik hataları en başta yakalamanızı sağlar.
+
+### 5. Yüksek riskli kategorilerde temkinli olun
+Üzerinde yoğun metin bulunan ambalajlı ürünler (kozmetik, gıda takviyesi, elektronik kutuları), karmaşık desenli tekstiller ve hassas mekanik parçalar en çok sapma yaşanan kategorilerdir. Bu ürünlerde AI'yı arka plan ve sahne için kullanıp ürünün kendisini gerçek fotoğraftan koruyun.
+
+## Hızlı Kontrol Listesi
+
+- Logo ve tüm metinler okunabilir ve doğru mu?
+- Ürünün şekli, oranları ve simetrisi orijinaliyle aynı mı?
+- Renk, marka tonuna sadık mı?
+- Olmayan bir detay (düğme, desen, yansıma) eklenmiş mi?
+- Eksik kalan bir parça var mı?
+- Pazaryerinin "görsel ürünü doğru temsil etmeli" kuralına uyuyor mu?
+
+## Sonuç
+
+AI görsel üretimi, doğru kullanıldığında stüdyo maliyetini ve süresini ciddi biçimde düşürür. Risk, modelin yaratıcılığını ürünün gerçeğiyle karıştırmaktır. İlke basittir: **sahneyi AI üretsin, ürünün kimliğini siz koruyun.** Metni sonradan ekleyin, referansı zenginleştirin ve her görseli sabit bir marka kılavuzuna göre denetleyin. Böylece hem hızdan yararlanır hem de müşterinin gördüğüyle eline geçen arasındaki farkı en aza indirirsiniz.`,
+      en: `## What Does an AI Hallucination Mean in a Product Image?
+
+In text models, a "hallucination" means fabricated information. In image-generating models, the equivalent is when the model **adds, removes, or alters details that don't exist on your real product**. When generating a scene, a 3D model, or A+ content from a single photo, the model fills the gaps with patterns it learned during training. The result often looks pleasing — but it can misrepresent the product.
+
+In e-commerce, this isn't a mere aesthetic flaw. Customers buy what they see in the image; if what arrives is different, you get returns, bad reviews, and "item doesn't match the description" complaints on the marketplace. In short, hallucinations directly affect conversion and the health of your account.
+
+## Typical Types of Hallucination
+
+### Logo and text distortion
+This is the most common issue. AI models learn text as pixel patterns, not as letters. The text in your logo can warp, your brand name can turn into nonsense characters, and the copy on packaging can become unreadable. Small print (ingredients, weight, barcode) almost always breaks.
+
+### Changes in product geometry
+The number of stitches on a shoe, the buckles on a bag, or the leg proportions of a piece of furniture can change. Asymmetry appears where symmetry is expected; curves appear where edges should be straight. When converting to a 3D model, surfaces hidden from the input view are filled by the model's guess and can drift from the real product.
+
+### Color and material shift
+If your brand has a specific Pantone tone, AI may pull it toward a "close enough" color. A matte surface can look glossy; a textured fabric can look flat. When scene lighting is added, the product color shifts warm or cool.
+
+### Adding details that don't exist
+Drawing on similar products it was trained on, the model can add buttons, reflections, shadows, or patterns that aren't there. Added to look "more realistic," these details are in fact a false representation.
+
+## Why Does It Happen?
+
+Image models learn statistical patterns from millions of examples. They don't "know" your product; they reproduce things that resemble it. Anything not visible in the single photo you provide — the back, the inside, the fine print — is a zone of guesswork for the model. The more it has to guess, the higher the risk of drift. This isn't a model "bug"; it's a natural consequence of how it works. That's why the solution is to shrink the area the model has to guess.
+
+## Practical Ways to Protect Brand Consistency
+
+### 1. Enrich the reference input
+Instead of a single photo, provide multiple frames showing the product from different angles. The more real data the model sees, the less it guesses. Always include frames where the logo, label, and critical details are clearly visible.
+
+### 2. Add text afterward
+Don't let AI generate your logo, brand name, or product copy. Generate the image without text, then place the readable logo and text on top as vectors afterward. This single move greatly reduces the risk of the most common type of hallucination.
+
+### 3. Make your brand book the reference
+Put color codes, allowed backgrounds, proportion rules, and prohibited uses into a written guide. Audit every generated image against it. Consistency comes from a fixed reference, not from eyeballing.
+
+### 4. Compare side by side
+Always place the generated image next to the original product photo. Look in this order: first text/logo, then geometry and proportions, then color, and lastly light and shadow. This order helps you catch the most critical errors first.
+
+### 5. Be cautious in high-risk categories
+Text-heavy packaged goods (cosmetics, supplements, electronics boxes), textiles with complex patterns, and precision mechanical parts are the categories most prone to drift. For these, use AI for the background and scene but keep the product itself sourced from a real photo.
+
+## Quick Checklist
+
+- Are the logo and all text readable and correct?
+- Are the product's shape, proportions, and symmetry identical to the original?
+- Is the color faithful to the brand tone?
+- Has a non-existent detail (button, pattern, reflection) been added?
+- Is any part missing?
+- Does it comply with the marketplace's "image must accurately represent the product" rule?
+
+## Conclusion
+
+Used correctly, AI image generation significantly cuts studio cost and time. The risk is confusing the model's creativity with the reality of the product. The principle is simple: **let AI generate the scene, but you protect the product's identity.** Add text afterward, enrich your reference, and audit every image against a fixed brand guide. This way you benefit from the speed while greatly reducing the risk that what the customer sees differs from what they receive.`,
+    },
+  },
+  {
     slug: "hayalet-manken-efekti-ai-tekstil",
     date: "2026-06-13",
     author: "Renderhane",
