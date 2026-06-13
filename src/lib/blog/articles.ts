@@ -11,6 +11,132 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "trendyol-urun-gorseli-olculeri-kurallari-2026",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Trendyol", "Ürün Görseli", "Pazaryeri Optimizasyonu"],
+    title: {
+      tr: "Trendyol Ürün Görseli Ölçüleri ve Kuralları (2026 Rehberi)",
+      en: "Trendyol Product Image Dimensions and Rules (2026 Guide)",
+    },
+    description: {
+      tr: "Trendyol ürün görseli ölçüleri, en-boy oranı, arka plan ve format kuralları. Reddedilmeyen, dönüşüm getiren görseller için pratik 2026 rehberi.",
+      en: "Trendyol product image dimensions, aspect ratio, background and format rules. A practical 2026 guide for images that pass review and convert.",
+    },
+    content: {
+      tr: `## Trendyol Görsel Kuralları Neden Önemli?
+
+Trendyol'da ürün görseli, müşterinin ürüne dair ilk ve çoğu zaman tek izlenimidir. Yanlış ölçüde, bulanık ya da kurallara uymayan bir görsel iki şekilde zarar verir: ya editör onayından geçmez ve ürün yayına alınmaz, ya da yayında kalır ama tıklanma ve dönüşüm oranını düşürür. Bu rehberde 2026 itibarıyla Trendyol'un satıcı panelinde geçerli olan görsel mantığını ve sık yapılan hataları ele alıyoruz.
+
+> Önemli not: Trendyol teknik gereksinimleri kategoriye göre değişir ve zaman zaman güncellenir. Bu yazıdaki değerleri her zaman kendi satıcı panelinizdeki güncel kategori kılavuzuyla doğrulayın.
+
+## Ölçü ve En-Boy Oranı
+
+Trendyol, özellikle giyim ve moda kategorilerinde **dikey (portre) formatı** tercih eder. Yaygın olarak kullanılan oran 2:3'tür (örneğin 1200 x 1800 piksel). Bu oran, mobil uygulamada ürün kartının kapladığı alana en iyi oturan formattır ve listelemede ürünün kırpılmadan görünmesini sağlar.
+
+Pratik öneriler:
+
+- **Çözünürlük:** Görselin kenarı en az 1200 piksel olsun. Daha yüksek çözünürlük, müşteri yakınlaştırma (zoom) yaptığında detayların net kalmasını sağlar.
+- **Oran tutarlılığı:** Aynı ürünün tüm görsellerini aynı en-boy oranında hazırlayın. Karışık oranlar galeride dengesiz görünür.
+- **Kategori farkı:** Elektronik, ev ve kozmetik gibi kategorilerde kare (1:1) görseller de kullanılabilir. Yüklemeden önce kategorinizin önerdiği oranı kontrol edin.
+
+## Arka Plan Kuralları
+
+Ana görselde (ilk görsel) genellikle **sade, beyaz veya çok açık tonlu bir arka plan** beklenir. Amaç, ürünün net biçimde öne çıkması ve listeleme sayfasında dağınık durmamasıdır.
+
+- Ana görselde logo, kampanya yazısı, çerçeve, filigran veya "indirim" gibi metin bindirmeleri kullanmayın. Bunlar çoğunlukla reddedilme sebebidir.
+- Ürünü ortalı ve çerçeveyi dolduracak şekilde yerleştirin; aşırı boşluk bırakmayın.
+- Tamamlayıcı görsellerde (2., 3., 4. fotoğraf) sahne kurgusu, kullanım anı ve detay çekimleri kullanabilirsiniz. Çeşitlilik dönüşümü artırır.
+
+## Format ve Dosya Boyutu
+
+- **Format:** JPEG/JPG en güvenli seçimdir; bazı durumlarda PNG kabul edilir. Animasyonlu veya bozuk dosyalardan kaçının.
+- **Renk:** sRGB renk profili kullanın. CMYK gibi baskı profilleri webde renk kaymasına yol açar.
+- **Dosya boyutu:** Görseli kaliteyi koruyacak ama gereksiz yere büyük olmayacak şekilde optimize edin. Çok büyük dosyalar yükleme hatasına, çok sıkıştırılmış dosyalar ise bulanıklığa yol açar.
+
+## En Sık Yapılan 5 Hata
+
+1. **Düşük çözünürlük:** Telefonla çekilmiş, küçük veya bulanık görseller zoom'da kötü görünür.
+2. **Yanlış oran:** Kare görseli dikey alana zorlamak kırpılma veya kenar boşluğu yaratır.
+3. **Metin/logo bindirmesi:** Ana görseldeki yazılar editör onayını geciktirir.
+4. **Tutarsız galeri:** Farklı ışık, açı ve arka planların karışık olması ürünü amatör gösterir.
+5. **Eksik açı:** Tek bir fotoğrafla ürünü anlatmaya çalışmak. Önden, arkadan, detay ve kullanım görselleri güven oluşturur.
+
+## Görselleri Üretmenin Pratik Yolu
+
+Profesyonel stüdyo çekimi her satıcı için mümkün olmayabilir. Bu noktada AI destekli araçlar, tek bir ürün fotoğrafından arka planı temizlenmiş ana görsel, farklı sahne kurguları ve detay varyasyonları üretmeyi kolaylaştırır. Burada dikkat edilmesi gereken, üretilen görselin ürünü **dürüst biçimde** temsil etmesidir; gerçekte olmayan özellik veya renk eklemek hem iade hem de mağaza puanı açısından risklidir.
+
+Renderhane gibi araçlarla iş akışı genellikle şöyledir: ürünü yükle, arka planı temizle, beyaz zeminli ana görseli ve ardından yaşam tarzı (lifestyle) sahnelerini üret, son olarak Trendyol'un istediği orana göre dışa aktar.
+
+## Yayına Almadan Önce Kontrol Listesi
+
+- [ ] Ana görsel sade arka planda, metinsiz mi?
+- [ ] Tüm görseller aynı en-boy oranında mı (kategoriye uygun)?
+- [ ] Çözünürlük zoom için yeterli mi?
+- [ ] Renkler ürünün gerçeğini yansıtıyor mu?
+- [ ] En az 3-4 farklı açı/sahne var mı?
+
+## Sonuç
+
+Trendyol görsel kuralları karmaşık görünse de mantığı basittir: net, tutarlı ve dürüst görseller. Ölçü ve oranı kategorinize göre panelden doğrulayın, ana görseli sade tutun, galeriyi çeşitlendirin. Bu temel disiplin, hem onay sürecini hızlandırır hem de ürün kartınızın tıklanma ve satışa dönüşme şansını artırır.`,
+      en: `## Why Trendyol Image Rules Matter
+
+On Trendyol, the product image is the customer's first — and often only — impression of your product. An image with the wrong dimensions, poor sharpness, or rule violations hurts you in one of two ways: it either fails editorial review and the listing never goes live, or it stays live but lowers your click-through and conversion rate. This guide covers the image logic that applies in the Trendyol seller panel as of 2026, plus the mistakes sellers make most often.
+
+> Important note: Trendyol's technical requirements vary by category and are updated from time to time. Always verify the values in this article against the current category guidelines in your own seller panel.
+
+## Dimensions and Aspect Ratio
+
+Trendyol favors a **vertical (portrait) format**, especially in apparel and fashion categories. The commonly used ratio is 2:3 (for example, 1200 x 1800 pixels). This ratio fits the product card area in the mobile app best and keeps the product from being cropped in listings.
+
+Practical recommendations:
+
+- **Resolution:** Keep the shorter side at least 1200 pixels. Higher resolution keeps details crisp when customers zoom in.
+- **Consistent ratio:** Prepare all images of the same product in the same aspect ratio. Mixed ratios look uneven in the gallery.
+- **Category differences:** In categories like electronics, home, and cosmetics, square (1:1) images may also be used. Check your category's recommended ratio before uploading.
+
+## Background Rules
+
+The main image (the first photo) is generally expected to have a **plain, white or very light background**. The goal is for the product to stand out clearly and not look cluttered on the listing page.
+
+- Do not add logos, campaign text, frames, watermarks, or overlays like "discount" on the main image. These are common reasons for rejection.
+- Center the product so it fills the frame; avoid excessive empty space.
+- For supporting images (2nd, 3rd, 4th photos) you can use scene compositions, in-use moments, and detail shots. Variety improves conversion.
+
+## Format and File Size
+
+- **Format:** JPEG/JPG is the safest choice; PNG is accepted in some cases. Avoid animated or corrupted files.
+- **Color:** Use the sRGB color profile. Print profiles like CMYK cause color shifts on the web.
+- **File size:** Optimize the image to preserve quality without being unnecessarily large. Files that are too large cause upload errors, while over-compressed files look blurry.
+
+## The 5 Most Common Mistakes
+
+1. **Low resolution:** Small or blurry phone snapshots look bad when zoomed.
+2. **Wrong ratio:** Forcing a square image into a vertical slot causes cropping or padding.
+3. **Text/logo overlays:** Text on the main image delays editorial approval.
+4. **Inconsistent gallery:** A mix of different lighting, angles, and backgrounds makes the product look amateurish.
+5. **Missing angles:** Trying to explain the product with a single photo. Front, back, detail, and in-use images build trust.
+
+## A Practical Way to Produce Images
+
+Professional studio shoots aren't feasible for every seller. This is where AI-assisted tools help: from a single product photo you can generate a background-cleaned main image, different scene compositions, and detail variations. The key here is that the generated image must represent the product **honestly** — adding features or colors that don't actually exist is risky for both returns and your store rating.
+
+With tools like Renderhane, the workflow typically goes: upload the product, clean the background, generate a white-background main image and then lifestyle scenes, and finally export to the ratio Trendyol expects.
+
+## Pre-Publish Checklist
+
+- [ ] Is the main image on a plain background, with no text?
+- [ ] Are all images in the same aspect ratio (appropriate for the category)?
+- [ ] Is the resolution high enough for zoom?
+- [ ] Do the colors reflect the real product?
+- [ ] Are there at least 3-4 different angles/scenes?
+
+## Conclusion
+
+Trendyol's image rules may look complex, but the logic is simple: clear, consistent, and honest images. Verify dimensions and ratio for your category in the panel, keep the main image plain, and diversify the gallery. This basic discipline speeds up approval and improves your product card's chance of earning clicks and converting to sales.`,
+    },
+  },
+  {
     slug: "glb-webp-texture-sorunu",
     date: "2025-02-27",
     author: "Renderhane",
