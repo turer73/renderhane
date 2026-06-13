@@ -11,6 +11,142 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "hayalet-manken-efekti-ai-tekstil",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Hayalet Manken", "Tekstil Fotoğrafı", "AI Görsel"],
+    title: {
+      tr: "Hayalet Manken (Ghost Mannequin) Efekti: Tekstil Ürünlerini AI ile Çekme",
+      en: "Ghost Mannequin Effect: Shooting Apparel Products with AI",
+    },
+    description: {
+      tr: "Hayalet manken efekti nedir, neden işe yarar ve AI ile nasıl uygulanır? Tekstil satıcıları için dürüst, uygulanabilir bir rehber.",
+      en: "What the ghost mannequin effect is, why it works, and how to create it with AI. An honest, practical guide for apparel sellers.",
+    },
+    content: {
+      tr: `## Hayalet Manken Efekti Nedir?
+
+Hayalet manken (ghost mannequin) efekti, bir giysinin sanki görünmez biri tarafından giyiliyormuş gibi, üç boyutlu hacmiyle gösterildiği bir ürün fotoğrafı tekniğidir. Tişört düz bir masada serili durmaz; omuzları doldurulmuş, yakası açılmış, kolları formunu bulmuş halde havada durur. İçeri bakan kısımlar (yaka içi, manşet) da görünür. Sonuç, mankensiz ama bedenli bir görseldir.
+
+Bu teknik tekstilde popüler çünkü iki dünyanın iyi yanını birleştirir: düz ürün (flat lay) görselinin sadeliği ile mankenli çekimin hacim hissi. Müşteri, ürünün vücutta nasıl oturacağını tahmin edebilir, ama dikkati bir modele kaymaz.
+
+## Neden Pazaryerinde İşe Yarar?
+
+Trendyol, Hepsiburada, Amazon ve Etsy gibi platformlarda ana görsel çoğunlukla beyaz arka plan ister. Hayalet manken efekti bu kurala doğal olarak uyar: temiz arka plan, net ürün formu, dikkat dağıtıcı unsur yok.
+
+Giyimde en sık dönüş (iade) sebeplerinden biri beklenti farkıdır. Müşteri ürünün kesimini, hacmini ve oturuşunu net görebilirse, satın alma kararı daha bilinçli olur. Hayalet manken görseli, düz serili bir fotoğrafa göre bu bilgiyi daha iyi taşır. Burada kesin bir oran vermek doğru olmaz; etkisi ürüne, kategoriye ve görselin kalitesine göre değişir.
+
+## Klasik Yöntem Nasıl İşler?
+
+Geleneksel hayalet manken çekimi şöyle yapılır:
+
+1. Giysi, kollarına ve gövdesine göre ayarlanabilen bir manken üzerine giydirilir.
+2. Dış görünüm fotoğraflanır.
+3. Yaka içini göstermek için, mankenin boyun kısmı çıkarılıp giysinin arkası ayrıca çekilir.
+4. Post-prodüksiyonda manken silinir ve iç kısım dış kareyle birleştirilir (compositing).
+
+Bu yöntem güvenilir sonuç verir ama zaman, stüdyo ve retuş emeği ister. Çok sayıda SKU'su olan satıcılar için bu maliyet hızla büyür.
+
+## AI ile Yaklaşım
+
+Yapay zeka, süreci iki yönden hafifletebilir:
+
+### 1. Mevcut çekimden temizleme
+Elinizde mankenli ya da askıda çekilmiş bir fotoğraf varsa, AI tabanlı araçlar mankeni veya askıyı ayırıp arka planı temizleyebilir. Bu, klasik compositing'in retuş kısmını hızlandırır.
+
+### 2. Hacim ve form oluşturma
+Düz serili (flat lay) bir görselden yola çıkarak, AI ürüne hacim hissi verebilir; omuz ve gövde formunu doldurarak hayalet manken görünümüne yaklaştırabilir. Renderhane gibi araçlar bu noktada, tek bir ürün fotoğrafından sahne ve form kurgusu üretmeye odaklanır.
+
+Önemli bir dürüstlük notu: AI, gerçekte var olmayan bir detayı "icat edebilir". Düğme dizilimi, dikiş yönü, etiket veya desen tekrarı orijinalinden sapabilir. Bu yüzden AI çıktısı her zaman gerçek üründe doğrulanmalıdır.
+
+## Adım Adım Pratik Akış
+
+1. **İyi bir kaynak görsel çekin.** Giysiyi düz, kırışıksız ve dengeli aydınlatmayla çekin. AI ne kadar temiz girdi alırsa, çıktı o kadar tutarlı olur.
+2. **Yaka içini ayrı yakalayın.** Mümkünse arka/iç görünümü de çekin; birleştirmede işinize yarar.
+3. **Arka planı ayırın.** Mankeni, askıyı veya zemini temizleyin.
+4. **Form/hacim ekleyin.** Hayalet manken görünümünü uygulayın.
+5. **Doğrulayın.** Çıktıyı gerçek ürünle yan yana koyup renk, doku ve detay sapmalarını kontrol edin.
+6. **Platform kuralına uydurun.** Kare oranı, çözünürlük ve arka plan rengini hedef pazaryerine göre ayarlayın.
+
+## Sık Karşılaşılan Sorunlar
+
+- **Renk kayması:** AI bazen renk tonunu hafifçe değiştirir. Marka rengi kritikse referans kart kullanın ve sonucu gözden geçirin.
+- **Doku bulanıklığı:** Örgü, dantel veya ince kumaş detayı silinebilir. Yüksek çözünürlüklü kaynak görsel bu riski azaltır.
+- **Asimetri:** İki kol veya yaka simetrik durmayabilir. Manuel düzeltme gerekebilir.
+- **Sahte gerçekçilik:** Var olmayan kıvrım veya gölge eklenmesi ürünü yanlış tanıtabilir; bu, pazaryeri kuralları açısından da risklidir.
+
+## Ne Zaman Tercih Edilmeli, Ne Zaman Edilmemeli?
+
+Hayalet manken efekti; tişört, gömlek, sweatshirt, elbise gibi gövde formu olan ürünlerde güçlüdür. Düz aksesuarlarda (örneğin fular düz serildiğinde) çok az katkı sağlar.
+
+Lüks veya yüksek detaylı ürünlerde, küçük bir hatanın bile güveni sarsabileceği durumlarda, AI çıktısını yalnızca taslak olarak kullanıp gerçek çekimle desteklemek daha güvenlidir. Hızlı katalog büyütmesi gereken, çok sayıda standart üründe ise AI ciddi zaman kazandırır.
+
+## Özet
+
+Hayalet manken efekti, tekstil ürününü sade arka planda hacimli göstererek müşteriye daha net bilgi verir. AI, bu görseli üretme veya temizleme sürecini hızlandırabilir; ama doğruluk sorumluluğu satıcıdadır. En sağlıklı yaklaşım, AI'yı hızlı bir ilk adım olarak kullanmak ve her çıktıyı gerçek ürünle doğrulamaktır.`,
+      en: `## What Is the Ghost Mannequin Effect?
+
+The ghost mannequin (or invisible mannequin) effect is a product photography technique where a garment is shown with its full three-dimensional volume, as if worn by an invisible person. A t-shirt isn't laid flat on a table; instead its shoulders are filled out, the collar is open, and the sleeves hold their shape in mid-air. Inner areas such as the neckline and cuffs are visible too. The result is a body-shaped image without an actual model.
+
+The technique is popular in apparel because it combines the best of two worlds: the simplicity of a flat-lay shot and the sense of volume of a model shoot. The customer can imagine how the item sits on a body, but their attention isn't pulled toward a model.
+
+## Why It Works on Marketplaces
+
+On platforms like Trendyol, Hepsiburada, Amazon and Etsy, the main image usually requires a white background. The ghost mannequin effect fits this rule naturally: clean background, clear product form, no distractions.
+
+One of the most common reasons for returns in clothing is the gap between expectation and reality. When a customer can clearly see a garment's cut, volume and fit, the purchase decision is more informed. A ghost mannequin image carries this information better than a flat shot. Giving a precise figure here would be misleading; the impact varies by product, category and image quality.
+
+## How the Classic Method Works
+
+A traditional ghost mannequin shoot typically goes like this:
+
+1. The garment is dressed on an adjustable mannequin.
+2. The exterior is photographed.
+3. To show the inner neckline, the mannequin's neck piece is removed and the back of the garment is shot separately.
+4. In post-production the mannequin is erased and the inner section is composited into the outer frame.
+
+This method gives reliable results but takes time, studio space and retouching effort. For sellers with many SKUs, that cost adds up quickly.
+
+## The AI Approach
+
+AI can ease the process from two directions:
+
+### 1. Cleaning up an existing shot
+If you already have a photo on a mannequin or hanger, AI-based tools can separate the mannequin or hanger and clean the background. This speeds up the retouching part of classic compositing.
+
+### 2. Creating volume and form
+Starting from a flat-lay image, AI can give the product a sense of volume by filling out the shoulder and torso shape, approaching a ghost mannequin look. Tools like Renderhane focus on generating scene and form from a single product photo.
+
+An honest note: AI can "invent" details that don't actually exist. Button placement, stitching direction, labels or pattern repeats may drift from the original. That's why AI output should always be verified against the real product.
+
+## A Step-by-Step Practical Flow
+
+1. **Capture a good source image.** Shoot the garment flat, wrinkle-free, with even lighting. The cleaner the input, the more consistent the output.
+2. **Capture the inner neckline separately.** If possible, shoot the back/inside view too; it helps with compositing.
+3. **Separate the background.** Remove the mannequin, hanger or floor.
+4. **Add form/volume.** Apply the ghost mannequin look.
+5. **Verify.** Place the output next to the real product and check for color, texture and detail drift.
+6. **Match the platform rules.** Adjust aspect ratio, resolution and background color to the target marketplace.
+
+## Common Problems
+
+- **Color shift:** AI sometimes alters the tone slightly. If brand color is critical, use a reference card and review the result.
+- **Texture blur:** Knit, lace or fine fabric detail can be smoothed away. A high-resolution source reduces this risk.
+- **Asymmetry:** The two sleeves or the collar may not look symmetrical. Manual correction may be needed.
+- **False realism:** Adding folds or shadows that don't exist can misrepresent the product, which is also risky under marketplace rules.
+
+## When to Use It — and When Not To
+
+The ghost mannequin effect is strong for items with a body shape: t-shirts, shirts, sweatshirts, dresses. For flat accessories (a scarf laid flat, for example) it adds little.
+
+For luxury or highly detailed products, where even a small error can break trust, it's safer to treat AI output as a draft and back it up with a real shoot. For high-volume catalogs of standard products that need fast scaling, AI saves serious time.
+
+## Summary
+
+The ghost mannequin effect gives customers clearer information by showing an apparel item with volume on a clean background. AI can speed up producing or cleaning these images, but the responsibility for accuracy stays with the seller. The healthiest approach is to use AI as a fast first step and verify every output against the real product.`,
+    },
+  },
+  {
     slug: "amazon-urun-gorseli-olculeri-kurallari-2026",
     date: "2026-06-13",
     author: "Renderhane",
