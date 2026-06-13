@@ -11,6 +11,148 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "lifestyle-sahne-kurgusu-gorselleri-tiklama-artirma",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Sahne Kurgusu", "Lifestyle Görsel", "Pazaryeri Optimizasyonu"],
+    title: {
+      tr: "Lifestyle Sahne Kurgusu Görselleriyle Tıklama Oranını Artırma",
+      en: "Boosting Click-Through Rate with Lifestyle Scene Images",
+    },
+    description: {
+      tr: "Pazaryeri arama sonuçlarında öne çıkan lifestyle sahne kurgusu görselleri nasıl hazırlanır? Tıklamayı artıran galeri stratejisi ve pratik ipuçları.",
+      en: "How to build lifestyle scene images that stand out in marketplace search results, plus a gallery strategy and practical tips that drive clicks.",
+    },
+    content: {
+      tr: `## Tıklama, Satıştan Önce Gelir
+
+Çoğu satıcı dönüşüm oranına odaklanır ama bir gerçeği atlar: müşteri ürün sayfasına gelmeden hiçbir dönüşüm yaşanmaz. Pazaryerlerinde arama sonuçları onlarca benzer ürünün yan yana dizildiği bir ızgaradır. Bu ızgarada hangi karenin tıklanacağını belirleyen ilk şey, kapak görselidir.
+
+Beyaz arka planlı katalog fotoğrafları çoğu pazaryerinde kapak için zorunludur ve doğru tercihtir; ürünü net gösterir, kuralları karşılar. Ancak galerinin geri kalanında sadece beyaz fonlu açılar kullanmak, ürünü rakiplerden ayırmaz. İşte sahne kurgusu (lifestyle) görselleri tam burada devreye girer.
+
+## Lifestyle Görsel Nedir, Katalog Fotoğrafından Farkı Ne?
+
+Katalog fotoğrafı soruya cevap verir: "Bu ürün tam olarak neye benziyor?" Lifestyle görsel ise farklı bir soruyu yanıtlar: "Bu ürün benim hayatımda nereye oturuyor?"
+
+Bir seramik kupayı düşünün. Beyaz fonda çekilmiş fotoğraf rengini, formunu ve sapını gösterir. Aynı kupanın ahşap bir mutfak tezgâhında, yanında kitap ve sabah ışığıyla çekilmiş hali ise bir his uyandırır. İkinci görsel ölçü vermez ama bağlam verir; müşterinin ürünü kendi ortamında hayal etmesini kolaylaştırır.
+
+### İki Görsel Türü Rakip Değil, Takım
+
+Doğru yaklaşım birini diğerine tercih etmek değil, ikisini bir galeri içinde rol dağılımıyla kullanmaktır:
+
+- **Kapak:** Net, beyaz/sade fon, ürün çerçeveyi dolduruyor.
+- **2-3. sıra:** Detay ve açı fotoğrafları (malzeme, doku, ölçek).
+- **Sonraki sıralar:** Lifestyle sahneler — ürün kullanımda, gerçek bir ortamda.
+
+## Sahne Kurgusu Tıklamayı Neden Etkiler?
+
+Tıklama kararı saniyenin altında verilir. Küçük bir küçük resimde (thumbnail) gözü durduran şey genellikle renk kontrastı, kompozisyondaki nefes alanı ve sahnedeki insani ipuçlarıdır. Tamamen boş beyaz karelerin dizildiği bir ızgarada, içinde bağlam barındıran bir kare doğal olarak farklılaşır.
+
+Burada abartılı bir vaatte bulunmayalım: lifestyle görsel sihirli bir çarpan değildir. Etkisi kategoriye, fiyat segmentine ve görselin kalitesine göre değişir. Bu yüzden tek doğru yöntem, kendi mağazanızda A/B testi yapmak ve pazaryerinin sunduğu tıklama/görüntülenme verisine bakmaktır.
+
+## İyi Bir Lifestyle Sahnesinin Bileşenleri
+
+### 1. Ürün hâlâ kahraman olmalı
+
+Sahne ne kadar güzel olursa olsun, ürün küçük resimde seçilemiyorsa amacına ulaşmaz. Ürünü çerçevenin merkezine ve önemli bir kısmına yerleştirin; dekoratif objeler ürünü gölgelememeli.
+
+### 2. Bağlam doğru olmalı
+
+Sahne, ürünün gerçek kullanım senaryosunu yansıtmalı. Bir kamp termosunu lüks bir oturma odasında değil, doğa ya da araç içi gibi gerçekçi bir ortamda göstermek hem güven verir hem de doğru alıcıyı çeker.
+
+### 3. Küçük resimde okunabilir olmalı
+
+Görselinizi tasarlarken tam ekran değerlendirmeyin. Telefonda arama sonucundaki gerçek boyutuna küçültüp bakın. Detaylar kayboluyor, ürün arka planda eriyorsa sahne çok kalabalıktır.
+
+### 4. Galeri tutarlılığı
+
+Tüm lifestyle görselleriniz benzer ışık ve renk diline sahipse mağazanız profesyonel ve güvenilir görünür. Dağınık tonlar amatör izlenimi bırakır.
+
+## Pazaryeri Kurallarını Unutmayın
+
+Lifestyle görseller esneklik tanır ama her platformun kapak görseli için ayrı kuralları vardır (genelde beyaz fon, çerçeve doluluk oranı, metin/logo yasağı). Lifestyle sahnelerinizi galerinin ilerleyen sıralarına koyun, kapakta platform kurallarına sadık kalın. Aksi halde ürününüz aramada geri sıralanabilir veya reddedilebilir.
+
+## Yapay Zeka ile Sahne Üretimi
+
+Geleneksel yöntemde lifestyle çekim; mekân, prop, ışık ve fotoğrafçı gerektirir. Küçük bir marka için her ürüne ayrı sahne kurmak maliyetlidir. Renderhane gibi AI destekli araçlar, tek bir ürün fotoğrafından farklı ortam ve ışık senaryolarında sahneler üretmenize olanak tanır.
+
+Burada dürüst olalım: AI üretimi de kontrol ister. Ürünün orijinal rengi, malzemesi ve oranları korunmuş mu, gölgeler ve yansımalar gerçekçi mi diye bakın. Müşteriyi yanıltacak bir sahne (örneğin üründe olmayan bir aksesuarı varmış gibi göstermek) kısa vadede tıklama getirse de iade ve olumsuz yorumla geri döner.
+
+## Pratik Bir Başlangıç Planı
+
+1. En çok satan 3-5 ürününüzü seçin.
+2. Her biri için 1-2 lifestyle sahne hazırlayın.
+3. Bunları galerinin 4. sırasından sonrasına ekleyin, kapağı değiştirmeyin.
+4. 2-4 hafta sonra tıklama ve dönüşüm verisine bakın.
+5. İşe yarayan sahne dilini diğer ürünlere yayın.
+
+Lifestyle görsel, tek başına satışı garanti etmez; ama müşteriyi ürün sayfanıza taşıyan o ilk tıklamayı kazanma şansınızı artıran somut bir araçtır. Doğru kullanıldığında galeriniz bir ürün listesi olmaktan çıkıp küçük bir hikâyeye dönüşür.`,
+      en: `## Clicks Come Before Sales
+
+Most sellers obsess over conversion rate but skip one fact: no conversion happens until the shopper reaches your product page. On marketplaces, search results are a grid of dozens of near-identical products. The single biggest factor deciding which tile gets the click is the cover image.
+
+White-background catalog photos are mandatory for covers on most marketplaces — and that's the right call. They show the product clearly and meet platform rules. But filling the rest of the gallery with nothing but white-background angles won't set you apart. This is exactly where lifestyle (scene) images earn their place.
+
+## What Is a Lifestyle Image, and How Is It Different?
+
+A catalog photo answers: "What does this product look like, precisely?" A lifestyle image answers a different question: "Where does this product fit into my life?"
+
+Think of a ceramic mug. A white-background shot shows its color, shape, and handle. The same mug on a wooden kitchen counter, beside a book in soft morning light, evokes a feeling instead. The second image gives no measurements, but it gives context — it makes it easy for the shopper to picture the product in their own space.
+
+### The Two Types Are Teammates, Not Rivals
+
+The right approach isn't choosing one over the other — it's assigning each a role within one gallery:
+
+- **Cover:** Clean, white/plain background, product fills the frame.
+- **Slots 2-3:** Detail and angle shots (material, texture, scale).
+- **Later slots:** Lifestyle scenes — the product in use, in a real setting.
+
+## Why Scene Staging Affects Clicks
+
+The click decision is made in under a second. In a tiny thumbnail, what stops the eye is usually color contrast, breathing room in the composition, and human cues in the scene. In a grid of all-white tiles, a frame that carries context naturally stands apart.
+
+Let's avoid overpromising: a lifestyle image is not a magic multiplier. Its impact depends on category, price segment, and the quality of the image itself. So the only honest method is to run an A/B test in your own store and watch the click and impression data the marketplace gives you.
+
+## Ingredients of a Good Lifestyle Scene
+
+### 1. The product must still be the hero
+
+No matter how beautiful the scene, if the product can't be spotted in a thumbnail it fails its job. Place the product at the center and a meaningful share of the frame; decorative props must not overshadow it.
+
+### 2. The context must be honest
+
+The scene should reflect the product's real usage scenario. Showing a camping flask in a rugged outdoor or in-car setting — not a luxury living room — builds trust and attracts the right buyer.
+
+### 3. It must read at thumbnail size
+
+Don't judge your image at full screen. Shrink it to the actual size it appears at in mobile search results. If details vanish and the product melts into the background, the scene is too busy.
+
+### 4. Gallery consistency
+
+When all your lifestyle images share a similar light and color language, your store looks professional and trustworthy. Scattered tones read as amateur.
+
+## Don't Forget Marketplace Rules
+
+Lifestyle images allow flexibility, but every platform has separate rules for the cover (usually white background, frame-fill ratio, no text/logo). Keep your lifestyle scenes in the later gallery slots and stay faithful to platform rules on the cover. Otherwise your listing can be ranked down in search or rejected.
+
+## Generating Scenes with AI
+
+The traditional route to lifestyle shots needs a location, props, lighting, and a photographer. For a small brand, staging a separate scene for every product is costly. AI-assisted tools like Renderhane let you generate scenes in different environments and lighting from a single product photo.
+
+Let's be honest here: AI output still needs review. Check whether the product's original color, material, and proportions are preserved, and whether shadows and reflections look believable. A scene that misleads the shopper (for example, implying an accessory the product doesn't include) might win a click short-term, but comes back as returns and negative reviews.
+
+## A Practical Starting Plan
+
+1. Pick your 3-5 best-selling products.
+2. Prepare 1-2 lifestyle scenes for each.
+3. Add them after slot 4 in the gallery; don't change the cover.
+4. After 2-4 weeks, review click and conversion data.
+5. Roll the scene language that works out to other products.
+
+A lifestyle image won't guarantee a sale on its own — but it's a concrete tool for improving your odds of winning that first click that carries the shopper to your page. Used well, your gallery stops being a product list and becomes a small story.`,
+    },
+  },
+  {
     slug: "trendyol-urun-gorseli-olculeri-kurallari-2026",
     date: "2026-06-13",
     author: "Renderhane",
