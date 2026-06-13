@@ -11,6 +11,170 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "trendyol-urun-gorseli-olculeri-kurallari-2026",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Trendyol", "Pazaryeri Optimizasyonu", "Ürün Görseli"],
+    title: {
+      tr: "Trendyol Ürün Görseli Ölçüleri ve Kuralları 2026",
+      en: "Trendyol Product Image Dimensions and Rules 2026",
+    },
+    description: {
+      tr: "Trendyol ürün görselleri için doğru ölçü, oran, format ve içerik kuralları. Vitrin görseli gereksinimleri ve sık yapılan hatalar 2026 rehberi.",
+      en: "Correct dimensions, aspect ratio, format and content rules for Trendyol product images. Cover image requirements and common mistakes in this 2026 guide.",
+    },
+    content: {
+      tr: `## Neden Trendyol Görsel Kurallarını Ciddiye Almalısınız?
+
+Trendyol'da bir ürün listelediğinizde, müşterinin sizinle kurduğu ilk temas görseldir. Açıklama, fiyat ve yorumlar daha sonra gelir. Bu yüzden Trendyol, görsel kalitesi konusunda belirli standartlar koyar. Kurallara uymayan görseller ya yüklenmez ya da listeleme sonrası reddedilebilir; bazı durumlarda ürün vitrine çıkmaz. Bu rehberde, 2026 itibarıyla genel kabul gören ölçü ve içerik kurallarını derledik.
+
+Önemli bir uyarıyla başlayalım: Trendyol, görsel gereksinimlerini zaman zaman günceller ve bazı kurallar kategoriye göre değişir. Bu yazıdaki değerler genel referans niteliğindedir. Net ve güncel sayıları her zaman **Trendyol Satıcı Paneli** içindeki ürün yükleme ekranından veya kategori kılavuzundan doğrulayın.
+
+## Önerilen Ölçü ve En-Boy Oranı
+
+Trendyol, dikey (portrait) görselleri tercih eder. Bunun nedeni mobil ekranlarda ürünün daha büyük ve dolgun görünmesidir; trafiğin büyük kısmı mobil uygulamadan gelir.
+
+### Çözünürlük
+
+- Yaygın olarak önerilen ölçü **1200 x 1800 piksel** civarındadır.
+- En-boy oranı **2:3** (dikey) şeklindedir.
+- Daha yüksek çözünürlük (örneğin 2000 piksel üzeri uzun kenar) zoom kalitesini artırır; Trendyol görsele tıklandığında yakınlaştırma sunar.
+- Çok düşük çözünürlüklü, bulanık veya pikselli görseller reddedilebilir.
+
+### Format ve Dosya Boyutu
+
+- Genellikle **JPG/JPEG** ve **PNG** kabul edilir.
+- Dosya boyutunda üst sınır vardır; gereğinden büyük dosyaları yüklemeden önce makul bir boyuta optimize edin.
+- Şeffaf (transparan) PNG yerine, ana görselde düz beyaz arka plan beklenir.
+
+Kesin piksel ve megabayt değerleri kategoriye göre farklılaşabildiği için yükleme ekranındaki uyarıları dikkate almanızı öneririz.
+
+## Vitrin (Ana) Görseli Kuralları
+
+Vitrin görseli, arama sonuçlarında ve ürün kartında ilk görünen kareyezdir. En katı kurallar buraya uygulanır:
+
+- **Arka plan düz beyaz** olmalıdır. Gölge, doku veya renkli zemin genellikle istenmez.
+- Görselde **yalnızca satılan ürün** bulunmalıdır; sette olmayan ek aksesuarlar yanıltıcı sayılır.
+- **Ürün kadrajı dolu** olmalı, çevresinde aşırı boşluk bırakılmamalıdır.
+- Ürün net, odakta ve doğru renkte görünmelidir.
+
+## İçerik Yasakları
+
+Aşağıdaki unsurlar, özellikle ana görselde, genellikle yasaktır:
+
+- **Logo, marka damgası, filigran (watermark)**
+- **Yazı, fiyat etiketi, "indirim", "kargo bedava" gibi metinler**
+- **Çerçeve, kenarlık, kolaj veya birden fazla görselin tek karede birleştirilmesi**
+- **İletişim bilgisi, telefon, web adresi**
+- **Rakip marka veya başka platform referansı**
+
+Bu kurallar, pazaryerinde tutarlı ve adil bir vitrin sağlamak içindir. İçerik görsellerinde (galeri içindeki diğer kareler) bazı kategorilerde metin ve sahne kullanımına daha fazla esneklik tanınabilir, ancak yine de abartılı pazarlama metinlerinden kaçının.
+
+## Birden Fazla Görsel Kullanımı
+
+Tek vitrin görseliyle yetinmeyin. Birden çok açı, müşterinin sorularını yanıtlar ve iade oranını düşürür:
+
+- Önden, yandan ve arkadan çekimler
+- Detay/yakın plan (kumaş, doku, malzeme)
+- Ölçek hissi veren kullanım karesi (kategori izin veriyorsa)
+- Paket/içerik görseli
+
+İlk kare beyaz arka plan kuralına uymalı; sonraki karelerde sahne kurgusuna daha çok alan vardır. Yine de kategori kılavuzunu kontrol edin.
+
+## 2026'da Öne Çıkan Noktalar
+
+Mobil trafiğin baskınlığı sürdüğü için dikey 2:3 oran daha da kritik. Ayrıca yüksek çözünürlüklü görseller, müşterinin zoom ile detayları incelemesini sağladığından dönüşüme olumlu katkı sunar. Görsellerinizi tek tek elle hazırlamak zaman alır; burada üretim araçları devreye girer.
+
+**Renderhane** ile tek bir ürün fotoğrafından, pazaryeri kurallarına uygun beyaz arka planlı vitrin görselleri, farklı açılar ve sahne kurguları üretebilirsiniz. Doğru orana kırpma, temiz beyaz zemin ve yüksek çözünürlük çıktısı, manuel düzenlemeye göre süreci ciddi şekilde kısaltır. Yine de yüklemeden önce sonucu Trendyol'un güncel gereksinimleriyle karşılaştırmak sizin sorumluluğunuzdadır.
+
+## Sık Yapılan Hatalar
+
+- Yatay (landscape) fotoğraf yükleyip dikey alanda görselin kenarlardan kırpılması
+- Ana görsele "%50 indirim" gibi metin eklemek ve listelemenin reddedilmesi
+- Düşük çözünürlüklü, telefonla aceleyle çekilmiş bulanık kareler
+- Ürünün çok küçük göründüğü, kenarlarda kocaman boşluk olan kadrajlar
+- Her görselde farklı beyaz tonu kullanıp tutarsız bir galeri oluşturmak
+
+## Özet
+
+Trendyol görsellerinde temel formül nettir: dikey 2:3 oran, yüksek çözünürlük, ana görselde düz beyaz arka plan, yazı ve logo olmadan yalnızca ürün. Bu standartları sağladığınızda hem listelemeniz sorunsuz yayınlanır hem de ürününüz arama sonuçlarında daha profesyonel görünür. Kesin değerler için her zaman Satıcı Paneli'ndeki güncel kuralları esas alın.`,
+      en: `## Why Trendyol's Image Rules Matter
+
+When you list a product on Trendyol, the image is the first contact a shopper makes with you. Description, price and reviews come later. That is why Trendyol enforces specific standards for image quality. Images that break the rules either fail to upload or get rejected after listing; in some cases the product never reaches the storefront. This guide compiles the dimension and content rules that are generally accepted as of 2026.
+
+Let's start with an important caveat: Trendyol updates its image requirements from time to time, and some rules vary by category. The values here are a general reference. Always confirm the exact, current numbers in the **Trendyol Seller Panel** product-upload screen or category guide.
+
+## Recommended Dimensions and Aspect Ratio
+
+Trendyol favors vertical (portrait) images, because products look larger and fuller on mobile screens — and most traffic comes from the mobile app.
+
+### Resolution
+
+- The commonly recommended size is around **1200 x 1800 pixels**.
+- The aspect ratio is **2:3** (portrait).
+- Higher resolution (for example a long edge above 2000 px) improves zoom quality; Trendyol offers zoom when an image is tapped.
+- Very low-resolution, blurry or pixelated images may be rejected.
+
+### Format and File Size
+
+- **JPG/JPEG** and **PNG** are generally accepted.
+- There is an upper limit on file size; optimize oversized files to a reasonable size before uploading.
+- Instead of transparent PNGs, the main image is expected to have a solid white background.
+
+Because exact pixel and megabyte values can differ by category, follow the warnings shown on the upload screen.
+
+## Cover (Main) Image Rules
+
+The cover image is the first frame seen in search results and on the product card. The strictest rules apply here:
+
+- The **background must be solid white**. Shadows, textures or colored backdrops are usually not allowed.
+- The image should contain **only the product being sold**; accessories not included in the set are considered misleading.
+- The **product should fill the frame**, without excessive empty space around it.
+- The product must appear sharp, in focus and in true color.
+
+## Content Restrictions
+
+The following elements, especially on the main image, are generally prohibited:
+
+- **Logos, brand stamps, watermarks**
+- **Text, price tags, words like "discount" or "free shipping"**
+- **Frames, borders, collages, or multiple photos merged into one frame**
+- **Contact details, phone numbers, web addresses**
+- **References to competitor brands or other platforms**
+
+These rules exist to keep the marketplace storefront consistent and fair. Gallery images (the other frames) may allow more flexibility for text and scenes in some categories, but still avoid exaggerated marketing copy.
+
+## Using Multiple Images
+
+Don't settle for a single cover image. Multiple angles answer shopper questions and reduce return rates:
+
+- Front, side and back shots
+- Detail/close-up (fabric, texture, material)
+- A lifestyle frame that conveys scale (if the category permits)
+- Packaging/contents image
+
+The first frame must follow the white-background rule; later frames have more room for scene composition. Still, check the category guide.
+
+## What Stands Out in 2026
+
+With mobile traffic still dominant, the vertical 2:3 ratio is more critical than ever. High-resolution images also help conversion because shoppers can inspect details with zoom. Preparing images one by one manually takes time — and that is where production tools come in.
+
+With **Renderhane**, you can generate marketplace-compliant white-background cover images, different angles and scene setups from a single product photo. Cropping to the correct ratio, a clean white backdrop and high-resolution output cut the process down significantly compared with manual editing. Even so, it remains your responsibility to compare the result against Trendyol's current requirements before uploading.
+
+## Common Mistakes
+
+- Uploading a landscape photo and having it cropped at the edges in the vertical slot
+- Adding text like "50% off" to the main image and getting the listing rejected
+- Low-resolution, blurry frames shot hastily with a phone
+- Framing where the product looks tiny with huge empty margins
+- Using a different shade of white in each image, creating an inconsistent gallery
+
+## Summary
+
+The core formula for Trendyol images is clear: vertical 2:3 ratio, high resolution, a solid white background on the main image, and only the product without text or logos. Meet these standards and your listing publishes smoothly while your product looks more professional in search results. For exact values, always rely on the current rules in the Seller Panel.`,
+    },
+  },
+  {
     slug: "glb-webp-texture-sorunu",
     date: "2025-02-27",
     author: "Renderhane",
