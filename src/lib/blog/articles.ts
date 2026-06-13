@@ -72,7 +72,7 @@ Küçük bir öneri: galerinizin ilk lifestyle görselini değiştirip iki hafta
 
 ## Özet
 
-Beyaz arka plan ürünü gösterir; lifestyle sahne kurgusu ürünü *sattırır*. Tıklama, ızgaradaki o küçük karede bir his uyandırabildiğinizde gelir. Doğru bağlam, kahraman kalan bir ürün ve tutarlı bir galeri ile sahne kurgusu görselleri, küçük markaların büyük rakipler arasında fark edilmesini sağlayan en pratik araçlardan biridir. AI bu süreci hızlandırır, ama kontrolü ve dürüstlüğü size bırakır.`,
+Beyaz arka plan ürünü gösterir; lifestyle sahne kurgusu ürünü *sattırır*. İki etkiyi karıştırmayın: arama ızgarasındaki tıklamayı ana görsel belirler — galerideki lifestyle sahneler ise tıklamadan sonra, detay sayfasında kararı (dönüşümü) güçlendirir. Pazaryeri ana görselde lifestyle'a izin veriyorsa, sahne kurgusu tıklama oranını da doğrudan artırabilir; izin vermiyorsa kazancınız galeride dönüşüm tarafında olur. Doğru bağlam, kahraman kalan bir ürün ve tutarlı bir galeri ile sahne kurgusu görselleri, küçük markaların büyük rakipler arasında fark edilmesini sağlayan en pratik araçlardan biridir. AI bu süreci hızlandırır, ama kontrolü ve dürüstlüğü size bırakır.`,
       en: `## Which Image Earns the Click?
 
 Marketplace search results are a small grid of squares. Shoppers scan dozens of products in seconds and usually decide what to click based on the main image alone. Marketplace rules often require that main image to be an isolated product shot on a white background. It's mandatory — but it's also a standard everyone follows: every competitor in the grid is using the same empty white field.
@@ -121,7 +121,7 @@ A small tip: change the first lifestyle image in your gallery and observe for tw
 
 ## Summary
 
-A white background shows the product; a lifestyle scene helps *sell* it. The click comes when you can stir a feeling inside that tiny grid square. With the right context, a product that stays the hero, and a consistent gallery, scene visuals are one of the most practical tools for helping small brands get noticed among large competitors. AI speeds up the process — but leaves the control and the honesty to you.`,
+A white background shows the product; a lifestyle scene helps *sell* it. Don't conflate two effects: the main image drives the click in the search grid, while lifestyle scenes in the gallery strengthen the decision (conversion) on the detail page after the click. If the marketplace allows a lifestyle main image, scene composition can lift click-through directly too; if it doesn't, your gain is on the conversion side in the gallery. With the right context, a product that stays the hero, and a consistent gallery, scene visuals are one of the most practical tools for helping small brands get noticed among large competitors. AI speeds up the process — but leaves the control and the honesty to you.`,
     },
   },
   {
