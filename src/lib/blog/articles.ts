@@ -11,6 +11,144 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "amazon-urun-gorseli-olculeri-kurallari-2026",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Amazon", "Ürün Görseli", "Pazaryeri Optimizasyonu"],
+    title: {
+      tr: "Amazon Ürün Görseli Ölçüleri ve Kuralları 2026",
+      en: "Amazon Product Image Dimensions and Rules 2026",
+    },
+    description: {
+      tr: "Amazon ana görsel ve ek görsel kuralları: piksel ölçüleri, beyaz arka plan, %85 doluluk, zoom için minimum boyut ve sık yapılan hatalar.",
+      en: "Amazon main and secondary image rules: pixel sizes, white background, 85% fill, minimum size for zoom and the most common listing mistakes.",
+    },
+    content: {
+      tr: `## Amazon Görsel Kuralları Neden Trendyol'dan Farklı?
+
+Amazon, ürün görsellerini sadece bir vitrin olarak değil, arama sıralaması ve dönüşümü etkileyen teknik bir varlık olarak ele alır. Trendyol veya Hepsiburada'da görsel kuralları daha esnekken, Amazon'da ana görselin teknik şartları katıdır ve kurala uymayan listelemeler arama sonuçlarında bastırılabilir veya yayından kaldırılabilir.
+
+Bu makalede Amazon'un kendi seller yardım dokümanlarında belirttiği güncel görsel gereksinimlerini, sık karıştırılan noktaları ve pratik bir kontrol listesini bulacaksınız. Pazaryerine özgü kuralları farklı bir açıdan, ölçü ve teknik uyum tarafından ele alıyoruz.
+
+## Ana Görsel (Main Image) Kuralları
+
+Ana görsel, arama sonuçlarında ve ürün sayfasının en üstünde görünen ilk görseldir. Amazon bu görsel için en sıkı kuralları uygular:
+
+- **Arka plan tamamen beyaz olmalıdır.** Amazon, saf beyaz değerini RGB 255, 255, 255 olarak tanımlar. Gri tonlu veya hafif kirli beyaz arka planlar reddedilebilir.
+- **Ürün karenin en az %85'ini doldurmalıdır.** Çok küçük ya da kenarlara taşan ürünler kurala aykırıdır.
+- **Sadece satılan ürün görünmelidir.** Pakete dahil olmayan aksesuar, prop, dekor veya insan modeli (giyilebilir ürünler hariç kategori kurallarına göre) ana görselde yer almamalıdır.
+- **Metin, logo, filigran, çerçeve, rozet veya promosyon yazısı bulunamaz.** "İndirim", "ücretsiz kargo" gibi grafikler yasaktır.
+- Görsel net, odakta ve gerçekçi renklerde olmalıdır.
+
+## Piksel Ölçüleri ve Zoom
+
+Amazon'da görsel boyutu doğrudan kullanıcı deneyimine bağlıdır:
+
+- **Zoom özelliği için uzun kenar en az 1000 piksel olmalıdır.** Bu eşiğin altındaki görseller yakınlaştırma işlevini tetiklemez ve müşteri ürünü detaylı inceleyemez.
+- **Pratikte önerilen değer 1600 piksel ve üzeridir.** Bu boyut, masaüstü ve mobilde keskin görüntü ve sorunsuz zoom sağlar.
+- **En uzun kenar 10.000 pikseli aşmamalıdır.** Çok büyük dosyalar yüklenmeyebilir.
+- **Kare en-boy oranı (1:1) önerilir.** Amazon görsel alanı kare temelli düzenlenir; dikey veya yatay görseller boşluklu görünebilir.
+
+## Kabul Edilen Dosya Formatları
+
+Amazon şu formatları kabul eder: JPEG (.jpg veya .jpeg), PNG (.png), TIFF (.tif) ve GIF (.gif). Pratikte **JPEG en yaygın ve önerilen formattır** çünkü dosya boyutu küçüktür ve hızlı yüklenir. Animasyonlu GIF'ler desteklenmez. Renk profili olarak sRGB veya CMYK kullanılması tavsiye edilir; sRGB web görüntüsü için daha tutarlı sonuç verir.
+
+## Ek Görseller (Secondary Images)
+
+Ana görsel dışındaki ek görsellerde kurallar daha esnektir. Burada ürünü farklı açılardan, kullanım sırasında, ölçek referansıyla veya yaşam tarzı (lifestyle) sahneleriyle gösterebilirsiniz. Ek görsellerde:
+
+- Açıklayıcı metin, infografik ve ölçü bilgisi kullanılabilir.
+- Beyaz arka plan zorunlu değildir; sahne ve dekor serbesttir.
+- Birden fazla açı ve detay çekimi dönüşümü artırmaya yardımcı olur.
+
+Kategoriye göre toplam görsel sayısı değişir; çoğu kategoride bir ana görsel ve birkaç ek görsel gösterilir. Tüm slotları doldurmak, müşteri sorularını görsel yoluyla yanıtladığı için genellikle faydalıdır.
+
+## Sık Yapılan Hatalar
+
+- **Kirli beyaz arka plan:** Telefonla çekilen ürünlerde arka plan tam beyaz görünse de RGB değeri 255 olmayabilir. Otomatik araçla saf beyaza taşımak gerekir.
+- **Ürünün çok küçük olması:** %85 doluluk kuralı atlandığında ürün arama sonuçlarında zayıf görünür.
+- **Düşük çözünürlük:** 1000 pikselin altındaki görseller zoom'u devre dışı bırakır ve algılanan kaliteyi düşürür.
+- **Ana görselde metin/filigran:** En sık reddedilme nedenlerinden biridir.
+- **Tek görselle yetinmek:** Ek görsellerin boş bırakılması dönüşüm potansiyelini sınırlar.
+
+## Pratik Kontrol Listesi
+
+1. Ana görsel arka planı saf beyaz (255, 255, 255) mi?
+2. Ürün karenin en az %85'ini dolduruyor mu?
+3. Uzun kenar en az 1000 piksel, tercihen 1600+ mı?
+4. Ana görselde metin, logo veya prop var mı? (Olmamalı)
+5. Format JPEG ve renk profili sRGB mi?
+6. Ek görseller farklı açı ve kullanım senaryolarını gösteriyor mu?
+
+## Görsel Üretimini Hızlandırmak
+
+Tek bir ürün fotoğrafından kurallara uygun beyaz arka planlı ana görsel, farklı açılar ve sahne kurguları üretmek manuel olarak zaman alır. Renderhane gibi AI destekli araçlar; arka planı saf beyaza taşıma, ürünü kareye yerleştirme ve ek görseller için sahne kurgusu üretme adımlarını otomatikleştirerek bu süreci kısaltabilir. Yine de yayına almadan önce yukarıdaki kontrol listesini gözden geçirmek, kategoriye özel kuralları kaçırmamak için önemlidir.
+
+Amazon görsel kuralları zamanla güncellenebildiğinden, listeleme öncesi Seller Central'daki güncel kategori şartlarını teyit etmenizi öneririz.`,
+      en: `## Why Amazon's Image Rules Differ From Other Marketplaces
+
+Amazon treats product images not just as a storefront, but as a technical asset that affects search ranking and conversion. While image rules on marketplaces like Trendyol or Hepsiburada are more flexible, Amazon enforces strict technical requirements for the main image, and non-compliant listings can be suppressed in search or removed entirely.
+
+This article covers Amazon's current image requirements as stated in its own seller help documentation, the points sellers most often confuse, and a practical checklist. We approach marketplace-specific rules from a different angle: dimensions and technical compliance.
+
+## Main Image Rules
+
+The main image is the first one shown in search results and at the top of the product page. Amazon applies its strictest rules here:
+
+- **The background must be pure white.** Amazon defines pure white as RGB 255, 255, 255. Greyish or slightly off-white backgrounds may be rejected.
+- **The product must fill at least 85% of the frame.** Items that are too small or bleed off the edges violate the rule.
+- **Only the product for sale should be visible.** Accessories not included in the package, props, decor, or human models (except for wearables, per category rules) should not appear in the main image.
+- **No text, logos, watermarks, borders, badges, or promotional graphics.** Overlays like "sale" or "free shipping" are prohibited.
+- The image must be sharp, in focus, and show realistic colors.
+
+## Pixel Dimensions and Zoom
+
+On Amazon, image size is directly tied to user experience:
+
+- **For the zoom feature, the longest side must be at least 1000 pixels.** Images below this threshold do not trigger zoom, so customers can't inspect the product in detail.
+- **In practice, 1600 pixels and above is recommended.** This size delivers sharp visuals and smooth zoom on both desktop and mobile.
+- **The longest side should not exceed 10,000 pixels.** Overly large files may fail to upload.
+- **A square (1:1) aspect ratio is recommended.** Amazon's image area is built around squares; vertical or horizontal images may show gaps.
+
+## Accepted File Formats
+
+Amazon accepts the following formats: JPEG (.jpg or .jpeg), PNG (.png), TIFF (.tif), and GIF (.gif). In practice, **JPEG is the most common and recommended format** because of its small file size and fast loading. Animated GIFs are not supported. sRGB or CMYK color profiles are advised; sRGB gives more consistent results for web display.
+
+## Secondary Images
+
+Rules for images beyond the main one are more relaxed. Here you can show the product from different angles, in use, with a scale reference, or in lifestyle scenes. For secondary images:
+
+- Descriptive text, infographics, and dimension details are allowed.
+- A white background is not required; scenes and decor are free.
+- Multiple angles and detail shots help increase conversion.
+
+The total number of images varies by category; most categories show one main image plus several secondary ones. Filling all available slots is usually worthwhile, since it answers customer questions visually.
+
+## Common Mistakes
+
+- **Off-white background:** In phone-shot products the background may look white but not measure RGB 255. An automated tool is needed to shift it to pure white.
+- **Product too small:** Skipping the 85% fill rule makes the product look weak in search results.
+- **Low resolution:** Images under 1000 pixels disable zoom and lower perceived quality.
+- **Text/watermark on the main image:** One of the most frequent reasons for rejection.
+- **Using only one image:** Leaving secondary slots empty limits conversion potential.
+
+## Practical Checklist
+
+1. Is the main image background pure white (255, 255, 255)?
+2. Does the product fill at least 85% of the frame?
+3. Is the longest side at least 1000 pixels, ideally 1600+?
+4. Is there any text, logo, or prop on the main image? (There shouldn't be.)
+5. Is the format JPEG with an sRGB color profile?
+6. Do secondary images show different angles and use cases?
+
+## Speeding Up Image Production
+
+Producing a compliant white-background main image, multiple angles, and scene compositions from a single product photo takes time manually. AI-assisted tools like Renderhane can shorten this by automating steps such as shifting the background to pure white, centering the product in a square, and generating scene setups for secondary images. Still, reviewing the checklist above before publishing is important so you don't miss category-specific rules.
+
+Because Amazon's image rules can change over time, we recommend confirming the current category requirements in Seller Central before listing.`,
+    },
+  },
+  {
     slug: "trendyol-urun-gorseli-olculeri-kurallari-2026",
     date: "2026-06-13",
     author: "Renderhane",
