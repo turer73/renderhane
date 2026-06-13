@@ -11,6 +11,150 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "hayalet-manken-efekti-ai-tekstil-cekimi",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Hayalet Manken", "Tekstil Fotoğrafı", "Yapay Zeka Tasarım"],
+    title: {
+      tr: "Hayalet Manken (Ghost Mannequin) Efekti: Tekstil Ürünlerini AI ile Çekme",
+      en: "Ghost Mannequin Effect: Shooting Apparel Products with AI",
+    },
+    description: {
+      tr: "Hayalet manken efekti nedir, neden işe yarar ve tekstil ürünlerinde AI ile nasıl uygulanır? Pratik adımlar, sınırlar ve dürüst bir rehber.",
+      en: "What the ghost mannequin effect is, why it works, and how to apply it to apparel with AI. Practical steps, limits, and an honest guide.",
+    },
+    content: {
+      tr: `## Hayalet Manken Efekti Nedir?
+
+Hayalet manken (ghost mannequin veya "invisible mannequin"), bir giysinin sanki görünmez bir vücut tarafından giyiliyormuş gibi, dolgun ve üç boyutlu göründüğü; ancak manken ya da modelin görünmediği bir ürün fotoğrafı tekniğidir. Tişört, gömlek, elbise, ceket gibi tekstil ürünlerinde yaygın kullanılır.
+
+Klasik yöntemde ürün bir mankene giydirilir, birden fazla açıdan (özellikle iç yaka ve arka kısım için) çekim yapılır, ardından fotoğraflar düzenleme programında birleştirilerek manken silinir. Sonuçta giysi havada asılıymış gibi durur ama kalıbı ve hacmi korunur.
+
+### Neden Düz Çekimden veya Modelden Farklı?
+
+- **Düz çekim (flat lay):** Ürünü zemine sererek çekersiniz. Hızlıdır ama kalıbı ve duruşu göstermez.
+- **Modelli çekim:** En gerçekçi sonucu verir, ancak model, stüdyo ve organizasyon maliyeti yüksektir.
+- **Hayalet manken:** İkisinin arasında bir denge sunar. Ürünün vücuttaki halini gösterir, dikkat dağıtacak bir yüz veya beden yoktur ve kataloglarda tutarlı bir görünüm sağlar.
+
+## Neden Çok Sayıda Pazaryeri Bu Stili Tercih Eder?
+
+Amazon, Trendyol ve benzeri pazaryerleri ana ürün görselinde sade, beyaz arka planlı ve dikkat dağıtmayan görseller ister. Hayalet manken bu beklentiye doğal olarak uyar: arka plan temizdir, ürün ortalanmıştır ve giysinin kesimi net görülür.
+
+Kategori sayfasında onlarca ürün yan yana dizildiğinde, hepsinin aynı "görünmez beden" stiliyle çekilmiş olması, mağazanıza profesyonel ve tutarlı bir hava katar. Tutarlılık, alışveriş yapanın ürünleri karşılaştırmasını da kolaylaştırır.
+
+## AI Bu Süreçte Nerede Devreye Giriyor?
+
+Geleneksel hayalet manken iş akışı zaman alır: çok açılı çekim, maskeleme, iç yaka birleştirme ve retouch. Yapay zekâ destekli araçlar bu adımların bir kısmını hızlandırabilir.
+
+### AI'ın Gerçekçi Şekilde Yapabildikleri
+
+- **Arka plan ve manken temizleme:** Mankene giydirilmiş bir fotoğraftaki arka planı ve görünen manken parçalarını ayırıp temizlemek.
+- **İç yaka tamamlama:** Ayrı çekilmiş iç yaka görselini ana görselle birleştirme önerileri sunma.
+- **Kalıbı koruma:** Giysinin omuz, kol ve etek hattını dolgun gösterecek şekilde hacim hissini vurgulama.
+- **Toplu işleme:** Aynı stili çok sayıda ürüne uygulayarak katalog tutarlılığı sağlama.
+
+### Dürüst Olmak Gerekirse: Sınırlar
+
+AI sihirli bir düğme değildir. Girdi fotoğrafı kötüyse sonuç da kötü olur. Özellikle şu noktalarda dikkatli olun:
+
+- **Kumaş dokusu ve renk doğruluğu:** AI bazen dokuyu yumuşatabilir veya rengi kaydırabilir. Gerçek ürünle uyumu kontrol edin.
+- **Logo, dikiş ve etiket detayları:** Küçük detaylar bozulabilir; yakından inceleyin.
+- **İç kısımların tahmini:** Model iç yakayı görmediyse "tahmin" üretebilir. Bu da gerçek üründen sapma anlamına gelir. Mümkünse iç yakayı ayrıca çekin.
+
+Ürünü gerçekte olduğundan farklı göstermek, iade oranını ve olumsuz yorumları artırır. Amaç ürünü güzel göstermek değil, doğru göstermektir.
+
+## Adım Adım Pratik İş Akışı
+
+### 1. Çekim Hazırlığı
+
+Ürünü mümkünse mankene giydirip ütüleyin, kırışıklıkları giderin. Eşit ve yumuşak ışık kullanın; sert gölgeler sonradan temizlemeyi zorlaştırır. Sade bir arka plan (tercihen açık renk) AI'ın ürünü ayırmasını kolaylaştırır.
+
+### 2. Çoklu Açı Çekimi
+
+En az iki kare alın: ön görünüm ve iç yaka. Gömlek ve ceket gibi yakası belirgin ürünlerde iç yaka karesi, gerçekçi sonuç için kritiktir. Manken üzerinde çekim yapıyorsanız aynı mesafe ve açıyı koruyun.
+
+### 3. AI ile İşleme
+
+Görselleri araca yükleyin, hayalet manken / arka plan temizleme akışını uygulayın. Çıktıyı %100 yakınlaştırarak kenarları, yaka birleşimini ve dokuyu inceleyin.
+
+### 4. Kalite Kontrol ve Pazaryeri Uyumu
+
+Son görseli yayınlamadan önce satış yaptığınız platformun görsel kurallarına (boyut, arka plan rengi, çerçeve boşluğu) göre kırpın. Aynı stili tüm varyantlara uygulayarak vitrin tutarlılığını koruyun.
+
+## Hangi Ürünlerde İyi Sonuç Verir?
+
+Hayalet manken efekti yapısı belirgin, kalıbı olan ürünlerde en iyi sonucu verir: tişört, gömlek, kazak, ceket, elbise. Çok ince, şeffaf ya da çok parlak kumaşlarda (tül, saten gibi) hem geleneksel hem AI yöntemleri zorlanabilir. Aksesuar, takı veya çantada bu teknik genellikle gereksizdir; o ürünler için farklı sahne kurguları daha uygundur.
+
+## Sonuç
+
+Hayalet manken efekti, tekstil satıcıları için maliyet ile gerçekçilik arasında dengeli bir çözümdür. AI, bu sürecin tekrarlayan ve zaman alan kısımlarını hızlandırarak katalog üretimini ölçeklenebilir hale getirebilir. Ancak en iyi sonuç hâlâ iyi bir girdi fotoğrafı, dikkatli kalite kontrolü ve ürünü dürüstçe temsil etme ilkesiyle gelir. Aracı bir kestirme yol değil, iyi bir çekimin tamamlayıcısı olarak düşünün.`,
+      en: `## What Is the Ghost Mannequin Effect?
+
+The ghost mannequin effect, also called the "invisible mannequin" technique, is a product photography style in which a garment appears full and three-dimensional, as if worn by an invisible body, while no mannequin or model is visible. It is widely used for apparel such as t-shirts, shirts, dresses, and jackets.
+
+In the classic workflow, the garment is dressed on a mannequin and photographed from several angles (especially for the inner collar and back). The images are then combined in editing software and the mannequin is removed. The result is a garment that looks like it is floating in the air while keeping its shape and volume.
+
+### How Is It Different from Flat Lay or Model Shots?
+
+- **Flat lay:** The product is laid on a surface and shot from above. Fast, but it does not show fit or drape.
+- **Model shots:** The most realistic option, but model, studio, and coordination costs are high.
+- **Ghost mannequin:** A balance between the two. It shows how the garment sits on a body, removes a distracting face or figure, and keeps catalog visuals consistent.
+
+## Why Do So Many Marketplaces Favor This Style?
+
+Marketplaces like Amazon and Trendyol generally ask for clean main images with plain, distraction-free backgrounds. The ghost mannequin naturally fits this expectation: the background is clean, the product is centered, and the cut of the garment is clearly visible.
+
+When dozens of products line up on a category page, having them all shot in the same "invisible body" style gives your store a professional, consistent look. That consistency also makes it easier for shoppers to compare items.
+
+## Where Does AI Come In?
+
+The traditional ghost mannequin workflow is time-consuming: multi-angle shooting, masking, inner-collar compositing, and retouching. AI-assisted tools can speed up parts of these steps.
+
+### What AI Can Realistically Do
+
+- **Background and mannequin cleanup:** Separating and removing the background and visible mannequin parts from a dressed photo.
+- **Inner-collar completion:** Suggesting how to merge a separately shot inner-collar image with the main view.
+- **Preserving the cut:** Emphasizing volume so the shoulders, sleeves, and hemline look full.
+- **Batch processing:** Applying the same style across many products for catalog consistency.
+
+### To Be Honest: The Limits
+
+AI is not a magic button. If the input photo is poor, the output will be too. Be especially careful with:
+
+- **Fabric texture and color accuracy:** AI can sometimes smooth texture or shift color. Check against the real product.
+- **Logos, stitching, and label details:** Small details can be distorted; inspect them closely.
+- **Guessing hidden areas:** If the model never saw the inner collar, it may "invent" one, which means a deviation from the real product. Shoot the inner collar separately when possible.
+
+Showing a product as different from reality increases returns and negative reviews. The goal is not to make the product look pretty, but to show it accurately.
+
+## A Step-by-Step Practical Workflow
+
+### 1. Prep for the Shot
+
+Whenever possible, dress the garment on a mannequin and steam out wrinkles. Use even, soft lighting; harsh shadows make later cleanup harder. A plain, preferably light background helps AI isolate the product.
+
+### 2. Multi-Angle Capture
+
+Take at least two frames: a front view and an inner collar. For collared items like shirts and jackets, the inner-collar frame is critical for a realistic result. If shooting on a mannequin, keep the same distance and angle.
+
+### 3. Process with AI
+
+Upload the images, run the ghost mannequin / background-cleanup flow, then zoom to 100% to inspect the edges, collar join, and texture.
+
+### 4. Quality Check and Marketplace Fit
+
+Before publishing, crop the final image to match your platform's image rules (size, background color, frame padding). Apply the same style to all variants to keep your storefront consistent.
+
+## Which Products Work Best?
+
+The ghost mannequin effect works best on structured garments with a defined cut: t-shirts, shirts, sweaters, jackets, dresses. Very thin, sheer, or highly reflective fabrics (such as tulle or satin) can challenge both traditional and AI methods. For accessories, jewelry, or bags the technique is usually unnecessary; different scene setups suit those products better.
+
+## Conclusion
+
+The ghost mannequin effect is a balanced solution between cost and realism for apparel sellers. AI can speed up the repetitive, time-consuming parts of the process and make catalog production scalable. Still, the best results come from a good input photo, careful quality control, and a commitment to representing the product honestly. Treat the tool as a complement to a good shoot, not a shortcut around one.`,
+    },
+  },
+  {
     slug: "trendyol-urun-gorseli-olculeri-kurallari-2026",
     date: "2026-06-13",
     author: "Renderhane",
