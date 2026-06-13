@@ -11,6 +11,120 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "lifestyle-sahne-kurgusu-gorselleri-tiklama-artirma",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["Sahne Kurgusu", "Lifestyle Görsel", "Tıklama Oranı"],
+    title: {
+      tr: "Lifestyle Sahne Kurgusu Görselleriyle Tıklama Oranını Artırma",
+      en: "Boosting Click-Through with Lifestyle Scene Visuals",
+    },
+    description: {
+      tr: "Beyaz arka plan tıklatmaz, bağlam tıklatır. Lifestyle sahne kurgusu görselleriyle vitrindeki ürününüzün dikkat çekmesini sağlamanın yolları.",
+      en: "White backgrounds rarely earn the click; context does. How lifestyle scene visuals make your product stand out in a crowded marketplace grid.",
+    },
+    content: {
+      tr: `## Vitrinde Tıklanan Görsel Hangisidir?
+
+Pazaryeri arama sonuçları küçük bir kareler ızgarasıdır. Alıcı saniyeler içinde onlarca ürünü tarar ve çoğu zaman ana görsele bakarak hangisine tıklayacağına karar verir. Marka kuralları gereği ana görsel genellikle beyaz arka planlı, izole ürün fotoğrafıdır. Bu zorunlu ama aynı zamanda herkesin uyduğu bir standarttır: ızgaradaki tüm rakipleriniz de aynı boş beyaz zemini kullanır.
+
+İşte sahne kurgusu (lifestyle) görselleri tam burada devreye girer. Ürünü kullanıldığı ortamda, gerçek bir bağlam içinde göstererek alıcının "bu benim hayatımda nasıl durur?" sorusuna görsel bir cevap verir.
+
+## Lifestyle Görsel Neden Tıklamayı Etkiler?
+
+Beyaz zeminli görsel ürünün *ne olduğunu* anlatır. Lifestyle görsel ise ürünün *ne işe yaradığını* ve *kime hitap ettiğini* anlatır. İkisi farklı işler yapar.
+
+Bir alıcı bir kahve fincanı ararken, sade beyaz zeminde duran fincan ile sabah ışığında ahşap bir masada, yanında kitapla duran fincan arasında ikincisine yönelme eğilimi gösterir. Çünkü ikinci görsel bir his, bir an, bir kullanım senaryosu satar. Bu his, küçük ızgara karesinde durup tıklatma kararını veren şeydir.
+
+Önemli bir not: lifestyle görselin ana görsel slotunda kullanılıp kullanılamayacağı pazaryerine göre değişir. Amazon gibi platformlar ana görselde beyaz arka plan zorunluluğu getirir; lifestyle görseller galeri içindeki ikinci, üçüncü görsel olarak yer alır. Bu yüzden stratejiniz "ana görseli değiştirmek" değil, "galeriyi güçlendirmek" olmalıdır.
+
+## İyi Bir Sahne Kurgusunun Bileşenleri
+
+### Bağlam ürünle uyumlu olmalı
+
+Sahne, ürünün gerçek hedef kitlesini yansıtmalı. Bütçe dostu bir mutfak gereci için aşırı lüks bir mermer mutfak yanıltıcı olur; alıcı beklentisiyle ürün arasında uçurum yaratır. Sahne, alıcının kendini içinde hayal edebileceği gerçekçilikte olmalı.
+
+### Ürün hâlâ kahraman olmalı
+
+Lifestyle görselin en sık yapılan hatası, sahnenin ürünü yutmasıdır. Çok fazla aksesuar, çok kalabalık bir masa, dikkat dağıtan renkler... Sahne ürünü desteklemeli, gölgelemeli. Ürün kareye girer girmez gözün ona gitmesi gerekir.
+
+### Ölçek ve kullanım net olmalı
+
+İyi bir sahne, ürünün gerçek boyutunu ve nasıl kullanıldığını sezdirir. Bir çantanın bir omuzda nasıl durduğu, bir lambanın bir köşeyi nasıl aydınlattığı; bunlar yazıyla anlatılması zor, görselle saniyede aktarılan bilgilerdir.
+
+### Tutarlılık marka algısı yaratır
+
+Galeri boyunca ışık tonu, renk paleti ve atmosfer tutarlıysa, alıcı profesyonel bir markayla karşı karşıya olduğunu hisseder. Dağınık, her biri farklı tarzda görseller güvensizlik yaratır.
+
+## AI ile Sahne Kurgusu Üretmenin Pratik Tarafı
+
+Geleneksel yöntemde lifestyle çekim; mekan, set tasarımı, aksesuar ve fotoğrafçı gerektirir. Küçük bir satıcı için her ürüne ayrı sahne kurmak çoğu zaman karşılanamaz bir maliyettir.
+
+AI destekli görsel üretim burada ürünü tek bir temiz fotoğraftan farklı sahnelere yerleştirmeyi mümkün kılar. Aynı ürünü bir mutfak tezgâhında, bir ofis masasında ve bir açık hava ortamında göstermek, fiziksel set kurmadan denenebilir hale gelir.
+
+Ancak dürüst olmak gerekir: AI ile üretilen sahnelerde ürünün kendisi birebir korunmalıdır. Renk, logo, doku ve oran değişmemelidir. Sadece etrafındaki bağlam değişmelidir. Bu nedenle üretilen her görseli ürünün gerçeğiyle karşılaştırmak ve sapma var mı diye kontrol etmek şarttır. Alıcının kutuyu açtığında gördüğü ürün, görseldeki ürünle aynı olmalı; aksi halde tıklama kazansanız bile iade ve olumsuz yorum kaybedersiniz.
+
+## Test Etmeden Karar Vermeyin
+
+Hangi sahnenin daha çok tıklandığı sezgiyle değil veriyle bilinir. Pazaryerlerinin sunduğu tıklama ve dönüşüm verilerini takip ederek farklı galeri kurgularını karşılaştırabilirsiniz. Bir ürün için işe yarayan sahne, başka bir kategoride işe yaramayabilir; mutfak ürünüyle takı ürününün hedef hissi farklıdır.
+
+Küçük bir öneri: galerinizin ilk lifestyle görselini değiştirip iki hafta gözlemleyin, sonra ana görseli sabit tutarak ikinci bir varyasyonu deneyin. Tek değişkeni izlemek, neyin işe yaradığını anlamanın en sağlıklı yoludur.
+
+## Özet
+
+Beyaz arka plan ürünü gösterir; lifestyle sahne kurgusu ürünü *sattırır*. Tıklama, ızgaradaki o küçük karede bir his uyandırabildiğinizde gelir. Doğru bağlam, kahraman kalan bir ürün ve tutarlı bir galeri ile sahne kurgusu görselleri, küçük markaların büyük rakipler arasında fark edilmesini sağlayan en pratik araçlardan biridir. AI bu süreci hızlandırır, ama kontrolü ve dürüstlüğü size bırakır.`,
+      en: `## Which Image Earns the Click?
+
+Marketplace search results are a small grid of squares. Shoppers scan dozens of products in seconds and usually decide what to click based on the main image alone. Marketplace rules often require that main image to be an isolated product shot on a white background. It's mandatory — but it's also a standard everyone follows: every competitor in the grid is using the same empty white field.
+
+This is exactly where lifestyle scene visuals come in. By showing the product in its real environment, inside a genuine context, they answer the shopper's silent question: "how would this fit into my life?"
+
+## Why Lifestyle Visuals Influence Clicks
+
+A white-background image tells you *what* a product is. A lifestyle image tells you *what it does* and *who it's for*. The two do different jobs.
+
+When a shopper is browsing coffee mugs, a mug floating on plain white competes weakly against one sitting on a wooden table in morning light, a book beside it. The second image sells a feeling, a moment, a use case. That feeling is what pushes the click decision in a tiny grid square.
+
+One important caveat: whether a lifestyle image can occupy the main image slot depends on the marketplace. Platforms like Amazon require a white background for the main image; lifestyle shots belong in the gallery as the second or third image. So your strategy shouldn't be "replace the main image" but "strengthen the gallery."
+
+## What Makes a Good Scene
+
+### The context must match the product
+
+The scene should reflect the product's real audience. An overly luxurious marble kitchen behind a budget-friendly utensil is misleading; it creates a gap between expectation and reality. The setting should be realistic enough that the shopper can picture themselves in it.
+
+### The product must stay the hero
+
+The most common lifestyle mistake is letting the scene swallow the product. Too many props, a cluttered table, distracting colors. The scene should support the product, not overshadow it. The eye should land on the product the instant the image appears.
+
+### Scale and use should be clear
+
+A good scene hints at the product's real size and how it's used. How a bag sits on a shoulder, how a lamp lights a corner — these are things hard to describe in text but conveyed in a second through an image.
+
+### Consistency builds brand perception
+
+When light tone, color palette, and atmosphere are consistent across the gallery, the shopper senses a professional brand. A scattered set of images, each in a different style, signals distrust.
+
+## The Practical Side of AI Scene Generation
+
+Traditional lifestyle shoots require a location, set design, props, and a photographer. For a small seller, building a separate scene for every product is often simply unaffordable.
+
+AI-assisted image generation makes it possible to place a product from a single clean photo into different scenes. Showing the same product on a kitchen counter, an office desk, and an outdoor setting becomes something you can try without building a physical set.
+
+But let's be honest: in AI-generated scenes, the product itself must be preserved exactly. Color, logo, texture, and proportions must not change — only the surrounding context should. That's why every generated image must be compared against the real product and checked for drift. The product a shopper sees when they open the box must match the product in the image; otherwise, even if you win the click, you lose it to returns and negative reviews.
+
+## Don't Decide Without Testing
+
+Which scene gets more clicks is known through data, not intuition. By tracking the click and conversion data marketplaces provide, you can compare different gallery setups. A scene that works for one product may not work in another category; the target feeling for a kitchen tool differs from that of jewelry.
+
+A small tip: change the first lifestyle image in your gallery and observe for two weeks, then keep the main image fixed and try a second variation. Watching a single variable is the healthiest way to understand what actually works.
+
+## Summary
+
+A white background shows the product; a lifestyle scene helps *sell* it. The click comes when you can stir a feeling inside that tiny grid square. With the right context, a product that stays the hero, and a consistent gallery, scene visuals are one of the most practical tools for helping small brands get noticed among large competitors. AI speeds up the process — but leaves the control and the honesty to you.`,
+    },
+  },
+  {
     slug: "ai-halusinasyonlari-urun-gorseli-marka-tutarliligi",
     date: "2026-06-13",
     author: "Renderhane",
