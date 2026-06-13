@@ -11,6 +11,142 @@ export interface BlogArticle {
 
 export const articles: BlogArticle[] = [
   {
+    slug: "ai-halusinasyonlari-urun-gorseli-marka-tutarliligi",
+    date: "2026-06-13",
+    author: "Renderhane",
+    tags: ["AI Görsel", "Marka Tutarlılığı", "Kalite Kontrol"],
+    title: {
+      tr: "Ürün Görselinde AI Halüsinasyonları ve Marka Tutarlılığı",
+      en: "AI Hallucinations in Product Visuals and Brand Consistency",
+    },
+    description: {
+      tr: "AI ürün görsellerinde halüsinasyon nedir, marka tutarlılığını nasıl bozar ve yayına almadan önce nelere dikkat etmelisiniz? Pratik kontrol rehberi.",
+      en: "What are AI hallucinations in product visuals, how do they break brand consistency, and what to check before publishing? A practical control guide.",
+    },
+    content: {
+      tr: `## Yapay Zeka Ürün Görseli Üretirken Neden Hata Yapar?
+
+AI araçları, bir ürün fotoğrafından sahne kurgusu veya yeni açılar üretirken bazen gerçekte olmayan detaylar ekler ya da var olanları değiştirir. Bu duruma genel olarak *halüsinasyon* deniyor. Model, gördüğü görseli birebir kopyalamaz; öğrendiği örüntülere bakarak en olası pikselleri tahmin eder. Çoğu zaman sonuç ikna edicidir, ancak tahmin yürüten her sistem gibi zaman zaman yanılır.
+
+E-ticaret açısından sorun, bu hataların çoğu zaman *inandırıcı* görünmesidir. Bozuk bir görsel bariz şekilde hatalı olsa fark edilir. Asıl risk, gerçekçi ama yanlış görsellerdir: ürünü olduğundan farklı gösteren, müşteriye söz verilmemiş bir özellik ima eden kareler.
+
+### Marka tutarlılığı neden risk altında?
+
+Bir marka; aynı renk tonu, aynı malzeme dokusu, aynı logo yerleşimi ve aynı genel hisle tanınır. AI üretilen her görsel bu çerçeveden küçük sapmalar gösterdiğinde, tek başına sorun yaratmasa da bir araya geldiğinde marka algısı dağılır. Müşteri, ürün sayfasındaki fotoğrafla eline ulaşan ürün arasında fark hissederse güven zarar görür ve bu çoğu zaman iade ya da olumsuz yorum olarak geri döner.
+
+## Sık Karşılaşılan Halüsinasyon Türleri
+
+### Ürün detaylarının değişmesi
+
+Dikiş sayısı, düğme yeri, kulp şekli, desen yönü gibi küçük detaylar üretim sırasında kayabilir. Tek bir görselde gözden kaçması kolaydır ama bu fark, ürünün gerçeğiyle örtüşmediğinde sorun olur.
+
+### Yazı ve logo bozulması
+
+AI modelleri metni bir görsel doku gibi ele alabilir. Bu yüzden ambalaj üzerindeki yazılar, marka adı veya logo bazen okunaksız, eksik ya da değişmiş çıkar. Logosu bozulmuş bir ürün görseli, marka için en görünür hatalardan biridir.
+
+### Renk ve malzeme kayması
+
+Kurumsal renginiz belirli bir tonsa, AI bunu komşu bir tona kaydırabilir. Mat bir yüzey parlak, deri bir doku plastik gibi görünebilir. Bu kaymalar küçük gibi dursa da aynı koleksiyondaki görseller arasında tutarsızlık yaratır.
+
+### Olmayan parçaların eklenmesi
+
+Model, bir ürünü tamamlarken sahnede mantıklı sandığı ama gerçekte olmayan ögeler ekleyebilir: fazladan bir bağlantı noktası, olmayan bir aksesuar, yanlış bir yansıma. Bunlar müşteride yanlış beklenti oluşturur.
+
+## Marka Tutarlılığını Korumak İçin Pratik Adımlar
+
+### Referans görsellerini net seçin
+
+Üretime girdi olarak verdiğiniz fotoğraf ne kadar net, iyi aydınlatılmış ve doğru renkliyse, sonuç o kadar gerçeğe yakın olur. Bulanık veya yanıltıcı bir referans, modeli boşlukları kendi tahminiyle doldurmaya iter.
+
+### Ürünün gerçek halini koruyun
+
+Arka plan, ışık ve sahne değişebilir; ancak ürünün kendisi sabit kalmalı. Çıktıyı her zaman elinizdeki gerçek ürün veya orijinal fotoğrafla yan yana koyup karşılaştırın. Amaç, ürünü güzelleştirmek değil, doğru göstermektir.
+
+### Renk ve marka kurallarını elde tutun
+
+Kurumsal renk kodlarınızı, logo kullanım kurallarınızı ve kabul edilebilir varyasyonları yazılı bir kılavuzda tutun. Üretilen görseli bu kılavuza göre değerlendirin; göz kararı yerine somut bir ölçüt kullanmak tutarlılığı korur.
+
+### İnsan onayını zorunlu tutun
+
+Hiçbir AI görseli, bir insan kontrol etmeden yayına girmemeli. Özellikle logo, yazı ve ölçü içeren görsellerde son sözü her zaman bir kişi söylemelidir. Otomasyon hızı artırır; onay adımı güveni korur.
+
+## Yayına Almadan Önce Kontrol Listesi
+
+- Logo ve ambalaj yazıları doğru ve okunaklı mı?
+- Ürün rengi gerçeğine ve marka tonuna uygun mu?
+- Malzeme dokusu (mat, parlak, deri, metal) doğru görünüyor mu?
+- Sahnede olmayan bir parça, aksesuar veya yansıma eklenmiş mi?
+- Detaylar (düğme, dikiş, kulp, desen) orijinaliyle örtüşüyor mu?
+- Görsel, pazaryerinin doğruluk ve yanıltıcı içerik kurallarına uyuyor mu?
+
+Pazaryerleri, ürünü yanıltıcı biçimde gösteren görsellere karşı kurallar uygulayabilir. Bu yüzden estetik kadar doğruluk da bir uyumluluk meselesidir.
+
+## Sonuç
+
+AI, ürün görseli üretiminde ciddi bir hız ve esneklik sağlar; ama tahmin eden her sistem gibi zaman zaman yanılır. Bu hataların çoğu büyük değil, fark edilmesi zor küçük sapmalardır ve asıl marka tutarlılığını bunlar aşındırır. Net referanslar, yazılı marka kuralları ve değişmez bir insan onayı adımıyla bu riski yönetilebilir hale getirebilirsiniz. AI'yı bir kestirme değil, kontrollü bir araç olarak kullandığınızda hem hızdan kazanır hem markanızın güvenini korursunuz.`,
+      en: `## Why Does AI Make Mistakes When Generating Product Visuals?
+
+When AI tools build a scene or new angle from a single product photo, they sometimes add details that were never there or alter ones that were. This is broadly called *hallucination*. The model does not copy your image pixel for pixel; it predicts the most likely pixels based on patterns it has learned. Often the result is convincing, but like any system that makes predictions, it occasionally gets things wrong.
+
+For e-commerce, the real problem is that these errors usually look *believable*. An obviously broken image gets caught. The dangerous output is the realistic-but-wrong one: a frame that shows the product differently than it really is, or implies a feature you never promised.
+
+### Why is brand consistency at risk?
+
+A brand is recognized by the same color tone, the same material texture, the same logo placement, and the same overall feel. When every AI-generated image drifts slightly from that frame, no single image may seem like a problem, but together they blur the brand. If a customer senses a gap between the photo on the product page and the item that arrives, trust suffers, and that often comes back as a return or a negative review.
+
+## Common Types of Hallucination
+
+### Changed product details
+
+Small details like stitch count, button position, handle shape, or pattern direction can shift during generation. They are easy to miss in a single image, but they become a problem when they no longer match the real product.
+
+### Distorted text and logos
+
+AI models can treat text as just another visual texture. As a result, packaging text, brand names, or logos sometimes come out garbled, incomplete, or altered. A product image with a broken logo is one of the most visible mistakes a brand can make.
+
+### Color and material drift
+
+If your brand color is a specific tone, AI can nudge it toward a neighboring shade. A matte surface may look glossy, or a leather texture may read as plastic. These shifts seem minor but create inconsistency across images in the same collection.
+
+### Added elements that do not exist
+
+While completing a product, the model may add elements it assumes belong in the scene but that are not actually there: an extra connection point, a non-existent accessory, a wrong reflection. These create false expectations for the customer.
+
+## Practical Steps to Protect Brand Consistency
+
+### Choose clear reference images
+
+The sharper, better-lit, and more color-accurate your input photo, the closer the result will be to reality. A blurry or misleading reference pushes the model to fill the gaps with its own guesses.
+
+### Keep the product itself unchanged
+
+The background, lighting, and scene can change, but the product itself should stay fixed. Always place the output next to the real item or the original photo and compare. The goal is not to beautify the product but to show it accurately.
+
+### Keep color and brand rules on hand
+
+Keep your brand color codes, logo usage rules, and acceptable variations in a written guide. Evaluate each generated image against that guide; using a concrete standard instead of eyeballing it is what protects consistency.
+
+### Make human approval mandatory
+
+No AI image should go live without a person reviewing it. Especially for images with logos, text, or measurements, a human should always have the final say. Automation adds speed; the approval step protects trust.
+
+## Checklist Before Publishing
+
+- Are the logo and packaging text correct and legible?
+- Does the product color match reality and your brand tone?
+- Does the material texture (matte, glossy, leather, metal) look right?
+- Has any element, accessory, or reflection been added that was not in the scene?
+- Do the details (buttons, stitching, handle, pattern) match the original?
+- Does the image comply with the marketplace rules on accuracy and misleading content?
+
+Marketplaces may enforce rules against images that misrepresent a product. So accuracy, not just aesthetics, is also a compliance matter.
+
+## Conclusion
+
+AI brings real speed and flexibility to product visual creation, but like any predictive system, it sometimes gets things wrong. Most of these errors are not dramatic; they are small, hard-to-spot deviations, and those are exactly what wear down brand consistency. With clear references, written brand rules, and a non-negotiable human approval step, you can keep that risk manageable. When you treat AI as a controlled tool rather than a shortcut, you gain the speed and still protect your brand's trust.`,
+    },
+  },
+  {
     slug: "trendyol-urun-gorseli-olculeri-kurallari-2026",
     date: "2026-06-13",
     author: "Renderhane",
