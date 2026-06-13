@@ -54,7 +54,7 @@ Görsel üreten modeller, milyonlarca örnekten istatistiksel kalıplar öğreni
 Tek fotoğraf yerine ürünü farklı açılardan gösteren birden çok kare verin. Model ne kadar çok gerçek veri görürse o kadar az tahmin eder. Logonun, etiketin ve kritik detayların net göründüğü kareleri mutlaka ekleyin.
 
 ### 2. Metni sonradan ekleyin
-Logo, marka adı ve ürün metnini AI'ya ürettirmeyin. Görseli metinsiz üretip okunabilir logoyu ve yazıları sonradan vektörel olarak yerleştirin. Bu, en sık görülen halüsinasyon türünü tek hamlede ortadan kaldırır.
+Logo, marka adı ve ürün metnini AI'ya ürettirmeyin. Görseli metinsiz üretip okunabilir logoyu ve yazıları sonradan vektörel olarak yerleştirin. Bu, en sık görülen halüsinasyon türünün riskini tek hamlede büyük ölçüde azaltır.
 
 ### 3. Marka kitabınızı referans yapın
 Renk kodları, izin verilen arka planlar, oran kuralları ve yasak kullanımları yazılı bir kılavuza dökün. Her üretilen görseli bu kılavuza göre denetleyin. Tutarlılık göz kararıyla değil, sabit referansla sağlanır.
@@ -76,7 +76,7 @@ Renk kodları, izin verilen arka planlar, oran kuralları ve yasak kullanımlar�
 
 ## Sonuç
 
-AI görsel üretimi, doğru kullanıldığında stüdyo maliyetini ve süresini ciddi biçimde düşürür. Risk, modelin yaratıcılığını ürünün gerçeğiyle karıştırmaktır. İlke basittir: **sahneyi AI üretsin, ürünün kimliğini siz koruyun.** Metni sonradan ekleyin, referansı zenginleştirin ve her görseli sabit bir marka kılavuzuna göre denetleyin. Böylece hem hızdan yararlanır hem de müşterinin gördüğüyle eline geçenin aynı olmasını garanti edersiniz.`,
+AI görsel üretimi, doğru kullanıldığında stüdyo maliyetini ve süresini ciddi biçimde düşürür. Risk, modelin yaratıcılığını ürünün gerçeğiyle karıştırmaktır. İlke basittir: **sahneyi AI üretsin, ürünün kimliğini siz koruyun.** Metni sonradan ekleyin, referansı zenginleştirin ve her görseli sabit bir marka kılavuzuna göre denetleyin. Böylece hem hızdan yararlanır hem de müşterinin gördüğüyle eline geçen arasındaki farkı en aza indirirsiniz.`,
       en: `## What Does an AI Hallucination Mean in a Product Image?
 
 In text models, a "hallucination" means fabricated information. In image-generating models, the equivalent is when the model **adds, removes, or alters details that don't exist on your real product**. When generating a scene, a 3D model, or A+ content from a single photo, the model fills the gaps with patterns it learned during training. The result often looks pleasing — but it can misrepresent the product.
@@ -107,7 +107,7 @@ Image models learn statistical patterns from millions of examples. They don't "k
 Instead of a single photo, provide multiple frames showing the product from different angles. The more real data the model sees, the less it guesses. Always include frames where the logo, label, and critical details are clearly visible.
 
 ### 2. Add text afterward
-Don't let AI generate your logo, brand name, or product copy. Generate the image without text, then place the readable logo and text on top as vectors afterward. This single move eliminates the most common type of hallucination.
+Don't let AI generate your logo, brand name, or product copy. Generate the image without text, then place the readable logo and text on top as vectors afterward. This single move greatly reduces the risk of the most common type of hallucination.
 
 ### 3. Make your brand book the reference
 Put color codes, allowed backgrounds, proportion rules, and prohibited uses into a written guide. Audit every generated image against it. Consistency comes from a fixed reference, not from eyeballing.
@@ -129,7 +129,7 @@ Text-heavy packaged goods (cosmetics, supplements, electronics boxes), textiles 
 
 ## Conclusion
 
-Used correctly, AI image generation significantly cuts studio cost and time. The risk is confusing the model's creativity with the reality of the product. The principle is simple: **let AI generate the scene, but you protect the product's identity.** Add text afterward, enrich your reference, and audit every image against a fixed brand guide. This way you benefit from the speed while guaranteeing that what the customer sees matches what they receive.`,
+Used correctly, AI image generation significantly cuts studio cost and time. The risk is confusing the model's creativity with the reality of the product. The principle is simple: **let AI generate the scene, but you protect the product's identity.** Add text afterward, enrich your reference, and audit every image against a fixed brand guide. This way you benefit from the speed while greatly reducing the risk that what the customer sees differs from what they receive.`,
     },
   },
   {
