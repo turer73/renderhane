@@ -51,7 +51,11 @@ export default function MarketingPage() {
       <main className="flex-1">
         <HeroSection />
         <SegmentsSection />
-        <DemoSectionLazy />
+        {/* id="demo" SERVER-render'lı sarmalayıcıda: DemoSectionLazy ssr:false olduğundan
+            anchor ilk-HTML'de olmalı ki /#demo hard-nav'ı doğru kaydırsın (Codex P2). */}
+        <div id="demo" className="scroll-mt-20">
+          <DemoSectionLazy />
+        </div>
         <FeaturesSection />
         <PricingSection />
       </main>

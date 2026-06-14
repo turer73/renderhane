@@ -67,8 +67,10 @@ export function DemoSection() {
   ];
 
   return (
+    // NOT: id="demo" anchor'ı page.tsx'teki server-render'lı sarmalayıcıya taşındı (Codex P2):
+    // bu bölüm dynamic(ssr:false) → ilk HTML'de yoktu, /#demo hard-nav'ında fragment-scroll
+    // hedefi bulamayıp tepede kalıyordu. Sarmalayıcı ilk-HTML'de olduğundan scroll artık çalışır.
     <section
-      id="demo"
       className="relative scroll-mt-20 py-12 sm:py-28 bg-gradient-to-b from-slate-50/50 to-background dark:from-slate-900/30 dark:to-background"
     >
       {/* Radial gradient glow — indigo tint */}
