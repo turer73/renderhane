@@ -36,6 +36,11 @@ export function LandingHeader() {
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // Ana sayfa DIŞINDAYIZ (blog/araçlar/legal vb.) → bölüm bu sayfada yok. Ana sayfaya
+      // git + hash; tarayıcı yüklenince #id bölümüne kaydırır (önceden: ölü tık, hiçbir şey olmazdı).
+      // assign() (metod) kullan — `location.href =` react-hooks/immutability'e takılır.
+      window.location.assign(`/${locale}/#${id}`);
     }
   }
 
@@ -99,18 +104,22 @@ export function LandingHeader() {
               <ChevronDown className="size-3.5" />
             </button>
             {toolsOpen && (
-              <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-border/60 bg-background/95 p-2 shadow-xl backdrop-blur-md">
-                {freeTools.map((tool) => (
-                  <Link
-                    key={tool.href}
-                    href={tool.href}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    onClick={() => setToolsOpen(false)}
-                  >
-                    <tool.icon className="size-4 text-indigo-500" />
-                    {tool.label}
-                  </Link>
-                ))}
+              // top-full + pt-1 (margin DEĞİL padding): buton↔panel arası boşluk artık HOVER-EDİLEBİLİR
+              // → fareyi öğeye götürünce onMouseLeave tetiklenip menü kapanmıyor (seçim kolaylaştı).
+              <div className="absolute left-0 top-full z-50 w-56 pt-1">
+                <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-xl backdrop-blur-md">
+                  {freeTools.map((tool) => (
+                    <Link
+                      key={tool.href}
+                      href={tool.href}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      onClick={() => setToolsOpen(false)}
+                    >
+                      <tool.icon className="size-4 text-indigo-500" />
+                      {tool.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
