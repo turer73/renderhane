@@ -72,10 +72,10 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── 3D Model — Hyper3D Rodin (Premium) ───── */
   "hyper3d-rodin": {
-    id: "fal-ai/hyper3d/rodin",
+    id: "fal-ai/hyper3d/rodin/v2.5",
     displayName: {
-      tr: "Rodin — Premium 3D",
-      en: "Rodin — Premium 3D",
+      tr: "Rodin Gen-2.5 — Premium 3D",
+      en: "Rodin Gen-2.5 — Premium 3D",
     },
     tier: "premium",
     creditCost: 35,
@@ -157,10 +157,10 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── 3D Model — Meshy 6 Image-to-3D ──────── */
   "meshy-6-image": {
-    id: "fal-ai/meshy/v6/image-to-3d",
+    id: "fal-ai/meshy/v6-preview/image-to-3d",
     displayName: {
-      tr: "Meshy 6 — Foto → 3D",
-      en: "Meshy 6 — Image → 3D",
+      tr: "Meshy 6 Preview — Foto → 3D",
+      en: "Meshy 6 Preview — Image → 3D",
     },
     tier: "standard",
     creditCost: 18,
@@ -340,8 +340,8 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── Video Oluştur ────────────────────────── */
   "wan-i2v": {
-    id: "wan/v2.6/image-to-video",
-    displayName: { tr: "Wan 2.6 — Görsel→Video", en: "Wan 2.6 — Image→Video" },
+    id: "fal-ai/wan/v2.7/image-to-video",
+    displayName: { tr: "Wan 2.7 — Görsel→Video", en: "Wan 2.7 — Image→Video" },
     tier: "standard",
     creditCost: 20,
     estimatedTime: "~2min",
@@ -493,8 +493,8 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── Logo Üretimi ──────────────────────── */
   "recraft-v4": {
-    id: "fal-ai/recraft/v4/text-to-image",
-    displayName: { tr: "Recraft V4 — Logo", en: "Recraft V4 — Logo" },
+    id: "fal-ai/recraft/v4.1/text-to-image",
+    displayName: { tr: "Recraft V4.1 — Logo", en: "Recraft V4.1 — Logo" },
     tier: "standard",
     creditCost: 8,
     estimatedTime: "~10s",
@@ -505,8 +505,8 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
   "recraft-v4-svg": {
-    id: "fal-ai/recraft/v4/text-to-vector",
-    displayName: { tr: "Recraft V4 — SVG Vektör", en: "Recraft V4 — SVG Vector" },
+    id: "fal-ai/recraft/v4.1/text-to-vector",
+    displayName: { tr: "Recraft V4.1 — SVG Vektör", en: "Recraft V4.1 — SVG Vector" },
     tier: "standard",
     creditCost: 10,
     estimatedTime: "~12s",
@@ -531,21 +531,165 @@ export const MODELS: Record<string, ModelConfig> = {
         "premium e-commerce product photography, lifestyle setting with elegant props, professional studio lighting, high-end catalog quality",
     },
   },
+
+  /* ════════════════════════════════════════════════════════════
+     2026-06 fal.ai katalog güncellemesi — yeni / üst-kalite modeller.
+     Tümü FAL_KEY ile endpoint-varlık + zorunlu-input şeması doğrulandı.
+     creditCost değerleri fal.ai USD fiyatına göre tahmini — kâr marjına
+     göre gözden geçirilmeli.
+     ════════════════════════════════════════════════════════════ */
+
+  /* ── Görseli İyileştir — Recraft Crisp Upscale ──
+     fal.ai kendi karşılaştırmasında gerçek ürün fotoğrafı detayı +
+     etiket metni koruma #1; aura-sr'den daha iyi ve çok ucuz. */
+  "recraft-crisp-upscale": {
+    id: "fal-ai/recraft/upscale/crisp",
+    displayName: { tr: "Recraft Crisp — Net İyileştirme", en: "Recraft Crisp — Sharp Upscale" },
+    tier: "fast",
+    creditCost: 3,
+    estimatedTime: "~6s",
+    imageParamKey: "image_url",
+    defaultParams: {},
+  },
+
+  /* ── Text-to-Image — Nano Banana 2 (Gemini 3.1 Flash Image) ──
+     Nano Banana Pro'nun ~yarı fiyatı, 2-3x daha hızlı; çoklu-dil tipografi.
+     Yüksek hacimli ürün görseli için varsayılan kalite seçeneği. */
+  "nano-banana-2": {
+    id: "fal-ai/nano-banana-2",
+    displayName: { tr: "Nano Banana 2 — Hızlı Kalite", en: "Nano Banana 2 — Fast Quality" },
+    tier: "standard",
+    creditCost: 10,
+    estimatedTime: "~6s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      output_format: "png",
+    },
+  },
+
+  /* ── Görsel Düzenleme — Nano Banana 2 Edit ── */
+  "nano-banana-2-edit": {
+    id: "fal-ai/nano-banana-2/edit",
+    displayName: { tr: "Nano Banana 2 — Düzenle", en: "Nano Banana 2 — Edit" },
+    tier: "standard",
+    creditCost: 10,
+    estimatedTime: "~8s",
+    imageParamKey: "image_urls",
+    multiImage: true,
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      output_format: "png",
+    },
+  },
+
+  /* ── Text-to-Image — Ideogram V3 ──
+     Etiket / ambalaj / promosyon metni doğruluğunda sınıfının en iyisi. */
+  "ideogram-v3": {
+    id: "fal-ai/ideogram/v3",
+    displayName: { tr: "Ideogram V3 — Metin Ustası", en: "Ideogram V3 — Text Master" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~8s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+
+  /* ── Sahne / Arka Plan Değiştir — Ideogram V3 Replace Background ──
+     Ürünü koruyup arka planı doğal-dil komutuyla değiştirir. */
+  "ideogram-v3-replace-bg": {
+    id: "fal-ai/ideogram/v3/replace-background",
+    displayName: { tr: "Ideogram — Arka Plan Değiştir", en: "Ideogram — Replace Background" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~8s",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+
+  /* ── Text-to-Image — Seedream 4.5 (ByteDance) ── */
+  "seedream-v45": {
+    id: "fal-ai/bytedance/seedream/v4.5/text-to-image",
+    displayName: { tr: "Seedream 4.5 — Üretici", en: "Seedream 4.5 — Generator" },
+    tier: "standard",
+    creditCost: 5,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+
+  /* ── Görsel Düzenleme — Seedream 4.5 Edit (10 referans görsele kadar) ── */
+  "seedream-v45-edit": {
+    id: "fal-ai/bytedance/seedream/v4.5/edit",
+    displayName: { tr: "Seedream 4.5 — Çok-Ref Düzenle", en: "Seedream 4.5 — Multi-Ref Edit" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~60s",
+    imageParamKey: "image_urls",
+    multiImage: true,
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+
+  /* ── Video — Veo 3.1 (Google, Görsel→Video, 4K + senkron ses) ──
+     Premium kalite. Ses ekstra ücretli olduğu için varsayılan kapalı. */
+  "veo31-i2v": {
+    id: "fal-ai/veo3.1/image-to-video",
+    displayName: { tr: "Veo 3.1 — Premium Video", en: "Veo 3.1 — Premium Video" },
+    tier: "premium",
+    creditCost: 45,
+    estimatedTime: "~3min",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      resolution: "1080p",
+    },
+  },
+
+  /* ── 3D Model — Tripo P1 (native 3D diffusion, oyun-motoru-hazır topoloji) ── */
+  "tripo-p1": {
+    id: "tripo3d/p1/image-to-3d",
+    displayName: { tr: "Tripo P1 — Temiz Topoloji", en: "Tripo P1 — Clean Topology" },
+    tier: "standard",
+    creditCost: 12,
+    estimatedTime: "~30s",
+    imageParamKey: "image_url",
+    defaultParams: {},
+  },
+
+  /* ── Konuşan Avatar — Kling AI Avatar v2 Pro ──
+     OmniHuman'dan ucuz, daha doğal hareket, 60sn'ye kadar ses.
+     Ses, OmniHuman ile aynı şekilde job-submit'te audio_url olarak geçilir. */
+  "kling-avatar-v2-pro": {
+    id: "fal-ai/kling-video/ai-avatar/v2/pro",
+    displayName: { tr: "Kling Avatar v2 Pro", en: "Kling Avatar v2 Pro" },
+    tier: "standard",
+    creditCost: 20,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "_unused",
+    defaultParams: {},
+  },
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-6-text", "tripo-v25-mv", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-6-text", "tripo-v25-mv", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
-  "enhance": ["aura-sr"],
-  "scene": ["bria-product-shot", "nano-banana-pro-edit"],
-  "video": ["wan-i2v", "kling-t2v", "kling-i2v"],
+  "enhance": ["recraft-crisp-upscale", "aura-sr"],
+  "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],
+  "video": ["wan-i2v", "kling-t2v", "kling-i2v", "veo31-i2v"],
   "aplus": ["bria-product-shot-hd"],
-  "image-edit": ["flux-kontext", "flux-kontext-max", "nano-banana-pro-edit"],
+  "image-edit": ["flux-kontext", "flux-kontext-max", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v45-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v3", "seedream-v45"],
   "qr-code": ["qr-code-ai"],
-  "talking-avatar": ["omnihuman"],
+  "talking-avatar": ["omnihuman", "kling-avatar-v2-pro"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],

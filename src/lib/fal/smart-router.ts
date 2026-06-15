@@ -109,7 +109,7 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number, extraP
       return "bria-rmbg";  // commercial license clean (was birefnet)
 
     case "enhance":
-      return "aura-sr";
+      return "recraft-crisp-upscale";  // fal benchmark #1 for product detail; replaces aura-sr
 
     case "scene":
       return "bria-product-shot";
