@@ -80,7 +80,10 @@ export const MODELS: Record<string, ModelConfig> = {
     tier: "premium",
     creditCost: 35,
     estimatedTime: "~2min",
-    imageParamKey: "input_image_urls",
+    // fal-ai/hyper3d/rodin/v2.5 girdi alanı `image_urls` (dizi). Önceki
+    // `input_image_urls` yanlıştı → fal "At least one input image is required"
+    // validation hatası veriyordu (image_urls boş kalıyordu).
+    imageParamKey: "image_urls",
     multiImage: true,
     defaultParams: {
       geometry_file_format: "glb",
