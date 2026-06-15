@@ -1,6 +1,7 @@
 import { fal } from "@fal-ai/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, confirmSpend, refundCredits } from "@/lib/credits/engine";
+import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { uploadToR2 } from "@/lib/r2/upload";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
@@ -63,6 +64,12 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
   // 2. Reserve credits
   let txId: string | null = null;
   let creditCost = model.creditCost;
+
+  // Admin (ADMIN_EMAILS allowlist) → sınırsız kullanım: krediyi sıfırla, rezervasyonu atla.
+  try {
+    const { data: au } = await supabase.auth.admin.getUserById(userId);
+    if (isAdmin(au?.user?.email)) creditCost = 0;
+  } catch { /* email çözülemezse normal kredi akışı sürer */ }
 
   if (tool === "bg-remove") {
     const { data: isFree } = await supabase.rpc("check_free_bg_remove", { p_user_id: userId });
