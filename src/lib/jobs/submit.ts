@@ -2,6 +2,7 @@ import { fal } from "@fal-ai/client";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, refundCredits } from "@/lib/credits/engine";
+import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { composeSmartPrompt } from "@/lib/prompts/compose";
 import type { PromptContext } from "@/lib/prompts/presets";
@@ -149,6 +150,12 @@ export async function submitJob(input: SubmitJobInput) {
   let txId: string | null = null;
   // Add auto-enhance cost (+4 per image) to the base model cost
   let creditCost = model.creditCost + (autoEnhance ? 4 : 0);
+
+  // Admin (ADMIN_EMAILS allowlist) → sınırsız kullanım: krediyi sıfırla, rezervasyonu atla.
+  try {
+    const { data: au } = await supabase.auth.admin.getUserById(userId);
+    if (isAdmin(au?.user?.email)) creditCost = 0;
+  } catch { /* email çözülemezse normal kredi akışı sürer */ }
 
   if (tool === "bg-remove") {
     const { data: isFree, error: freeCheckError } = await supabase.rpc(
