@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
@@ -81,10 +81,8 @@ export async function POST(request: NextRequest) {
   if (!process.env.FAL_KEY) {
     return NextResponse.json({ error: "Sunucu yapılandırma hatası" }, { status: 500 });
   }
-  fal.config({ credentials: process.env.FAL_KEY });
-
   try {
-    const result = await fal.subscribe("fal-ai/any-llm", {
+    const result = await getAIProvider().subscribe("fal-ai/any-llm", {
       input: {
         model: "meta-llama/llama-3.2-3b-instruct",
         system_prompt: buildSystemPrompt(tool),

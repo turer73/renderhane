@@ -1,6 +1,7 @@
 import "server-only";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
+import { Readable } from "stream";
 
 /** Max file size: 500 MB */
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
@@ -61,14 +62,8 @@ export async function uploadToR2(
     throw new Error(`Failed to download from fal.ai: ${response.status}`);
   }
 
-  // Check content-length before downloading to prevent OOM
-  const contentLengthHeader = response.headers.get("content-length");
-  if (contentLengthHeader && parseInt(contentLengthHeader, 10) > MAX_FILE_SIZE) {
-    throw new Error(`File too large: ${contentLengthHeader} bytes exceeds ${MAX_FILE_SIZE} limit`);
-  }
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const fileSize = buffer.length;
+  const contentLength = response.headers.get("content-length");
+  const fileSize = contentLength ? parseInt(contentLength, 10) : 0;
 
   if (fileSize > MAX_FILE_SIZE) {
     throw new Error(`File too large: ${fileSize} bytes exceeds ${MAX_FILE_SIZE} limit`);
@@ -78,16 +73,22 @@ export async function uploadToR2(
   const responseContentType = response.headers.get("content-type") || "";
   const { ext, contentType } = getFileInfo(falUrl, type, responseContentType);
 
-  // 3. Upload to R2
+  // 3. Upload to R2 — stream directly to avoid OOM on large files
   const r2 = getR2();
   const key = `outputs/${userId}/${randomUUID()}.${ext}`;
+
+  const stream = response.body;
+  if (!stream) {
+    throw new Error("No response body stream available");
+  }
 
   await r2.send(
     new PutObjectCommand({
       Bucket: getBucket(),
       Key: key,
-      Body: buffer,
+      Body: Readable.fromWeb(stream as unknown as import("stream/web").ReadableStream),
       ContentType: contentType,
+      ContentLength: fileSize || undefined,
       CacheControl: "public, max-age=31536000, immutable",
     })
   );

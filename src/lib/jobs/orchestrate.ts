@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { submitJob } from "@/lib/jobs/submit";
 import { APLUS_SCENES, getScenePrompt } from "@/lib/fal/aplus-scenes";
 import { CreditError } from "@/lib/credits/engine";
@@ -84,7 +84,7 @@ export async function orchestrateTalkingAvatar(
 
   // Step 1: If script text provided, generate TTS audio
   if (script && !resolvedAudioUrl) {
-    const ttsResult = await fal.subscribe("fal-ai/f5-tts", {
+    const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
       input: {
         gen_text: script,
         model_type: "F5-TTS",

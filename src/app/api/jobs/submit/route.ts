@@ -1,17 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
-import { TOOLS_MULTI_IMAGE, TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES } from "@/lib/fal/models";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
-import type { PromptContext } from "@/lib/prompts/presets";
+import { validateJobSubmit } from "@/lib/validations/job-submit";
 
 // Job submission can include auto bg-remove (~5s) + fal.ai queue submit
 export const maxDuration = 60;
-
-const VALID_TOOLS = ["3d-model", "bg-remove", "enhance", "scene", "video", "aplus", "image-edit", "inpainting", "object-removal", "text-to-image", "qr-code", "talking-avatar", "logo", "social-kit", "virtual-tryon"] as const;
 
 /** Human-readable tool names for auto-created project titles */
 const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
@@ -104,92 +100,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams, promptContext } = body;
-
-  if (!tool) {
-    return NextResponse.json(
-      { error: "tool is required" },
-      { status: 400 }
-    );
+  const parsed = validateJobSubmit(body);
+  if (!parsed.valid) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  if (!VALID_TOOLS.includes(tool as ToolType)) {
-    return NextResponse.json(
-      { error: `Invalid tool type. Must be one of: ${VALID_TOOLS.join(", ")}` },
-      { status: 400 }
-    );
-  }
-
-  const isMultiImage = TOOLS_MULTI_IMAGE.includes(tool as ToolType);
-  const isTextOnly = TOOLS_TEXT_ONLY.includes(tool as ToolType);
-
-  // Validate image inputs based on tool type
-  let validatedImageUrl: string | undefined;
-  let validatedImageUrls: string[] | undefined;
-
-  // Some tools support BOTH text-only and image modes (video: Kling t2v vs Wan i2v)
-  const hasPromptOnly = prompt && typeof prompt === "string" && prompt.trim() && !imageUrl && !imageUrls;
-  const isHybridTool = ["video", "3d-model"].includes(tool as string);
-
-  if (isTextOnly || (isHybridTool && hasPromptOnly)) {
-    // Text-only mode: require prompt, no image needed
-    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-      return NextResponse.json(
-        { error: "prompt is required for this tool" },
-        { status: 400 }
-      );
-    }
-  } else if (isMultiImage) {
-    // Multi-image tools: require imageUrls array
-    if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
-      return NextResponse.json(
-        { error: `imageUrls array is required for ${tool} (1-${MAX_MULTI_IMAGES} images)` },
-        { status: 400 }
-      );
-    }
-
-    if (imageUrls.length > MAX_MULTI_IMAGES) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_MULTI_IMAGES} images allowed` },
-        { status: 400 }
-      );
-    }
-
-    // Validate each URL
-    for (const url of imageUrls) {
-      const urlError = validateImageUrl(url);
-      if (urlError) {
-        return NextResponse.json({ error: urlError }, { status: 400 });
-      }
-    }
-
-    validatedImageUrls = imageUrls as string[];
-  } else {
-    // Single-image tools: require imageUrl
-    if (!imageUrl) {
-      return NextResponse.json(
-        { error: "imageUrl is required" },
-        { status: 400 }
-      );
-    }
-
-    const urlError = validateImageUrl(imageUrl);
-    if (urlError) {
-      return NextResponse.json({ error: urlError }, { status: 400 });
-    }
-
-    validatedImageUrl = imageUrl as string;
-  }
+  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams } = parsed.data;
 
   // Resolve or auto-create a project for this job
-  const thumbnailUrl = validatedImageUrl ?? validatedImageUrls?.[0] ?? "";
+  const thumbnailUrl = imageUrl ?? imageUrls?.[0] ?? "";
   let resolvedProjectId = projectId as string | undefined;
   if (!resolvedProjectId) {
     resolvedProjectId = await autoCreateProject(
@@ -199,38 +125,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate extraParams — must be a plain object if provided
-  let validatedExtraParams: Record<string, unknown> | undefined;
-  if (extraParams !== undefined && extraParams !== null) {
-    if (typeof extraParams !== "object" || Array.isArray(extraParams)) {
-      return NextResponse.json({ error: "extraParams must be an object" }, { status: 400 });
-    }
-    validatedExtraParams = extraParams as Record<string, unknown>;
-  }
-
-  // Validate promptContext — structured input for server-side smart prompt
-  // composition (scene/aplus/image-edit). Plain object if provided.
-  let validatedPromptContext: PromptContext | undefined;
-  if (promptContext !== undefined && promptContext !== null) {
-    if (typeof promptContext !== "object" || Array.isArray(promptContext)) {
-      return NextResponse.json({ error: "promptContext must be an object" }, { status: 400 });
-    }
-    validatedPromptContext = promptContext as PromptContext;
-  }
-
   try {
     const result = await submitJob({
       userId: user.id,
       projectId: resolvedProjectId,
       tool: tool as ToolType,
       tier: tier as ModelTier | undefined,
-      modelKey: typeof modelKey === "string" ? modelKey : undefined,
-      imageUrl: validatedImageUrl,
-      imageUrls: validatedImageUrls,
-      prompt: typeof prompt === "string" ? prompt : undefined,
+      modelKey,
+      imageUrl,
+      imageUrls,
+      prompt,
       autoEnhance: autoEnhance === true,
-      extraParams: validatedExtraParams,
-      promptContext: validatedPromptContext,
+      extraParams: extraParams as Record<string, unknown> | undefined,
     });
 
     return NextResponse.json(result);
@@ -277,7 +183,7 @@ export async function autoCreateProject(
   imageUrl: string
 ): Promise<string | undefined> {
   try {
-    const adminClient = createAdminClient();
+    const client = await createClient();
     const toolName = TOOL_DISPLAY_NAMES[tool] || tool;
     const now = new Date();
     const dateStr = now.toLocaleDateString("tr-TR", {
@@ -287,7 +193,7 @@ export async function autoCreateProject(
     });
     const projectName = `${toolName} — ${dateStr}`;
 
-    const { data, error } = await adminClient
+    const { data, error } = await client
       .from("projects")
       .insert({
         user_id: userId,

@@ -1,6 +1,6 @@
 import "server-only";
 import crypto from "crypto";
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getResend, FROM_EMAIL } from "@/lib/email/resend";
 import {
@@ -47,20 +47,14 @@ export async function GET(request: NextRequest) {
   try {
     // Use the cheapest/fastest model for health check.
     // Submit + immediately cancel = no credits consumed.
-    const result = await fal.queue.submit("fal-ai/birefnet/v2", {
-      input: {
-        image_url: "https://placehold.co/100x100/png",
-      },
+    const result = await getAIProvider().submit("fal-ai/birefnet/v2", {
+      image_url: "https://placehold.co/100x100/png",
     });
 
-    // If we get a request_id, fal.ai is responsive
-    if (result.request_id) {
+    if (result.requestId) {
       isHealthy = true;
-      // Cancel immediately to avoid consuming resources
       try {
-        await fal.queue.cancel("fal-ai/birefnet/v2", {
-          requestId: result.request_id,
-        });
+        await getAIProvider().cancel("fal-ai/birefnet/v2", result.requestId);
       } catch {
         // Cancel failure is non-fatal — the request will time out naturally
       }

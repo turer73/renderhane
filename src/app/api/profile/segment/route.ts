@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 const VALID_SEGMENTS = ["ecommerce", "gaming", "3dprint"] as const;
@@ -32,8 +31,7 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin
+  const { error } = await supabase
     .from("profiles")
     .update({ use_case: useCase })
     .eq("id", user.id);
