@@ -51,16 +51,20 @@ export function validateImageUrl(url: unknown): string | null {
     }
 
     const hostname = parsed.hostname;
-    const isPrivate =
+    let isPrivate =
       hostname === "localhost" ||
       hostname === "127.0.0.1" ||
       hostname === "0.0.0.0" ||
       hostname.startsWith("10.") ||
       hostname.startsWith("192.168.") ||
-      hostname.startsWith("172.") ||
       hostname === "169.254.169.254" ||
       hostname.endsWith(".internal") ||
       hostname === "[::1]";
+    // 172.16.0.0/12 — only 172.16–31.x.x is private
+    if (!isPrivate && hostname.startsWith("172.")) {
+      const second = parseInt(hostname.split(".")[1], 10);
+      isPrivate = second >= 16 && second <= 31;
+    }
 
     if (isPrivate) {
       return "Invalid imageUrl: private addresses not allowed";
