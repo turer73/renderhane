@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { MODELS } from "@/lib/fal/models";
@@ -38,8 +37,7 @@ export async function POST(
   }
 
   // Fetch original job (include original_request + input_params for fallback)
-  const admin = createAdminClient();
-  const { data: job, error: fetchErr } = await admin
+  const { data: job, error: fetchErr } = await supabase
     .from("jobs")
     .select("id, user_id, tool, model_id, original_request, input_params")
     .eq("id", id)

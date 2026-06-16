@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -15,22 +15,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const status = await fal.queue.status("fal-ai/triposr/remeshing", {
-      requestId,
-      logs: false,
-    });
+    const status = await getAIProvider().status("fal-ai/triposr/remeshing", requestId);
 
     if (status.status === "COMPLETED") {
-      // Fetch the result
-      const result = await fal.queue.result("fal-ai/triposr/remeshing", {
-        requestId,
-      });
-
-      const data = result.data as { model_mesh?: { url?: string } };
+      const result = await getAIProvider().result<{ model_mesh?: { url?: string } }>(
+        "fal-ai/triposr/remeshing",
+        requestId
+      );
 
       return NextResponse.json({
         status: "completed",
-        url: data.model_mesh?.url || null,
+        url: result.model_mesh?.url || null,
       });
     }
 

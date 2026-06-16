@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/auth/admin-check";
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { NextResponse } from "next/server";
 
 /**
@@ -95,9 +95,7 @@ export async function GET() {
   try {
     // Just check if client can make an authenticated request by checking queue status of a fake ID
     // This will error with 404 (not found) which is expected — confirms auth works
-    await fal.queue.status("fal-ai/birefnet/v2", {
-      requestId: "diagnostic-check-fake-id",
-    });
+    await getAIProvider().status("fal-ai/birefnet/v2", "diagnostic-check-fake-id");
     checks["fal:client_auth"] = { ok: true, detail: "authenticated" };
   } catch (err) {
     const falErr = err as { status?: number; message?: string };

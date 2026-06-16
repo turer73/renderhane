@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "@/lib/api-keys/middleware";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -74,10 +74,11 @@ export async function GET(
     // try to recover the result from fal.ai using the request ID
     if (!output && job.fal_request_id && job.model_id) {
       try {
-        const falResult = await fal.queue.result(job.model_id, {
-          requestId: job.fal_request_id,
-        });
-        const payload = falResult.data as Record<string, unknown>;
+        const falResult = await getAIProvider().result<Record<string, unknown>>(
+          job.model_id,
+          job.fal_request_id
+        );
+        const payload = falResult;
         const url = extractUrlFromPayload(payload);
 
         if (url) {

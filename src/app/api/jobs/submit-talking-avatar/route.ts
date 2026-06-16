@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: If user provided text script, generate TTS audio first
     if (script && typeof script === "string" && !resolvedAudioUrl) {
-      const ttsResult = await fal.subscribe("fal-ai/f5-tts", {
+      const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
         input: {
           gen_text: script,
           model_type: "F5-TTS",

@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, refundCredits } from "@/lib/credits/engine";
@@ -17,25 +17,20 @@ const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
  * Returns cleaned image URLs from fal.ai CDN.
  */
 async function removeBackgrounds(imageUrls: string[]): Promise<string[]> {
-  const cleaned: string[] = [];
-  for (const url of imageUrls) {
-    try {
-      const result = await fal.subscribe("fal-ai/birefnet/v2", {
+  const results = await Promise.allSettled(
+    imageUrls.map(async (url) => {
+      const result = await getAIProvider().subscribe("fal-ai/birefnet/v2", {
         input: { image_url: url },
       });
       const output = result.data as { image?: { url?: string } };
-      if (output.image?.url) {
-        cleaned.push(output.image.url);
-      } else {
-        // Fallback to original if bg-remove output is unexpected
-        cleaned.push(url);
-      }
-    } catch (err) {
-      console.error("Auto bg-remove failed for URL, using original:", err);
-      cleaned.push(url);
-    }
-  }
-  return cleaned;
+      return output.image?.url ?? url;
+    })
+  );
+  return results.map((r, i) => {
+    if (r.status === "fulfilled") return r.value;
+    console.error("Auto bg-remove failed for URL, using original:", imageUrls[i], r.reason);
+    return imageUrls[i];
+  });
 }
 
 /**
@@ -44,25 +39,20 @@ async function removeBackgrounds(imageUrls: string[]): Promise<string[]> {
  * Returns enhanced image URLs from fal.ai CDN.
  */
 async function enhanceImages(imageUrls: string[]): Promise<string[]> {
-  const enhanced: string[] = [];
-  for (const url of imageUrls) {
-    try {
-      const result = await fal.subscribe("fal-ai/aura-sr", {
+  const results = await Promise.allSettled(
+    imageUrls.map(async (url) => {
+      const result = await getAIProvider().subscribe("fal-ai/aura-sr", {
         input: { image_url: url },
       });
       const output = result.data as { image?: { url?: string } };
-      if (output.image?.url) {
-        enhanced.push(output.image.url);
-      } else {
-        // Fallback to original if enhance output is unexpected
-        enhanced.push(url);
-      }
-    } catch (err) {
-      console.error("Auto enhance failed for URL, using original:", err);
-      enhanced.push(url);
-    }
-  }
-  return enhanced;
+      return output.image?.url ?? url;
+    })
+  );
+  return results.map((r, i) => {
+    if (r.status === "fulfilled") return r.value;
+    console.error("Auto enhance failed for URL, using original:", imageUrls[i], r.reason);
+    return imageUrls[i];
+  });
 }
 
 /**
@@ -219,10 +209,7 @@ export async function submitJob(input: SubmitJobInput) {
 
   let result;
   try {
-    result = await fal.queue.submit(model.id, {
-      input: falInput,
-      webhookUrl,
-    });
+    result = await getAIProvider().submit(model.id, falInput, webhookUrl);
   } catch (error) {
     // Refund credits and mark job as failed (only if credits were reserved)
     if (txId) await refundCredits(txId);
@@ -257,7 +244,7 @@ export async function submitJob(input: SubmitJobInput) {
   await supabase
     .from("jobs")
     .update({
-      fal_request_id: result.request_id,
+      fal_request_id: result.requestId,
       status: "processing",
       started_at: new Date().toISOString(),
     })
@@ -265,7 +252,7 @@ export async function submitJob(input: SubmitJobInput) {
 
   return {
     jobId: job.id,
-    requestId: result.request_id,
+    requestId: result.requestId,
     creditCost,
     estimatedTime: model.estimatedTime,
     ...(usedSmartPrompt && effectivePrompt ? { composedPrompt: effectivePrompt } : {}),

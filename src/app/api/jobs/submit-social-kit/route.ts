@@ -8,8 +8,8 @@ import { validateImageUrl, autoCreateProject } from "@/app/api/jobs/submit/route
 // Social Kit submits 6 parallel jobs — needs extended timeout
 export const maxDuration = 120;
 
-/** Total credit cost: 1 (bg-remove) + 4×8 (scenes) + 20 (video) = 53 → rounded to 40 (package discount) */
-const SOCIAL_KIT_TOTAL_CREDITS = 40;
+/** Actual credit cost: 4×8 (scenes) + 20 (video) = 52 */
+const SOCIAL_KIT_TOTAL_CREDITS = 52;
 
 /** Scene prompts for 4 carousel images */
 const SCENE_PROMPTS = {
@@ -118,10 +118,12 @@ export async function POST(request: NextRequest) {
 
   const jobIds: string[] = [];
   const errors: string[] = [];
+  let totalCost = 0;
 
   sceneResults.forEach((r, i) => {
     if (r.status === "fulfilled") {
       jobIds.push(r.value.jobId);
+      totalCost += r.value.creditCost;
     } else {
       const err = r.reason;
       if (err instanceof CreditError && err.code === "INSUFFICIENT") {
@@ -134,6 +136,7 @@ export async function POST(request: NextRequest) {
 
   if ("jobId" in videoResult) {
     jobIds.push(videoResult.jobId);
+    totalCost += videoResult.creditCost;
   } else {
     errors.push(`Video: ${"error" in videoResult && videoResult.error instanceof Error ? videoResult.error.message : "failed"}`);
   }
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     jobIds,
-    totalCost: SOCIAL_KIT_TOTAL_CREDITS,
+    totalCost,
     sceneCount: 4,
     hasVideo: "jobId" in videoResult,
     completedJobs: jobIds.length,

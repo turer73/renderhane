@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { submitJob } from "@/lib/jobs/submit";
 import { APLUS_SCENES, getScenePrompt } from "@/lib/fal/aplus-scenes";
 import { CreditError } from "@/lib/credits/engine";
@@ -84,7 +84,7 @@ export async function orchestrateTalkingAvatar(
 
   // Step 1: If script text provided, generate TTS audio
   if (script && !resolvedAudioUrl) {
-    const ttsResult = await fal.subscribe("fal-ai/f5-tts", {
+    const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
       input: {
         gen_text: script,
         model_type: "F5-TTS",
@@ -173,10 +173,12 @@ export async function orchestrateSocialKit(
 
   const jobIds: string[] = [];
   const warnings: string[] = [];
+  let totalCost = 0;
 
   sceneResults.forEach((r, i) => {
     if (r.status === "fulfilled") {
       jobIds.push(r.value.jobId);
+      totalCost += r.value.creditCost;
     } else {
       const err = r.reason;
       const msg =
@@ -191,6 +193,7 @@ export async function orchestrateSocialKit(
 
   if ("jobId" in videoResult) {
     jobIds.push(videoResult.jobId);
+    totalCost += videoResult.creditCost;
   } else if ("error" in videoResult) {
     warnings.push(
       `Video: ${videoResult.error instanceof Error ? videoResult.error.message : "failed"}`
@@ -203,7 +206,7 @@ export async function orchestrateSocialKit(
 
   return {
     jobIds,
-    totalCost: 40, // Package price
+    totalCost,
     estimatedTime: "~3min",
     ...(warnings.length > 0 ? { warnings } : {}),
   };

@@ -1,6 +1,5 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,8 +40,7 @@ export async function POST(request: NextRequest) {
     : "glb";
 
   // Fetch the output record — verify ownership + get URL
-  const admin = createAdminClient();
-  const { data: output, error: fetchError } = await admin
+  const { data: output, error: fetchError } = await supabase
     .from("outputs")
     .select("id, type, fal_url, r2_url, user_id")
     .eq("id", outputId)
@@ -72,18 +70,19 @@ export async function POST(request: NextRequest) {
     console.log("[remesh] Submitting to queue:", { outputId, modelUrl });
 
     // Use queue.submit (async) instead of subscribe (sync) to avoid Vercel timeout
-    const queueResult = await fal.queue.submit("fal-ai/triposr/remeshing", {
-      input: {
+    const queueResult = await getAIProvider().submit(
+      "fal-ai/triposr/remeshing",
+      {
         object_url: modelUrl,
-        output_format: "glb",
+        output_format: outputFormat,
         faces: 30000,
         merge: true,
         preserve_uvs: true,
-      },
-    });
+      }
+    );
 
     return NextResponse.json({
-      requestId: queueResult.request_id,
+      requestId: queueResult.requestId,
       status: "processing",
     });
   } catch (error) {

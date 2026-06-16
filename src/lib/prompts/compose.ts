@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { buildBackbone, type PromptContext } from "./presets";
 
 /**
@@ -85,8 +85,7 @@ export async function composeSmartPrompt({ tool, modelKey, ctx, userText }: Comp
   ].join("\n");
 
   try {
-    fal.config({ credentials: process.env.FAL_KEY });
-    const result = await fal.subscribe("fal-ai/any-llm", {
+    const result = await getAIProvider().subscribe("fal-ai/any-llm", {
       input: {
         model: COMPOSE_MODEL,
         system_prompt: buildSystemPrompt(ctx, isEdit),

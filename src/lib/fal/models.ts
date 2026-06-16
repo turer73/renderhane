@@ -451,7 +451,7 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── QR Code (AI Sanatsal) ─────────────────── */
   "qr-code-ai": {
-    id: "fal-ai/flux-2-pro",
+    id: "fal-ai/qr-codes",
     displayName: { tr: "AI Sanatsal QR", en: "AI Artistic QR" },
     tier: "standard",
     creditCost: 6,
@@ -731,7 +731,7 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
       ])
   ) as Record<ToolType, number>),
   aplus: 32,          // 4 scenes × 8 credits
-  "social-kit": 40,   // 4 scenes (32) + 1 video (20) — package discount
+  "social-kit": 52,   // 4 scenes (32) + 1 video (20)
 };
 
 /** Tools that accept a text prompt from the user */

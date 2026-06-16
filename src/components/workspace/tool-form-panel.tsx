@@ -115,7 +115,7 @@ const TABS_ECOMMERCE = [
 
 const DESIGN_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
   "logo": { model: "Recraft V4", credits: 8, time: "~10 sn" },
-  "qr-code": { model: "FLUX 2 Pro QR", credits: 6, time: "~10 sn" },
+  "qr-code": { model: "AI Sanatsal QR", credits: 6, time: "~10 sn" },
 };
 
 const TABS_DESIGN = [
@@ -2059,7 +2059,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <QrCode className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">FLUX 2 Pro QR</span>
+                <span className="text-xs font-medium text-foreground">AI Sanatsal QR</span>
                 <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">6 kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">

@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/client";
+import { getAIProvider } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, confirmSpend, refundCredits } from "@/lib/credits/engine";
 import { isAdmin } from "@/lib/auth/admin-check";
@@ -40,7 +40,7 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
 
   // Talking-avatar TTS pipeline: convert script text → audio URL
   if (tool === "talking-avatar" && script && !audioUrl) {
-    const ttsResult = await fal.subscribe("fal-ai/f5-tts", {
+    const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
       input: {
         gen_text: script,
         model_type: "F5-TTS",
@@ -103,7 +103,7 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
 
   // 4. Run synchronously with fal.subscribe
   try {
-    const result = await fal.subscribe(model.id, { input: falInput });
+    const result = await getAIProvider().subscribe(model.id, { input: falInput });
     const payload = result.data as Record<string, unknown>;
 
     // Extract output URL

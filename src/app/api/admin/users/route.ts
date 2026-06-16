@@ -24,33 +24,7 @@ export async function GET(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // 3. Fetch profiles with job counts
-  let query = admin
-    .from("profiles")
-    .select("id, display_name, credit_balance, referral_code, referral_count, unlimited_bg_remove, created_at, jobs:jobs(count)", {
-      count: "exact",
-    })
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (search) {
-    // Escape LIKE wildcards to prevent pattern injection
-    const escaped = search.replace(/[%_\\]/g, "\\$&");
-    query = query.ilike("display_name", `%${escaped}%`);
-  }
-
-  const { data: profiles, count: totalProfiles, error: profilesError } = await query;
-
-  if (profilesError) {
-    console.error("[admin/users] profiles query error:", profilesError.message);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    );
-  }
-
-  // 4. Fetch auth users to get emails
-  // For small user bases, fetch all auth users; for larger ones pagination needed
+  // 3. Fetch auth users first to enable email search
   const {
     data: { users: authUsers },
     error: authError,
@@ -64,10 +38,46 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 5. Create email lookup map
+  // 4. Build email lookup map + find email-matching user IDs for search
   const emailMap = new Map<string, string>();
+  const emailMatchIds = new Set<string>();
+  const escaped = search ? search.replace(/[%_\\]/g, "\\$&") : "";
+  const searchLower = search?.toLowerCase() || "";
+
   for (const u of authUsers) {
-    if (u.email) emailMap.set(u.id, u.email);
+    if (u.email) {
+      emailMap.set(u.id, u.email);
+      if (searchLower && u.email.toLowerCase().includes(searchLower)) {
+        emailMatchIds.add(u.id);
+      }
+    }
+  }
+
+  // 5. Fetch profiles (by display_name + email-matched IDs)
+  let query = admin
+    .from("profiles")
+    .select("id, display_name, credit_balance, referral_code, referral_count, unlimited_bg_remove, created_at, jobs:jobs(count)", {
+      count: "exact",
+    })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (escaped) {
+    if (emailMatchIds.size > 0) {
+      query = query.or(`display_name.ilike.%${escaped}%,id.in.(${[...emailMatchIds].join(",")})`);
+    } else {
+      query = query.ilike("display_name", `%${escaped}%`);
+    }
+  }
+
+  const { data: profiles, count: totalProfiles, error: profilesError } = await query;
+
+  if (profilesError) {
+    console.error("[admin/users] profiles query error:", profilesError.message);
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 }
+    );
   }
 
   // 6. Merge profiles with emails and job counts
@@ -86,16 +96,8 @@ export async function GET(request: NextRequest) {
         : 0,
   }));
 
-  // 7. If searching by email (display_name search yielded few results), also filter by email
-  let filteredUsers = users;
-  if (search && !users.some((u) => u.displayName.toLowerCase().includes(search.toLowerCase()))) {
-    // Re-filter including email matches
-    filteredUsers = users.filter(
-      (u) =>
-        u.email.toLowerCase().includes(search.toLowerCase()) ||
-        u.displayName.toLowerCase().includes(search.toLowerCase())
-    );
-  }
+  // 7. Results already include email matches from step 5 — pass through as-is
+  const filteredUsers = users;
 
   // 8. Compute aggregate stats from all auth users for the overview
   const totalUsers = authUsers.length;

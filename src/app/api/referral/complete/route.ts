@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -36,9 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid referral code format" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-
-  const { data, error } = await admin.rpc("complete_referral", {
+  const { data, error } = await supabase.rpc("complete_referral", {
     p_referral_code: referralCode,
     p_referee_id: user.id, // Use authenticated user ID, not client-supplied
   });
