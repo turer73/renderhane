@@ -54,12 +54,35 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Fetch from origin
+  // SSRF hardening: only https (allowed hosts are https; blocks file:/gopher:/etc.)
+  if (parsed.protocol !== "https:") {
+    return NextResponse.json(
+      { error: "Only https URLs are allowed" },
+      { status: 400 }
+    );
+  }
+
+  // Fetch from origin.
+  // SSRF hardening: do NOT auto-follow redirects — an allowed host could
+  // 302 to an internal/arbitrary URL and fetch would follow it past the
+  // allowlist. Our R2 + fal.media serve assets directly (no legitimate
+  // redirects), so a redirect response is rejected.
   const upstream = await fetch(rawUrl, {
     headers: {
       "Accept": "*/*",
     },
+    redirect: "manual",
   });
+
+  if (
+    upstream.type === "opaqueredirect" ||
+    (upstream.status >= 300 && upstream.status < 400)
+  ) {
+    return NextResponse.json(
+      { error: "Upstream redirect not allowed" },
+      { status: 502 }
+    );
+  }
 
   if (!upstream.ok) {
     return NextResponse.json(
