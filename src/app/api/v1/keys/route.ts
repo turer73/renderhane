@@ -63,8 +63,17 @@ export async function POST(request: NextRequest) {
       message: "Save this key — it will not be shown again.",
     }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create key";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "";
+    // Race backstop: the DB trigger (migration 20260618_api_key_limit_guard)
+    // rejects a 6th+ active key when concurrent requests slip past the
+    // app-level pre-check above. Surface it as a clean 409 rather than a 500. #622
+    if (message.includes("API key limit reached")) {
+      return NextResponse.json(
+        { error: "Maximum 5 active API keys allowed" },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ error: "Failed to create key" }, { status: 500 });
   }
 }
 
