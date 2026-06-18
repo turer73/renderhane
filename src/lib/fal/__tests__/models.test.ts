@@ -194,10 +194,11 @@ describe('constants', () => {
     expect(TOOLS_WITH_PROMPT).toContain('logo');
   });
 
-  it('TOOLS_TEXT_ONLY includes text-to-image, qr-code, logo', () => {
+  it('TOOLS_TEXT_ONLY includes text-to-image, logo (qr-code uses a server-generated QR control image)', () => {
     expect(TOOLS_TEXT_ONLY).toContain('text-to-image');
-    expect(TOOLS_TEXT_ONLY).toContain('qr-code');
     expect(TOOLS_TEXT_ONLY).toContain('logo');
+    // qr-code generates a QR control image server-side, then runs illusion-diffusion
+    expect(TOOLS_TEXT_ONLY).not.toContain('qr-code');
     // Image-based tools should NOT be text-only
     expect(TOOLS_TEXT_ONLY).not.toContain('bg-remove');
     expect(TOOLS_TEXT_ONLY).not.toContain('scene');

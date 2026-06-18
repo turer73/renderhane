@@ -116,11 +116,31 @@ export async function submitJob(input: SubmitJobInput) {
     }
   }
 
+  // 0d. QR Code: the user's text is the DATA to encode. Generate a real,
+  // high-error-correction QR matrix server-side, then let illusion-diffusion
+  // (Monster Labs QR ControlNet) stylize it into scannable art. The previously
+  // referenced "fal-ai/qr-codes" model does not exist on fal — this is the
+  // correct two-step pattern. NOTE: real-world scannability depends on the
+  // illusion-diffusion controlnet scale; verify with a device scan after deploy.
+  let qrStylePrompt: string | null = null;
+  if (tool === "qr-code") {
+    const { toDataURL } = await import("qrcode");
+    const encodeData = (prompt ?? "").trim() || "https://www.renderhane.com";
+    imageUrl = await toDataURL(encodeData, {
+      errorCorrectionLevel: "H", // tolerates stylization overlay
+      margin: 2,
+      width: 1024,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+    qrStylePrompt =
+      "intricate ornate artistic pattern, vibrant colors, high detail, masterpiece, sharp focus";
+  }
+
   // 0c. Smart prompt composition (hybrid: preset backbone + LLM blend) for
   // scene / aplus / image-edit. The SITE builds the final prompt from the
   // scene type + auto-detected product caption + user notes. Never throws and
   // falls back to the deterministic backbone, so generation is never blocked.
-  let effectivePrompt = prompt;
+  let effectivePrompt = qrStylePrompt ?? prompt;
   const usedSmartPrompt = Boolean(input.promptContext && SMART_PROMPT_TOOLS.includes(tool));
   if (usedSmartPrompt) {
     effectivePrompt = await composeSmartPrompt({
