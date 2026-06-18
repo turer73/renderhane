@@ -9,9 +9,14 @@ const DAILY_LIMIT = {
 
 export async function POST(request: NextRequest) {
   try {
+    // cf-connecting-ip (Cloudflare, trusted) önce; sonra x-real-ip; son çare
+    // XFF'nin EN SAGDAKI parçasi (en yakin proxy ekler, spoof'a daha dayanikli).
+    // Onceki "XFF[0]" client tarafindan spoof edilip gunluk-limit atlanabiliyordu.
+    const xff = request.headers.get("x-forwarded-for");
     const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("cf-connecting-ip") ||
       request.headers.get("x-real-ip") ||
+      xff?.split(",").map((s) => s.trim()).filter(Boolean).pop() ||
       "unknown";
 
     const rl = await rateLimit(`demo-bg:${ip}`, DAILY_LIMIT);

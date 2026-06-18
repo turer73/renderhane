@@ -40,6 +40,13 @@ export function routeRequest(request: RouteRequest): RouteResult {
   const isTextOnly = TOOLS_TEXT_ONLY.includes(tool);
   const isTextOnlyMode = !imageUrl && (!imageUrls || imageUrls.length === 0) && prompt;
 
+  // Defensive: image-requiring models must receive an image. The API boundary
+  // (job-submit validation) already enforces this, but never silently send an
+  // empty URL to fal.ai — fail fast with a clear error instead.
+  if (!isTextOnly && !isTextOnlyMode && !imageUrl && (!imageUrls || imageUrls.length === 0)) {
+    throw new Error(`Model "${model.id}" requires an image input, but none was provided`);
+  }
+
   // Build the image input based on model type
   if (isTextOnly || isTextOnlyMode) {
     // No image input needed — prompt is the only input

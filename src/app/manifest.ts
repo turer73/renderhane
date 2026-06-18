@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Renderhane",
     description:
       "Generate professional product visuals, 3D models and videos from a single photo.",
-    start_url: "/tr",
+    start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#4f46e5",

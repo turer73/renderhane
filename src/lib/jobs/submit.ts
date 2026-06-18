@@ -86,6 +86,9 @@ interface SubmitJobInput {
   /** Structured context for server-side smart prompt composition (scene/aplus/image-edit).
    *  Consumed here to build the final prompt — NOT forwarded to fal.ai. */
   promptContext?: PromptContext;
+  /** Caller-provided email (web path already has it) — lets the admin check skip
+   *  a redundant admin.getUserById round-trip. Omitted by API-key callers. */
+  userEmail?: string;
 }
 
 export async function submitJob(input: SubmitJobInput) {
@@ -146,8 +149,11 @@ export async function submitJob(input: SubmitJobInput) {
 
   // Admin (ADMIN_EMAILS allowlist) → sınırsız kullanım: krediyi sıfırla, rezervasyonu atla.
   try {
-    const { data: au } = await supabase.auth.admin.getUserById(userId);
-    if (isAdmin(au?.user?.email)) creditCost = 0;
+    // Use the caller-provided email when available (web path already has it)
+    // to avoid a redundant admin.getUserById round-trip on every submit.
+    const email =
+      input.userEmail ?? (await supabase.auth.admin.getUserById(userId)).data?.user?.email;
+    if (isAdmin(email)) creditCost = 0;
   } catch { /* email çözülemezse normal kredi akışı sürer */ }
 
   if (tool === "bg-remove") {

@@ -7,10 +7,13 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Cron: Clean up stuck jobs.
  *
- * Finds jobs stuck in "processing" for >15 minutes (webhook never arrived).
- * Refunds credits and marks them as failed.
+ * Finds jobs stuck in "processing"/"pending" for >30 minutes (webhook never
+ * arrived). Refunds credits and marks them as failed. The 30-min cutoff leaves
+ * headroom for legitimately long jobs (e.g. premium 3D) so a job still running
+ * at cron time isn't killed mid-flight.
  *
- * Schedule: every 10 minutes via Vercel Cron.
+ * Schedule: daily — vercel.json "0 0 * * *". Vercel Hobby plan limits crons to
+ * once/day, so cleanup latency is up to ~24h (acceptable for stuck-job GC).
  * Protected by CRON_SECRET.
  */
 export async function GET(request: NextRequest) {
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString(); // 15 min ago
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString(); // 30 min ago (headroom for long jobs)
 
   // Find stuck jobs: processing + started >15 min ago
   const { data: stuckJobs, error } = await supabase

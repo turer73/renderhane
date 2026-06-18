@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       autoEnhance: autoEnhance === true,
       skipBgRemove: skipBgRemove === true,
       extraParams: extraParams as Record<string, unknown> | undefined,
+      userEmail: user.email,
     });
 
     return NextResponse.json(result);

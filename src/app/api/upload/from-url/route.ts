@@ -56,11 +56,14 @@ export async function POST(request: NextRequest) {
     if (!["http:", "https:"].includes(parsed.protocol)) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
-    // Block private/internal addresses
+    // Block private/internal addresses. NOTE: only 172.16-31 is private
+    // (RFC1918) — blocking all of 172.x would reject legit public hosts.
     const h = parsed.hostname;
+    const oct2 = h.startsWith("172.") ? parseInt(h.split(".")[1], 10) : -1;
     if (
       h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" ||
-      h.startsWith("10.") || h.startsWith("192.168.") || h.startsWith("172.") ||
+      h.startsWith("10.") || h.startsWith("192.168.") ||
+      (oct2 >= 16 && oct2 <= 31) ||
       h === "169.254.169.254" || h.endsWith(".internal") || h === "[::1]"
     ) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
