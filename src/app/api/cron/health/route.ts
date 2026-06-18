@@ -47,8 +47,11 @@ export async function GET(request: NextRequest) {
   try {
     // Use the cheapest/fastest model for health check.
     // Submit + immediately cancel = no credits consumed.
+    // Self-contained 1x1 PNG (data URL) — health-check'i ucuncu-parti
+    // placehold.co'ya bagimli olmaktan cikarir (onceki: down olursa false-alarm).
     const result = await getAIProvider().submit("fal-ai/birefnet/v2", {
-      image_url: "https://placehold.co/100x100/png",
+      image_url:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
     });
 
     if (result.requestId) {
