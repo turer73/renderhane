@@ -47,6 +47,7 @@ export const jobSubmitSchema = z.object({
   projectId: z.string().uuid().optional(),
   prompt: z.string().min(1).max(5000).optional(),
   autoEnhance: z.boolean().optional(),
+  skipBgRemove: z.boolean().optional(),
   extraParams: z.record(z.string(), z.unknown()).optional(),
   promptContext: z.record(z.string(), z.unknown()).optional(),
 }).superRefine((data, ctx) => {

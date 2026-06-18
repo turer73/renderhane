@@ -50,7 +50,10 @@ export default function OnboardingPage() {
       });
       if (res.ok) {
         router.push(`/${locale}/app`);
+        return; // keep spinner during navigation
       }
+      // Non-OK response (no exception thrown): reset so UI isn't stuck spinning
+      setSelecting(null);
     } catch {
       setSelecting(null);
     }
