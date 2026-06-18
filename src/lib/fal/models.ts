@@ -525,16 +525,23 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── A+ İçerik ────────────────────────────── */
   "bria-product-shot-hd": {
+    // Same bria endpoint as the standard scene tool, but a GENUINE HD upgrade:
+    // shot_size forces a higher output resolution (1280x1280 ~= 1.64 MP vs the
+    // standard scene's ~1 MP default) and fast:false picks the quality (not
+    // speed) path. This makes the A+ "HD" label real — previously both used
+    // identical params (#605).
     id: "fal-ai/bria/product-shot",
     displayName: { tr: "A+ Sahne Üretici", en: "A+ Scene Generator" },
     tier: "standard",
     creditCost: 8,
-    estimatedTime: "~15s",
+    estimatedTime: "~20s",
     imageParamKey: "image_url",
     promptParamKey: "scene_description",
     defaultParams: {
       scene_description:
         "premium e-commerce product photography, lifestyle setting with elegant props, professional studio lighting, high-end catalog quality",
+      shot_size: [1280, 1280],
+      fast: false,
     },
   },
 
