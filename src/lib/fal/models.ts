@@ -451,18 +451,21 @@ export const MODELS: Record<string, ModelConfig> = {
 
   /* ── QR Code (AI Sanatsal) ─────────────────── */
   "qr-code-ai": {
-    id: "fal-ai/qr-codes",
+    // ControlNet pattern-conditioned diffusion (Monster Labs QR). The control
+    // image is a real QR matrix generated server-side in submitJob; this model
+    // stylizes it into scannable art. (Old "fal-ai/qr-codes" did not exist.)
+    id: "fal-ai/illusion-diffusion",
     displayName: { tr: "AI Sanatsal QR", en: "AI Artistic QR" },
     tier: "standard",
     creditCost: 6,
-    estimatedTime: "~10s",
-    imageParamKey: "_unused",
+    estimatedTime: "~15s",
+    imageParamKey: "image_url",
     promptParamKey: "prompt",
     defaultParams: {
       image_size: "square_hd",
-      num_inference_steps: 28,
+      num_inference_steps: 40,
       guidance_scale: 7.5,
-      output_format: "png",
+      controlnet_conditioning_scale: 1.5, // high → QR stays scannable after stylization
     },
   },
 
@@ -737,8 +740,10 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
 /** Tools that accept a text prompt from the user */
 export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "inpainting", "object-removal", "text-to-image", "qr-code", "logo"];
 
-/** Tools that DON'T need an image input (text-only) */
-export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "qr-code", "logo"];
+/** Tools that DON'T need an image input (text-only).
+ *  NOTE: qr-code is NOT here — it generates a QR control image server-side
+ *  (submitJob) and then runs illusion-diffusion, so the router must send image_url. */
+export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "logo"];
 
 /** Tools that accept multiple images (multi-view or dual-input) */
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model", "virtual-tryon"];
