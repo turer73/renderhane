@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, extraParams } = parsed.data;
+  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, skipBgRemove, extraParams } = parsed.data;
 
   // Resolve or auto-create a project for this job
   const thumbnailUrl = imageUrl ?? imageUrls?.[0] ?? "";
@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
       imageUrls,
       prompt,
       autoEnhance: autoEnhance === true,
+      skipBgRemove: skipBgRemove === true,
       extraParams: extraParams as Record<string, unknown> | undefined,
     });
 

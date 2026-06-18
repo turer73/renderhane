@@ -154,7 +154,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "📱",
     gradient: "from-indigo-500/10 to-indigo-500/5",
     border: "border-indigo-200 hover:border-indigo-400 dark:border-indigo-800 dark:hover:border-indigo-600",
-    creditCost: 40,
+    creditCost: 52,
     inputType: "pipeline",
     segments: ["ecommerce"],
     href: "/app/tools/social-kit",

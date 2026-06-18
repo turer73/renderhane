@@ -349,6 +349,8 @@ export interface GeneratePayload {
   prompt?: string;
   /** Auto-enhance input image via aura-sr before 3D generation (+4 credits) */
   autoEnhance?: boolean;
+  /** Opt out of automatic background removal for 3D models (keep original background) */
+  skipBgRemove?: boolean;
   /** Tool-specific API params (e.g. Recraft style/colors for logo) */
   extraParams?: Record<string, unknown>;
   /** Structured context for server-side smart prompt composition (scene/aplus/image-edit) */
@@ -377,6 +379,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   });
   const [selectedModel, setSelectedModel] = useState("trellis-v1");
   const [autoEnhance, setAutoEnhance] = useState(false);
+  const [keepBackground, setKeepBackground] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -799,6 +802,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         payload.autoEnhance = true;
         payload.credits += 4;
       }
+      if (keepBackground && activeTab === "img-to-3d") {
+        payload.skipBgRemove = true;
+      }
     }
 
     // Smart prompt context — the site composes the final prompt server-side from
@@ -1077,6 +1083,13 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                   <p className="text-[10px] text-muted-foreground/50">Girdi görselini iyileştir (+4 kredi)</p>
                 </div>
                 <Switch id="enhance" checked={autoEnhance} onCheckedChange={setAutoEnhance} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="keep-bg" className="text-xs text-muted-foreground cursor-pointer">Arka Planı Koru</Label>
+                  <p className="text-[10px] text-muted-foreground/50">Otomatik arka plan temizlemeyi atla</p>
+                </div>
+                <Switch id="keep-bg" checked={keepBackground} onCheckedChange={setKeepBackground} />
               </div>
             </div>
           </>

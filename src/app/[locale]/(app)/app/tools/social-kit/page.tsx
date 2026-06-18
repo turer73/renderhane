@@ -141,8 +141,8 @@ export default function SocialKitPage() {
           </h1>
           <p className="text-xs text-muted-foreground">
             {locale === "tr"
-              ? "Tek fotoğraftan 4 sahne + 1 video + caption — 40 kredi"
-              : "From one photo: 4 scenes + 1 video + caption — 40 credits"}
+              ? "Tek fotoğraftan 4 sahne + 1 video + caption — 52 kredi"
+              : "From one photo: 4 scenes + 1 video + caption — 52 credits"}
           </p>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function SocialKitPage() {
                 <ul className="space-y-1 text-xs text-indigo-600 dark:text-indigo-400">
                   <li>🎨 {locale === "tr" ? "4 farklı sahne görseli (carousel)" : "4 scene variations (carousel)"}</li>
                   <li>🎬 {locale === "tr" ? "1 ürün tanıtım videosu (15sn)" : "1 product showcase video (15s)"}</li>
-                  <li>💰 {locale === "tr" ? "Toplam: 40 kredi" : "Total: 40 credits"}</li>
+                  <li>💰 {locale === "tr" ? "Toplam: 52 kredi" : "Total: 52 credits"}</li>
                 </ul>
               </div>
 
@@ -232,7 +232,7 @@ export default function SocialKitPage() {
                       {t("submitting")}
                     </>
                   ) : (
-                    locale === "tr" ? "📱 Paketi Oluştur (40 kredi)" : "📱 Create Kit (40 credits)"
+                    locale === "tr" ? "📱 Paketi Oluştur (52 kredi)" : "📱 Create Kit (52 credits)"
                   )}
                 </Button>
               </div>

@@ -228,6 +228,7 @@ export function WorkspaceLayout({
         ...(payload.imageUrls ? { imageUrls: payload.imageUrls } : {}),
         ...(payload.prompt ? { prompt: payload.prompt } : {}),
         ...(payload.autoEnhance ? { autoEnhance: true } : {}),
+        ...(payload.skipBgRemove ? { skipBgRemove: true } : {}),
         ...(payload.extraParams ? { extraParams: payload.extraParams } : {}),
         ...(payload.promptContext ? { promptContext: payload.promptContext } : {}),
       };

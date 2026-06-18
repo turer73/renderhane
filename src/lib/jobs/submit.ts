@@ -79,6 +79,8 @@ interface SubmitJobInput {
   prompt?: string;
   /** Auto-enhance input images via aura-sr before 3D generation */
   autoEnhance?: boolean;
+  /** Opt out of the automatic background removal for 3D models (keep original background) */
+  skipBgRemove?: boolean;
   /** Tool-specific API params (e.g. Recraft style/colors). Merged into fal.ai input by smart-router. */
   extraParams?: Record<string, unknown>;
   /** Structured context for server-side smart prompt composition (scene/aplus/image-edit).
@@ -92,8 +94,9 @@ export async function submitJob(input: SubmitJobInput) {
   let imageUrls = input.imageUrls;
   const supabase = createAdminClient();
 
-  // 0. Auto bg-remove for 3D models — clean backgrounds improve TRELLIS quality
-  if (tool === "3d-model") {
+  // 0. Auto bg-remove for 3D models — clean backgrounds improve TRELLIS quality.
+  //    Users can opt out (skipBgRemove) to keep the original background.
+  if (tool === "3d-model" && !input.skipBgRemove) {
     if (imageUrls && imageUrls.length > 0) {
       imageUrls = await removeBackgrounds(imageUrls);
     } else if (imageUrl) {
