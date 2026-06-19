@@ -9,12 +9,14 @@ const DAILY_LIMIT = {
 
 export async function POST(request: NextRequest) {
   try {
-    // cf-connecting-ip (Cloudflare, trusted) önce; sonra x-real-ip; son çare
-    // XFF'nin EN SAGDAKI parçasi (en yakin proxy ekler, spoof'a daha dayanikli).
-    // Onceki "XFF[0]" client tarafindan spoof edilip gunluk-limit atlanabiliyordu.
+    // Renderhane Vercel'de DOGRUDAN servis edilir (CF proxy ARKASINDA DEGIL — A
+    // kaydi 76.76.21.21 Vercel). Bu yuzden cf-connecting-ip GUVENILMEZ: saldirgan
+    // her istekte farkli deger gonderip yeni rate-limit anahtari uretebilir, 3/gun
+    // demo limitini atlar -> sinirsiz ucretli fal.ai (Codex PR#23 P1). Vercel'in
+    // set ettigi x-real-ip (trusted) + son care XFF'nin EN SAGDAKI parcasi
+    // (en yakin proxy=Vercel ekler). cf-connecting-ip zincirden CIKARILDI.
     const xff = request.headers.get("x-forwarded-for");
     const ip =
-      request.headers.get("cf-connecting-ip") ||
       request.headers.get("x-real-ip") ||
       xff?.split(",").map((s) => s.trim()).filter(Boolean).pop() ||
       "unknown";

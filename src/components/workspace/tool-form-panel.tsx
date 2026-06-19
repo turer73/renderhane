@@ -724,10 +724,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       payload.extraParams = extraParams;
     }
 
-    // QR: send URL as prompt
+    // QR: gercek hedef URL'yi DATA olarak gonder — server bunu QR matrisine encode
+    // eder, stil server-side qrStylePrompt ile eklenir. Onceki "QR code for ${url}.
+    // Artistic..." cumlesi oldugu gibi QR'a basiliyordu; taraninca URL yerine bu
+    // cumle cikiyor, web akisi islevsel-bozuk QR uretiyordu (Codex PR#24 P1).
     if (activeTab === "qr-code") {
-      const targetUrl = projectName.trim();
-      payload.prompt = `QR code for ${targetUrl || "https://example.com"}. Artistic, visually appealing, scannable.`;
+      payload.prompt = projectName.trim() || "https://www.renderhane.com";
     }
 
     // image-edit: compose prompt from editAction + sub-options + user text
