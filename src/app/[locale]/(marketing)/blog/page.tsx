@@ -11,6 +11,8 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "blog" });
@@ -26,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: {
       canonical: `/${locale}/blog`,
-      languages: { tr: "/tr/blog", en: "/en/blog" },
+      languages: { tr: "/tr/blog", en: "/en/blog", "x-default": "/tr/blog" },
     },
     keywords:
       locale === "tr"
@@ -48,8 +50,36 @@ export default async function BlogPage({
   const t = await getTranslations({ locale, namespace: "blog" });
   const articles = getAllArticles();
 
+  // Blog + ItemList JSON-LD — signals a genuine content hub so Google is more
+  // likely to index the locale variants (esp. /en/blog, previously "crawled,
+  // currently not indexed") instead of treating them as thin duplicates.
+  const blogJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: `${t("title")} | Renderhane`,
+    url: `${BASE_URL}/${locale}/blog`,
+    inLanguage: locale === "tr" ? "tr-TR" : "en-US",
+    publisher: {
+      "@type": "Organization",
+      name: "Renderhane",
+      logo: { "@type": "ImageObject", url: `${BASE_URL}/icon.png` },
+    },
+    blogPost: articles.map((article) => ({
+      "@type": "BlogPosting",
+      headline: article.title[locale] || article.title.tr,
+      description: article.description[locale] || article.description.tr,
+      datePublished: article.date,
+      author: { "@type": "Organization", name: article.author },
+      url: `${BASE_URL}/${locale}/blog/${article.slug}`,
+    })),
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
+      />
       <LandingHeader />
       <main className="flex-1">
         <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6">
