@@ -26,6 +26,10 @@ const nextConfig = {
    */
   async redirects() {
     return [
+      // Root → default locale. next-intl middleware uses 307 for locale
+      // redirects, which Google doesn't follow for canonical consolidation.
+      // This permanent redirect runs before middleware and gives 308.
+      { source: "/", destination: "/tr", permanent: true },
       // Auth — single /login entry point handles both signin and signup
       { source: "/giris", destination: "/tr/login", permanent: true },
       { source: "/giris/:path*", destination: "/tr/login", permanent: true },
