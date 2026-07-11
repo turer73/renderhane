@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAIProvider } from "@/lib/ai";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 const DAILY_LIMIT = {
@@ -78,6 +79,23 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[demo/bg-remove] Error:", error);
+    // fal hata detayi (status/body) yalniz Vercel log'unda kaliyordu; dashboard
+    // erisimi olmayan ortamdan teshis icin system_health_logs'a da yaz.
+    // Response'a HICBIR detay sizmaz.
+    try {
+      const err = error as { status?: number; body?: unknown };
+      await createAdminClient().from("system_health_logs").insert({
+        service: "demo-bg-remove",
+        status: "error",
+        error_message: JSON.stringify({
+          status: err.status ?? null,
+          body: err.body ?? null,
+          message: error instanceof Error ? error.message : String(error),
+        }).slice(0, 2000),
+      });
+    } catch {
+      // teshis logu yazilamazsa istegi etkileme
+    }
     return NextResponse.json(
       { error: "Processing failed" },
       { status: 500 }
