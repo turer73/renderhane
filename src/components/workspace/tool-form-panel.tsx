@@ -51,15 +51,15 @@ import { smartDefaultsFor, primaryToolTarget } from "@/lib/analysis/product-inte
 
 const AI_MODELS_3D = [
   { id: "trellis-v1", name: "TRELLIS v1", credits: 5, time: "~15 sn", tier: "fast" },
-  { id: "tripo-2.5", name: "Tripo 2.5", credits: 10, time: "~30 sn", tier: "fast" },
-  { id: "meshy-6", name: "Meshy 6", credits: 18, time: "~2 dk", tier: "standard" },
-  { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 20, time: "~3 dk", tier: "standard" },
+  { id: "tripo-2.5", name: "Tripo 2.5", credits: 30, time: "~30 sn", tier: "fast" },
+  { id: "meshy-6", name: "Meshy 6", credits: 55, time: "~2 dk", tier: "standard" },
+  { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 28, time: "~3 dk", tier: "standard" },
   { id: "rodin", name: "Rodin Premium", credits: 35, time: "~2 dk", tier: "premium" },
 ];
 
 const IMAGE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
-  "bg-remove": { model: "birefnet v2", credits: 1, time: "~5 sn" },
-  "enhance": { model: "Aura SR", credits: 4, time: "~10 sn" },
+  "bg-remove": { model: "Bria RMBG", credits: 1, time: "~5 sn" },
+  "enhance": { model: "Recraft Crisp", credits: 3, time: "~10 sn" },
   "text-to-image": { model: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
   "image-edit": { model: "FLUX Kontext", credits: 6, time: "~10 sn" },
   "object-removal": { model: "Object Removal", credits: 3, time: "~5 sn" },
@@ -85,14 +85,14 @@ const SCENE_MODELS: PickerModel[] = [
 ];
 
 const VIDEO_MODELS = [
-  { id: "wan-v2.6", name: "Wan 2.6", credits: 20, time: "~2 dk", tier: "fast" },
-  { id: "kling-o3", name: "Kling O3 Pro", credits: 20, time: "~2 dk", tier: "premium" },
+  { id: "wan-v2.6", name: "Wan 2.7", credits: 35, time: "~2 dk", tier: "fast" },
+  { id: "kling-o3", name: "Kling O3 Pro", credits: 40, time: "~2 dk", tier: "premium" },
 ];
 
 const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
-  "image-to-video": { model: "Wan 2.6", credits: 20, time: "~2 dk" },
-  "text-to-video": { model: "Kling O3 Pro", credits: 20, time: "~2 dk" },
-  "talking-avatar": { model: "OmniHuman v1.5", credits: 25, time: "~2 dk" },
+  "image-to-video": { model: "Wan 2.7", credits: 35, time: "~2 dk" },
+  "text-to-video": { model: "Kling O3 Pro", credits: 40, time: "~2 dk" },
+  "talking-avatar": { model: "OmniHuman v1.5", credits: 100, time: "~2 dk" },
 };
 
 const TABS_VIDEO = [
@@ -1645,7 +1645,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                   <Video className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <span className="text-xs font-medium text-foreground">Kling O3 Pro</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">20 kredi</Badge>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">40 kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Native ses desteği ile metin-video dönüşümü. Multi-shot ve 15 sn&apos;ye kadar.

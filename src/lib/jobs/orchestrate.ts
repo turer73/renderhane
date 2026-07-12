@@ -1,6 +1,7 @@
 import { getAIProvider } from "@/lib/ai";
 import { submitJob } from "@/lib/jobs/submit";
 import { APLUS_SCENES, getScenePrompt } from "@/lib/fal/aplus-scenes";
+import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
 import { CreditError } from "@/lib/credits/engine";
 
 // ── Types ────────────────────────────────────────
@@ -79,6 +80,13 @@ export async function orchestrateTalkingAvatar(
   input: TalkingAvatarInput
 ): Promise<{ jobId: string; creditCost: number; estimatedTime: string }> {
   const { userId, imageUrl, script, audioUrl } = input;
+
+  // Ses süresi maliyeti belirler ($0.16/sn) — script sınırı zorunlu.
+  if (script && script.length > MAX_AVATAR_SCRIPT_CHARS) {
+    throw new Error(
+      `Script too long (max ${MAX_AVATAR_SCRIPT_CHARS} characters)`
+    );
+  }
 
   let resolvedAudioUrl = audioUrl;
 

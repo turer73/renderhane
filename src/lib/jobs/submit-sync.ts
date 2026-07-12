@@ -4,7 +4,7 @@ import { reserveCredits, confirmSpend, refundCredits } from "@/lib/credits/engin
 import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { uploadToR2 } from "@/lib/r2/upload";
-import type { ToolType, ModelTier } from "@/lib/fal/models";
+import { MAX_AVATAR_SCRIPT_CHARS, type ToolType, type ModelTier } from "@/lib/fal/models";
 
 /**
  * Synchronous job submission — uses fal.subscribe instead of queue+webhook.
@@ -37,6 +37,13 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
   const { userId, tool, tier, imageUrl, imageUrls, script, audioUrl } = input;
   let { prompt } = input;
   const supabase = createAdminClient();
+
+  // Ses süresi maliyeti belirler ($0.16/sn) — script sınırı zorunlu.
+  if (tool === "talking-avatar" && script && script.length > MAX_AVATAR_SCRIPT_CHARS) {
+    throw new Error(
+      `Script too long (max ${MAX_AVATAR_SCRIPT_CHARS} characters)`
+    );
+  }
 
   // Talking-avatar TTS pipeline: convert script text → audio URL
   if (tool === "talking-avatar" && script && !audioUrl) {
