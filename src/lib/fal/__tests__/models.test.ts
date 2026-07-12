@@ -184,6 +184,52 @@ describe('Nano Banana Pro (Gemini 3 Pro Image)', () => {
   });
 });
 
+describe('2026-07 fal katalog güncellemesi', () => {
+  it('meshy-6-image v6-preview yerine kalıcı v6 endpointini kullanır', () => {
+    expect(MODELS['meshy-6-image'].id).toBe('fal-ai/meshy/v6/image-to-3d');
+    // symmetry_mode v6 şemasında yok — preview kalıntısı geri gelmesin
+    expect(MODELS['meshy-6-image'].defaultParams).not.toHaveProperty('symmetry_mode');
+  });
+
+  it('kling-o3-i2v image_url anahtarını kullanır (v3\'teki start_image_url DEĞİL)', () => {
+    const m = MODELS['kling-o3-i2v'];
+    expect(m.id).toBe('fal-ai/kling-video/o3/pro/image-to-video');
+    expect(m.imageParamKey).toBe('image_url');
+    expect(m.creditCost).toBe(20);
+  });
+
+  it('seedance-2-i2v premium ve duration pinli (auto → maliyet patlaması koruması)', () => {
+    const m = MODELS['seedance-2-i2v'];
+    expect(m.tier).toBe('premium');
+    expect(m.defaultParams.duration).toBe('5');
+    expect(m.defaultParams.resolution).toBe('720p');
+  });
+
+  it('flux-2-pro-edit image_urls dizisi ister (şema gereği multiImage)', () => {
+    const m = MODELS['flux-2-pro-edit'];
+    expect(m.imageParamKey).toBe('image_urls');
+    expect(m.multiImage).toBe(true);
+    expect(m.promptParamKey).toBe('prompt');
+  });
+
+  it('t2i listesi ideogram-v4 + seedream-v5-lite kullanır; varsayılan (ilk) model değişmedi', () => {
+    expect(TOOL_MODELS['text-to-image']).toContain('ideogram-v4');
+    expect(TOOL_MODELS['text-to-image']).toContain('seedream-v5-lite');
+    expect(TOOL_MODELS['text-to-image']).not.toContain('ideogram-v3');
+    expect(TOOL_MODELS['text-to-image'][0]).toBe('flux-pro');
+  });
+
+  it('video listesi Kling O3 + Seedance içerir; varsayılan wan-i2v değişmedi', () => {
+    expect(TOOL_MODELS['video']).toContain('kling-o3-i2v');
+    expect(TOOL_MODELS['video']).toContain('kling-o3-t2v');
+    expect(TOOL_MODELS['video']).toContain('seedance-2-i2v');
+    expect(TOOL_MODELS['video'][0]).toBe('wan-i2v');
+    // Eski v3 anahtarları MODELS'te kalır (eski job kayıtları çözülebilsin)
+    expect(MODELS['kling-i2v']).toBeDefined();
+    expect(MODELS['kling-t2v']).toBeDefined();
+  });
+});
+
 describe('constants', () => {
   it('TOOLS_WITH_PROMPT includes all prompt-based tools', () => {
     expect(TOOLS_WITH_PROMPT).toContain('scene');

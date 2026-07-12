@@ -86,12 +86,12 @@ const SCENE_MODELS: PickerModel[] = [
 
 const VIDEO_MODELS = [
   { id: "wan-v2.6", name: "Wan 2.6", credits: 20, time: "~2 dk", tier: "fast" },
-  { id: "kling-3.0", name: "Kling 3.0 Pro", credits: 25, time: "~2 dk", tier: "premium" },
+  { id: "kling-o3", name: "Kling O3 Pro", credits: 20, time: "~2 dk", tier: "premium" },
 ];
 
 const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
   "image-to-video": { model: "Wan 2.6", credits: 20, time: "~2 dk" },
-  "text-to-video": { model: "Kling 3.0 Pro", credits: 25, time: "~2 dk" },
+  "text-to-video": { model: "Kling O3 Pro", credits: 20, time: "~2 dk" },
   "talking-avatar": { model: "OmniHuman v1.5", credits: 25, time: "~2 dk" },
 };
 
@@ -256,13 +256,13 @@ const MODEL_TO_KEY: Record<string, string> = {
 /** Map video model select IDs to API tier */
 const VIDEO_MODEL_TO_TIER: Record<string, string> = {
   "wan-v2.6": "fast",
-  "kling-3.0": "premium",
+  "kling-o3": "premium",
 };
 
 /** Map video model select IDs (image-to-video tab) to MODELS keys. */
 const VIDEO_MODEL_TO_KEY: Record<string, string> = {
   "wan-v2.6": "wan-i2v",
-  "kling-3.0": "kling-i2v",
+  "kling-o3": "kling-o3-i2v",
 };
 
 /* ═══════════════════════════════════════════════ */
@@ -1644,8 +1644,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <Video className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">Kling 3.0 Pro</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">25 kredi</Badge>
+                <span className="text-xs font-medium text-foreground">Kling O3 Pro</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">20 kredi</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Native ses desteği ile metin-video dönüşümü. Multi-shot ve 15 sn&apos;ye kadar.

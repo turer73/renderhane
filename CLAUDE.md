@@ -41,17 +41,22 @@ src/
 ```
 
 ## AI Models & Credit Costs
+**Kanonik kaynak: `src/lib/fal/models.ts` (MODELS + TOOL_MODELS)** — asagisi sadece ozet, tam liste ~40 model.
 | Model | Tool | Tier | Credits | fal.ai Endpoint |
 |-------|------|------|---------|-----------------|
 | TRELLIS v1 | 3d-model | fast | 5 | fal-ai/trellis/multi |
-| Tripo 2.5 | 3d-model (multi-photo fast) | fast | 10 | tripo3d/tripo/v2.5/multiview-to-3d |
-| Meshy 5 | 3d-model | standard | 15 | fal-ai/meshy/v5/multi-image-to-3d |
-| Hunyuan3D V3 | 3d-model | premium | 30 | fal-ai/hunyuan3d-v3/image-to-3d |
+| Meshy 6 | 3d-model | standard | 18 | fal-ai/meshy/v6/image-to-3d |
+| Hunyuan3D V3.1 Pro | 3d-model | premium | 40 | fal-ai/hunyuan-3d/v3.1/pro/image-to-3d |
 | birefnet | bg-remove | — | 1 | fal-ai/birefnet/v2 |
-| aura-sr | enhance | — | 4 | fal-ai/aura-sr |
+| Recraft Crisp | enhance | — | 3 | fal-ai/recraft/upscale/crisp |
 | bria-product-shot | scene | — | 8 | fal-ai/bria/product-shot |
-| wan-i2v | video | — | 20 | wan/v2.6/image-to-video |
-| bria-product-shot-hd | aplus | — | 8 | fal-ai/bria/product-shot |
+| wan-i2v | video | — | 20 | fal-ai/wan/v2.7/image-to-video |
+| Kling O3 Pro | video | — | 20 | fal-ai/kling-video/o3/pro/image-to-video |
+| Seedance 2.0 | video | premium | 50 | bytedance/seedance-2.0/image-to-video |
+| Ideogram V4 | text-to-image | — | 5 | ideogram/v4 |
+| Seedream 5.0 Lite | text-to-image | — | 5 | fal-ai/bytedance/seedream/v5/lite/text-to-image |
+
+**Dis-namespace notu:** fal'da bazi partner modelleri `fal-ai/` oneksiz yasar: `ideogram/v4`, `bytedance/seedance-2.0/*`, `bytedance/seedream/v5/pro/*`, `openai/gpt-image-2`, `google/gemini-omni-flash`, `tripo3d/*`. Endpoint-varlik dogrulamasi: `https://fal.ai/models/<id>` 200/404 (queue.fal.run'a bos POST GUVENILMEZ — alt-yol ne olursa olsun 200 IN_QUEUE doner).
 
 ## Pricing Packages (KDV dahil)
 | Package | Credits | Price | ₺/Credit |

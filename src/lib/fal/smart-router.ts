@@ -122,11 +122,11 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number, extraP
       return "bria-product-shot";
 
     case "video":
-      // Text-only → Kling 3.0 Pro text-to-video (native audio)
-      if (imageCount === 0) return "kling-t2v";
-      // Premium tier image → Kling 3.0 Pro image-to-video (native audio)
-      if (tier === "premium") return "kling-i2v";
-      // Standard/fast image → Wan 2.6 image-to-video (cheapest)
+      // Text-only → Kling O3 Pro text-to-video (native audio)
+      if (imageCount === 0) return "kling-o3-t2v";
+      // Premium tier image → Kling O3 Pro image-to-video (native audio)
+      if (tier === "premium") return "kling-o3-i2v";
+      // Standard/fast image → Wan image-to-video (cheapest)
       return "wan-i2v";
 
     case "aplus":

@@ -158,12 +158,14 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
-  /* ── 3D Model — Meshy 6 Image-to-3D ──────── */
+  /* ── 3D Model — Meshy 6 Image-to-3D ────────
+     2026-07: v6-preview mezun oldu → kalıcı v6 endpoint'i. v6 şemasında
+     symmetry_mode yok (preview'a özeldi), kaldırıldı. */
   "meshy-6-image": {
-    id: "fal-ai/meshy/v6-preview/image-to-3d",
+    id: "fal-ai/meshy/v6/image-to-3d",
     displayName: {
-      tr: "Meshy 6 Preview — Foto → 3D",
-      en: "Meshy 6 Preview — Image → 3D",
+      tr: "Meshy 6 — Foto → 3D",
+      en: "Meshy 6 — Image → 3D",
     },
     tier: "standard",
     creditCost: 18,
@@ -174,7 +176,6 @@ export const MODELS: Record<string, ModelConfig> = {
       target_polycount: 30000,
       should_remesh: true,
       enable_pbr: true,
-      symmetry_mode: "auto",
     },
   },
 
@@ -688,6 +689,117 @@ export const MODELS: Record<string, ModelConfig> = {
     promptParamKey: "_unused",
     defaultParams: {},
   },
+
+  /* ════════════════════════════════════════════════════════════
+     2026-07 fal.ai katalog güncellemesi.
+     Tüm endpoint'ler fal.ai/models/<id> katalog sayfasından (200/404) ve
+     input şemaları fal OpenAPI'sinden doğrulandı. creditCost fal USD
+     fiyatından tahmini — kâr marjına göre gözden geçirilmeli.
+     ════════════════════════════════════════════════════════════ */
+
+  /* ── Video — Kling O3 Pro (v3 Pro'nun halefi) ──
+     DİKKAT: O3 girdi anahtarı image_url (v3'teki start_image_url DEĞİL).
+     $0.112/5s (v3 Pro'dan ucuz) → kredi 25→20 düştü. */
+  "kling-o3-i2v": {
+    id: "fal-ai/kling-video/o3/pro/image-to-video",
+    displayName: { tr: "Kling O3 Pro — Görsel→Video", en: "Kling O3 Pro — Image→Video" },
+    tier: "standard",
+    creditCost: 20,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      duration: "5",
+      generate_audio: true,
+    },
+  },
+  "kling-o3-t2v": {
+    id: "fal-ai/kling-video/o3/pro/text-to-video",
+    displayName: { tr: "Kling O3 Pro — Metin→Video", en: "Kling O3 Pro — Text→Video" },
+    tier: "standard",
+    creditCost: 20,
+    estimatedTime: "~2min",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      duration: "5",
+      aspect_ratio: "16:9",
+      generate_audio: true,
+    },
+  },
+
+  /* ── Video — Seedance 2.0 (ByteDance, premium) ──
+     Saniye başı fiyatlandırma ($0.30/s @720p) — duration MUTLAKA pinli
+     kalmalı, yoksa 'auto' uzun video üretip maliyeti patlatır. */
+  "seedance-2-i2v": {
+    id: "bytedance/seedance-2.0/image-to-video",
+    displayName: { tr: "Seedance 2.0 — Premium Video", en: "Seedance 2.0 — Premium Video" },
+    tier: "premium",
+    creditCost: 50,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      prompt: "A smooth product showcase with gentle camera movement, professional lighting",
+      duration: "5",
+      resolution: "720p",
+    },
+  },
+
+  /* ── Text-to-Image — Ideogram V4 (v3'ün halefi) ──
+     Etiket/ambalaj metni doğruluğu lideri; v3'ten hem iyi hem ucuz
+     ($0.015 vs v3 ~$0.03+). */
+  "ideogram-v4": {
+    id: "ideogram/v4",
+    displayName: { tr: "Ideogram V4 — Metin Ustası", en: "Ideogram V4 — Text Master" },
+    tier: "standard",
+    creditCost: 5,
+    estimatedTime: "~8s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+
+  /* ── Text-to-Image / Edit — Seedream 5.0 Lite (4.5'in halefi) ──
+     4.5 ile aynı fiyat sınıfı ($0.035), yeni nesil kalite. */
+  "seedream-v5-lite": {
+    id: "fal-ai/bytedance/seedream/v5/lite/text-to-image",
+    displayName: { tr: "Seedream 5.0 — Üretici", en: "Seedream 5.0 — Generator" },
+    tier: "standard",
+    creditCost: 5,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+  "seedream-v5-lite-edit": {
+    id: "fal-ai/bytedance/seedream/v5/lite/edit",
+    displayName: { tr: "Seedream 5.0 — Çok-Ref Düzenle", en: "Seedream 5.0 — Multi-Ref Edit" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~30s",
+    imageParamKey: "image_urls",
+    multiImage: true,
+    promptParamKey: "prompt",
+    defaultParams: {},
+  },
+
+  /* ── Görsel Düzenleme — FLUX.2 Pro Edit ──
+     flux-2-pro'nun resmi edit endpoint'i; MP-bazlı fiyat
+     ($0.03 ilk MP). Şema image_urls (dizi) ister. */
+  "flux-2-pro-edit": {
+    id: "fal-ai/flux-2-pro/edit",
+    displayName: { tr: "FLUX.2 Pro — Düzenle", en: "FLUX.2 Pro — Edit" },
+    tier: "standard",
+    creditCost: 6,
+    estimatedTime: "~10s",
+    imageParamKey: "image_urls",
+    multiImage: true,
+    promptParamKey: "prompt",
+    defaultParams: {
+      output_format: "png",
+    },
+  },
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
@@ -695,12 +807,14 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["recraft-crisp-upscale", "aura-sr"],
   "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],
-  "video": ["wan-i2v", "kling-t2v", "kling-i2v", "veo31-i2v"],
+  // 2026-07: Kling v3 Pro girişleri O3 Pro haleflerine yerini bıraktı
+  // (MODELS'te duruyorlar — eski job kayıtları anahtar çözebilsin diye).
+  "video": ["wan-i2v", "kling-o3-t2v", "kling-o3-i2v", "seedance-2-i2v", "veo31-i2v"],
   "aplus": ["bria-product-shot-hd"],
-  "image-edit": ["flux-kontext", "flux-kontext-max", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v45-edit"],
+  "image-edit": ["flux-kontext", "flux-kontext-max", "flux-2-pro-edit", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v5-lite-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v3", "seedream-v45"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite"],
   "qr-code": ["qr-code-ai"],
   "talking-avatar": ["omnihuman", "kling-avatar-v2-pro"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
