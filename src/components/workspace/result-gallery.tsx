@@ -169,6 +169,9 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "wan/v2.6/image-to-video": "Wan 2.6",
   "fal-ai/kling-video/v3/pro/text-to-video": "Kling 3.0 Pro",
   "fal-ai/kling-video/v3/pro/image-to-video": "Kling 3.0 Pro",
+  "fal-ai/kling-video/o3/pro/text-to-video": "Kling O3 Pro",
+  "fal-ai/kling-video/o3/pro/image-to-video": "Kling O3 Pro",
+  "bytedance/seedance-2.0/image-to-video": "Seedance 2.0",
   // E-commerce
   "fal-ai/bria/product-shot": "Bria Product Shot",
   "fal-ai/fashn/tryon/v1.6": "FASHN Try-On",
