@@ -20,7 +20,7 @@ async function removeBackgrounds(imageUrls: string[]): Promise<string[]> {
   const results = await Promise.allSettled(
     imageUrls.map(async (url) => {
       const result = await getAIProvider().subscribe("fal-ai/birefnet/v2", {
-        input: { image_url: url },
+        image_url: url,
       });
       const output = result.data as { image?: { url?: string } };
       return output.image?.url ?? url;
@@ -42,7 +42,7 @@ async function enhanceImages(imageUrls: string[]): Promise<string[]> {
   const results = await Promise.allSettled(
     imageUrls.map(async (url) => {
       const result = await getAIProvider().subscribe("fal-ai/aura-sr", {
-        input: { image_url: url },
+        image_url: url,
       });
       const output = result.data as { image?: { url?: string } };
       return output.image?.url ?? url;

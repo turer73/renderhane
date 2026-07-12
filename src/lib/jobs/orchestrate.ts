@@ -85,13 +85,11 @@ export async function orchestrateTalkingAvatar(
   // Step 1: If script text provided, generate TTS audio
   if (script && !resolvedAudioUrl) {
     const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
-      input: {
-        gen_text: script,
-        model_type: "F5-TTS",
-        ref_audio_url:
-          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
-        ref_text: "",
-      },
+      gen_text: script,
+      model_type: "F5-TTS",
+      ref_audio_url:
+        "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
+      ref_text: "",
     });
 
     const ttsOutput = ttsResult.data as {

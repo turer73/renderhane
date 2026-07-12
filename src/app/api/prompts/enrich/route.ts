@@ -83,11 +83,9 @@ export async function POST(request: NextRequest) {
   }
   try {
     const result = await getAIProvider().subscribe("fal-ai/any-llm", {
-      input: {
-        model: "meta-llama/llama-3.2-3b-instruct",
-        system_prompt: buildSystemPrompt(tool),
-        prompt: rawPrompt,
-      },
+      model: "meta-llama/llama-3.2-3b-instruct",
+      system_prompt: buildSystemPrompt(tool),
+      prompt: rawPrompt,
     });
 
     const output = (result?.data as { output?: string } | undefined)?.output ?? "";

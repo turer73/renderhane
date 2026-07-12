@@ -67,6 +67,8 @@ src/
 - RLS enabled on all tables
 
 ## Important Notes
+- **npm surumu tuzagi:** CI node 22 + npm 10 kullanir. Lokal npm 11'in `npm install`'i lockfile'daki `@rolldown/binding-wasm32-wasi` altindaki nested `@emnapi/*@1.10.0` entry'lerini SILER → CI'da `npm ci` EUSAGE ile kirilir (master 1-11 Tem 2026 arasi bu yuzden kirmiziydi). `npm install` sonrasi lockfile diff'inde bu entry'ler silindiyse `npx npm@10 install --package-lock-only` ile geri uret, dogrulama: `npx npm@10 ci --dry-run`.
+- **fal cagri sozlesmesi:** `FalProvider.subscribe/submit(endpointId, input)` — `input` CIPLAK model girdisidir; provider kendisi `{ input }` diye sarar. `{ input: {...} }` gecirmek cift-sarmalama yapar, fal 422 `image_url Field required` doner (9 cagri yeri 16 Haz–12 Tem 2026 arasi bu yuzden oluydu).
 - `.env.local` has quotes and `\n` artifacts — when adding to Vercel, strip them: `value="${value%\"}"; value="${value#\"}"; value="${value%\\n}"`
 - `renderhane.com` A record → `76.76.21.21` (Vercel IP)
 - `www` CNAME → `cname.vercel-dns.com`

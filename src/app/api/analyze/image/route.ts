@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const result = await getAIProvider().subscribe("fal-ai/florence-2-large/more-detailed-caption", {
-      input: { image_url: imageUrl },
+      image_url: imageUrl,
     });
 
     const data = result?.data as { results?: string; output?: string } | undefined;
