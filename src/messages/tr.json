@@ -193,7 +193,7 @@
       "enhance": {
         "title": "Görseli 4K'ya Yükseltin",
         "description": "Düşük çözünürlüklü ürün fotoğraflarını AI ile keskinleştirin. Detayları ve netliği artırın.",
-        "credits": "4 kredi",
+        "credits": "3 kredi",
         "tip": "En az 256×256 piksel boyutunda görseller kullanın. Çok bulanık görsellerde sonuç sınırlı kalabilir."
       },
       "scene": {
@@ -205,7 +205,7 @@
       "video": {
         "title": "Ürün Videosu Oluşturun",
         "description": "Statik fotoğraftan etkileyici tanıtım videosu üretin. Sosyal medya ve mağazanız için hazır.",
-        "credits": "20 kredi",
+        "credits": "35 kredi",
         "tip": "Net ve yüksek çözünürlüklü fotoğraflar daha akıcı video üretir. Minimum 512×512 piksel önerilir."
       },
       "aplus": {

@@ -59,7 +59,8 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "Tripo 2.5 — Fast Multi",
     },
     tier: "fast",
-    creditCost: 10,
+    // fal: $0.3 standart doku + $0.05/ek-görünüm (~$0.45 4-açı) → 10kr zararına satıyordu
+    creditCost: 30,
     estimatedTime: "~30s",
     imageParamKey: "front_image_url",
     multiImage: true,
@@ -100,7 +101,7 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "Hunyuan3D V3",
     },
     tier: "standard",
-    creditCost: 20,
+    creditCost: 28, // fal: $0.375/üretim
     estimatedTime: "~3min",
     imageParamKey: "input_image_url",
     multiImage: true,
@@ -143,7 +144,7 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "Meshy 6 — Text → 3D + Animation",
     },
     tier: "standard",
-    creditCost: 22,
+    creditCost: 55, // Meshy v6 fal: $0.8/üretim (full mode)
     estimatedTime: "~2min",
     imageParamKey: "_unused",
     promptParamKey: "prompt",
@@ -168,7 +169,7 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "Meshy 6 — Image → 3D",
     },
     tier: "standard",
-    creditCost: 18,
+    creditCost: 55, // fal: $0.8/üretim — 18kr zararına satıyordu
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     defaultParams: {
@@ -187,7 +188,7 @@ export const MODELS: Record<string, ModelConfig> = {
       en: "TripoSR — Instant Preview",
     },
     tier: "fast",
-    creditCost: 3,
+    creditCost: 4,
     estimatedTime: "~1s",
     imageParamKey: "image_url",
     defaultParams: {
@@ -347,7 +348,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/wan/v2.7/image-to-video",
     displayName: { tr: "Wan 2.7 — Görsel→Video", en: "Wan 2.7 — Image→Video" },
     tier: "standard",
-    creditCost: 20,
+    creditCost: 35, // fal: $0.10/sn @720p → 5sn $0.50 — 20kr zararına satıyordu
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "prompt",
@@ -357,31 +358,34 @@ export const MODELS: Record<string, ModelConfig> = {
       duration: "5",
     },
   },
+  /* Kling v3 girişleri TOOL_MODELS'te değil (O3 halefleri listede) ama API v1
+     modelKey ile hâlâ seçilebilir — kredi/ses ayarı gerçek maliyete göre:
+     fal $0.112/sn sessiz (sesli $0.168/sn → 5sn $0.84, 25kr zararına satıyordu). */
   "kling-t2v": {
     id: "fal-ai/kling-video/v3/pro/text-to-video",
     displayName: { tr: "Kling 3.0 Pro — Metin→Video", en: "Kling 3.0 Pro — Text→Video" },
     tier: "standard",
-    creditCost: 25,
+    creditCost: 40,
     estimatedTime: "~2min",
     imageParamKey: "_unused",
     promptParamKey: "prompt",
     defaultParams: {
       duration: "5",
       aspect_ratio: "16:9",
-      generate_audio: true,
+      generate_audio: false,
     },
   },
   "kling-i2v": {
     id: "fal-ai/kling-video/v3/pro/image-to-video",
     displayName: { tr: "Kling 3.0 Pro — Görsel→Video", en: "Kling 3.0 Pro — Image→Video" },
     tier: "standard",
-    creditCost: 25,
+    creditCost: 40,
     estimatedTime: "~2min",
     imageParamKey: "start_image_url",
     promptParamKey: "prompt",
     defaultParams: {
       duration: "5",
-      generate_audio: true,
+      generate_audio: false,
     },
   },
 
@@ -475,7 +479,9 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/bytedance/omnihuman/v1.5",
     displayName: { tr: "OmniHuman — Konuşan Avatar", en: "OmniHuman — Talking Avatar" },
     tier: "standard",
-    creditCost: 25,
+    // fal: $0.16/sn — maliyet SES UZUNLUĞUYLA orantılı. ~10sn varsayımıyla
+    // $1.60; script MAX_AVATAR_SCRIPT_CHARS ile sınırlanır (aşağıda).
+    creditCost: 100,
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "_unused",
@@ -656,12 +662,17 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/veo3.1/image-to-video",
     displayName: { tr: "Veo 3.1 — Premium Video", en: "Veo 3.1 — Premium Video" },
     tier: "premium",
-    creditCost: 45,
+    // fal: $0.20/sn sessiz, $0.40/sn sesli (720p=1080p fiyatı aynı). Şema
+    // default'u 8sn+SESLİ = $3.20/video — 45kr bunun ~3'te-1'iydi (büyük zarar).
+    // 4sn + sessiz pinlendi ($0.80), 1080p korundu (720p ile aynı fiyat).
+    creditCost: 60,
     estimatedTime: "~3min",
     imageParamKey: "image_url",
     promptParamKey: "prompt",
     defaultParams: {
       resolution: "1080p",
+      duration: "4s",
+      generate_audio: false,
     },
   },
 
@@ -670,7 +681,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "tripo3d/p1/image-to-3d",
     displayName: { tr: "Tripo P1 — Temiz Topoloji", en: "Tripo P1 — Clean Topology" },
     tier: "standard",
-    creditCost: 12,
+    creditCost: 35, // fal: $0.50 dokulu üretim
     estimatedTime: "~30s",
     imageParamKey: "image_url",
     defaultParams: {},
@@ -683,7 +694,7 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/kling-video/ai-avatar/v2/pro",
     displayName: { tr: "Kling Avatar v2 Pro", en: "Kling Avatar v2 Pro" },
     tier: "standard",
-    creditCost: 20,
+    creditCost: 75, // fal: $0.115/sn — ~10sn varsayımı ($1.15)
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "_unused",
@@ -704,38 +715,41 @@ export const MODELS: Record<string, ModelConfig> = {
     id: "fal-ai/kling-video/o3/pro/image-to-video",
     displayName: { tr: "Kling O3 Pro — Görsel→Video", en: "Kling O3 Pro — Image→Video" },
     tier: "standard",
-    creditCost: 20,
+    // fal: $0.112/sn sessiz ($0.14/sn sesli). Ses kapalı: 5sn = $0.56.
+    creditCost: 40,
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "prompt",
     defaultParams: {
       duration: "5",
-      generate_audio: true,
+      generate_audio: false,
     },
   },
   "kling-o3-t2v": {
     id: "fal-ai/kling-video/o3/pro/text-to-video",
     displayName: { tr: "Kling O3 Pro — Metin→Video", en: "Kling O3 Pro — Text→Video" },
     tier: "standard",
-    creditCost: 20,
+    creditCost: 40,
     estimatedTime: "~2min",
     imageParamKey: "_unused",
     promptParamKey: "prompt",
     defaultParams: {
       duration: "5",
       aspect_ratio: "16:9",
-      generate_audio: true,
+      generate_audio: false,
     },
   },
 
   /* ── Video — Seedance 2.0 (ByteDance, premium) ──
-     Saniye başı fiyatlandırma ($0.30/s @720p) — duration MUTLAKA pinli
-     kalmalı, yoksa 'auto' uzun video üretip maliyeti patlatır. */
+     Saniye başı fiyatlandırma ($0.3034/sn @720p → 5sn $1.52) — duration
+     MUTLAKA pinli kalmalı, yoksa 'auto' uzun video üretip maliyeti patlatır.
+     Fiyat nedeniyle TOOL_MODELS listesinde DEĞİL (110kr kimse ödemez);
+     API v1 modelKey ile hâlâ erişilebilir, o yüzden kredi dürüst tutuldu. */
   "seedance-2-i2v": {
     id: "bytedance/seedance-2.0/image-to-video",
     displayName: { tr: "Seedance 2.0 — Premium Video", en: "Seedance 2.0 — Premium Video" },
     tier: "premium",
-    creditCost: 50,
+    creditCost: 110,
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "prompt",
@@ -809,7 +823,8 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],
   // 2026-07: Kling v3 Pro girişleri O3 Pro haleflerine yerini bıraktı
   // (MODELS'te duruyorlar — eski job kayıtları anahtar çözebilsin diye).
-  "video": ["wan-i2v", "kling-o3-t2v", "kling-o3-i2v", "seedance-2-i2v", "veo31-i2v"],
+  // Seedance 2.0 fiyat nedeniyle listede değil (110kr) — MODELS'te duruyor.
+  "video": ["wan-i2v", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext", "flux-kontext-max", "flux-2-pro-edit", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v5-lite-edit"],
   "inpainting": ["flux-fill"],
@@ -855,8 +870,14 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
       ])
   ) as Record<ToolType, number>),
   aplus: 32,          // 4 scenes × 8 credits
-  "social-kit": 52,   // 4 scenes (32) + 1 video (20)
+  "social-kit": 67,   // 4 scenes (32) + 1 video (wan-i2v 35)
 };
+
+/** Konuşan-avatar script üst sınırı (karakter). TTS sesi ~15 karakter/sn
+ *  konuşur; OmniHuman/Kling-Avatar SANIYE BAŞI ücretlendirir ($0.16/sn ve
+ *  $0.115/sn) — sınırsız script sınırsız maliyet demek. 150 karakter ≈ 10sn,
+ *  sabit kredi fiyatlaması bu varsayıma göre. */
+export const MAX_AVATAR_SCRIPT_CHARS = 150;
 
 /** Tools that accept a text prompt from the user */
 export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "inpainting", "object-removal", "text-to-image", "qr-code", "logo"];

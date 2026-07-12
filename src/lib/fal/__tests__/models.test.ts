@@ -63,7 +63,7 @@ describe('MODELS', () => {
 
   it('hunyuan3d-v3 is standard tier', () => {
     expect(MODELS['hunyuan3d-v3'].tier).toBe('standard');
-    expect(MODELS['hunyuan3d-v3'].creditCost).toBe(20);
+    expect(MODELS['hunyuan3d-v3'].creditCost).toBe(28);
   });
 
   it('hunyuan3d-v31-pro is premium tier', () => {
@@ -76,8 +76,8 @@ describe('MODELS', () => {
     expect(MODELS['f5-tts'].id).toBe('fal-ai/f5-tts');
   });
 
-  it('omnihuman costs 25 credits for talking avatar', () => {
-    expect(MODELS['omnihuman'].creditCost).toBe(25);
+  it('omnihuman costs 100 credits (fal $0.16/sn, ~10sn script sınırıyla)', () => {
+    expect(MODELS['omnihuman'].creditCost).toBe(100);
   });
 
   it('recraft-v4 costs 8 credits for logo generation', () => {
@@ -93,8 +93,8 @@ describe('MODELS', () => {
     expect(MODELS['hyper3d-rodin'].creditCost).toBe(35);
   });
 
-  it('triposr costs 3 credits (updated from 2)', () => {
-    expect(MODELS['triposr'].creditCost).toBe(3);
+  it('triposr costs 4 credits (fal $0.07/gen)', () => {
+    expect(MODELS['triposr'].creditCost).toBe(4);
   });
 });
 
@@ -141,10 +141,14 @@ describe('TOOL_CREDITS', () => {
 
   it('new tools have correct credit costs', () => {
     expect(TOOL_CREDITS['image-edit']).toBe(6);
-    expect(TOOL_CREDITS['talking-avatar']).toBe(25);
+    expect(TOOL_CREDITS['talking-avatar']).toBe(100);
     expect(TOOL_CREDITS['logo']).toBe(8);
     expect(TOOL_CREDITS['object-removal']).toBe(3);
     expect(TOOL_CREDITS['inpainting']).toBe(6);
+  });
+
+  it('social-kit = 4 sahne (32) + wan-i2v videosu', () => {
+    expect(TOOL_CREDITS['social-kit']).toBe(32 + MODELS['wan-i2v'].creditCost);
   });
 });
 
@@ -195,7 +199,9 @@ describe('2026-07 fal katalog güncellemesi', () => {
     const m = MODELS['kling-o3-i2v'];
     expect(m.id).toBe('fal-ai/kling-video/o3/pro/image-to-video');
     expect(m.imageParamKey).toBe('image_url');
-    expect(m.creditCost).toBe(20);
+    expect(m.creditCost).toBe(40);
+    // Sesli üretim $0.14/sn, sessiz $0.112/sn — kredi sessiz varsayıma göre
+    expect(m.defaultParams.generate_audio).toBe(false);
   });
 
   it('seedance-2-i2v premium ve duration pinli (auto → maliyet patlaması koruması)', () => {
@@ -203,6 +209,14 @@ describe('2026-07 fal katalog güncellemesi', () => {
     expect(m.tier).toBe('premium');
     expect(m.defaultParams.duration).toBe('5');
     expect(m.defaultParams.resolution).toBe('720p');
+    expect(m.creditCost).toBe(110); // fal $0.3034/sn → 5sn $1.52
+  });
+
+  it('veo31-i2v süre+ses pinli (şema default 8sn+sesli = $3.20/video idi)', () => {
+    const m = MODELS['veo31-i2v'];
+    expect(m.defaultParams.duration).toBe('4s');
+    expect(m.defaultParams.generate_audio).toBe(false);
+    expect(m.creditCost).toBe(60);
   });
 
   it('flux-2-pro-edit image_urls dizisi ister (şema gereği multiImage)', () => {
@@ -219,10 +233,12 @@ describe('2026-07 fal katalog güncellemesi', () => {
     expect(TOOL_MODELS['text-to-image'][0]).toBe('flux-pro');
   });
 
-  it('video listesi Kling O3 + Seedance içerir; varsayılan wan-i2v değişmedi', () => {
+  it('video listesi Kling O3 içerir; Seedance fiyat nedeniyle listede DEĞİL', () => {
     expect(TOOL_MODELS['video']).toContain('kling-o3-i2v');
     expect(TOOL_MODELS['video']).toContain('kling-o3-t2v');
-    expect(TOOL_MODELS['video']).toContain('seedance-2-i2v');
+    // Seedance ($1.52/video) listeden çıkarıldı ama API modelKey için tanımlı
+    expect(TOOL_MODELS['video']).not.toContain('seedance-2-i2v');
+    expect(MODELS['seedance-2-i2v']).toBeDefined();
     expect(TOOL_MODELS['video'][0]).toBe('wan-i2v');
     // Eski v3 anahtarları MODELS'te kalır (eski job kayıtları çözülebilsin)
     expect(MODELS['kling-i2v']).toBeDefined();

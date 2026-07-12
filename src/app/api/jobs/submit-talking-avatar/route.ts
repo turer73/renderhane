@@ -3,13 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { MODELS, MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
 import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/app/api/jobs/submit/route";
 
 // TTS (~5s) + video submission — needs extended timeout
 export const maxDuration = 60;
 
-const AVATAR_CREDITS = 25;
+// Hardcoded 25 MODELS ile senkron kopmuştu — tek kaynak MODELS.
+const AVATAR_CREDITS = MODELS["omnihuman"].creditCost;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -49,6 +51,18 @@ export async function POST(request: NextRequest) {
   if (!script && !audioUrl) {
     return NextResponse.json(
       { error: "Either script text or audio URL is required" },
+      { status: 400 }
+    );
+  }
+
+  // Avatar videosu SES SÜRESİYLE ücretlendirilir ($0.16/sn) — sınırsız script
+  // sınırsız maliyet demek; sabit kredi fiyatı ~10sn varsayımına dayanır.
+  if (typeof script === "string" && script.length > MAX_AVATAR_SCRIPT_CHARS) {
+    return NextResponse.json(
+      {
+        error: `Script too long (max ${MAX_AVATAR_SCRIPT_CHARS} characters)`,
+        errorTr: `Metin çok uzun (en fazla ${MAX_AVATAR_SCRIPT_CHARS} karakter)`,
+      },
       { status: 400 }
     );
   }

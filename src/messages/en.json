@@ -193,7 +193,7 @@
       "enhance": {
         "title": "Upscale Your Image to 4K",
         "description": "Sharpen low-resolution product photos with AI. Boost detail and clarity.",
-        "credits": "4 credits",
+        "credits": "3 credits",
         "tip": "Use images at least 256×256 pixels. Very blurry images may have limited improvement."
       },
       "scene": {
@@ -205,7 +205,7 @@
       "video": {
         "title": "Create a Product Video",
         "description": "Generate stunning promotional videos from a static photo. Ready for social media and your store.",
-        "credits": "20 credits",
+        "credits": "35 credits",
         "tip": "Sharp, high-resolution photos produce smoother videos. Minimum 512×512 pixels recommended."
       },
       "aplus": {
