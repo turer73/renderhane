@@ -52,12 +52,10 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await getAIProvider().subscribe("fal-ai/birefnet/v2", {
-      input: {
-        image_url: imageDataUrl,
-        model: "General Use (Light)",
-        operating_resolution: "1024x1024",
-        output_format: "png",
-      },
+      image_url: imageDataUrl,
+      model: "General Use (Light)",
+      operating_resolution: "1024x1024",
+      output_format: "png",
     });
 
     const outputUrl =

@@ -71,14 +71,12 @@ export async function POST(request: NextRequest) {
     // Step 1: If user provided text script, generate TTS audio first
     if (script && typeof script === "string" && !resolvedAudioUrl) {
       const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
-        input: {
-          gen_text: script,
-          model_type: "F5-TTS",
-          // Default reference audio for voice cloning — neutral English speaker
-          ref_audio_url:
-            "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
-          ref_text: "",
-        },
+        gen_text: script,
+        model_type: "F5-TTS",
+        // Default reference audio for voice cloning — neutral English speaker
+        ref_audio_url:
+          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
+        ref_text: "",
       });
 
       const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
