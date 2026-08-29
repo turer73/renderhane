@@ -170,7 +170,34 @@ function normalizeHostname(hostname: string): string {
   return withoutBrackets.toLowerCase().replace(/\.$/, "");
 }
 
-async function resolvePublicAddresses(hostname: string): Promise<ResolvedAddress[]> {
+export function awaitWithAbortSignal<T>(
+  operation: Promise<T>,
+  signal: AbortSignal
+): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(
+      signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
+    );
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      reject(
+        signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
+      );
+    };
+
+    signal.addEventListener("abort", onAbort, { once: true });
+    operation.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", onAbort);
+    });
+  });
+}
+
+async function resolvePublicAddresses(
+  hostname: string,
+  signal: AbortSignal
+): Promise<ResolvedAddress[]> {
   const normalized = normalizeHostname(hostname);
   if (!normalized || normalized === "localhost" || normalized.endsWith(".localhost")) {
     throw new UnsafeDownloadUrlError();
@@ -184,8 +211,16 @@ async function resolvePublicAddresses(hostname: string): Promise<ResolvedAddress
 
   let resolved: Array<{ address: string; family: number }>;
   try {
-    resolved = await dnsLookup(normalized, { all: true, verbatim: true });
+    resolved = await awaitWithAbortSignal(
+      dnsLookup(normalized, { all: true, verbatim: true }),
+      signal
+    );
   } catch {
+    if (signal.aborted) {
+      throw signal.reason instanceof Error
+        ? signal.reason
+        : new Error("Download timed out");
+    }
     throw new UnsafeDownloadUrlError("Hostname could not be resolved");
   }
 
@@ -198,6 +233,7 @@ async function resolvePublicAddresses(hostname: string): Promise<ResolvedAddress
 
 async function validateAndResolve(
   rawUrl: string | URL,
+  signal: AbortSignal,
   allowedHostname?: (hostname: string) => boolean
 ): Promise<{ url: URL; addresses: ResolvedAddress[] }> {
   let url: URL;
@@ -223,7 +259,7 @@ async function validateAndResolve(
     throw new UnsafeDownloadUrlError("URL hostname is not allowed");
   }
 
-  const addresses = await resolvePublicAddresses(hostname);
+  const addresses = await resolvePublicAddresses(hostname, signal);
   return { url, addresses };
 }
 
@@ -295,13 +331,20 @@ export async function openPublicDownload(
   options: PublicDownloadOptions
 ): Promise<PublicDownload> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
+  const timeout = setTimeout(
+    () => controller.abort(new Error("Download timed out")),
+    options.timeoutMs
+  );
   const maxRedirects = options.maxRedirects ?? 3;
   let currentUrl: string | URL = rawUrl;
 
   try {
     for (let redirectCount = 0; ; redirectCount += 1) {
-      const { url, addresses } = await validateAndResolve(currentUrl, options.allowedHostname);
+      const { url, addresses } = await validateAndResolve(
+        currentUrl,
+        controller.signal,
+        options.allowedHostname
+      );
       const response = await requestPinned(url, addresses, controller.signal, options.headers ?? {});
 
       if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400) {

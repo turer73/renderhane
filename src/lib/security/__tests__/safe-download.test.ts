@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { PassThrough } from "node:stream";
 import {
+  awaitWithAbortSignal,
   ByteLimitTransform,
   DownloadTooLargeError,
   isPublicIpAddress,
 } from "../safe-download";
+
+describe("awaitWithAbortSignal", () => {
+  it("rejects a pending operation when the shared deadline aborts", async () => {
+    const controller = new AbortController();
+    const pending = new Promise<never>(() => {});
+    const guarded = awaitWithAbortSignal(pending, controller.signal);
+
+    controller.abort(new Error("Download timed out"));
+
+    await expect(guarded).rejects.toThrow("Download timed out");
+  });
+});
 
 describe("safe download address classification", () => {
   it.each([
