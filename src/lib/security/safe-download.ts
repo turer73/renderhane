@@ -209,13 +209,12 @@ async function validateAndResolve(
   return { url, addresses };
 }
 
-function requestPinned(
+function requestPinnedAddress(
   url: URL,
-  addresses: ResolvedAddress[],
+  selected: ResolvedAddress,
   signal: AbortSignal,
   headers: Record<string, string>
 ): Promise<IncomingMessage> {
-  const selected = addresses[0];
   const requestOptions: HttpRequestOptions = {
     protocol: url.protocol,
     hostname: selected.address,
@@ -243,6 +242,28 @@ function requestPinned(
     request.once("error", reject);
     request.end();
   });
+}
+
+async function requestPinned(
+  url: URL,
+  addresses: ResolvedAddress[],
+  signal: AbortSignal,
+  headers: Record<string, string>
+): Promise<IncomingMessage> {
+  let lastError: unknown;
+
+  for (const address of addresses) {
+    try {
+      return await requestPinnedAddress(url, address, signal, headers);
+    } catch (error) {
+      if (signal.aborted) throw error;
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Unable to connect to a validated public address");
 }
 
 function parseContentLength(value: string | undefined): number | null {

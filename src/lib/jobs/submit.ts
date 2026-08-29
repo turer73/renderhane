@@ -176,16 +176,83 @@ export async function submitJob(input: SubmitJobInput) {
     }
   }
 
-  if (creditCost > 0) {
-    txId = await reserveCredits(
-      userId,
-      creditCost,
-      `${tool} — ${model.displayName.en}`
+  // Persist a pending job before reserving. This gives the stuck-job cleanup a
+  // durable recovery record if the runtime exits during paid preprocessing.
+  const originalRequest: Record<string, unknown> = { tool, tier };
+  if (input.modelKey) originalRequest.modelKey = input.modelKey;
+  if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
+  if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
+  if (prompt) originalRequest.prompt = prompt;
+  if (input.script) originalRequest.script = input.script;
+  if (input.audioUrl) originalRequest.audioUrl = input.audioUrl;
+  if (autoEnhance) originalRequest.autoEnhance = true;
+  if (input.extraParams) originalRequest.extraParams = input.extraParams;
+
+  const { data: job, error: jobError } = await supabase
+    .from("jobs")
+    .insert({
+      user_id: userId,
+      project_id: projectId,
+      tool,
+      model_id: model.id,
+      status: "pending",
+      input_params: {},
+      original_request: originalRequest,
+      credit_cost: creditCost,
+      credit_tx_id: null,
+    })
+    .select("id")
+    .single();
+
+  if (jobError || !job) {
+    console.error(
+      "[submitJob] DB insert error:",
+      jobError?.message,
+      jobError?.code,
+      jobError?.details
     );
+    throw new Error(`Failed to create job: ${jobError?.message || "no job returned"}`);
   }
 
-  // Paid preprocessing is deliberately after reservation. If anything fails
-  // before the job row exists, release the reservation immediately.
+  const markJobFailed = async (message: string) => {
+    await supabase
+      .from("jobs")
+      .update({
+        status: "failed",
+        error_message: message,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", job.id);
+  };
+
+  try {
+    if (creditCost > 0) {
+      txId = await reserveCredits(
+        userId,
+        creditCost,
+        `${tool} — ${model.displayName.en} [job:${job.id}]`
+      );
+
+      const { error: linkError } = await supabase
+        .from("jobs")
+        .update({ credit_tx_id: txId })
+        .eq("id", job.id);
+
+      if (linkError) {
+        await refundCredits(txId);
+        txId = null;
+        throw new Error(`Failed to link credit reservation: ${linkError.message}`);
+      }
+    }
+  } catch (error) {
+    await markJobFailed(
+      error instanceof Error ? error.message : "Failed to reserve credits"
+    );
+    throw error;
+  }
+
+  // Paid preprocessing starts only after the durable job and reservation link
+  // exist. Process exits are recovered by the existing stuck-job cleanup.
   let falInput: Record<string, unknown>;
   try {
     // Clean backgrounds before 3D generation unless the user opts out.
@@ -249,43 +316,23 @@ export async function submitJob(input: SubmitJobInput) {
     }));
   } catch (error) {
     if (txId) await refundCredits(txId);
+    await markJobFailed(
+      error instanceof Error ? error.message : "Preprocessing failed"
+    );
     throw error;
   }
 
-  // 3. Create job record
-  // Store original request params (pre-processing) for reliable regeneration.
-  // input_params has fal.ai-routed URLs (may expire); original_request has user's uploads.
-  const originalRequest: Record<string, unknown> = { tool, tier };
-  if (input.modelKey) originalRequest.modelKey = input.modelKey;
-  if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
-  if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
-  if (prompt) originalRequest.prompt = prompt;
-  if (input.script) originalRequest.script = input.script;
-  if (input.audioUrl) originalRequest.audioUrl = input.audioUrl;
-  if (autoEnhance) originalRequest.autoEnhance = true;
-  if (input.extraParams) originalRequest.extraParams = input.extraParams;
-
-  const { data: job, error: jobError } = await supabase
+  // Store final fal.ai-routed URLs after preprocessing (they may expire).
+  const { error: inputUpdateError } = await supabase
     .from("jobs")
-    .insert({
-      user_id: userId,
-      project_id: projectId,
-      tool,
-      model_id: model.id,
-      status: "pending",
-      input_params: falInput,
-      original_request: originalRequest,
-      credit_cost: creditCost,
-      credit_tx_id: txId,
-    })
-    .select("id")
-    .single();
+    .update({ input_params: falInput })
+    .eq("id", job.id);
 
-  if (jobError || !job) {
-    // Refund if job creation fails (only if credits were reserved)
-    console.error("[submitJob] DB insert error:", jobError?.message, jobError?.code, jobError?.details);
+  if (inputUpdateError) {
     if (txId) await refundCredits(txId);
-    throw new Error(`Failed to create job: ${jobError?.message || "no job returned"}`);
+    const message = `Failed to persist job input: ${inputUpdateError.message}`;
+    await markJobFailed(message);
+    throw new Error(message);
   }
 
   // 4. Submit to fal.ai queue with webhook

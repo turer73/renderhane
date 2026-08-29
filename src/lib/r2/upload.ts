@@ -1,6 +1,7 @@
 import "server-only";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
+import type { IncomingMessage } from "node:http";
 import { ByteLimitTransform, openPublicDownload } from "@/lib/security/safe-download";
 
 /** Max file size: 500 MB */
@@ -37,6 +38,27 @@ function getPublicUrl(): string {
   return url;
 }
 
+export function createBoundedDownloadStream(
+  response: IncomingMessage,
+  maxBytes: number
+): ByteLimitTransform {
+  const boundedStream = new ByteLimitTransform(maxBytes);
+  const propagateError = (error: Error) => boundedStream.destroy(error);
+  const propagateAbort = () => {
+    boundedStream.destroy(new Error("Upstream download was aborted"));
+  };
+
+  response.once("error", propagateError);
+  response.once("aborted", propagateAbort);
+  boundedStream.once("close", () => {
+    response.off("error", propagateError);
+    response.off("aborted", propagateAbort);
+  });
+  response.pipe(boundedStream);
+
+  return boundedStream;
+}
+
 /**
  * Download a file from fal.ai and upload it to R2.
  * Returns the permanent public URL.
@@ -66,7 +88,7 @@ export async function uploadToR2(
     const { ext, contentType } = getFileInfo(download.finalUrl.toString(), type, responseContentType);
     const r2 = getR2();
     const key = `outputs/${userId}/${randomUUID()}.${ext}`;
-    const boundedStream = response.pipe(new ByteLimitTransform(MAX_FILE_SIZE));
+    const boundedStream = createBoundedDownloadStream(response, MAX_FILE_SIZE);
 
     await r2.send(
       new PutObjectCommand({

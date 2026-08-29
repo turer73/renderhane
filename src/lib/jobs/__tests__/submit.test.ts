@@ -37,9 +37,12 @@ vi.mock("@/lib/prompts/compose", () => ({
 import { submitJob } from "../submit";
 
 function createSupabaseMock() {
-  const insertSingle = vi.fn().mockResolvedValue({
-    data: { id: "job-1" },
-    error: null,
+  const insertSingle = vi.fn().mockImplementation(async () => {
+    mocks.events.push("job-insert");
+    return {
+      data: { id: "job-1" },
+      error: null,
+    };
   });
   const updateEq = vi.fn().mockResolvedValue({ error: null });
   const from = vi.fn(() => ({
@@ -97,7 +100,10 @@ describe("submitJob credit ordering", () => {
 
     const expectedCost = MODELS["hunyuan3d-v3"].creditCost + 2 * 4;
     expect(result.creditCost).toBe(expectedCost);
-    expect(mocks.events[0]).toBe(`reserve:${expectedCost}`);
+    expect(mocks.events.slice(0, 2)).toEqual([
+      "job-insert",
+      `reserve:${expectedCost}`,
+    ]);
     expect(mocks.events.filter((event) => event.includes("birefnet"))).toHaveLength(2);
     expect(mocks.events.filter((event) => event.includes("aura-sr"))).toHaveLength(2);
     expect(mocks.events.at(-1)).toBe("submit");
@@ -119,6 +125,7 @@ describe("submitJob credit ordering", () => {
     ).rejects.toThrow("TTS generation failed");
 
     expect(mocks.events).toEqual([
+      "job-insert",
       `reserve:${MODELS.omnihuman.creditCost}`,
       "subscribe:fal-ai/f5-tts",
       "refund",

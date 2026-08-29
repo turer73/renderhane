@@ -74,4 +74,20 @@ describe("iyzico webhook retry behavior", () => {
       p_amount: 100,
     }));
   });
+
+  it("acknowledges the migrated database's duplicate payment constraint", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: "23505",
+        message: "duplicate key value violates unique constraint",
+        details: "Key (payment_id)=(payment-1) already exists.",
+      },
+    });
+
+    const response = await POST(webhookRequest({ token: "token-1" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: "ok" });
+  });
 });

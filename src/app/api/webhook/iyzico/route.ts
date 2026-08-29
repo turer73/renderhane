@@ -14,6 +14,19 @@ function getServiceClient() {
   );
 }
 
+function isDuplicatePaymentError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+}): boolean {
+  if (error.code !== "23505") return false;
+  const context = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return (
+    context.includes("payment_id") ||
+    context.includes("idx_credit_transactions_payment_id_unique")
+  );
+}
+
 /**
  * iyzico webhook handler — backup confirmation mechanism.
  *
@@ -92,14 +105,16 @@ export async function POST(request: NextRequest) {
       p_description: `Purchased ${pkg.name} package (${pkg.credits} credits) [webhook]`,
     });
 
-    if (error) {
+    if (error && !isDuplicatePaymentError(error)) {
       console.error("Webhook: failed to add credits:", error.message);
       return NextResponse.json(
         { status: "retry" },
         { status: 503, headers: { "Retry-After": "900" } }
       );
     }
-    // data === null means duplicate (already processed) — that's OK
+    // Migration 007 can surface the payment_id unique constraint instead of
+    // returning null. PostgreSQL rolls the whole RPC transaction back, so the
+    // duplicate is safe to acknowledge and must not enter a permanent retry.
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
