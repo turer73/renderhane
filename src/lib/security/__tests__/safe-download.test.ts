@@ -22,6 +22,11 @@ describe("safe download address classification", () => {
     "fc00::1",
     "fe80::1",
     "2001:db8::1",
+    "2001:2::1",
+    "2001:10::1",
+    "2001:20::1",
+    "2001:30::1",
+    "3fff::1",
   ])("rejects non-public address %s", (address) => {
     expect(isPublicIpAddress(address)).toBe(false);
   });

@@ -126,8 +126,17 @@ export class ShopifyClient {
     const linkHeader = res.headers.get("link");
     let nextPageInfo: string | null = null;
     if (linkHeader) {
-      const nextMatch = linkHeader.match(/<[^>]*page_info=([^&>]+)[^>]*>;\s*rel="next"/);
-      if (nextMatch) nextPageInfo = nextMatch[1];
+      const nextLink = linkHeader
+        .split(",")
+        .find((part) => /;\s*rel="next"\s*$/.test(part));
+      const nextUrl = nextLink?.match(/<([^>]+)>/)?.[1];
+      if (nextUrl) {
+        try {
+          nextPageInfo = new URL(nextUrl).searchParams.get("page_info");
+        } catch {
+          nextPageInfo = null;
+        }
+      }
     }
 
     return { products: data.products, nextPageInfo };

@@ -129,11 +129,29 @@ function isPublicIpv6(address: string): boolean {
     return isPublicIpv4(mapped);
   }
 
-  // Only globally routed unicast space (2000::/3). This excludes ULA,
-  // link-local, multicast, documentation and transition/tunnel ranges.
+  // Only globally routed unicast space (2000::/3). Then reject the IANA
+  // special-purpose blocks inside that space which are not suitable as
+  // arbitrary download destinations.
   if (words[0] < 0x2000 || words[0] > 0x3fff) return false;
   if (words[0] === 0x2001 && (words[1] === 0x0000 || words[1] === 0x0db8)) return false;
+  if (
+    words[0] === 0x2001 &&
+    (
+      // 2001:2::/48 — benchmarking
+      (words[1] === 0x0002 && words[2] === 0x0000) ||
+      // 2001:10::/28 — deprecated ORCHID
+      (words[1] & 0xfff0) === 0x0010 ||
+      // 2001:20::/28 — ORCHIDv2
+      (words[1] & 0xfff0) === 0x0020 ||
+      // 2001:30::/28 — protocol entity tags, not a content origin
+      (words[1] & 0xfff0) === 0x0030
+    )
+  ) {
+    return false;
+  }
   if (words[0] === 0x2002) return false;
+  // 3fff::/20 — documentation prefix.
+  if (words[0] === 0x3fff && (words[1] & 0xf000) === 0x0000) return false;
 
   return true;
 }
