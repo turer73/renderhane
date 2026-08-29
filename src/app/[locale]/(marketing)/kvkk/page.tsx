@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: t("kvkk.intro").slice(0, 160),
     alternates: {
       canonical: `${BASE_URL}/${locale}/kvkk`,
-      languages: { tr: `${BASE_URL}/tr/kvkk`, en: `${BASE_URL}/en/kvkk` },
+      languages: { tr: `${BASE_URL}/tr/kvkk`, en: `${BASE_URL}/en/kvkk`, "x-default": `${BASE_URL}/tr/kvkk` },
     },
   };
 }

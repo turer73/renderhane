@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/ai-gorsel-uret`,
         en: `${BASE_URL}/en/araclar/ai-gorsel-uret`,
+        "x-default": `${BASE_URL}/tr/araclar/ai-gorsel-uret`,
       },
     },
     openGraph: {

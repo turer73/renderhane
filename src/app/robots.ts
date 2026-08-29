@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/app/", "/tr/app/", "/en/app/", "/ref/", "/embed/", "/_next/static/", "/favicon.ico", "/apple-icon", "/icon"],
+        disallow: ["/api/", "/app/", "/tr/app/", "/en/app/", "/ref/", "/embed/"],
       },
     ],
     sitemap: "https://www.renderhane.com/sitemap.xml",

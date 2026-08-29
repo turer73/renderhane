@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AdSlot } from "@/components/ads/ad-slot";
 import {
   Download,
   Link2,
@@ -392,9 +391,6 @@ export default function PublicQRCodePage() {
           </div>
         </div>
 
-        {/* Ad Slot — Top */}
-        <AdSlot slot="qr-code-top" format="horizontal" className="mb-8" />
-
         {/* Feature Cards */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:mb-12 sm:grid-cols-4 sm:gap-4">
           {features.map((f, i) => (
@@ -437,9 +433,6 @@ export default function PublicQRCodePage() {
             </div>
           </div>
         </div>
-
-        {/* Bottom Ad */}
-        <AdSlot slot="qr-code-bottom" format="horizontal" className="mb-12" />
 
         {/* SEO Content */}
         <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">

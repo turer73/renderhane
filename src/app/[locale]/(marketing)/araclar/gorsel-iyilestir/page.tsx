@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AdSlot } from "@/components/ads/ad-slot";
 import {
   ArrowRight,
   Star,
@@ -146,9 +145,6 @@ export default function PublicEnhancePage() {
       </section>
 
       <div className="mx-auto max-w-5xl px-4">
-        {/* Ad Slot — Hero */}
-        <AdSlot slot="enhance-hero" format="horizontal" className="mb-8 mt-8" />
-
         {/* Features */}
         <div className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {features.map((f, i) => (
@@ -203,9 +199,6 @@ export default function PublicEnhancePage() {
           </div>
         </section>
 
-        {/* Ad Slot — Mid */}
-        <AdSlot slot="enhance-mid" format="horizontal" className="mb-8" />
-
         {/* Pricing hint */}
         <section className="mb-12 rounded-2xl bg-muted/50 p-8 text-center">
           <div className="mb-2 inline-flex items-center gap-2">
@@ -252,9 +245,6 @@ export default function PublicEnhancePage() {
             </div>
           </div>
         </div>
-
-        {/* Ad Slot — Bottom */}
-        <AdSlot slot="enhance-bottom" format="horizontal" className="mb-12" />
 
         {/* SEO Content */}
         <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">

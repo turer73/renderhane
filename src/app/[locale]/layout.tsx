@@ -47,6 +47,9 @@ export async function generateMetadata({
     title,
     description,
     metadataBase: new URL(BASE_URL),
+    ...(ADSENSE_ID
+      ? { other: { "google-adsense-account": ADSENSE_ID } }
+      : {}),
     alternates: {
       canonical: `/${locale}`,
       languages: { tr: "/tr", en: "/en", "x-default": "/tr" },
@@ -153,11 +156,18 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        {(GA_ID || ADSENSE_ID) && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html:
+                "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});",
+            }}
+          />
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* AdSense — loaded lazily to avoid blocking LCP/FCP */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
@@ -166,13 +176,6 @@ export default async function LocaleLayout({
             <CookieBanner />
           </NextIntlClientProvider>
         </ThemeProvider>
-        {ADSENSE_ID && (
-          <Script
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
-            strategy="lazyOnload"
-            crossOrigin="anonymous"
-          />
-        )}
         <Script
           defer
           data-domain="renderhane.com"
@@ -183,7 +186,7 @@ export default async function LocaleLayout({
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
             <Script id="gtag-init" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});gtag('js',new Date());gtag('config','${GA_ID}');(function(){try{if(localStorage.getItem('cookie-consent')==='all'){gtag('consent','update',{analytics_storage:'granted',ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});}}catch(e){}window.addEventListener('cookie-consent',function(e){if(e.detail==='all'){gtag('consent','update',{analytics_storage:'granted',ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});}});})();`}
+              {`gtag('js',new Date());gtag('config','${GA_ID}');(function(){try{if(localStorage.getItem('cookie-consent')==='all'){gtag('consent','update',{analytics_storage:'granted',ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});}}catch(e){}window.addEventListener('cookie-consent',function(e){if(e.detail==='all'){gtag('consent','update',{analytics_storage:'granted',ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});}else if(e.detail==='essential'){gtag('consent','update',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});}});})();`}
             </Script>
           </>
         )}

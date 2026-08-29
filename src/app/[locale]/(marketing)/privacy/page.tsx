@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: t("privacy.intro").slice(0, 160),
     alternates: {
       canonical: `${BASE_URL}/${locale}/privacy`,
-      languages: { tr: `${BASE_URL}/tr/privacy`, en: `${BASE_URL}/en/privacy` },
+      languages: { tr: `${BASE_URL}/tr/privacy`, en: `${BASE_URL}/en/privacy`, "x-default": `${BASE_URL}/tr/privacy` },
     },
   };
 }

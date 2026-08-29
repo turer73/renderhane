@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/arka-plan-kaldirma`,
         en: `${BASE_URL}/en/araclar/arka-plan-kaldirma`,
+        "x-default": `${BASE_URL}/tr/araclar/arka-plan-kaldirma`,
       },
     },
     openGraph: {

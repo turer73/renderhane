@@ -6,6 +6,7 @@ import { FeaturesSection } from "@/components/landing/features";
 import { PricingSection } from "@/components/landing/pricing";
 import { Footer } from "@/components/landing/footer";
 import { DemoSectionLazy } from "@/components/landing/demo-lazy";
+import { AdSenseScript } from "@/components/ads/adsense-script";
 
 export async function generateMetadata({
   params,
@@ -31,7 +32,7 @@ export async function generateMetadata({
         : ["3D model", "product photo", "AI visual", "e-commerce", "game asset", "3D printing", "STL", "PBR", "background removal", "scene generation"],
     alternates: {
       canonical: `/${locale}`,
-      languages: { tr: "/tr", en: "/en" },
+      languages: { tr: "/tr", en: "/en", "x-default": "/tr" },
     },
     openGraph: {
       title,
@@ -47,6 +48,7 @@ export async function generateMetadata({
 export default function MarketingPage() {
   return (
     <div className="flex min-h-screen flex-col">
+      <AdSenseScript />
       <LandingHeader />
       <main className="flex-1">
         <HeroSection />

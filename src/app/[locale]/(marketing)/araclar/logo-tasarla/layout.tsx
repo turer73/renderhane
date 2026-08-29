@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/logo-tasarla`,
         en: `${BASE_URL}/en/araclar/logo-tasarla`,
+        "x-default": `${BASE_URL}/tr/araclar/logo-tasarla`,
       },
     },
     openGraph: {

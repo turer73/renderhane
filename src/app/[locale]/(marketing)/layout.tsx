@@ -1,7 +1,7 @@
 /**
  * Marketing layout — wraps all public pages (landing, blog, tools, legal).
- * AdSense script is in the root layout <head> for Google verification.
- * Ad slots (AdSlot component) are only used in free tool pages.
+ * AdSense is scoped to content routes by their nested layouts. Account
+ * verification metadata remains in the locale root layout.
  */
 export default async function MarketingLayout({
   children,

@@ -19,7 +19,6 @@ const staticPages: { path: string; lastModified: string | null; changeFreq: "wee
   { path: "/terms",   lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/kvkk",    lastModified: "2025-01-15", changeFreq: "monthly", priority: 0.3 },
   { path: "/cookie-policy", lastModified: "2026-03-16", changeFreq: "monthly", priority: 0.3 },
-  { path: "/login",   lastModified: "2026-03-23", changeFreq: "monthly", priority: 0.4 },
   // Free tools — high SEO value
   { path: "/araclar/arka-plan-kaldirma", lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
   { path: "/araclar/qr-kod",            lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
@@ -49,9 +48,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: page.changeFreq,
       priority: page.priority,
       alternates: {
-        languages: Object.fromEntries(
-          locales.map((l) => [l, `${BASE_URL}/${l}${page.path}`])
-        ),
+        languages: Object.fromEntries([
+          ...locales.map((l) => [l, `${BASE_URL}/${l}${page.path}`]),
+          ["x-default", `${BASE_URL}/tr${page.path}`],
+        ]),
       },
     }))
   );
@@ -64,9 +64,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.7,
       alternates: {
-        languages: Object.fromEntries(
-          locales.map((l) => [l, `${BASE_URL}/${l}/blog/${article.slug}`])
-        ),
+        languages: Object.fromEntries([
+          ...locales.map((l) => [l, `${BASE_URL}/${l}/blog/${article.slug}`]),
+          ["x-default", `${BASE_URL}/tr/blog/${article.slug}`],
+        ]),
       },
     }))
   );

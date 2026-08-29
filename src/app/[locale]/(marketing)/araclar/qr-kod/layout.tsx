@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/qr-kod`,
         en: `${BASE_URL}/en/araclar/qr-kod`,
+        "x-default": `${BASE_URL}/tr/araclar/qr-kod`,
       },
     },
     openGraph: {

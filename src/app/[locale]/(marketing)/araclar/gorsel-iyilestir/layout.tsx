@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/gorsel-iyilestir`,
         en: `${BASE_URL}/en/araclar/gorsel-iyilestir`,
+        "x-default": `${BASE_URL}/tr/araclar/gorsel-iyilestir`,
       },
     },
     openGraph: {

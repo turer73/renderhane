@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: t("metaDescription"),
     alternates: {
       canonical: `${BASE_URL}/${locale}/hakkimizda`,
-      languages: { tr: `${BASE_URL}/tr/hakkimizda`, en: `${BASE_URL}/en/hakkimizda` },
+      languages: { tr: `${BASE_URL}/tr/hakkimizda`, en: `${BASE_URL}/en/hakkimizda`, "x-default": `${BASE_URL}/tr/hakkimizda` },
     },
   };
 }
