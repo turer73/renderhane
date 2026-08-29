@@ -97,21 +97,33 @@ function getConfig() {
 // ---------------------------------------------------------------------------
 
 /**
- * Generates the iyzico Authorization header value and the x-iyzi-rnd value.
+ * Generates the current iyzico IYZWSv2 Authorization header and x-iyzi-rnd.
  *
- * Authorization: IYZWS {apiKey}:{hashStr}
- * hashStr = Base64( SHA1( apiKey + randomString + secretKey + requestBody ) )
+ * signature = HMAC-SHA256(randomKey + endpoint + requestBody, secretKey)
+ * Authorization = IYZWSv2 Base64(apiKey:{apiKey}&randomKey:{randomKey}&signature:{signature})
  */
-function generateAuthHeaders(requestBody: string): {
+export function generateAuthHeaders(
+  endpoint: string,
+  requestBody: string,
+  randomString = crypto.randomBytes(16).toString("hex")
+): {
   authorization: string;
   randomString: string;
 } {
   const { apiKey, secretKey } = getConfig();
 
-  const randomString = crypto.randomBytes(8).toString("hex");
-  const hashData = apiKey + randomString + secretKey + requestBody;
-  const sha1Hash = crypto.createHash("sha1").update(hashData).digest("base64");
-  const authorization = `IYZWS ${apiKey}:${sha1Hash}`;
+  if (!endpoint.startsWith("/")) {
+    throw new Error("iyzico endpoint must be an absolute path");
+  }
+
+  const signature = crypto
+    .createHmac("sha256", secretKey)
+    .update(randomString + endpoint + requestBody)
+    .digest("hex");
+  const authorizationPayload =
+    `apiKey:${apiKey}&randomKey:${randomString}&signature:${signature}`;
+  const authorization =
+    `IYZWSv2 ${Buffer.from(authorizationPayload, "utf8").toString("base64")}`;
 
   return { authorization, randomString };
 }
@@ -123,7 +135,10 @@ function generateAuthHeaders(requestBody: string): {
 async function iyzicoPost<T>(endpoint: string, body: object): Promise<T> {
   const { baseUrl } = getConfig();
   const requestBody = JSON.stringify(body);
-  const { authorization, randomString } = generateAuthHeaders(requestBody);
+  const { authorization, randomString } = generateAuthHeaders(
+    endpoint,
+    requestBody
+  );
 
   const response = await fetch(`${baseUrl}${endpoint}`, {
     method: "POST",
