@@ -11,6 +11,22 @@ import path from "path";
 const TEST_IMAGE = path.join(__dirname, "fixtures", "test-image.png");
 
 async function gotoOrSkipAuth(page: import("@playwright/test").Page, urlPath: string) {
+  // Keep UI tests hermetic: selecting a file starts a background Supabase
+  // upload and fal.ai analysis even when the assertion only needs a preview.
+  await page.route("**/storage/v1/object/**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ Key: "test/img.png" }) })
+  );
+  await page.route("**/storage/v1/object/sign/**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ signedUrl: "https://example.com/test.png" }) })
+  );
+  await page.route("**/api/analyze/image", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ caption: "mock product image", tags: [], suggestedTools: [] }),
+    })
+  );
+
   await page.goto(urlPath, { waitUntil: "domcontentloaded", timeout: 25_000 });
   await page.waitForTimeout(2_000);
   if (page.url().includes("/login")) {
@@ -39,9 +55,7 @@ test.describe("Submit — Validation", () => {
   test("workspace design tab: text input present", async ({ page }) => {
     await gotoOrSkipAuth(page, "/tr/app?tool=logo");
 
-    // Logo tab has text inputs (brand name, description)
-    const input = page.locator("textarea, input[type='text']").first();
-    await expect(input).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel("Marka / İşletme Adı")).toBeVisible({ timeout: 10_000 });
   });
 });
 

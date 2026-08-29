@@ -44,27 +44,14 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
       `Script too long (max ${MAX_AVATAR_SCRIPT_CHARS} characters)`
     );
   }
-
-  // Talking-avatar TTS pipeline: convert script text → audio URL
-  if (tool === "talking-avatar" && script && !audioUrl) {
-    const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
-      gen_text: script,
-      model_type: "F5-TTS",
-      ref_audio_url:
-        "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
-      ref_text: "",
-    });
-    const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
-    if (!ttsOutput.audio_url?.url) {
-      return { jobId: "", creditCost: 0, status: "failed", error: "TTS generation failed — no audio produced" };
-    }
-    prompt = ttsOutput.audio_url.url;
-  } else if (tool === "talking-avatar" && audioUrl) {
-    prompt = audioUrl;
+  if (tool === "talking-avatar" && !script && !audioUrl) {
+    throw new Error("Either script or audioUrl is required for talking-avatar");
   }
+  if (tool === "talking-avatar" && audioUrl) prompt = audioUrl;
 
-  // 1. Route to model
-  const { model, input: falInput } = routeRequest({ tool, tier, imageUrl, imageUrls, prompt });
+  // Select and price the model before any paid TTS call. The final provider
+  // input is rebuilt after TTS resolves.
+  const { model } = routeRequest({ tool, tier, imageUrl, imageUrls, prompt });
 
   // 2. Reserve credits
   let txId: string | null = null;
@@ -83,6 +70,37 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
 
   if (creditCost > 0) {
     txId = await reserveCredits(userId, creditCost, `${tool} — ${model.displayName.en}`);
+  }
+
+  let falInput: Record<string, unknown>;
+  try {
+    // Talking-avatar TTS pipeline: reservation must exist before this paid call.
+    if (tool === "talking-avatar" && script && !audioUrl) {
+      const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
+        gen_text: script,
+        model_type: "F5-TTS",
+        ref_audio_url:
+          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
+        ref_text: "",
+      });
+      const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
+      if (!ttsOutput.audio_url?.url) {
+        throw new Error("TTS generation failed — no audio produced");
+      }
+      prompt = ttsOutput.audio_url.url;
+    }
+
+    ({ input: falInput } = routeRequest({
+      tool,
+      tier,
+      imageUrl,
+      imageUrls,
+      prompt,
+    }));
+  } catch (error) {
+    if (txId) await refundCredits(txId);
+    const message = error instanceof Error ? error.message : "TTS generation failed";
+    return { jobId: "", creditCost: 0, status: "failed", error: message };
   }
 
   // 3. Create job record

@@ -1,7 +1,7 @@
 import "server-only";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
-import { Readable } from "stream";
+import { ByteLimitTransform, openPublicDownload } from "@/lib/security/safe-download";
 
 /** Max file size: 500 MB */
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
@@ -48,54 +48,42 @@ export async function uploadToR2(
   userId: string,
   type: "glb" | "image" | "video"
 ): Promise<{ r2Url: string; fileSize: number }> {
-  // 1. Download from fal.ai with timeout
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
-  let response: Response;
+  const download = await openPublicDownload(falUrl, {
+    maxBytes: MAX_FILE_SIZE,
+    timeoutMs: 120_000,
+    maxRedirects: 0,
+    allowedHostname: (hostname) => hostname === "fal.media" || hostname.endsWith(".fal.media"),
+    headers: { "User-Agent": "Renderhane/1.0" },
+  });
+
   try {
-    response = await fetch(falUrl, { signal: controller.signal });
+    const { response } = download;
+    if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+      throw new Error(`Failed to download from fal.ai: ${response.statusCode ?? "unknown"}`);
+    }
+
+    const responseContentType = response.headers["content-type"] || "";
+    const { ext, contentType } = getFileInfo(download.finalUrl.toString(), type, responseContentType);
+    const r2 = getR2();
+    const key = `outputs/${userId}/${randomUUID()}.${ext}`;
+    const boundedStream = response.pipe(new ByteLimitTransform(MAX_FILE_SIZE));
+
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: getBucket(),
+        Key: key,
+        Body: boundedStream,
+        ContentType: contentType,
+        ContentLength: download.contentLength ?? undefined,
+        CacheControl: "public, max-age=31536000, immutable",
+      })
+    );
+
+    const r2Url = `${getPublicUrl()}/${key}`;
+    return { r2Url, fileSize: boundedStream.bytesRead };
   } finally {
-    clearTimeout(timeout);
+    download.close();
   }
-
-  if (!response.ok) {
-    throw new Error(`Failed to download from fal.ai: ${response.status}`);
-  }
-
-  const contentLength = response.headers.get("content-length");
-  const fileSize = contentLength ? parseInt(contentLength, 10) : 0;
-
-  if (fileSize > MAX_FILE_SIZE) {
-    throw new Error(`File too large: ${fileSize} bytes exceeds ${MAX_FILE_SIZE} limit`);
-  }
-
-  // 2. Determine extension and content type from response headers first
-  const responseContentType = response.headers.get("content-type") || "";
-  const { ext, contentType } = getFileInfo(falUrl, type, responseContentType);
-
-  // 3. Upload to R2 — stream directly to avoid OOM on large files
-  const r2 = getR2();
-  const key = `outputs/${userId}/${randomUUID()}.${ext}`;
-
-  const stream = response.body;
-  if (!stream) {
-    throw new Error("No response body stream available");
-  }
-
-  await r2.send(
-    new PutObjectCommand({
-      Bucket: getBucket(),
-      Key: key,
-      Body: Readable.fromWeb(stream as unknown as import("stream/web").ReadableStream),
-      ContentType: contentType,
-      ContentLength: fileSize || undefined,
-      CacheControl: "public, max-age=31536000, immutable",
-    })
-  );
-
-  const r2Url = `${getPublicUrl()}/${key}`;
-
-  return { r2Url, fileSize };
 }
 
 function getFileInfo(

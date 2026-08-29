@@ -3,7 +3,7 @@ import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
-import { validateImageUrl, autoCreateProject } from "@/app/api/jobs/submit/route";
+import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
 
 // Social Kit submits 6 parallel jobs — needs extended timeout
 export const maxDuration = 120;

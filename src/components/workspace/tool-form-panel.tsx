@@ -1943,13 +1943,13 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         {activeTab === "logo" && (
           <>
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Marka / İşletme Adı</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Renderhane" className="mt-1.5 h-8 text-sm bg-background/50" />
+              <Label htmlFor="logo-brand-name" className="text-xs font-medium text-muted-foreground">Marka / İşletme Adı</Label>
+              <Input id="logo-brand-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Renderhane" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Slogan (Opsiyonel)</Label>
-              <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: AI ile görsel üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
+              <Label htmlFor="logo-slogan" className="text-xs font-medium text-muted-foreground">Slogan (Opsiyonel)</Label>
+              <Input id="logo-slogan" value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: AI ile görsel üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
             <div>

@@ -2,20 +2,24 @@
  * E2E Tests: Workspace Tool Categories
  *
  * Tests the workspace UI at /app which replaced the old dashboard.
- * The workspace uses ToolIconSidebar (6 categories) + ToolFormPanel (tabs per category).
+ * The workspace uses ToolIconSidebar (5 functional categories) + ToolFormPanel.
  * There is no longer a ToolGrid with 13 individual tool cards.
  */
 import { test, expect } from "@playwright/test";
 
-// 6 workspace categories from ToolIconSidebar
+// Functional workspace categories from ToolIconSidebar. Batch was removed
+// until its backend is implemented (c3dbad0).
 const TOOL_CATEGORIES = [
   { id: "3d-model", label: "3D" },
   { id: "image", label: "Görüntü" },
   { id: "video", label: "Video" },
   { id: "ecommerce", label: "E-ticaret" },
   { id: "design", label: "Tasarım" },
-  { id: "batch", label: "Toplu" },
 ] as const;
+
+function visibleCategoryButton(page: import("@playwright/test").Page, label: string) {
+  return page.getByRole("button", { name: label, exact: true }).filter({ visible: true });
+}
 
 /**
  * Helper: navigate to workspace, skip if auth is required.
@@ -41,25 +45,19 @@ test.describe("Workspace — Layout", () => {
   test("workspace has tool category buttons", async ({ page }) => {
     await gotoWorkspaceOrSkip(page);
 
-    // ToolIconSidebar renders 6 category buttons
-    // Each button contains an icon + label text (first word of category label)
-    const categoryButtons = page.locator("button").filter({
+    const categoryButtons = page.locator("button:visible").filter({
       hasText: /3D|Görüntü|Video|E-ticaret|Tasarım|Toplu/,
     });
 
     const count = await categoryButtons.count();
-    expect(count).toBeGreaterThanOrEqual(6);
+    expect(count).toBe(TOOL_CATEGORIES.length);
   });
 
-  test("workspace has at least 6 category buttons visible", async ({ page }) => {
+  test("workspace shows every functional category", async ({ page }) => {
     await gotoWorkspaceOrSkip(page);
 
-    // The sidebar should display all 6 categories
     for (const cat of TOOL_CATEGORIES) {
-      const btn = page.locator("button").filter({
-        hasText: new RegExp(cat.label.split(" ")[0]),
-      });
-      await expect(btn.first()).toBeVisible({ timeout: 10_000 });
+      await expect(visibleCategoryButton(page, cat.label)).toBeVisible({ timeout: 10_000 });
     }
   });
 });
@@ -69,17 +67,13 @@ test.describe("Workspace — Category Interaction", () => {
     test(`clicking "${cat.label}" category activates it`, async ({ page }) => {
       await gotoWorkspaceOrSkip(page);
 
-      const btn = page.locator("button").filter({
-        hasText: new RegExp(cat.label.split(" ")[0]),
-      }).first();
+      const btn = visibleCategoryButton(page, cat.label);
 
       await expect(btn).toBeVisible({ timeout: 10_000 });
       await btn.click();
       await page.waitForTimeout(1_000);
 
-      // After click, the button should have the active style (bg-primary/15)
-      const classes = await btn.getAttribute("class");
-      expect(classes).toMatch(/bg-primary/);
+      await expect(btn).toHaveAttribute("aria-pressed", "true");
     });
   }
 });
