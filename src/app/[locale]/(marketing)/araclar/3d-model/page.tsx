@@ -13,9 +13,6 @@ import {
   Rotate3d,
   Scan,
   Download,
-  Printer,
-  Gamepad2,
-  ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
 

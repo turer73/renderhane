@@ -14,8 +14,6 @@ import {
   Film,
   Clapperboard,
   MonitorPlay,
-  ShoppingBag,
-  Share2,
   type LucideIcon,
 } from "lucide-react";
 

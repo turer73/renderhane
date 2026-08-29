@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -38,6 +38,7 @@ export function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "tr";
+  const router = useRouter();
 
   const [balance, setBalance] = useState<number | null>(null);
   const [userInitial, setUserInitial] = useState("U");
@@ -93,7 +94,7 @@ export function WorkspaceHeader({
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = `/${locale}/login`;
+    router.replace(`/${locale}/login`);
   }
 
   const isTr = locale === "tr";

@@ -1,4 +1,4 @@
-import { MODELS, TOOL_MODELS, type ToolType } from "./models";
+import { MODELS, TOOL_MODELS } from "./models";
 
 /* ═══════════════════════════════════════════════
    fal.ai Model Scanner
@@ -48,7 +48,6 @@ const SCAN_CATEGORIES = [
 ];
 
 /** Known fal.ai model page URL patterns for endpoint extraction */
-const FAL_MODEL_URL_PATTERN = /fal\.ai\/models\/([\w-]+(?:\/[\w.-]+)*)/g;
 
 /**
  * Check if a fal.ai model endpoint is reachable.

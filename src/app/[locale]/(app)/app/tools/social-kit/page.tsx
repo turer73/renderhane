@@ -56,7 +56,6 @@ export default function SocialKitPage() {
         return;
       }
 
-      const ext = file.name.split(".").pop() || "jpg";
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${user.id}/${Date.now()}-${safeName}`;
 

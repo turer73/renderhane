@@ -11,11 +11,8 @@ import {
   Box,
   Sparkles,
   LayoutGrid,
-  Layers,
-  ShoppingCart,
   Award,
   TrendingUp,
-  Package,
   type LucideIcon,
 } from "lucide-react";
 

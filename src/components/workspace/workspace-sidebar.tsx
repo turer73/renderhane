@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -66,6 +66,7 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "tr";
+  const router = useRouter();
 
   /* --- State --- */
   const [collapsed, setCollapsed] = useState(() => {
@@ -117,7 +118,7 @@ export function WorkspaceSidebar({
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = `/${locale}/login`;
+    router.replace(`/${locale}/login`);
   }
 
   /* --- Nav items --- */

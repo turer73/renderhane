@@ -361,6 +361,8 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                         onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
                       />
                     ) : (
+                      // Native image is intentional: generated URLs are dynamic and the fallback mutates src.
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                     )}
                     {job.outputType === "glb" && (
@@ -426,6 +428,8 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                 "relative h-10 w-10 rounded-md border border-border/30 overflow-hidden flex-none",
                 job.status === "processing" && "opacity-60"
               )}>
+                {/* Native image is intentional for dynamic generated URLs and mutable fallback src. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={job.thumbnails[0]} alt={job.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                 {job.status === "processing" && (
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
@@ -531,6 +535,8 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
             autoRotate={true}
           />
         ) : (
+          // Native image preserves the original generated asset in the full-screen viewer.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}
             alt={job.name}

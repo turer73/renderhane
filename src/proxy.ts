@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Redirect old /app/tools/<id> → /app/workspace?tool=<id>
   // Keeps backward compat for bookmarks, Google index, shared links.
   // social-kit excluded — it has its own dedicated pipeline page.

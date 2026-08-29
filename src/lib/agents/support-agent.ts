@@ -5,7 +5,6 @@
 
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
-import { creditsConfig } from "@/lib/credits/config";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
