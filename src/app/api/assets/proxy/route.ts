@@ -26,7 +26,7 @@ function isFalMedia(hostname: string): boolean {
   return hostname === "fal.media" || hostname.endsWith(".fal.media");
 }
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.searchParams.get("url");

@@ -39,8 +39,7 @@ export function LandingHeader() {
     } else {
       // Ana sayfa DIŞINDAYIZ (blog/araçlar/legal vb.) → bölüm bu sayfada yok. Ana sayfaya
       // git + hash; tarayıcı yüklenince #id bölümüne kaydırır (önceden: ölü tık, hiçbir şey olmazdı).
-      // assign() (metod) kullan — `location.href =` react-hooks/immutability'e takılır.
-      window.location.assign(`/${locale}/#${id}`);
+      router.push(`/#${id}`, { locale });
     }
   }
 

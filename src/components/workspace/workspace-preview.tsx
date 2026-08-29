@@ -1,8 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { cn } from "@/lib/utils";
-import { Sparkles, Download, RotateCcw, Maximize2, FileBox, FileText, Printer, Image, Scissors, ZoomIn, Wand2, Video, ShoppingBag, Palette, Layers, Film, User, Play, Camera, Shirt, LayoutGrid, Crown, QrCode, FolderUp, FileStack, Box, X, Loader2 } from "lucide-react";
+import { Sparkles, Download, RotateCcw, Maximize2, ImageIcon, Scissors, ZoomIn, Wand2, Video, ShoppingBag, Palette, Layers, Film, User, Play, Camera, Shirt, LayoutGrid, Crown, QrCode, FolderUp, FileStack, Box, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "./workspace-toast";
 import { proxyUrl } from "@/lib/proxy-url";
@@ -142,7 +141,6 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
     const outputType = activeJob.outputType;
     const isVideo = outputType === "video";
     const isGlb = outputType === "glb";
-    const isImageOutput = outputType === "image" || (!isVideo && !isGlb);
 
     const handleDownload = async () => {
       if (!outputUrl) return;
@@ -226,6 +224,8 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
             </div>
           ) : outputUrl ? (
             /* Real image output */
+            // Native image preserves arbitrary generated URLs without optimizer restrictions.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={outputUrl}
               alt={activeJob.name}
@@ -234,6 +234,8 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
             />
           ) : activeJob.thumbnail ? (
             /* Fallback to thumbnail (SVG placeholder) */
+            // Native image supports data/blob fallback thumbnails.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={activeJob.thumbnail}
               alt={activeJob.name}
@@ -335,7 +337,7 @@ const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc
             <Wand2 className="h-6 w-6 text-primary" />
           </div>
           <div className="h-12 w-12 rounded-xl bg-primary/25 flex items-center justify-center shadow-lg shadow-primary/10">
-            <Image className="h-6 w-6 text-primary" />
+            <ImageIcon className="h-6 w-6 text-primary" />
           </div>
         </div>
       ),

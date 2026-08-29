@@ -14,7 +14,6 @@ import {
   Sparkles,
   Scissors,
   Palette,
-  Box,
   Zap,
   Shield,
   type LucideIcon,

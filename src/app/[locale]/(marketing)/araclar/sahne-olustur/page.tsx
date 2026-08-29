@@ -13,8 +13,6 @@ import {
   Image as ImageIcon,
   Layers,
   Wand2,
-  ShoppingBag,
-  Palette,
   Camera,
   type LucideIcon,
 } from "lucide-react";

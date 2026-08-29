@@ -14,9 +14,7 @@ import {
   Download,
   Layers,
   PenTool,
-  Box,
   Zap,
-  Shield,
   type LucideIcon,
 } from "lucide-react";
 

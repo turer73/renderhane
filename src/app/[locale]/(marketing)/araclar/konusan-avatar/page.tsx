@@ -14,9 +14,7 @@ import {
   User,
   Languages,
   Clapperboard,
-  Box,
   Zap,
-  Shield,
   type LucideIcon,
 } from "lucide-react";
 

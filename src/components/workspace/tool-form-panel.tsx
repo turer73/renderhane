@@ -10,7 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import {
-  Upload,
   X,
   Sparkles,
   Clock,
@@ -27,19 +26,16 @@ import {
   Palette,
   Eraser,
   Maximize2,
-  SunMedium,
   Video,
   Film,
   User,
   Mic,
-  ShoppingBag,
   Camera,
   Shirt,
   LayoutGrid,
   QrCode,
   Crown,
   FolderUp,
-  FileStack,
 } from "lucide-react";
 import { showToast } from "./workspace-toast";
 import type { PromptContext } from "@/lib/prompts/presets";
@@ -400,13 +396,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [aplusPlatform, setAplusPlatform] = useState("trendyol");
   const [aplusProductDesc, setAplusProductDesc] = useState("");
   // Upload state
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [promptText, setPromptText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const modelFileInputRef = useRef<HTMLInputElement>(null);
   const modelCameraInputRef = useRef<HTMLInputElement>(null);
 
   // Logo-specific state
@@ -898,6 +893,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       >
         {preview ? (
           <div className="relative w-full h-[140px]">
+            {/* Native image is intentional for a local object URL preview. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview} alt="Yüklenen görsel" className="w-full h-full object-contain rounded-lg" />
             <button
               onClick={(e) => { e.stopPropagation(); if (preview) URL.revokeObjectURL(preview); setPreview(null); setUploadedFile(null); setUploadedImageUrl(null); setAnalysisResult(null); }}
@@ -1848,6 +1845,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
               >
                 {modelPhotoPreview ? (
                   <div className="relative w-full h-[100px]">
+                    {/* Native image is intentional for a local object URL preview. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={modelPhotoPreview} alt="Model fotoğrafı" className="w-full h-full object-contain rounded-lg" />
                     <button
                       onClick={(e) => {

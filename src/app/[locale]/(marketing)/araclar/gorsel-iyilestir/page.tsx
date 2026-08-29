@@ -13,9 +13,7 @@ import {
   ZoomIn,
   Focus,
   Palette,
-  ShoppingBag,
   ImageUp,
-  Brush,
   type LucideIcon,
 } from "lucide-react";
 

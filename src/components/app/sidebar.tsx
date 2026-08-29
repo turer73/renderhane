@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslations } from "next-intl";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
+  const router = useRouter();
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userInitial, setUserInitial] = useState("U");
@@ -83,7 +84,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = `/${locale}/login`;
+    router.replace(`/${locale}/login`);
   }
 
   const isOnAdmin = pathname.startsWith(`/${locale}/app/admin`);
@@ -134,9 +135,6 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     if (href === "#") return false;
     return pathname.startsWith(href);
   }
-
-  const isDashboard =
-    pathname === `/${locale}/app` || pathname === `/${locale}/app/`;
 
   const creditPercent =
     balance !== null ? Math.min(100, (balance / maxCredits) * 100) : 0;

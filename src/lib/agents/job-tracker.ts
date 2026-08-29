@@ -4,7 +4,6 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
-import { jobStatusConfig } from "@/lib/jobs/config";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -221,7 +220,7 @@ export async function processJobWebhook(
   }
   
   if (status === "failed") {
-    await sendJobNotification(jobId, "failed", data.error_message);
+    await sendJobNotification(jobId, "failed");
   }
 }
 
@@ -230,8 +229,7 @@ export async function processJobWebhook(
  */
 async function sendJobNotification(
   jobId: string,
-  status: "completed" | "failed",
-  errorMessage?: string
+  status: "completed" | "failed"
 ) {
   const supabase = await createClient();
   
