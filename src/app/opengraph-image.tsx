@@ -25,7 +25,6 @@ export default function OGImage() {
           color: "white",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cube} width={104} height={104} alt="" style={{ marginBottom: 24 }} />
         <div
           style={{

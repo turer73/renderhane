@@ -23,7 +23,6 @@ export default function AppleIcon() {
           borderRadius: 36,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cube} width={130} height={130} alt="" />
       </div>
     ),
