@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: t("cookiePolicy.intro").slice(0, 160),
     alternates: {
       canonical: `${BASE_URL}/${locale}/cookie-policy`,
-      languages: { tr: `${BASE_URL}/tr/cookie-policy`, en: `${BASE_URL}/en/cookie-policy` },
+      languages: { tr: `${BASE_URL}/tr/cookie-policy`, en: `${BASE_URL}/en/cookie-policy`, "x-default": `${BASE_URL}/tr/cookie-policy` },
     },
   };
 }

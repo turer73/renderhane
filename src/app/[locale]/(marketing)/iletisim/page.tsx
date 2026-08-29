@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: t("metaDescription"),
     alternates: {
       canonical: `${BASE_URL}/${locale}/iletisim`,
-      languages: { tr: `${BASE_URL}/tr/iletisim`, en: `${BASE_URL}/en/iletisim` },
+      languages: { tr: `${BASE_URL}/tr/iletisim`, en: `${BASE_URL}/en/iletisim`, "x-default": `${BASE_URL}/tr/iletisim` },
     },
   };
 }

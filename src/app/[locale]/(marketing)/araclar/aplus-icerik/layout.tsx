@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/aplus-icerik`,
         en: `${BASE_URL}/en/araclar/aplus-icerik`,
+        "x-default": `${BASE_URL}/tr/araclar/aplus-icerik`,
       },
     },
     openGraph: {

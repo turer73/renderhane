@@ -4,7 +4,6 @@ import { useCallback, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AdSlot } from "@/components/ads/ad-slot";
 import {
   ArrowRight,
   Upload,
@@ -346,9 +345,6 @@ export default function PublicBgRemovePage() {
           </div>
         </div>
 
-        {/* Ad Slot — Top Banner */}
-        <AdSlot slot="bg-remove-top" format="horizontal" className="mb-8" />
-
         {/* Feature Cards */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:mb-12 sm:grid-cols-4 sm:gap-4">
           {features.map((f, i) => (
@@ -389,10 +385,6 @@ export default function PublicBgRemovePage() {
             </div>
           </div>
 
-          {/* Sidebar Ad */}
-          <div className="hidden lg:block">
-            <AdSlot slot="bg-remove-sidebar" format="rectangle" className="sticky top-20" />
-          </div>
         </div>
 
         {/* Upsell CTA */}
@@ -428,9 +420,6 @@ export default function PublicBgRemovePage() {
             </div>
           </div>
         </div>
-
-        {/* Bottom Ad */}
-        <AdSlot slot="bg-remove-bottom" format="horizontal" className="mb-12" />
 
         {/* SEO Content */}
         <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">

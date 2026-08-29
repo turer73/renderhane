@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/video-olustur`,
         en: `${BASE_URL}/en/araclar/video-olustur`,
+        "x-default": `${BASE_URL}/tr/araclar/video-olustur`,
       },
     },
     openGraph: {

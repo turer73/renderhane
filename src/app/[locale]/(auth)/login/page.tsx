@@ -20,7 +20,7 @@ export async function generateMetadata({
   return {
     title: `${t("login")} — ${t("appName")}`,
     description,
-    robots: { index: true, follow: true },
+    robots: { index: false, follow: false },
     alternates: {
       canonical: `${BASE_URL}/${locale}/login`,
       languages: { tr: `${BASE_URL}/tr/login`, en: `${BASE_URL}/en/login` },

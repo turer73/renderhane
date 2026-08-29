@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/gorsel-duzenle`,
         en: `${BASE_URL}/en/araclar/gorsel-duzenle`,
+        "x-default": `${BASE_URL}/tr/araclar/gorsel-duzenle`,
       },
     },
     openGraph: {

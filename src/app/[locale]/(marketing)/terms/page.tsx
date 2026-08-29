@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: t("terms.intro").slice(0, 160),
     alternates: {
       canonical: `${BASE_URL}/${locale}/terms`,
-      languages: { tr: `${BASE_URL}/tr/terms`, en: `${BASE_URL}/en/terms` },
+      languages: { tr: `${BASE_URL}/tr/terms`, en: `${BASE_URL}/en/terms`, "x-default": `${BASE_URL}/tr/terms` },
     },
   };
 }

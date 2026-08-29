@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/sosyal-medya-paketi`,
         en: `${BASE_URL}/en/araclar/sosyal-medya-paketi`,
+        "x-default": `${BASE_URL}/tr/araclar/sosyal-medya-paketi`,
       },
     },
     openGraph: {

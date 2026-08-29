@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/sahne-olustur`,
         en: `${BASE_URL}/en/araclar/sahne-olustur`,
+        "x-default": `${BASE_URL}/tr/araclar/sahne-olustur`,
       },
     },
     openGraph: {

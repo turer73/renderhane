@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AdSlot } from "@/components/ads/ad-slot";
 import {
   ArrowRight,
   Star,
@@ -132,8 +131,6 @@ export default function PublicTextToImagePage() {
         </p>
       </section>
 
-      <AdSlot slot="tool-hero" format="horizontal" className="mb-8" />
-
       {/* Features grid (3 col) */}
       <section className="mb-12 grid gap-6 sm:grid-cols-3">
         {features.map((f, i) => (
@@ -186,8 +183,6 @@ export default function PublicTextToImagePage() {
         </div>
       </section>
 
-      <AdSlot slot="tool-mid" format="horizontal" className="mb-8" />
-
       {/* Pricing hint */}
       <section className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 text-center sm:p-8">
         <Sparkles className="mx-auto mb-3 size-8 text-emerald-500" />
@@ -235,7 +230,6 @@ export default function PublicTextToImagePage() {
         </div>
       </div>
 
-      <AdSlot slot="tool-bottom" format="horizontal" />
     </main>
   );
 }

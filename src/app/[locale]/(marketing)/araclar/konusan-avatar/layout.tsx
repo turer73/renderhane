@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/konusan-avatar`,
         en: `${BASE_URL}/en/araclar/konusan-avatar`,
+        "x-default": `${BASE_URL}/tr/araclar/konusan-avatar`,
       },
     },
     openGraph: {

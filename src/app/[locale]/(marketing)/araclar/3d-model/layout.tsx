@@ -27,6 +27,7 @@ export async function generateMetadata({
       languages: {
         tr: `${BASE_URL}/tr/araclar/3d-model`,
         en: `${BASE_URL}/en/araclar/3d-model`,
+        "x-default": `${BASE_URL}/tr/araclar/3d-model`,
       },
     },
     openGraph: {
