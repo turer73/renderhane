@@ -1,6 +1,13 @@
 import { lookup as dnsLookup } from "node:dns/promises";
-import { request as httpRequest, type IncomingMessage, type RequestOptions } from "node:http";
-import { request as httpsRequest } from "node:https";
+import {
+  request as httpRequest,
+  type IncomingMessage,
+  type RequestOptions as HttpRequestOptions,
+} from "node:http";
+import {
+  request as httpsRequest,
+  type RequestOptions as HttpsRequestOptions,
+} from "node:https";
 import { isIP } from "node:net";
 import { Transform, type TransformCallback } from "node:stream";
 
@@ -182,8 +189,15 @@ async function validateAndResolve(
     throw new UnsafeDownloadUrlError("Invalid URL");
   }
 
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-    throw new UnsafeDownloadUrlError("Only credential-free HTTP(S) URLs are allowed");
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.port
+  ) {
+    throw new UnsafeDownloadUrlError(
+      "Only credential-free HTTP(S) URLs on standard ports are allowed"
+    );
   }
 
   const hostname = normalizeHostname(url.hostname);
@@ -202,16 +216,30 @@ function requestPinned(
   headers: Record<string, string>
 ): Promise<IncomingMessage> {
   const selected = addresses[0];
-  const lookup: NonNullable<RequestOptions["lookup"]> = (_hostname, _options, callback) => {
-    callback(null, selected.address, selected.family);
+  const requestOptions: HttpRequestOptions = {
+    protocol: url.protocol,
+    hostname: selected.address,
+    family: selected.family,
+    port: url.protocol === "https:" ? 443 : 80,
+    method: "GET",
+    path: `${url.pathname}${url.search}`,
+    headers: {
+      ...headers,
+      Host: url.host,
+    },
+    signal,
   };
 
   return new Promise((resolve, reject) => {
-    const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(url, {
-      headers,
-      lookup,
-      signal,
-    }, resolve);
+    const request = url.protocol === "https:"
+      ? httpsRequest(
+          {
+            ...requestOptions,
+            servername: url.hostname,
+          } satisfies HttpsRequestOptions,
+          resolve
+        )
+      : httpRequest(requestOptions, resolve);
     request.once("error", reject);
     request.end();
   });
