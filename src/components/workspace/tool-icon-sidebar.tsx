@@ -7,7 +7,6 @@ import {
   Video,
   ShoppingBag,
   Palette,
-  Eraser,
 } from "lucide-react";
 import {
   Tooltip,
@@ -89,6 +88,8 @@ export function ToolIconSidebar({
               <Tooltip key={category.id}>
                 <TooltipTrigger asChild>
                   <button
+                    type="button"
+                    aria-pressed={isActive}
                     onClick={() => onToolChange(category.id)}
                     className={cn(
                       "relative flex items-center justify-center gap-1 rounded-xl transition-all duration-200",

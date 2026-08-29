@@ -2,7 +2,7 @@ import { getAIProvider } from "@/lib/ai";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { validateImageUrl } from "@/app/api/jobs/submit/route";
+import { validateImageUrl } from "@/lib/jobs/api-helpers";
 
 export const maxDuration = 30;
 

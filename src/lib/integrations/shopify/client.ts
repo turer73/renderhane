@@ -31,15 +31,42 @@ interface ShopifyProductsResponse {
   products: ShopifyProduct[];
 }
 
+const SHOPIFY_DOMAIN_PATTERN =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.myshopify\.com$/;
+
+export function normalizeShopDomain(shopDomain: string): string {
+  const input = shopDomain.trim().toLowerCase();
+  const candidate = input.includes("://") ? input : `https://${input}`;
+  let url: URL;
+
+  try {
+    url = new URL(candidate);
+  } catch {
+    throw new Error("Invalid Shopify store domain");
+  }
+
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.port ||
+    (url.pathname !== "/" && url.pathname !== "") ||
+    url.search ||
+    url.hash ||
+    !SHOPIFY_DOMAIN_PATTERN.test(url.hostname)
+  ) {
+    throw new Error("Shopify store must use a valid *.myshopify.com domain");
+  }
+
+  return url.hostname;
+}
+
 export class ShopifyClient {
   private baseUrl: string;
   private headers: Record<string, string>;
 
   constructor(shopDomain: string, accessToken: string) {
-    // Normalize domain
-    const domain = shopDomain
-      .replace(/^https?:\/\//, "")
-      .replace(/\/$/, "");
+    const domain = normalizeShopDomain(shopDomain);
 
     this.baseUrl = `https://${domain}/admin/api/2024-01`;
     this.headers = {
@@ -74,9 +101,18 @@ export class ShopifyClient {
     products: ShopifyProduct[];
     nextPageInfo: string | null;
   }> {
-    let url = `${this.baseUrl}/products.json?limit=${limit}&fields=id,title,handle,images,image`;
+    const safeLimit = Number.isInteger(limit)
+      ? Math.min(Math.max(limit, 1), 250)
+      : 50;
+    const url = new URL(`${this.baseUrl}/products.json`);
+    url.searchParams.set("limit", String(safeLimit));
     if (pageInfo) {
-      url = `${this.baseUrl}/products.json?limit=${limit}&page_info=${pageInfo}`;
+      if (pageInfo.length > 4096) {
+        throw new Error("Invalid Shopify pagination token");
+      }
+      url.searchParams.set("page_info", pageInfo);
+    } else {
+      url.searchParams.set("fields", "id,title,handle,images,image");
     }
 
     const res = await fetch(url, { headers: this.headers });
@@ -90,8 +126,17 @@ export class ShopifyClient {
     const linkHeader = res.headers.get("link");
     let nextPageInfo: string | null = null;
     if (linkHeader) {
-      const nextMatch = linkHeader.match(/<[^>]*page_info=([^&>]+)[^>]*>;\s*rel="next"/);
-      if (nextMatch) nextPageInfo = nextMatch[1];
+      const nextLink = linkHeader
+        .split(",")
+        .find((part) => /;\s*rel="next"\s*$/.test(part));
+      const nextUrl = nextLink?.match(/<([^>]+)>/)?.[1];
+      if (nextUrl) {
+        try {
+          nextPageInfo = new URL(nextUrl).searchParams.get("page_info");
+        } catch {
+          nextPageInfo = null;
+        }
+      }
     }
 
     return { products: data.products, nextPageInfo };

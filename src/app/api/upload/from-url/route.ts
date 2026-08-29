@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import {
+  DownloadTooLargeError,
+  openPublicDownload,
+  readResponseBuffer,
+  UnsafeDownloadUrlError,
+} from "@/lib/security/safe-download";
 import crypto from "crypto";
 
 // External image download can be slow
@@ -50,44 +56,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "url is required" }, { status: 400 });
   }
 
-  // Validate URL format
+  let download: Awaited<ReturnType<typeof openPublicDownload>> | null = null;
   try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
-    // Block private/internal addresses. NOTE: only 172.16-31 is private
-    // (RFC1918) — blocking all of 172.x would reject legit public hosts.
-    const h = parsed.hostname;
-    const oct2 = h.startsWith("172.") ? parseInt(h.split(".")[1], 10) : -1;
-    if (
-      h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" ||
-      h.startsWith("10.") || h.startsWith("192.168.") ||
-      (oct2 >= 16 && oct2 <= 31) ||
-      h === "169.254.169.254" || h.endsWith(".internal") || h === "[::1]"
-    ) {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
-  } catch {
-    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-  }
-
-  // Download image server-side (no CORS issues)
-  try {
-    const res = await fetch(url, {
+    download = await openPublicDownload(url, {
+      maxBytes: MAX_SIZE,
+      timeoutMs: 15_000,
+      maxRedirects: 3,
       headers: { "User-Agent": "Renderhane/1.0" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(15000),
     });
+    const res = download.response;
 
-    if (!res.ok) {
+    if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
       return NextResponse.json(
         { error: "Failed to download image" },
         { status: 422 }
       );
     }
 
-    const contentType = res.headers.get("content-type")?.split(";")[0] || "";
+    const contentType = res.headers["content-type"]?.split(";")[0] || "";
     if (!ALLOWED_TYPES.includes(contentType)) {
       return NextResponse.json(
         { error: "URL must point to an image (jpg, png, webp)" },
@@ -95,13 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const buffer = await res.arrayBuffer();
-    if (buffer.byteLength > MAX_SIZE) {
-      return NextResponse.json(
-        { error: "Image too large (max 10 MB)" },
-        { status: 422 }
-      );
-    }
+    const buffer = await readResponseBuffer(res, MAX_SIZE);
 
     // Upload to Supabase storage
     const ext = contentType.split("/")[1] || "jpg";
@@ -132,7 +112,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ signedUrl: signedUrlData.signedUrl });
   } catch (err) {
+    if (err instanceof UnsafeDownloadUrlError) {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+    }
+    if (err instanceof DownloadTooLargeError) {
+      return NextResponse.json(
+        { error: "Image too large (max 10 MB)" },
+        { status: 422 }
+      );
+    }
     const message = err instanceof Error ? err.message : "Download failed";
     return NextResponse.json({ error: message }, { status: 500 });
+  } finally {
+    download?.close();
   }
 }

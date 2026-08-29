@@ -1,11 +1,10 @@
-import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { MODELS, MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
 import { NextRequest, NextResponse } from "next/server";
-import { validateImageUrl, autoCreateProject } from "@/app/api/jobs/submit/route";
+import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
 
 // TTS (~5s) + video submission — needs extended timeout
 export const maxDuration = 60;
@@ -40,6 +39,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { imageUrl, script, audioUrl } = body;
+  const scriptText = typeof script === "string" && script.trim() ? script : undefined;
+  const audioUrlText = typeof audioUrl === "string" && audioUrl.trim() ? audioUrl : undefined;
 
   // Validate avatar image
   const urlError = validateImageUrl(imageUrl);
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Need either script text or audio URL
-  if (!script && !audioUrl) {
+  if (!scriptText && !audioUrlText) {
     return NextResponse.json(
       { error: "Either script text or audio URL is required" },
       { status: 400 }
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   // Avatar videosu SES SÜRESİYLE ücretlendirilir ($0.16/sn) — sınırsız script
   // sınırsız maliyet demek; sabit kredi fiyatı ~10sn varsayımına dayanır.
-  if (typeof script === "string" && script.length > MAX_AVATAR_SCRIPT_CHARS) {
+  if (scriptText && scriptText.length > MAX_AVATAR_SCRIPT_CHARS) {
     return NextResponse.json(
       {
         error: `Script too long (max ${MAX_AVATAR_SCRIPT_CHARS} characters)`,
@@ -80,30 +81,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let resolvedAudioUrl = audioUrl as string | undefined;
-
-    // Step 1: If user provided text script, generate TTS audio first
-    if (script && typeof script === "string" && !resolvedAudioUrl) {
-      const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
-        gen_text: script,
-        model_type: "F5-TTS",
-        // Default reference audio for voice cloning — neutral English speaker
-        ref_audio_url:
-          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
-        ref_text: "",
-      });
-
-      const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
-      if (ttsOutput.audio_url?.url) {
-        resolvedAudioUrl = ttsOutput.audio_url.url;
-      } else {
-        return NextResponse.json(
-          { error: "TTS generation failed — no audio produced" },
-          { status: 500 }
-        );
-      }
-    }
-
     // Auto-create project
     const resolvedProjectId = await autoCreateProject(
       user.id,
@@ -111,14 +88,15 @@ export async function POST(request: NextRequest) {
       imageUrl as string
     );
 
-    // Step 2: Submit OmniHuman video job with audio
+    // submitJob owns the atomic reserve -> optional TTS -> video ordering.
     const result = await submitJob({
       userId: user.id,
       projectId: resolvedProjectId,
       tool: "talking-avatar",
       imageUrl: imageUrl as string,
-      // Pass audio URL via prompt field (will be handled in smart router override)
-      prompt: resolvedAudioUrl,
+      script: scriptText,
+      audioUrl: audioUrlText,
+      userEmail: user.email,
     });
 
     return NextResponse.json(result);

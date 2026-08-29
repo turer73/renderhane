@@ -23,13 +23,63 @@ interface RouteResult {
   input: Record<string, unknown>;
 }
 
+interface SafeLogoExtraParams {
+  outputFormat?: "png" | "svg";
+  style?: "logo" | "digital_illustration";
+  colors?: Array<{ rgb: { r: number; g: number; b: number } }>;
+}
+
+function validateExtraParams(
+  tool: ToolType,
+  extraParams?: Record<string, unknown>
+): SafeLogoExtraParams | undefined {
+  if (!extraParams) return undefined;
+  if (tool !== "logo") {
+    throw new Error(`extraParams are not supported for tool "${tool}"`);
+  }
+
+  const allowedKeys = new Set(["outputFormat", "style", "colors"]);
+  const unknownKey = Object.keys(extraParams).find((key) => !allowedKeys.has(key));
+  if (unknownKey) {
+    throw new Error(`Unsupported logo parameter: ${unknownKey}`);
+  }
+
+  const { outputFormat, style, colors } = extraParams;
+  if (outputFormat !== undefined && outputFormat !== "png" && outputFormat !== "svg") {
+    throw new Error("Invalid logo outputFormat");
+  }
+  if (style !== undefined && style !== "logo" && style !== "digital_illustration") {
+    throw new Error("Invalid logo style");
+  }
+  if (colors !== undefined) {
+    if (!Array.isArray(colors) || colors.length > 3) {
+      throw new Error("Logo colors must contain at most 3 RGB colors");
+    }
+    for (const color of colors) {
+      const rgb = (color as { rgb?: Record<string, unknown> } | null)?.rgb;
+      if (!rgb || Object.keys(rgb).some((key) => !["r", "g", "b"].includes(key))) {
+        throw new Error("Invalid logo RGB color");
+      }
+      for (const channel of ["r", "g", "b"] as const) {
+        const value = rgb[channel];
+        if (!Number.isInteger(value) || (value as number) < 0 || (value as number) > 255) {
+          throw new Error("Logo RGB channels must be integers from 0 to 255");
+        }
+      }
+    }
+  }
+
+  return { outputFormat, style, colors } as SafeLogoExtraParams;
+}
+
 export function routeRequest(request: RouteRequest): RouteResult {
   const { tool, tier = "standard", imageUrl, imageUrls, prompt, extraParams } = request;
+  const safeExtraParams = validateExtraParams(tool, extraParams);
 
   const imageCount = imageUrls?.length ?? (imageUrl ? 1 : 0);
   const modelKey = request.modelKey && MODELS[request.modelKey]
     ? request.modelKey
-    : selectModel(tool, tier, imageCount, extraParams);
+    : selectModel(tool, tier, imageCount, safeExtraParams);
   const model = MODELS[modelKey];
 
   const input: Record<string, unknown> = {
@@ -80,11 +130,13 @@ export function routeRequest(request: RouteRequest): RouteResult {
     input["audio_url"] = prompt;
   }
 
-  // Merge tool-specific API params from extraParams (e.g. Recraft style, colors).
-  // Meta keys like outputFormat are consumed by selectModel — strip them here.
-  if (extraParams) {
-    const { outputFormat: _meta, ...apiParams } = extraParams;
-    Object.assign(input, apiParams);
+  // Only the validated, fixed-cost logo fields may reach fal.ai. outputFormat
+  // is metadata used above to select the correctly-priced raster/vector model.
+  if (safeExtraParams?.style) {
+    input.style = safeExtraParams.style;
+  }
+  if (safeExtraParams?.colors) {
+    input.colors = safeExtraParams.colors;
   }
 
   // Clean up _unused placeholder key — fal.ai rejects unknown params
@@ -93,7 +145,7 @@ export function routeRequest(request: RouteRequest): RouteResult {
   return { model, modelKey, input };
 }
 
-function selectModel(tool: ToolType, tier: ModelTier, imageCount: number, extraParams?: Record<string, unknown>): string {
+function selectModel(tool: ToolType, tier: ModelTier, imageCount: number, extraParams?: SafeLogoExtraParams): string {
   switch (tool) {
     case "3d-model":
       // Text-only → Meshy 6 text-to-3d (with rigging support)

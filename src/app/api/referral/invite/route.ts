@@ -5,6 +5,24 @@ import { buildReferralInviteEmail } from "@/lib/email/templates/referral-invite"
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
+function isValidInviteEmail(email: string): boolean {
+  if (email.length > 254 || email.length < 3) return false;
+  if ([...email].some((character) => character.trim() === "")) return false;
+
+  const separator = email.indexOf("@");
+  if (separator <= 0 || separator !== email.lastIndexOf("@") || separator > 64) {
+    return false;
+  }
+
+  const domain = email.slice(separator + 1);
+  return (
+    domain.length >= 3 &&
+    domain.includes(".") &&
+    !domain.startsWith(".") &&
+    !domain.endsWith(".")
+  );
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -29,7 +47,7 @@ export async function POST(request: NextRequest) {
   const email = body.email?.trim().toLowerCase();
   const locale = (body.locale === "en" ? "en" : "tr") as "tr" | "en";
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || !isValidInviteEmail(email)) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
 

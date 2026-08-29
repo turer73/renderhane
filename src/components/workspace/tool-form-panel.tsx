@@ -166,11 +166,11 @@ const LOGO_COLOR_PALETTE = [
   { hex: "#14b8a6", label: "Teal" },
 ];
 
-function hexToRgb(hex: string): [number, number, number] {
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  return [r, g, b];
+  return { r, g, b };
 }
 
 const TABS_3D = [
@@ -1943,13 +1943,13 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         {activeTab === "logo" && (
           <>
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Marka / İşletme Adı</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Renderhane" className="mt-1.5 h-8 text-sm bg-background/50" />
+              <Label htmlFor="logo-brand-name" className="text-xs font-medium text-muted-foreground">Marka / İşletme Adı</Label>
+              <Input id="logo-brand-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="ör: Renderhane" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
             <div>
-              <Label className="text-xs font-medium text-muted-foreground">Slogan (Opsiyonel)</Label>
-              <Input value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: AI ile görsel üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
+              <Label htmlFor="logo-slogan" className="text-xs font-medium text-muted-foreground">Slogan (Opsiyonel)</Label>
+              <Input id="logo-slogan" value={promptText} onChange={(e) => setPromptText(e.target.value)} placeholder="ör: AI ile görsel üretimi" className="mt-1.5 h-8 text-sm bg-background/50" />
             </div>
 
             <div>

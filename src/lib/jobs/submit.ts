@@ -6,7 +6,7 @@ import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { composeSmartPrompt } from "@/lib/prompts/compose";
 import type { PromptContext } from "@/lib/prompts/presets";
-import type { ToolType, ModelTier } from "@/lib/fal/models";
+import { MAX_AVATAR_SCRIPT_CHARS, type ToolType, type ModelTier } from "@/lib/fal/models";
 
 /** Tools whose final prompt is composed server-side from structured context. */
 const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
@@ -77,6 +77,10 @@ interface SubmitJobInput {
   imageUrls?: string[];
   /** Optional user-provided text prompt (scene description, video prompt, etc.) */
   prompt?: string;
+  /** Text script for talking-avatar TTS. Reserved as part of the avatar job cost. */
+  script?: string;
+  /** Pre-generated audio URL for talking-avatar. Skips TTS when provided. */
+  audioUrl?: string;
   /** Auto-enhance input images via aura-sr before 3D generation */
   autoEnhance?: boolean;
   /** Opt out of the automatic background removal for 3D models (keep original background) */
@@ -97,23 +101,12 @@ export async function submitJob(input: SubmitJobInput) {
   let imageUrls = input.imageUrls;
   const supabase = createAdminClient();
 
-  // 0. Auto bg-remove for 3D models — clean backgrounds improve TRELLIS quality.
-  //    Users can opt out (skipBgRemove) to keep the original background.
-  if (tool === "3d-model" && !input.skipBgRemove) {
-    if (imageUrls && imageUrls.length > 0) {
-      imageUrls = await removeBackgrounds(imageUrls);
-    } else if (imageUrl) {
-      [imageUrl] = await removeBackgrounds([imageUrl]);
-    }
-  }
-
-  // 0b. Auto-enhance for 3D models — aura-sr upscale improves detail for 3D generation
-  if (tool === "3d-model" && autoEnhance) {
-    if (imageUrls && imageUrls.length > 0) {
-      imageUrls = await enhanceImages(imageUrls);
-    } else if (imageUrl) {
-      [imageUrl] = await enhanceImages([imageUrl]);
-    }
+  if (
+    tool === "talking-avatar" &&
+    input.script &&
+    input.script.length > MAX_AVATAR_SCRIPT_CHARS
+  ) {
+    throw new Error(`Script too long (max ${MAX_AVATAR_SCRIPT_CHARS} characters)`);
   }
 
   // 0d. QR Code: the user's text is the DATA to encode. Generate a real,
@@ -136,23 +129,11 @@ export async function submitJob(input: SubmitJobInput) {
       "intricate ornate artistic pattern, vibrant colors, high detail, masterpiece, sharp focus";
   }
 
-  // 0c. Smart prompt composition (hybrid: preset backbone + LLM blend) for
-  // scene / aplus / image-edit. The SITE builds the final prompt from the
-  // scene type + auto-detected product caption + user notes. Never throws and
-  // falls back to the deterministic backbone, so generation is never blocked.
-  let effectivePrompt = qrStylePrompt ?? prompt;
+  // Select the model and calculate the complete charge before any paid
+  // preprocessing call. The final fal input is rebuilt after preprocessing.
+  let effectivePrompt = qrStylePrompt ?? input.audioUrl ?? prompt;
   const usedSmartPrompt = Boolean(input.promptContext && SMART_PROMPT_TOOLS.includes(tool));
-  if (usedSmartPrompt) {
-    effectivePrompt = await composeSmartPrompt({
-      tool: tool as "scene" | "aplus" | "image-edit",
-      modelKey: input.modelKey,
-      ctx: input.promptContext!,
-      userText: prompt,
-    });
-  }
-
-  // 1. Route to correct model
-  const { model, input: falInput } = routeRequest({
+  const { model } = routeRequest({
     tool,
     tier,
     modelKey: input.modelKey,
@@ -162,10 +143,17 @@ export async function submitJob(input: SubmitJobInput) {
     extraParams: input.extraParams,
   });
 
-  // 2. Check free bg-remove eligibility BEFORE reserving credits
+  // Check free/admin eligibility and reserve BEFORE paid preprocessing.
   let txId: string | null = null;
-  // Add auto-enhance cost (+4 per image) to the base model cost
-  let creditCost = model.creditCost + (autoEnhance ? 4 : 0);
+  const sourceImageCount = input.imageUrls?.length
+    ? input.imageUrls.length
+    : input.imageUrl
+      ? 1
+      : 0;
+  const enhanceCost = tool === "3d-model" && autoEnhance
+    ? sourceImageCount * 4
+    : 0;
+  let creditCost = model.creditCost + enhanceCost;
 
   // Admin (ADMIN_EMAILS allowlist) → sınırsız kullanım: krediyi sıfırla, rezervasyonu atla.
   try {
@@ -188,22 +176,15 @@ export async function submitJob(input: SubmitJobInput) {
     }
   }
 
-  if (creditCost > 0) {
-    txId = await reserveCredits(
-      userId,
-      creditCost,
-      `${tool} — ${model.displayName.en}`
-    );
-  }
-
-  // 3. Create job record
-  // Store original request params (pre-processing) for reliable regeneration.
-  // input_params has fal.ai-routed URLs (may expire); original_request has user's uploads.
+  // Persist a pending job before reserving. This gives the stuck-job cleanup a
+  // durable recovery record if the runtime exits during paid preprocessing.
   const originalRequest: Record<string, unknown> = { tool, tier };
   if (input.modelKey) originalRequest.modelKey = input.modelKey;
   if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
-  if (effectivePrompt) originalRequest.prompt = effectivePrompt;
+  if (prompt) originalRequest.prompt = prompt;
+  if (input.script) originalRequest.script = input.script;
+  if (input.audioUrl) originalRequest.audioUrl = input.audioUrl;
   if (autoEnhance) originalRequest.autoEnhance = true;
   if (input.extraParams) originalRequest.extraParams = input.extraParams;
 
@@ -215,19 +196,143 @@ export async function submitJob(input: SubmitJobInput) {
       tool,
       model_id: model.id,
       status: "pending",
-      input_params: falInput,
+      input_params: {},
       original_request: originalRequest,
       credit_cost: creditCost,
-      credit_tx_id: txId,
+      credit_tx_id: null,
     })
     .select("id")
     .single();
 
   if (jobError || !job) {
-    // Refund if job creation fails (only if credits were reserved)
-    console.error("[submitJob] DB insert error:", jobError?.message, jobError?.code, jobError?.details);
-    if (txId) await refundCredits(txId);
+    console.error(
+      "[submitJob] DB insert error:",
+      jobError?.message,
+      jobError?.code,
+      jobError?.details
+    );
     throw new Error(`Failed to create job: ${jobError?.message || "no job returned"}`);
+  }
+
+  const markJobFailed = async (message: string) => {
+    await supabase
+      .from("jobs")
+      .update({
+        status: "failed",
+        error_message: message,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", job.id);
+  };
+
+  try {
+    if (creditCost > 0) {
+      txId = await reserveCredits(
+        userId,
+        creditCost,
+        `${tool} — ${model.displayName.en} [job:${job.id}]`
+      );
+
+      const { error: linkError } = await supabase
+        .from("jobs")
+        .update({ credit_tx_id: txId })
+        .eq("id", job.id);
+
+      if (linkError) {
+        await refundCredits(txId);
+        txId = null;
+        throw new Error(`Failed to link credit reservation: ${linkError.message}`);
+      }
+    }
+  } catch (error) {
+    await markJobFailed(
+      error instanceof Error ? error.message : "Failed to reserve credits"
+    );
+    throw error;
+  }
+
+  // Paid preprocessing starts only after the durable job and reservation link
+  // exist. Process exits are recovered by the existing stuck-job cleanup.
+  let falInput: Record<string, unknown>;
+  try {
+    // Clean backgrounds before 3D generation unless the user opts out.
+    if (tool === "3d-model" && !input.skipBgRemove) {
+      if (imageUrls && imageUrls.length > 0) {
+        imageUrls = await removeBackgrounds(imageUrls);
+      } else if (imageUrl) {
+        [imageUrl] = await removeBackgrounds([imageUrl]);
+      }
+    }
+
+    // Aura SR is charged per source image, reflected in enhanceCost above.
+    if (tool === "3d-model" && autoEnhance) {
+      if (imageUrls && imageUrls.length > 0) {
+        imageUrls = await enhanceImages(imageUrls);
+      } else if (imageUrl) {
+        [imageUrl] = await enhanceImages([imageUrl]);
+      }
+    }
+
+    // Hybrid smart-prompt composition can call an AI provider, so it must not
+    // happen before credit reservation.
+    if (usedSmartPrompt) {
+      effectivePrompt = await composeSmartPrompt({
+        tool: tool as "scene" | "aplus" | "image-edit",
+        modelKey: input.modelKey,
+        ctx: input.promptContext!,
+        userText: prompt,
+      });
+    }
+
+    // Talking-avatar is a bundled TTS -> video pipeline. Reserve the complete
+    // avatar job cost before generating the intermediate audio.
+    if (tool === "talking-avatar" && input.script && !input.audioUrl) {
+      const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
+        gen_text: input.script,
+        model_type: "F5-TTS",
+        ref_audio_url:
+          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
+        ref_text: "",
+      });
+      const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
+      if (!ttsOutput.audio_url?.url) {
+        throw new Error("TTS generation failed — no audio produced");
+      }
+      effectivePrompt = ttsOutput.audio_url.url;
+    }
+
+    if (tool === "talking-avatar" && !effectivePrompt) {
+      throw new Error("Either script or audioUrl is required for talking-avatar");
+    }
+
+    ({ input: falInput } = routeRequest({
+      tool,
+      tier,
+      modelKey: input.modelKey,
+      imageUrl,
+      imageUrls,
+      prompt: effectivePrompt,
+      extraParams: input.extraParams,
+    }));
+  } catch (error) {
+    if (txId) await refundCredits(txId);
+    await markJobFailed(
+      error instanceof Error ? error.message : "Preprocessing failed"
+    );
+    throw error;
+  }
+
+  // Store final fal.ai-routed URLs after preprocessing (they may expire).
+  const { error: inputUpdateError } = await supabase
+    .from("jobs")
+    .update({ input_params: falInput })
+    .eq("id", job.id);
+
+  if (inputUpdateError) {
+    if (txId) await refundCredits(txId);
+    const message = `Failed to persist job input: ${inputUpdateError.message}`;
+    await markJobFailed(message);
+    throw new Error(message);
   }
 
   // 4. Submit to fal.ai queue with webhook

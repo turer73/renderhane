@@ -177,6 +177,48 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('recraft-v4');
   });
 
+  it('routes SVG logo to its correctly-priced vector model', () => {
+    const { modelKey, model } = routeRequest({
+      tool: 'logo',
+      prompt: 'Renderhane logo',
+      extraParams: { outputFormat: 'svg' },
+    });
+    expect(modelKey).toBe('recraft-v4-svg');
+    expect(model.creditCost).toBe(10);
+  });
+
+  it('passes only validated logo style and colors to fal.ai', () => {
+    const colors = [{ rgb: { r: 79, g: 70, b: 229 } }];
+    const { input } = routeRequest({
+      tool: 'logo',
+      prompt: 'Renderhane logo',
+      extraParams: {
+        outputFormat: 'png',
+        style: 'logo',
+        colors,
+      },
+    });
+    expect(input.style).toBe('logo');
+    expect(input.colors).toEqual(colors);
+    expect(input.outputFormat).toBeUndefined();
+  });
+
+  it('rejects cost-affecting model overrides', () => {
+    expect(() => routeRequest({
+      tool: 'video',
+      imageUrl: 'http://img/1.jpg',
+      extraParams: { duration: '30', generate_audio: true },
+    })).toThrow('extraParams are not supported');
+  });
+
+  it('rejects unknown logo parameters even when called outside the API schema', () => {
+    expect(() => routeRequest({
+      tool: 'logo',
+      prompt: 'Renderhane logo',
+      extraParams: { num_images: 20 },
+    })).toThrow('Unsupported logo parameter');
+  });
+
   it('routes object-removal to object-removal', () => {
     const { modelKey } = routeRequest({ tool: 'object-removal', imageUrl: 'http://img/1.jpg', prompt: 'remove cup' });
     expect(modelKey).toBe('object-removal');

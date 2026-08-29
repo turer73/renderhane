@@ -15,8 +15,14 @@ import { getResend, FROM_EMAIL } from "@/lib/email/resend";
  * Security: requires CRON_SECRET header
  */
 export async function GET(request: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    console.error("[cron/subscription-renew] CRON_SECRET is not configured");
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+
   const actual = request.headers.get("authorization") || "";
-  const expected = `Bearer ${process.env.CRON_SECRET}`;
+  const expected = `Bearer ${secret}`;
   const safe =
     actual.length === expected.length &&
     crypto.timingSafeEqual(Buffer.from(actual), Buffer.from(expected));
@@ -51,13 +57,16 @@ export async function GET(request: NextRequest) {
       // Note: iyzico stored card (recurring) payment requires a separate
       // agreement with iyzico + cardToken integration. Until then, we
       // notify the user via email to renew manually.
-      await supabase
+      const { error: updateError } = await supabase
         .from("subscriptions")
         .update({
           status: "past_due",
           updated_at: new Date().toISOString(),
         })
         .eq("id", sub.id);
+      if (updateError) {
+        throw new Error(`Failed to mark subscription past_due: ${updateError.message}`);
+      }
 
       // Get user email for notification
       const { data: profile } = await supabase
@@ -91,7 +100,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      console.log(`[cron/subscription-renew] Subscription ${sub.id} marked as past_due, email sent`);
+      console.log(`[cron/subscription-renew] Subscription ${sub.id} marked as past_due`);
       renewed++;
     } catch (err) {
       console.error(`[cron/subscription-renew] Failed for ${sub.id}:`, err);
@@ -99,5 +108,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ processed: dueSubscriptions.length, renewed, failed });
+  return NextResponse.json(
+    { processed: dueSubscriptions.length, renewed, failed },
+    { status: failed > 0 ? 500 : 200 }
+  );
 }

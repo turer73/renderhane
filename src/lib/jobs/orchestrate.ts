@@ -1,4 +1,3 @@
-import { getAIProvider } from "@/lib/ai";
 import { submitJob } from "@/lib/jobs/submit";
 import { APLUS_SCENES, getScenePrompt } from "@/lib/fal/aplus-scenes";
 import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
@@ -88,39 +87,18 @@ export async function orchestrateTalkingAvatar(
     );
   }
 
-  let resolvedAudioUrl = audioUrl;
-
-  // Step 1: If script text provided, generate TTS audio
-  if (script && !resolvedAudioUrl) {
-    const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
-      gen_text: script,
-      model_type: "F5-TTS",
-      ref_audio_url:
-        "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
-      ref_text: "",
-    });
-
-    const ttsOutput = ttsResult.data as {
-      audio_url?: { url?: string };
-    };
-    if (ttsOutput.audio_url?.url) {
-      resolvedAudioUrl = ttsOutput.audio_url.url;
-    } else {
-      throw new Error("TTS generation failed — no audio produced");
-    }
-  }
-
-  if (!resolvedAudioUrl) {
+  if (!script && !audioUrl) {
     throw new Error("Either script or audioUrl is required for talking-avatar");
   }
 
-  // Step 2: Submit OmniHuman video job with audio
-  // smart-router maps prompt → audio_url for talking-avatar
+  // submitJob owns the bundled reservation -> TTS -> video ordering so no
+  // provider cost can occur before the user's credits are reserved.
   const result = await submitJob({
     userId,
     tool: "talking-avatar",
     imageUrl,
-    prompt: resolvedAudioUrl,
+    script,
+    audioUrl,
   });
 
   return {

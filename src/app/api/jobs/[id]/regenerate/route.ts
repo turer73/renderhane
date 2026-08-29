@@ -58,6 +58,8 @@ export async function POST(
   let imageUrl: string | undefined;
   let imageUrls: string[] | undefined;
   let prompt: string | undefined;
+  let script: string | undefined;
+  let audioUrl: string | undefined;
   let tier: "fast" | "standard" | "premium";
   let autoEnhance = false;
 
@@ -68,6 +70,8 @@ export async function POST(
       imageUrls = originalReq.imageUrls.filter((u): u is string => typeof u === "string");
     }
     if (typeof originalReq.prompt === "string") prompt = originalReq.prompt;
+    if (typeof originalReq.script === "string") script = originalReq.script;
+    if (typeof originalReq.audioUrl === "string") audioUrl = originalReq.audioUrl;
     tier = (typeof originalReq.tier === "string" ? originalReq.tier : "standard") as "fast" | "standard" | "premium";
     if (originalReq.autoEnhance === true) autoEnhance = true;
   } else {
@@ -117,6 +121,8 @@ export async function POST(
       imageUrl,
       imageUrls,
       prompt,
+      script,
+      audioUrl,
       autoEnhance,
     });
 

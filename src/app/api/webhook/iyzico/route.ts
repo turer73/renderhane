@@ -14,6 +14,19 @@ function getServiceClient() {
   );
 }
 
+function isDuplicatePaymentError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+}): boolean {
+  if (error.code !== "23505") return false;
+  const context = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return (
+    context.includes("payment_id") ||
+    context.includes("idx_credit_transactions_payment_id_unique")
+  );
+}
+
 /**
  * iyzico webhook handler — backup confirmation mechanism.
  *
@@ -32,28 +45,33 @@ function getServiceClient() {
  * callback and webhook fire simultaneously, only one will succeed.
  */
 export async function POST(request: NextRequest) {
+  // Validate Content-Type — malformed notifications are permanent rejects,
+  // so acknowledge them without asking iyzico to retry.
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    console.warn("Webhook: unexpected Content-Type:", contentType);
+    return NextResponse.json({ status: "ignored" });
+  }
+
+  let body: unknown;
   try {
-    // Validate Content-Type — iyzico sends webhook notifications as JSON
-    const contentType = request.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      console.warn("Webhook: unexpected Content-Type:", contentType);
-      return NextResponse.json({ status: "ok" });
-    }
+    body = await request.json();
+  } catch {
+    console.warn("Webhook: invalid JSON payload");
+    return NextResponse.json({ status: "ignored" });
+  }
 
-    const body = await request.json();
+  if (!body || typeof body !== "object") {
+    console.warn("Webhook: invalid payload structure");
+    return NextResponse.json({ status: "ignored" });
+  }
 
-    // Validate that the webhook payload has the expected structure
-    if (!body || typeof body !== "object") {
-      console.warn("Webhook: invalid payload structure");
-      return NextResponse.json({ status: "ok" });
-    }
+  const token = (body as Record<string, unknown>).token;
+  if (typeof token !== "string" || !token.trim()) {
+    return NextResponse.json({ status: "ignored" });
+  }
 
-    const { token } = body;
-
-    if (!token) {
-      return NextResponse.json({ status: "ok" });
-    }
-
+  try {
     // Verify payment with iyzico — this is the authentication step.
     // retrieveCheckoutFormResult makes a server-to-server call using our
     // API credentials. A forged or invalid token will be rejected by iyzico.
@@ -87,15 +105,25 @@ export async function POST(request: NextRequest) {
       p_description: `Purchased ${pkg.name} package (${pkg.credits} credits) [webhook]`,
     });
 
-    if (error) {
+    if (error && !isDuplicatePaymentError(error)) {
       console.error("Webhook: failed to add credits:", error.message);
+      return NextResponse.json(
+        { status: "retry" },
+        { status: 503, headers: { "Retry-After": "900" } }
+      );
     }
-    // data === null means duplicate (already processed) — that's OK
+    // Migration 007 can surface the payment_id unique constraint instead of
+    // returning null. PostgreSQL rolls the whole RPC transaction back, so the
+    // duplicate is safe to acknowledge and must not enter a permanent retry.
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
     console.error("Webhook error:", error);
-    // Always return 200 to prevent iyzico from retrying indefinitely
-    return NextResponse.json({ status: "ok" });
+    // iyzico retries non-2xx webhook deliveries. Authentication/provider/DB
+    // failures may be transient, so preserve that recovery path.
+    return NextResponse.json(
+      { status: "retry" },
+      { status: 503, headers: { "Retry-After": "900" } }
+    );
   }
 }

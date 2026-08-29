@@ -1,31 +1,28 @@
-import { route } from "@fal-ai/server-proxy/nextjs";
-import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-const { GET: falGET, POST: falPOST } = route;
-
 /**
- * Wrap fal.ai proxy with authentication.
- * Without this, anyone could use our FAL_KEY credits.
+ * The browser-facing fal proxy is intentionally disabled. All model calls
+ * must pass through submitJob/submitJobSync so model allowlists, credit
+ * reservation, idempotency and audit records cannot be bypassed.
  */
-async function withAuth(
-  request: NextRequest,
-  handler: (req: NextRequest) => Promise<Response>
-): Promise<Response> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  return handler(request);
+function disabledResponse() {
+  return NextResponse.json(
+    { error: "Direct AI proxy access is disabled" },
+    { status: 410 }
+  );
 }
 
-export async function GET(request: NextRequest) {
-  return withAuth(request, falGET as (req: NextRequest) => Promise<Response>);
+export async function GET(_request: NextRequest) {
+  void _request;
+  return disabledResponse();
 }
 
-export async function POST(request: NextRequest) {
-  return withAuth(request, falPOST as (req: NextRequest) => Promise<Response>);
+export async function POST(_request: NextRequest) {
+  void _request;
+  return disabledResponse();
+}
+
+export async function PUT(_request: NextRequest) {
+  void _request;
+  return disabledResponse();
 }

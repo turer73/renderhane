@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import crypto from 'crypto';
 
 // Set env vars before importing
 vi.stubEnv('IYZICO_API_KEY', 'test-api-key');
@@ -6,7 +7,7 @@ vi.stubEnv('IYZICO_SECRET_KEY', 'test-secret-key');
 vi.stubEnv('IYZICO_BASE_URL', 'https://sandbox-api.iyzipay.com');
 
 import {
-  PACKAGES, isValidPackageKey, signBasketId, verifyBasketId,
+  PACKAGES, generateAuthHeaders, isValidPackageKey, signBasketId, verifyBasketId,
 } from '../iyzico';
 
 describe('PACKAGES', () => {
@@ -69,5 +70,33 @@ describe('signBasketId + verifyBasketId', () => {
     const signed = signBasketId('user-1', 'pro', 'en');
     const result = verifyBasketId(signed);
     expect(result!.locale).toBe('en');
+  });
+});
+
+describe('generateAuthHeaders', () => {
+  it('uses the iyzico IYZWSv2 HMAC-SHA256 scheme', () => {
+    const endpoint = '/payment/iyzipos/checkoutform/auth/ecom/detail';
+    const requestBody = '{"locale":"tr","token":"checkout-token"}';
+    const randomString = '123456789';
+
+    const result = generateAuthHeaders(endpoint, requestBody, randomString);
+    const signature = crypto
+      .createHmac('sha256', 'test-secret-key')
+      .update(randomString + endpoint + requestBody)
+      .digest('hex');
+    const encoded = Buffer.from(
+      `apiKey:test-api-key&randomKey:${randomString}&signature:${signature}`,
+      'utf8'
+    ).toString('base64');
+
+    expect(result).toEqual({
+      authorization: `IYZWSv2 ${encoded}`,
+      randomString,
+    });
+  });
+
+  it('rejects a non-absolute endpoint path', () => {
+    expect(() => generateAuthHeaders('https://example.com/pay', '{}', 'rnd'))
+      .toThrow('iyzico endpoint must be an absolute path');
   });
 });
