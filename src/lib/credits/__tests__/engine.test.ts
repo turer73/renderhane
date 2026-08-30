@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { reserveCredits, confirmSpend, refundCredits, addCredits, CreditError } from '../engine';
+import {
+  reserveCredits,
+  reserveCreditBundle,
+  confirmSpend,
+  refundCredits,
+  addCredits,
+  CreditError,
+} from '../engine';
 
 // Mock Supabase admin client
 const mockRpc = vi.fn();
@@ -47,6 +54,53 @@ describe('reserveCredits', () => {
   it('throws generic error for unknown errors', async () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'database_timeout' } });
     await expect(reserveCredits('user-1', 10, 'test')).rejects.toThrow('Failed to reserve credits');
+  });
+});
+
+describe('reserveCreditBundle', () => {
+  const items = [
+    { amount: 8, description: 'social-kit scene 1' },
+    { amount: 35, description: 'social-kit video' },
+  ];
+
+  it('reserves every item in one RPC call', async () => {
+    mockRpc.mockResolvedValue({ data: ['tx-scene', 'tx-video'], error: null });
+
+    await expect(reserveCreditBundle('user-1', items)).resolves.toEqual([
+      'tx-scene',
+      'tx-video',
+    ]);
+    expect(mockRpc).toHaveBeenCalledWith('reserve_credit_bundle', {
+      p_user_id: 'user-1',
+      p_amounts: [8, 35],
+      p_descriptions: ['social-kit scene 1', 'social-kit video'],
+    });
+  });
+
+  it('maps insufficient balance to CreditError', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'insufficient_credits' } });
+    await expect(reserveCreditBundle('user-1', items)).rejects.toMatchObject({
+      name: 'CreditError',
+      code: 'INSUFFICIENT',
+    });
+  });
+
+  it('rejects invalid bundles before calling the database', async () => {
+    await expect(reserveCreditBundle('user-1', [])).rejects.toThrow('at least one item');
+    await expect(
+      reserveCreditBundle('user-1', [{ amount: 0, description: 'bad' }])
+    ).rejects.toThrow('positive integer');
+    await expect(
+      reserveCreditBundle('user-1', [{ amount: 1, description: ' ' }])
+    ).rejects.toThrow('description is required');
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it('rejects an incomplete transaction list', async () => {
+    mockRpc.mockResolvedValue({ data: ['tx-only'], error: null });
+    await expect(reserveCreditBundle('user-1', items)).rejects.toThrow(
+      'invalid transaction list'
+    );
   });
 });
 

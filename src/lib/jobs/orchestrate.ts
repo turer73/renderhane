@@ -1,7 +1,19 @@
 import { submitJob } from "@/lib/jobs/submit";
 import { APLUS_SCENES, getScenePrompt } from "@/lib/fal/aplus-scenes";
-import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
-import { CreditError } from "@/lib/credits/engine";
+import {
+  MAX_AVATAR_SCRIPT_CHARS,
+  MODELS,
+  SOCIAL_KIT_SCENE_COUNT,
+  SOCIAL_KIT_SCENE_MODEL,
+  SOCIAL_KIT_VIDEO_MODEL,
+} from "@/lib/fal/models";
+import {
+  CreditError,
+  refundCredits,
+  reserveCreditBundle,
+} from "@/lib/credits/engine";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdmin } from "@/lib/auth/admin-check";
 
 // ── Types ────────────────────────────────────────
 
@@ -9,12 +21,16 @@ interface OrchestrationInput {
   userId: string;
   imageUrl: string;
   locale?: string;
+  projectId?: string;
 }
 
 interface OrchestrationResult {
   jobIds: string[];
   totalCost: number;
   estimatedTime: string;
+  sceneCount?: number;
+  hasVideo?: boolean;
+  completedJobs?: number;
   warnings?: string[];
 }
 
@@ -128,36 +144,91 @@ const SOCIAL_KIT_SCENE_PROMPTS = {
 export async function orchestrateSocialKit(
   input: OrchestrationInput
 ): Promise<OrchestrationResult> {
-  const { userId, imageUrl, locale = "tr" } = input;
+  const { userId, imageUrl, locale = "tr", projectId } = input;
   const prompts =
     SOCIAL_KIT_SCENE_PROMPTS[locale === "en" ? "en" : "tr"];
 
-  // Submit 4 scenes + 1 video in parallel
-  const [sceneResults, videoResult] = await Promise.all([
-    Promise.allSettled(
-      prompts.map((scenePrompt) =>
-        submitJob({
-          userId,
-          tool: "scene",
-          imageUrl,
-          prompt: scenePrompt,
-        })
-      )
-    ),
-    submitJob({
-      userId,
-      tool: "video",
-      imageUrl,
+  if (prompts.length !== SOCIAL_KIT_SCENE_COUNT) {
+    throw new Error("Social Kit scene configuration is inconsistent");
+  }
+
+  const sceneCost = MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost;
+  const videoCost = MODELS[SOCIAL_KIT_VIDEO_MODEL].creditCost;
+  const jobs = [
+    ...prompts.map((prompt, index) => ({
+      kind: "scene" as const,
+      prompt,
+      modelKey: SOCIAL_KIT_SCENE_MODEL,
+      creditCost: sceneCost,
+      description: `social-kit — scene ${index + 1}/${SOCIAL_KIT_SCENE_COUNT}`,
+    })),
+    {
+      kind: "video" as const,
       prompt:
         locale === "en"
           ? "Professional product showcase video with smooth camera movement, studio lighting"
           : "Yumuşak kamera hareketi ile profesyonel ürün tanıtım videosu, stüdyo ışıkları",
-    }).catch((err) => ({ error: err as Error })),
-  ]);
+      modelKey: SOCIAL_KIT_VIDEO_MODEL,
+      creditCost: videoCost,
+      description: "social-kit — product video",
+    },
+  ];
+
+  let userEmail: string | undefined;
+  try {
+    userEmail = (await createAdminClient().auth.admin.getUserById(userId)).data?.user?.email;
+  } catch {
+    // A failed admin lookup must not make a normal user free.
+  }
+
+  const reservations = isAdmin(userEmail)
+    ? []
+    : await reserveCreditBundle(
+        userId,
+        jobs.map((job) => ({
+          amount: job.creditCost,
+          description: job.description,
+        }))
+      );
+
+  const results = await Promise.allSettled(
+    jobs.map((job, index) =>
+      submitJob({
+        userId,
+        userEmail,
+        projectId,
+        tool: job.kind,
+        modelKey: job.modelKey,
+        imageUrl,
+        prompt: job.prompt,
+        ...(reservations[index]
+          ? {
+              reservedCredit: {
+                txId: reservations[index],
+                amount: job.creditCost,
+              },
+            }
+          : {}),
+      })
+    )
+  );
 
   const jobIds: string[] = [];
   const warnings: string[] = [];
   let totalCost = 0;
+
+  const sceneResults = results.slice(0, SOCIAL_KIT_SCENE_COUNT);
+  const videoResult = results[SOCIAL_KIT_SCENE_COUNT];
+
+  await Promise.all(
+    results.map(async (result, index) => {
+      if (result.status === "rejected" && reservations[index]) {
+        // submitJob normally refunds its reservation. This idempotent fallback
+        // also covers failures before a durable job row can be linked.
+        await refundCredits(reservations[index]).catch(() => undefined);
+      }
+    })
+  );
 
   sceneResults.forEach((r, i) => {
     if (r.status === "fulfilled") {
@@ -175,12 +246,12 @@ export async function orchestrateSocialKit(
     }
   });
 
-  if ("jobId" in videoResult) {
-    jobIds.push(videoResult.jobId);
-    totalCost += videoResult.creditCost;
-  } else if ("error" in videoResult) {
+  if (videoResult.status === "fulfilled") {
+    jobIds.push(videoResult.value.jobId);
+    totalCost += videoResult.value.creditCost;
+  } else {
     warnings.push(
-      `Video: ${videoResult.error instanceof Error ? videoResult.error.message : "failed"}`
+      `Video: ${videoResult.reason instanceof Error ? videoResult.reason.message : "failed"}`
     );
   }
 
@@ -192,6 +263,9 @@ export async function orchestrateSocialKit(
     jobIds,
     totalCost,
     estimatedTime: "~3min",
+    sceneCount: sceneResults.filter((result) => result.status === "fulfilled").length,
+    hasVideo: videoResult.status === "fulfilled",
+    completedJobs: jobIds.length,
     ...(warnings.length > 0 ? { warnings } : {}),
   };
 }

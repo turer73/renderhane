@@ -8,9 +8,10 @@ import { NextRequest, NextResponse } from "next/server";
  * Cron: Clean up stuck jobs.
  *
  * Finds jobs stuck in "processing"/"pending" for >30 minutes (webhook never
- * arrived). Refunds credits and marks them as failed. The 30-min cutoff leaves
- * headroom for legitimately long jobs (e.g. premium 3D) so a job still running
- * at cron time isn't killed mid-flight.
+ * arrived), plus reserved credit transactions that were never linked to a job
+ * because a multi-job process exited during setup. Refunds credits and marks
+ * stuck jobs as failed. The 30-min cutoff leaves headroom for legitimately long
+ * jobs (e.g. premium 3D).
  *
  * Schedule: daily — vercel.json "0 0 * * *". Vercel Hobby plan limits crons to
  * once/day, so cleanup latency is up to ~24h (acceptable for stuck-job GC).
@@ -41,17 +42,14 @@ export async function GET(request: NextRequest) {
     .lt("created_at", cutoff)
     .limit(50);
 
-  if (error || !stuckJobs || stuckJobs.length === 0) {
-    return NextResponse.json({
-      cleaned: 0,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
   let refunded = 0;
   let failed = 0;
 
-  for (const job of stuckJobs) {
+  if (error) {
+    console.error("[stuck-jobs] Failed to query stuck jobs:", error.message);
+  }
+
+  for (const job of stuckJobs ?? []) {
     try {
       // Refund credits if reserved
       if (job.credit_tx_id) {
@@ -83,9 +81,62 @@ export async function GET(request: NextRequest) {
     console.log(`[stuck-jobs] Cleaned ${failed} stuck jobs, refunded ${refunded} credit transactions`);
   }
 
+  // A process can exit after an atomic bundle reservation but before every
+  // child job row is inserted. Reserved transactions are linked from
+  // jobs.credit_tx_id immediately, so a reservation older than the cutoff with
+  // no matching job is safe to refund.
+  let orphanRefunded = 0;
+  const { data: oldReservations, error: reservationError } = await supabase
+    .from("credit_transactions")
+    .select("id")
+    .eq("status", "reserved")
+    .lt("created_at", cutoff)
+    .limit(50);
+
+  if (reservationError) {
+    console.error(
+      "[stuck-jobs] Failed to query orphan reservations:",
+      reservationError.message
+    );
+  } else if (oldReservations && oldReservations.length > 0) {
+    const reservationIds = oldReservations.map((transaction) => transaction.id);
+    const { data: linkedJobs, error: linkedJobsError } = await supabase
+      .from("jobs")
+      .select("credit_tx_id")
+      .in("credit_tx_id", reservationIds);
+
+    if (linkedJobsError) {
+      // Fail closed: never refund when linkage could not be verified.
+      console.error(
+        "[stuck-jobs] Failed to verify reservation links:",
+        linkedJobsError.message
+      );
+    } else {
+      const linkedTransactionIds = new Set(
+        (linkedJobs ?? [])
+          .map((job) => job.credit_tx_id)
+          .filter((id): id is string => Boolean(id))
+      );
+
+      for (const transactionId of reservationIds) {
+        if (linkedTransactionIds.has(transactionId)) continue;
+        try {
+          await refundCredits(transactionId);
+          orphanRefunded++;
+        } catch (refundError) {
+          console.error(
+            `[stuck-jobs] Failed to refund orphan reservation ${transactionId}:`,
+            refundError
+          );
+        }
+      }
+    }
+  }
+
   return NextResponse.json({
     cleaned: failed,
     refunded,
+    orphanRefunded,
     timestamp: new Date().toISOString(),
   });
 }

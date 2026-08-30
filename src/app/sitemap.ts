@@ -29,7 +29,7 @@ const staticPages: { path: string; lastModified: string | null; changeFreq: "wee
   { path: "/araclar/gorsel-iyilestir",   lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
   { path: "/araclar/video-olustur",      lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
   { path: "/araclar/gorsel-duzenle",     lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
-  { path: "/araclar/sosyal-medya-paketi",lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
+  { path: "/araclar/sosyal-medya-paketi",lastModified: "2026-08-30", changeFreq: "monthly", priority: 0.7 },
   { path: "/araclar/ai-gorsel-uret",     lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
   { path: "/araclar/konusan-avatar",     lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
   { path: "/araclar/logo-tasarla",       lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },

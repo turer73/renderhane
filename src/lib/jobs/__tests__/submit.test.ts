@@ -132,4 +132,39 @@ describe("submitJob credit ordering", () => {
     ]);
     expect(mocks.submit).not.toHaveBeenCalled();
   });
+
+  it("uses a pre-reserved bundle transaction without charging twice", async () => {
+    const result = await submitJob({
+      userId: "user-1",
+      tool: "scene",
+      modelKey: "bria-product-shot",
+      imageUrl: "https://cdn.example/product.png",
+      prompt: "Studio product photo",
+      reservedCredit: {
+        txId: "tx-bundle-scene",
+        amount: MODELS["bria-product-shot"].creditCost,
+      },
+    });
+
+    expect(result.creditCost).toBe(MODELS["bria-product-shot"].creditCost);
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.refundCredits).not.toHaveBeenCalled();
+    expect(mocks.submit).toHaveBeenCalledOnce();
+  });
+
+  it("refunds and rejects a pre-reservation whose amount does not match the model", async () => {
+    await expect(
+      submitJob({
+        userId: "user-1",
+        tool: "scene",
+        modelKey: "bria-product-shot",
+        imageUrl: "https://cdn.example/product.png",
+        reservedCredit: { txId: "tx-wrong", amount: 1 },
+      })
+    ).rejects.toThrow("Reserved credit mismatch");
+
+    expect(mocks.events).toEqual(["refund"]);
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
 });

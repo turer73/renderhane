@@ -713,29 +713,29 @@ const toolConfigs: ToolSEOConfig[] = [
       en: "AI Social Media Kit Generation",
     },
     description: {
-      tr: "Tek fotoğraftan tüm sosyal medya platformları için içerik oluşturun",
-      en: "Create content for all social media platforms from a single photo",
+      tr: "Tek ürün fotoğrafından dört farklı sahne görseli ve kısa ürün videosu oluşturun",
+      en: "Create four distinct scene images and a short product video from one product photo",
     },
     faqs: [
       {
-        q: { tr: "Hangi sosyal medya platformları destekleniyor?", en: "Which social media platforms are supported?" },
+        q: { tr: "Social Kit paketinde neler var?", en: "What is included in a Social Kit?" },
         a: {
-          tr: "Instagram (post, story, reels), Facebook, Twitter/X, LinkedIn, TikTok ve Pinterest için optimize edilmiş boyutlarda görseller oluşturulur.",
-          en: "Optimized images are created for Instagram (post, story, reels), Facebook, Twitter/X, LinkedIn, TikTok, and Pinterest.",
+          tr: "Paket dört farklı ürün sahnesi ve yaklaşık beş saniyelik bir 720p ürün tanıtım videosu oluşturur.",
+          en: "The kit creates four distinct product scenes and an approximately five-second 720p product showcase video.",
         },
       },
       {
         q: { tr: "Tek seferde kaç varyasyon üretilir?", en: "How many variations are produced at once?" },
         a: {
-          tr: "Her platformun gerektirdiği boyutlarda ayrı görseller oluşturulur. Tek fotoğraftan birden fazla platform için içerik paketi alırsınız.",
-          en: "Separate images are created in the sizes required by each platform. You get a content package for multiple platforms from a single photo.",
+          tr: "Stüdyo, yaşam tarzı, flat lay ve mevsimsel yaklaşımlarla dört ayrı sahne işi başlatılır.",
+          en: "Four scene jobs are started with studio, lifestyle, flat lay, and seasonal creative directions.",
         },
       },
       {
-        q: { tr: "Boyutlar otomatik ayarlanıyor mu?", en: "Are dimensions automatically adjusted?" },
+        q: { tr: "Platforma özel boyutlar oluşturuluyor mu?", en: "Does it create platform-specific sizes?" },
         a: {
-          tr: "Evet, her platform için önerilen boyutlar otomatik olarak uygulanır. Instagram kare, story dikey, LinkedIn yatay gibi optimum formatlar kullanılır.",
-          en: "Yes, recommended dimensions for each platform are automatically applied. Optimal formats like Instagram square, story vertical, LinkedIn horizontal are used.",
+          tr: "Hayır. Mevcut sürüm yaratıcı sahne varyasyonları ve kısa video üretir; platforma özel yeniden boyutlandırma sunmaz.",
+          en: "No. The current version creates creative scene variations and a short video; it does not provide platform-specific resizing.",
         },
       },
     ],
@@ -748,24 +748,24 @@ const toolConfigs: ToolSEOConfig[] = [
         },
       },
       {
-        name: { tr: "Platformları seçin", en: "Select platforms" },
+        name: { tr: "Paketi başlatın", en: "Start the kit" },
         text: {
-          tr: "İçerik oluşturmak istediğiniz sosyal medya platformlarını ve formatlarını seçin.",
-          en: "Choose the social media platforms and formats you want to create content for.",
+          tr: "Dört sahne görseli ve bir kısa video işini tek işlemle başlatın.",
+          en: "Start four scene-image jobs and one short-video job in one action.",
         },
       },
       {
-        name: { tr: "Paketi oluşturun", en: "Generate the kit" },
+        name: { tr: "İşlemleri takip edin", en: "Track processing" },
         text: {
-          tr: "Oluştur butonuna tıklayın. AI her platform için optimize edilmiş görseller üretir.",
-          en: "Click generate. AI produces optimized visuals for each platform.",
+          tr: "Görsel ve video işleri paralel olarak işlenirken proje ekranından durumlarını izleyin.",
+          en: "Follow the image and video jobs from the project screen while they process in parallel.",
         },
       },
       {
-        name: { tr: "Tüm görselleri indirin", en: "Download all visuals" },
+        name: { tr: "Çıktıları indirin", en: "Download outputs" },
         text: {
-          tr: "Oluşturulan içerik paketini indirin ve doğrudan sosyal medya hesaplarınızda paylaşın.",
-          en: "Download the generated content kit and share directly on your social media accounts.",
+          tr: "Tamamlanan sahne görsellerini ve videoyu proje çıktılarından ayrı ayrı indirin.",
+          en: "Download completed scene images and the video individually from the project outputs.",
         },
       },
     ],

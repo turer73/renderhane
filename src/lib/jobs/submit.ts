@@ -93,6 +93,14 @@ interface SubmitJobInput {
   /** Caller-provided email (web path already has it) — lets the admin check skip
    *  a redundant admin.getUserById round-trip. Omitted by API-key callers. */
   userEmail?: string;
+  /**
+   * Pre-created reservation for an atomic multi-job bundle. Internal callers
+   * only: the amount must exactly match the selected model's effective cost.
+   */
+  reservedCredit?: {
+    txId: string;
+    amount: number;
+  };
 }
 
 export async function submitJob(input: SubmitJobInput) {
@@ -176,6 +184,17 @@ export async function submitJob(input: SubmitJobInput) {
     }
   }
 
+  if (input.reservedCredit && input.reservedCredit.amount !== creditCost) {
+    await refundCredits(input.reservedCredit.txId);
+    throw new Error(
+      `Reserved credit mismatch: expected ${creditCost}, received ${input.reservedCredit.amount}`
+    );
+  }
+
+  if (input.reservedCredit) {
+    txId = input.reservedCredit.txId;
+  }
+
   // Persist a pending job before reserving. This gives the stuck-job cleanup a
   // durable recovery record if the runtime exits during paid preprocessing.
   const originalRequest: Record<string, unknown> = { tool, tier };
@@ -199,12 +218,13 @@ export async function submitJob(input: SubmitJobInput) {
       input_params: {},
       original_request: originalRequest,
       credit_cost: creditCost,
-      credit_tx_id: null,
+      credit_tx_id: txId,
     })
     .select("id")
     .single();
 
   if (jobError || !job) {
+    if (txId) await refundCredits(txId);
     console.error(
       "[submitJob] DB insert error:",
       jobError?.message,
@@ -226,7 +246,7 @@ export async function submitJob(input: SubmitJobInput) {
   };
 
   try {
-    if (creditCost > 0) {
+    if (creditCost > 0 && !txId) {
       txId = await reserveCredits(
         userId,
         creditCost,
