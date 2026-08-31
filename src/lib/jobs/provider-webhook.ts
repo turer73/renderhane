@@ -24,9 +24,19 @@ export function buildFalWebhookUrl(jobId: string, txId: string | null): string {
 }
 
 export function getAcceptedProviderRequestId(error: unknown): string | null {
-  if (!error || typeof error !== "object") return null;
-  const requestId = (error as { requestId?: unknown }).requestId;
-  return typeof requestId === "string" && requestId.length > 0
-    ? requestId
-    : null;
+  if (
+    error === null ||
+    (typeof error !== "object" && typeof error !== "function")
+  ) {
+    return null;
+  }
+
+  try {
+    const requestId = Reflect.get(error, "requestId");
+    return typeof requestId === "string" && requestId.length > 0
+      ? requestId
+      : null;
+  } catch {
+    return null;
+  }
 }

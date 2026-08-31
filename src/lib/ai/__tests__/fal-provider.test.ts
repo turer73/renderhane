@@ -173,6 +173,70 @@ describe("FalProvider durable subscribe boundary", () => {
     expect(providerError).toMatchObject({ requestId: "stale-request-id" });
   });
 
+  it("wraps a proxy that hides an attached request ID", async () => {
+    const providerError = new Proxy(
+      { status: 422, message: "hidden request ID" },
+      {
+        defineProperty: () => true,
+        get: (target, property, receiver) =>
+          property === "requestId"
+            ? undefined
+            : Reflect.get(target, property, receiver),
+      }
+    );
+    mocks.subscribeToStatus.mockRejectedValue(providerError);
+
+    const provider = new FalProvider();
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error) as Error & {
+        cause?: unknown;
+        requestId?: string;
+      };
+
+    expect(thrown).not.toBe(providerError);
+    expect(thrown.cause).toBe(providerError);
+    expect(thrown.requestId).toBe("fal-request-1");
+  });
+
+  it("does not attach a request ID when queue submission itself fails", async () => {
+    const providerError = new Error("queue admission failed");
+    mocks.submit.mockRejectedValue(providerError);
+
+    const provider = new FalProvider();
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error);
+
+    expect(thrown).toBe(providerError);
+    expect(providerError).not.toHaveProperty("requestId");
+  });
+
+  it.each(["persistence", "result"])(
+    "retains the accepted request ID after a %s failure",
+    async (failurePoint) => {
+      const providerError = new Error(`${failurePoint} failed`);
+      if (failurePoint === "result") {
+        mocks.result.mockRejectedValue(providerError);
+      }
+
+      const provider = new FalProvider();
+      const thrown = await provider
+        .subscribe("fal-ai/test", { prompt: "test" }, {
+          onEnqueue:
+            failurePoint === "persistence"
+              ? async () => {
+                  throw providerError;
+                }
+              : undefined,
+        })
+        .catch((error: unknown) => error);
+
+      expect(thrown).toBe(providerError);
+      expect(thrown).toMatchObject({ requestId: "fal-request-1" });
+    }
+  );
+
   it("preserves Fal's completed error fields for reconciliation", async () => {
     mocks.status.mockResolvedValue({
       status: "COMPLETED",

@@ -34,7 +34,9 @@ function withAcceptedRequestId(error: unknown, requestId: string): unknown {
         enumerable: true,
         value: requestId,
       });
-      return error;
+      if (readProviderField(error, "requestId") === requestId) {
+        return error;
+      }
     } catch {
       // Frozen/non-extensible SDK errors cannot carry reconciliation metadata.
       // Fall through to a fresh wrapper while preserving classification fields.
