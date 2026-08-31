@@ -63,32 +63,114 @@ describe("FalProvider durable subscribe boundary", () => {
   });
 
   it("retains the accepted request ID when later polling returns an error", async () => {
-    mocks.subscribeToStatus.mockRejectedValue({
+    const providerError = {
       status: 422,
       message: "status polling failed",
-    });
+    };
+    mocks.subscribeToStatus.mockRejectedValue(providerError);
 
     const provider = new FalProvider();
-    await expect(
-      provider.subscribe("fal-ai/test", { prompt: "test" })
-    ).rejects.toMatchObject({
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error);
+
+    expect(thrown).toBe(providerError);
+    expect(thrown).toMatchObject({
       status: 422,
       requestId: "fal-request-1",
     });
   });
 
-  it("wraps a frozen provider error without losing the accepted request ID", async () => {
-    mocks.subscribeToStatus.mockRejectedValue(
-      Object.freeze({ status: 422, message: "frozen polling failure" })
-    );
+  it.each([
+    ["frozen", Object.freeze],
+    ["sealed", Object.seal],
+    ["non-extensible", Object.preventExtensions],
+  ])("wraps a %s provider error without losing its identity or accepted request ID", async (_label, lock) => {
+    const providerError = lock({
+      status: 422,
+      body: { detail: "reconciliation required" },
+      message: "locked polling failure",
+    });
+    mocks.subscribeToStatus.mockRejectedValue(providerError);
 
     const provider = new FalProvider();
-    await expect(
-      provider.subscribe("fal-ai/test", { prompt: "test" })
-    ).rejects.toMatchObject({
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error) as Error & {
+        body?: unknown;
+        cause?: unknown;
+        requestId?: string;
+        status?: number;
+      };
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect(thrown).not.toBe(providerError);
+    expect(thrown.message).toBe("locked polling failure");
+    expect(thrown.cause).toBe(providerError);
+    expect(thrown).toMatchObject({
       status: 422,
+      body: { detail: "reconciliation required" },
       requestId: "fal-request-1",
     });
+  });
+
+  it.each([
+    ["string", "primitive polling failure", "primitive polling failure"],
+    ["number", 503, "Provider queue polling failed"],
+    ["null", null, "Provider queue polling failed"],
+    ["undefined", undefined, "Provider queue polling failed"],
+  ])("preserves a %s rejection as the wrapper cause", async (_label, providerError, message) => {
+    mocks.subscribeToStatus.mockRejectedValue(providerError);
+
+    const provider = new FalProvider();
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error) as Error & {
+        cause?: unknown;
+        requestId?: string;
+      };
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect(thrown.message).toBe(message);
+    expect(thrown.cause).toBe(providerError);
+    expect(thrown.requestId).toBe("fal-request-1");
+  });
+
+  it("overwrites a configurable stale request ID on the original error", async () => {
+    const providerError = Object.assign(new Error("polling failed"), {
+      requestId: "stale-request-id",
+    });
+    mocks.subscribeToStatus.mockRejectedValue(providerError);
+
+    const provider = new FalProvider();
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error);
+
+    expect(thrown).toBe(providerError);
+    expect(thrown).toMatchObject({ requestId: "fal-request-1" });
+  });
+
+  it("wraps a non-configurable stale request ID with the accepted ID", async () => {
+    const providerError = new Error("polling failed");
+    Object.defineProperty(providerError, "requestId", {
+      configurable: false,
+      value: "stale-request-id",
+    });
+    mocks.subscribeToStatus.mockRejectedValue(providerError);
+
+    const provider = new FalProvider();
+    const thrown = await provider
+      .subscribe("fal-ai/test", { prompt: "test" })
+      .catch((error: unknown) => error) as Error & {
+        cause?: unknown;
+        requestId?: string;
+      };
+
+    expect(thrown).not.toBe(providerError);
+    expect(thrown.cause).toBe(providerError);
+    expect(thrown.requestId).toBe("fal-request-1");
+    expect(providerError).toMatchObject({ requestId: "stale-request-id" });
   });
 
   it("preserves Fal's completed error fields for reconciliation", async () => {

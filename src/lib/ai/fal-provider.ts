@@ -12,45 +12,67 @@ import type {
 // before refunding an unacknowledged submission attempt.
 const QUEUE_START_TIMEOUT_SECONDS = 30 * 60;
 
-function attachAcceptedRequestId(error: unknown, requestId: string): never {
-  if (error && typeof error === "object") {
+function isObjectLike(value: unknown): value is object {
+  return value !== null && (typeof value === "object" || typeof value === "function");
+}
+
+function readProviderField(error: unknown, field: string): unknown {
+  if (!isObjectLike(error)) return undefined;
+
+  try {
+    return Reflect.get(error, field);
+  } catch {
+    return undefined;
+  }
+}
+
+function withAcceptedRequestId(error: unknown, requestId: string): unknown {
+  if (isObjectLike(error)) {
     try {
       Object.defineProperty(error, "requestId", {
         configurable: true,
         enumerable: true,
         value: requestId,
       });
-      throw error;
-    } catch (attachmentError) {
-      if (attachmentError === error) throw error;
+      return error;
+    } catch {
       // Frozen/non-extensible SDK errors cannot carry reconciliation metadata.
       // Fall through to a fresh wrapper while preserving classification fields.
     }
   }
 
+  const providerMessage = readProviderField(error, "message");
   const wrapped = new Error(
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
+    typeof error === "string"
+      ? error
+      : typeof providerMessage === "string"
+        ? providerMessage
         : "Provider queue polling failed"
   );
-  if (error && typeof error === "object") {
-    const providerError = error as { status?: unknown; body?: unknown };
-    Object.assign(wrapped, {
-      cause: error,
-      ...(providerError.status !== undefined
-        ? { status: providerError.status }
-        : {}),
-      ...(providerError.body !== undefined ? { body: providerError.body } : {}),
-    });
-  }
   Object.defineProperty(wrapped, "requestId", {
     configurable: true,
     enumerable: true,
     value: requestId,
   });
-  throw wrapped;
+  Object.defineProperty(wrapped, "cause", {
+    configurable: true,
+    value: error,
+    writable: true,
+  });
+
+  for (const field of ["status", "body"] as const) {
+    const value = readProviderField(error, field);
+    if (value !== undefined) {
+      Object.defineProperty(wrapped, field, {
+        configurable: true,
+        enumerable: true,
+        value,
+        writable: true,
+      });
+    }
+  }
+
+  return wrapped;
 }
 
 export class FalProvider implements AIProvider {
@@ -92,7 +114,7 @@ export class FalProvider implements AIProvider {
       const result = await fal.queue.result(endpointId, { requestId });
       return { data: result.data as T, requestId };
     } catch (error) {
-      attachAcceptedRequestId(error, requestId);
+      throw withAcceptedRequestId(error, requestId);
     }
   }
 
