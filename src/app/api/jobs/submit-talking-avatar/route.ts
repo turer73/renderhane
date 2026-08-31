@@ -99,7 +99,13 @@ export async function POST(request: NextRequest) {
       userEmail: user.email,
     });
 
-    return NextResponse.json(result);
+    const reconciliationPending = result.submissionState !== "accepted";
+    return NextResponse.json(result, {
+      status: reconciliationPending ? 202 : 200,
+      ...(reconciliationPending
+        ? { headers: { "Retry-After": "30" } }
+        : {}),
+    });
   } catch (error) {
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(

@@ -18,9 +18,10 @@ BEGIN
     RAISE EXCEPTION 'unauthorized';
   END IF;
 
-  IF COALESCE(cardinality(p_amounts), 0) = 0
-     OR cardinality(p_amounts) > 20
-     OR cardinality(p_amounts) != cardinality(p_descriptions) THEN
+  IF COALESCE(cardinality(p_amounts), 0) NOT BETWEEN 1 AND 20
+     OR cardinality(p_amounts) IS DISTINCT FROM cardinality(p_descriptions)
+     OR COALESCE(array_ndims(p_amounts), 0) IS DISTINCT FROM 1
+     OR COALESCE(array_ndims(p_descriptions), 0) IS DISTINCT FROM 1 THEN
     RAISE EXCEPTION 'invalid_bundle';
   END IF;
 
@@ -74,7 +75,8 @@ BEGIN
 
   RETURN v_tx_ids;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+   SET search_path = pg_catalog, public, pg_temp;
 
 REVOKE ALL ON FUNCTION public.reserve_credit_bundle(UUID, INTEGER[], TEXT[])
   FROM PUBLIC, anon, authenticated;

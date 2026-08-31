@@ -1,6 +1,5 @@
 import "server-only";
 import crypto from "crypto";
-import { getAIProvider } from "@/lib/ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getResend, FROM_EMAIL } from "@/lib/email/resend";
 import {
@@ -10,18 +9,52 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 const SERVICE_ID = "fal-ai";
+const FAL_MODEL_ID = "fal-ai/birefnet/v2";
+const FAL_METADATA_URL =
+  "https://api.fal.ai/v1/models?endpoint_id=fal-ai%2Fbirefnet%2Fv2&limit=1";
+
+async function checkFalPlatform(): Promise<void> {
+  const apiKey = process.env.FAL_KEY?.trim();
+  if (!apiKey) throw new Error("FAL_KEY is not configured");
+
+  const response = await fetch(FAL_METADATA_URL, {
+    method: "GET",
+    headers: { Authorization: `Key ${apiKey}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`fal.ai platform check returned HTTP ${response.status}`);
+  }
+
+  const body = (await response.json()) as { models?: unknown };
+  const models = Array.isArray(body.models) ? body.models : [];
+  const modelAvailable = models.some(
+    (model) =>
+      model !== null &&
+      typeof model === "object" &&
+      (model as { endpoint_id?: unknown }).endpoint_id === FAL_MODEL_ID
+  );
+  if (!modelAvailable) {
+    throw new Error("fal.ai platform check did not return the required model");
+  }
+}
 
 /**
  * Cron-triggered health check for fal.ai.
  *
- * Schedule: every 12 hours (normal) or 30 min (recovery mode).
- * Protected by CRON_SECRET so only Vercel Cron can call it.
+ * Protected by CRON_SECRET so only an authorized scheduler can call it.
  *
  * Flow:
- * 1. Ping fal.ai with a lightweight queue submit + cancel
+ * 1. Read authenticated fal.ai model metadata without starting inference
  * 2. Update system_status table
  * 3. Log to system_health_logs
  * 4. If status CHANGED → send admin email (down or recovered)
+ *
+ * This is a credential/control-plane/model-discovery check. It deliberately
+ * does not claim that inference execution, account quota, or a specific runner
+ * is healthy.
  */
 export async function GET(request: NextRequest) {
   // Verify cron secret with timing-safe comparison
@@ -43,25 +76,10 @@ export async function GET(request: NextRequest) {
   let isHealthy = false;
   let errorMessage: string | null = null;
 
-  // ── Ping fal.ai ──────────────────────────────────────
+  // ── Check fal.ai without opening a paid inference request ────────────────
   try {
-    // Use the cheapest/fastest model for health check.
-    // Submit + immediately cancel = no credits consumed.
-    // Self-contained 1x1 PNG (data URL) — health-check'i ucuncu-parti
-    // placehold.co'ya bagimli olmaktan cikarir (onceki: down olursa false-alarm).
-    const result = await getAIProvider().submit("fal-ai/birefnet/v2", {
-      image_url:
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-    });
-
-    if (result.requestId) {
-      isHealthy = true;
-      try {
-        await getAIProvider().cancel("fal-ai/birefnet/v2", result.requestId);
-      } catch {
-        // Cancel failure is non-fatal — the request will time out naturally
-      }
-    }
+    await checkFalPlatform();
+    isHealthy = true;
   } catch (err) {
     isHealthy = false;
     errorMessage =
@@ -158,6 +176,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     service: SERVICE_ID,
+    check: "platform_model_metadata",
     healthy: isHealthy,
     responseTime,
     statusChanged,

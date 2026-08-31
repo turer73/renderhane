@@ -1,4 +1,7 @@
-import { submitJob } from "@/lib/jobs/submit";
+import {
+  submitJob,
+  type ProviderSubmissionState,
+} from "@/lib/jobs/submit";
 import { APLUS_SCENES, getScenePrompt } from "@/lib/fal/aplus-scenes";
 import {
   MAX_AVATAR_SCRIPT_CHARS,
@@ -9,11 +12,11 @@ import {
 } from "@/lib/fal/models";
 import {
   CreditError,
-  refundCredits,
-  reserveCreditBundle,
 } from "@/lib/credits/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/auth/admin-check";
+import { autoCreateProject } from "@/lib/jobs/api-helpers";
+import { reserveSocialKitRequestBundle } from "@/lib/jobs/social-kit-idempotency";
 
 // ── Types ────────────────────────────────────────
 
@@ -24,6 +27,11 @@ interface OrchestrationInput {
   projectId?: string;
 }
 
+interface SocialKitOrchestrationInput extends OrchestrationInput {
+  /** Durable request claim required before any Social Kit paid side effect. */
+  requestId: string;
+}
+
 interface OrchestrationResult {
   jobIds: string[];
   totalCost: number;
@@ -32,6 +40,9 @@ interface OrchestrationResult {
   hasVideo?: boolean;
   completedJobs?: number;
   warnings?: string[];
+  submissionStates?: Record<string, ProviderSubmissionState>;
+  /** At least one child did not return a provably terminal submission result. */
+  reconciliationPending?: boolean;
 }
 
 // ── A+ Content (4 parallel scenes) ───────────────
@@ -54,10 +65,17 @@ export async function orchestrateAplus(
 
   const jobIds: string[] = [];
   const warnings: string[] = [];
+  const submissionStates: Record<string, ProviderSubmissionState> = {};
 
   results.forEach((r, i) => {
     if (r.status === "fulfilled") {
       jobIds.push(r.value.jobId);
+      submissionStates[r.value.jobId] = r.value.submissionState;
+      if (r.value.submissionState !== "accepted") {
+        warnings.push(
+          `Scene "${APLUS_SCENES[i].id}": ${r.value.warning ?? r.value.submissionState}`
+        );
+      }
     } else {
       const err = r.reason;
       const msg =
@@ -78,6 +96,7 @@ export async function orchestrateAplus(
     jobIds,
     totalCost: jobIds.length * 8,
     estimatedTime: "~1min",
+    submissionStates,
     ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
@@ -93,7 +112,14 @@ interface TalkingAvatarInput extends OrchestrationInput {
 
 export async function orchestrateTalkingAvatar(
   input: TalkingAvatarInput
-): Promise<{ jobId: string; creditCost: number; estimatedTime: string }> {
+): Promise<{
+  jobId: string;
+  requestId: string | null;
+  creditCost: number;
+  estimatedTime: string;
+  submissionState: ProviderSubmissionState;
+  warning?: string;
+}> {
   const { userId, imageUrl, script, audioUrl } = input;
 
   // Ses süresi maliyeti belirler ($0.16/sn) — script sınırı zorunlu.
@@ -119,8 +145,11 @@ export async function orchestrateTalkingAvatar(
 
   return {
     jobId: result.jobId,
+    requestId: result.requestId,
     creditCost: result.creditCost,
     estimatedTime: result.estimatedTime,
+    submissionState: result.submissionState,
+    ...(result.warning ? { warning: result.warning } : {}),
   };
 }
 
@@ -142,9 +171,12 @@ const SOCIAL_KIT_SCENE_PROMPTS = {
 } as const;
 
 export async function orchestrateSocialKit(
-  input: OrchestrationInput
+  input: SocialKitOrchestrationInput
 ): Promise<OrchestrationResult> {
-  const { userId, imageUrl, locale = "tr", projectId } = input;
+  const { userId, imageUrl, locale = "tr", projectId, requestId } = input;
+  if (!requestId) {
+    throw new Error("social_kit_durable_request_required");
+  }
   const prompts =
     SOCIAL_KIT_SCENE_PROMPTS[locale === "en" ? "en" : "tr"];
 
@@ -181,26 +213,34 @@ export async function orchestrateSocialKit(
     // A failed admin lookup must not make a normal user free.
   }
 
+  const reservationItems = jobs.map((job) => ({
+    amount: job.creditCost,
+    description: job.description,
+  }));
   const reservations = isAdmin(userEmail)
     ? []
-    : await reserveCreditBundle(
+    : await reserveSocialKitRequestBundle({
+        requestId,
         userId,
-        jobs.map((job) => ({
-          amount: job.creditCost,
-          description: job.description,
-        }))
-      );
+        items: reservationItems,
+      });
+
+  // Reserve the complete bundle before creating a project. A failed credit
+  // claim must not leave an empty project behind.
+  const resolvedProjectId =
+    projectId ?? (await autoCreateProject(userId, "social-kit", imageUrl));
 
   const results = await Promise.allSettled(
     jobs.map((job, index) =>
       submitJob({
         userId,
         userEmail,
-        projectId,
+        projectId: resolvedProjectId,
         tool: job.kind,
         modelKey: job.modelKey,
         imageUrl,
         prompt: job.prompt,
+        orchestrationRequestId: requestId,
         ...(reservations[index]
           ? {
               reservedCredit: {
@@ -215,26 +255,25 @@ export async function orchestrateSocialKit(
 
   const jobIds: string[] = [];
   const warnings: string[] = [];
+  const submissionStates: Record<string, ProviderSubmissionState> = {};
   let totalCost = 0;
+  let reconciliationPending = false;
 
   const sceneResults = results.slice(0, SOCIAL_KIT_SCENE_COUNT);
   const videoResult = results[SOCIAL_KIT_SCENE_COUNT];
-
-  await Promise.all(
-    results.map(async (result, index) => {
-      if (result.status === "rejected" && reservations[index]) {
-        // submitJob normally refunds its reservation. This idempotent fallback
-        // also covers failures before a durable job row can be linked.
-        await refundCredits(reservations[index]).catch(() => undefined);
-      }
-    })
-  );
 
   sceneResults.forEach((r, i) => {
     if (r.status === "fulfilled") {
       jobIds.push(r.value.jobId);
       totalCost += r.value.creditCost;
+      submissionStates[r.value.jobId] = r.value.submissionState;
+      if (r.value.submissionState !== "accepted") {
+        warnings.push(
+          `Scene ${i + 1}: ${r.value.warning ?? r.value.submissionState}`
+        );
+      }
     } else {
+      reconciliationPending = true;
       const err = r.reason;
       const msg =
         err instanceof CreditError && err.code === "INSUFFICIENT"
@@ -249,7 +288,14 @@ export async function orchestrateSocialKit(
   if (videoResult.status === "fulfilled") {
     jobIds.push(videoResult.value.jobId);
     totalCost += videoResult.value.creditCost;
+    submissionStates[videoResult.value.jobId] = videoResult.value.submissionState;
+    if (videoResult.value.submissionState !== "accepted") {
+      warnings.push(
+        `Video: ${videoResult.value.warning ?? videoResult.value.submissionState}`
+      );
+    }
   } else {
+    reconciliationPending = true;
     warnings.push(
       `Video: ${videoResult.reason instanceof Error ? videoResult.reason.message : "failed"}`
     );
@@ -266,6 +312,8 @@ export async function orchestrateSocialKit(
     sceneCount: sceneResults.filter((result) => result.status === "fulfilled").length,
     hasVideo: videoResult.status === "fulfilled",
     completedJobs: jobIds.length,
+    submissionStates,
+    ...(reconciliationPending ? { reconciliationPending: true } : {}),
     ...(warnings.length > 0 ? { warnings } : {}),
   };
 }

@@ -9,27 +9,26 @@ import {
 
 const mocks = vi.hoisted(() => ({
   submitJob: vi.fn(),
-  reserveCreditBundle: vi.fn(),
-  refundCredits: vi.fn(),
+  reserveSocialKitRequestBundle: vi.fn(),
   getUserById: vi.fn(),
   isAdmin: vi.fn(),
+  autoCreateProject: vi.fn(),
 }));
 
 vi.mock("@/lib/jobs/submit", () => ({ submitJob: mocks.submitJob }));
-vi.mock("@/lib/credits/engine", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/credits/engine")>();
-  return {
-    ...original,
-    reserveCreditBundle: mocks.reserveCreditBundle,
-    refundCredits: mocks.refundCredits,
-  };
-});
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     auth: { admin: { getUserById: mocks.getUserById } },
   }),
 }));
 vi.mock("@/lib/auth/admin-check", () => ({ isAdmin: mocks.isAdmin }));
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/jobs/social-kit-idempotency", () => ({
+  reserveSocialKitRequestBundle: mocks.reserveSocialKitRequestBundle,
+}));
+vi.mock("@/lib/jobs/api-helpers", () => ({
+  autoCreateProject: mocks.autoCreateProject,
+}));
 
 import { orchestrateSocialKit } from "../orchestrate";
 
@@ -45,8 +44,8 @@ describe("orchestrateSocialKit", () => {
       data: { user: { email: "user@example.com" } },
     });
     mocks.isAdmin.mockReturnValue(false);
-    mocks.reserveCreditBundle.mockResolvedValue(transactionIds);
-    mocks.refundCredits.mockResolvedValue(undefined);
+    mocks.reserveSocialKitRequestBundle.mockResolvedValue(transactionIds);
+    mocks.autoCreateProject.mockResolvedValue("project-auto");
     mocks.submitJob.mockImplementation(async (input) => ({
       jobId: `job-${mocks.submitJob.mock.calls.length}`,
       requestId: `request-${mocks.submitJob.mock.calls.length}`,
@@ -55,19 +54,21 @@ describe("orchestrateSocialKit", () => {
           ? MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost
           : MODELS[SOCIAL_KIT_VIDEO_MODEL].creditCost,
       estimatedTime: "~1min",
+      submissionState: "accepted",
     }));
   });
 
   it("reserves the complete 67-credit bundle before submitting child jobs", async () => {
     const result = await orchestrateSocialKit({
       userId: "user-1",
+      requestId: "request-1",
       projectId: "project-1",
       imageUrl: "https://cdn.example/product.png",
       locale: "tr",
     });
 
-    expect(mocks.reserveCreditBundle).toHaveBeenCalledOnce();
-    const [, items] = mocks.reserveCreditBundle.mock.calls[0];
+    expect(mocks.reserveSocialKitRequestBundle).toHaveBeenCalledOnce();
+    const { items } = mocks.reserveSocialKitRequestBundle.mock.calls[0][0];
     expect(items.map((item: { amount: number }) => item.amount)).toEqual([
       ...Array(SOCIAL_KIT_SCENE_COUNT).fill(
         MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost
@@ -97,7 +98,7 @@ describe("orchestrateSocialKit", () => {
   });
 
   it("does not start any provider job when the atomic reservation fails", async () => {
-    mocks.reserveCreditBundle.mockRejectedValue(
+    mocks.reserveSocialKitRequestBundle.mockRejectedValue(
       Object.assign(new Error("Insufficient credits"), {
         name: "CreditError",
         code: "INSUFFICIENT",
@@ -107,10 +108,35 @@ describe("orchestrateSocialKit", () => {
     await expect(
       orchestrateSocialKit({
         userId: "user-1",
+        requestId: "request-1",
         imageUrl: "https://cdn.example/product.png",
       })
     ).rejects.toThrow("Insufficient credits");
     expect(mocks.submitJob).not.toHaveBeenCalled();
+    expect(mocks.autoCreateProject).not.toHaveBeenCalled();
+  });
+
+  it("binds one durable request reservation before auto-creating a project", async () => {
+    const result = await orchestrateSocialKit({
+      userId: "user-1",
+      requestId: "request-1",
+      imageUrl: "https://cdn.example/product.png",
+    });
+
+    expect(mocks.reserveSocialKitRequestBundle).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "request-1", userId: "user-1" })
+    );
+    expect(
+      mocks.reserveSocialKitRequestBundle.mock.invocationCallOrder[0]
+    ).toBeLessThan(mocks.autoCreateProject.mock.invocationCallOrder[0]);
+    expect(
+      mocks.submitJob.mock.calls.every(
+        ([input]) =>
+          input.projectId === "project-auto" &&
+          input.orchestrationRequestId === "request-1"
+      )
+    ).toBe(true);
+    expect(result.completedJobs).toBe(SOCIAL_KIT_SCENE_COUNT + 1);
   });
 
   it("skips reservations for an allowlisted admin", async () => {
@@ -118,18 +144,19 @@ describe("orchestrateSocialKit", () => {
 
     const result = await orchestrateSocialKit({
       userId: "admin-1",
+      requestId: "request-admin",
       imageUrl: "https://cdn.example/product.png",
       locale: "en",
     });
 
-    expect(mocks.reserveCreditBundle).not.toHaveBeenCalled();
+    expect(mocks.reserveSocialKitRequestBundle).not.toHaveBeenCalled();
     expect(
       mocks.submitJob.mock.calls.every(([input]) => input.reservedCredit === undefined)
     ).toBe(true);
     expect(result.completedJobs).toBe(SOCIAL_KIT_SCENE_COUNT + 1);
   });
 
-  it("refunds a failed child reservation and reports a partial package", async () => {
+  it("reports a partial package without guessing a second refund", async () => {
     mocks.submitJob.mockImplementation(async (input) => {
       if (input.tool === "video") throw new Error("video unavailable");
       return {
@@ -137,22 +164,66 @@ describe("orchestrateSocialKit", () => {
         requestId: "request-scene",
         creditCost: MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost,
         estimatedTime: "~10s",
+        submissionState: "accepted",
       };
     });
 
     const result = await orchestrateSocialKit({
       userId: "user-1",
+      requestId: "request-1",
       imageUrl: "https://cdn.example/product.png",
     });
 
-    expect(mocks.refundCredits).toHaveBeenCalledWith(transactionIds.at(-1));
     expect(result).toMatchObject({
       totalCost:
         SOCIAL_KIT_SCENE_COUNT * MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost,
       sceneCount: SOCIAL_KIT_SCENE_COUNT,
       hasVideo: false,
       completedJobs: SOCIAL_KIT_SCENE_COUNT,
+      reconciliationPending: true,
     });
     expect(result.warnings).toContain("Video: video unavailable");
+  });
+
+  it("fails closed before reservations when a durable request is missing at runtime", async () => {
+    await expect(
+      orchestrateSocialKit({
+        userId: "user-1",
+        imageUrl: "https://cdn.example/product.png",
+      } as Parameters<typeof orchestrateSocialKit>[0])
+    ).rejects.toThrow("social_kit_durable_request_required");
+
+    expect(mocks.reserveSocialKitRequestBundle).not.toHaveBeenCalled();
+    expect(mocks.submitJob).not.toHaveBeenCalled();
+  });
+
+  it("returns an indeterminate child job for webhook or cron reconciliation", async () => {
+    mocks.submitJob.mockImplementation(async (input) => ({
+      jobId: `job-${mocks.submitJob.mock.calls.length}`,
+      requestId: null,
+      creditCost:
+        input.tool === "scene"
+          ? MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost
+          : MODELS[SOCIAL_KIT_VIDEO_MODEL].creditCost,
+      estimatedTime: "~1min",
+      submissionState:
+        input.tool === "video" ? "indeterminate" : "accepted",
+      ...(input.tool === "video"
+        ? { warning: "provider_submission_outcome_indeterminate" }
+        : {}),
+    }));
+
+    const result = await orchestrateSocialKit({
+      userId: "user-1",
+      requestId: "request-1",
+      imageUrl: "https://cdn.example/product.png",
+    });
+
+    const videoJobId = result.jobIds.at(-1)!;
+    expect(result.submissionStates?.[videoJobId]).toBe("indeterminate");
+    expect(result.warnings).toContain(
+      "Video: provider_submission_outcome_indeterminate"
+    );
+    expect(result.completedJobs).toBe(SOCIAL_KIT_SCENE_COUNT + 1);
   });
 });
