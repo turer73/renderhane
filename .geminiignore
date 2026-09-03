@@ -1,0 +1,39 @@
+# Secrets and local credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Private or customer-supplied working data
+private/
+private-assets/
+customer-assets/
+local-data/
+secrets/
+
+# Local databases and dumps
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+
+# Generated/runtime directories
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+.cache/
+.tmp/
+tmp/
+
+# Large generated relief artifacts; explicitly include a specific file when review is intended
+workers/relief/out/
+workers/relief/output/
+artifacts/local/
