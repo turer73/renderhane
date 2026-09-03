@@ -1,17 +1,34 @@
-"""Deterministic manufacturing exports, SVG registration and artifact metadata."""
+"""Deterministic manufacturing exports, validation and registration files."""
 
 from __future__ import annotations
 
 import io
+import math
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
+from xml.etree import ElementTree
 from xml.sax.saxutils import escape
 
 import numpy as np
 import trimesh
 
 from .models import FIXED_ZIP_TIME, sha256_file
+
+MAX_3MF_MODEL_XML_BYTES = 256 * 1024 * 1024
+_REQUIRED_3MF_MEMBERS = {
+    "[Content_Types].xml",
+    "_rels/.rels",
+    "3D/3dmodel.model",
+}
+_3MF_UNIT_TO_MM = {
+    "micron": 0.001,
+    "millimeter": 1.0,
+    "centimeter": 10.0,
+    "inch": 25.4,
+    "foot": 304.8,
+    "meter": 1000.0,
+}
 
 
 def _format_float(value: float) -> str:
@@ -21,6 +38,7 @@ def _format_float(value: float) -> str:
 
 
 def deterministic_3mf_bytes(mesh_mm: trimesh.Trimesh, title: str, recipe_hash: str) -> bytes:
+    """Serialize one mesh as a minimal deterministic Core 3MF package in mm."""
     vertices = np.asarray(mesh_mm.vertices, dtype=np.float64)
     faces = np.asarray(mesh_mm.faces, dtype=np.int64)
     model = io.StringIO()
@@ -68,7 +86,145 @@ def deterministic_3mf_bytes(mesh_mm: trimesh.Trimesh, title: str, recipe_hash: s
     return output.getvalue()
 
 
+def _safe_3mf_member_name(name: str) -> bool:
+    path = PurePosixPath(name)
+    return not path.is_absolute() and ".." not in path.parts and "\\" not in name
+
+
+def _parse_3mf_transform(value: str | None) -> np.ndarray:
+    """Return a 4x4 transform from the Core 3MF 12-number row-vector form."""
+    matrix = np.eye(4, dtype=np.float64)
+    if value is None or not value.strip():
+        return matrix
+    parts = value.split()
+    if len(parts) != 12:
+        raise ValueError("3MF build transform must contain exactly 12 numbers")
+    numbers = np.asarray([float(part) for part in parts], dtype=np.float64)
+    if not np.isfinite(numbers).all():
+        raise ValueError("3MF build transform contains non-finite values")
+    # 3MF stores: m00 m01 m02 m10 m11 m12 m20 m21 m22 m30 m31 m32.
+    # Convert that row-vector affine transform to trimesh's column-vector 4x4.
+    matrix[:3, :3] = numbers[:9].reshape(3, 3).T
+    matrix[:3, 3] = numbers[9:12]
+    return matrix
+
+
+def load_3mf_mesh(path: Path) -> trimesh.Trimesh:
+    """Load the mesh emitted by this worker without optional 3MF dependencies.
+
+    The validator supports mesh objects referenced by build items, with optional
+    build transforms. It rejects component graphs and malformed packages rather
+    than silently accepting an ambiguous manufacturing file.
+    """
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = archive.namelist()
+            if len(names) != len(set(names)):
+                raise ValueError("3MF package contains duplicate member names")
+            unsafe = [name for name in names if not _safe_3mf_member_name(name)]
+            if unsafe:
+                raise ValueError(f"3MF package contains unsafe member names: {unsafe[:3]}")
+            missing = sorted(_REQUIRED_3MF_MEMBERS - set(names))
+            if missing:
+                raise ValueError(f"3MF package is missing required members: {missing}")
+            info = archive.getinfo("3D/3dmodel.model")
+            if info.file_size <= 0 or info.file_size > MAX_3MF_MODEL_XML_BYTES:
+                raise ValueError("3MF model XML size is invalid or exceeds the Phase 0 limit")
+            model_xml = archive.read(info)
+    except zipfile.BadZipFile as exc:
+        raise ValueError("3MF package is not a valid ZIP container") from exc
+
+    try:
+        root = ElementTree.fromstring(model_xml)
+    except ElementTree.ParseError as exc:
+        raise ValueError("3MF model XML is malformed") from exc
+
+    if not root.tag.endswith("}model") and root.tag != "model":
+        raise ValueError("3MF root element is not model")
+    namespace_uri = root.tag[1:].split("}", 1)[0] if root.tag.startswith("{") else ""
+    prefix = f"{{{namespace_uri}}}" if namespace_uri else ""
+    unit = root.attrib.get("unit", "millimeter")
+    if unit not in _3MF_UNIT_TO_MM:
+        raise ValueError(f"Unsupported 3MF unit: {unit}")
+    unit_scale = _3MF_UNIT_TO_MM[unit]
+
+    resources = root.find(f"{prefix}resources")
+    build = root.find(f"{prefix}build")
+    if resources is None or build is None:
+        raise ValueError("3MF model requires resources and build elements")
+
+    objects: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    for object_element in resources.findall(f"{prefix}object"):
+        object_id = object_element.attrib.get("id")
+        if not object_id or object_id in objects:
+            raise ValueError("3MF object IDs must be present and unique")
+        if object_element.find(f"{prefix}components") is not None:
+            raise ValueError("3MF component objects are not supported by the Phase 0 validator")
+        mesh_element = object_element.find(f"{prefix}mesh")
+        if mesh_element is None:
+            raise ValueError(f"3MF object {object_id} has no mesh")
+        vertices_element = mesh_element.find(f"{prefix}vertices")
+        triangles_element = mesh_element.find(f"{prefix}triangles")
+        if vertices_element is None or triangles_element is None:
+            raise ValueError(f"3MF object {object_id} has incomplete mesh data")
+
+        vertices: list[tuple[float, float, float]] = []
+        for vertex in vertices_element.findall(f"{prefix}vertex"):
+            try:
+                point = (
+                    float(vertex.attrib["x"]) * unit_scale,
+                    float(vertex.attrib["y"]) * unit_scale,
+                    float(vertex.attrib["z"]) * unit_scale,
+                )
+            except (KeyError, ValueError) as exc:
+                raise ValueError(f"3MF object {object_id} contains an invalid vertex") from exc
+            if not all(math.isfinite(value) for value in point):
+                raise ValueError(f"3MF object {object_id} contains a non-finite vertex")
+            vertices.append(point)
+
+        faces: list[tuple[int, int, int]] = []
+        for triangle in triangles_element.findall(f"{prefix}triangle"):
+            try:
+                face = tuple(int(triangle.attrib[key]) for key in ("v1", "v2", "v3"))
+            except (KeyError, ValueError) as exc:
+                raise ValueError(f"3MF object {object_id} contains an invalid triangle") from exc
+            if min(face) < 0 or max(face, default=-1) >= len(vertices):
+                raise ValueError(f"3MF object {object_id} triangle index is out of range")
+            if len(set(face)) != 3:
+                raise ValueError(f"3MF object {object_id} contains a degenerate index triangle")
+            faces.append(face)  # type: ignore[arg-type]
+
+        if len(vertices) < 4 or not faces:
+            raise ValueError(f"3MF object {object_id} has insufficient mesh data")
+        objects[object_id] = (
+            np.asarray(vertices, dtype=np.float64),
+            np.asarray(faces, dtype=np.int64),
+        )
+
+    built_meshes: list[trimesh.Trimesh] = []
+    for item in build.findall(f"{prefix}item"):
+        object_id = item.attrib.get("objectid")
+        if object_id not in objects:
+            raise ValueError(f"3MF build references missing object: {object_id}")
+        vertices, faces = objects[object_id]
+        mesh = trimesh.Trimesh(vertices=vertices.copy(), faces=faces.copy(), process=False)
+        transform = _parse_3mf_transform(item.attrib.get("transform"))
+        mesh.apply_transform(transform)
+        built_meshes.append(mesh)
+
+    if not built_meshes:
+        raise ValueError("3MF build contains no items")
+    if len(built_meshes) == 1:
+        return built_meshes[0]
+    combined = trimesh.util.concatenate(built_meshes)
+    if not isinstance(combined, trimesh.Trimesh):
+        raise ValueError("3MF build could not be combined into a mesh")
+    return combined
+
+
 def load_exported_mesh(path: Path) -> trimesh.Trimesh:
+    if path.suffix.lower() == ".3mf":
+        return load_3mf_mesh(path)
     loaded = trimesh.load(path, force="mesh", process=True)
     if not isinstance(loaded, trimesh.Trimesh):
         raise ValueError(f"Export did not reload as a mesh: {path.name}")
@@ -139,16 +295,10 @@ def write_contour_svg(
     for loop in contour_loops_mm:
         if len(loop) < 3:
             raise ValueError("Contour loop must contain at least three points")
-        converted = [
-            (x + width_mm / 2.0, height_mm / 2.0 - y)
-            for x, y in loop
-        ]
+        converted = [(x + width_mm / 2.0, height_mm / 2.0 - y) for x, y in loop]
         x0, y0 = converted[0]
         commands.append(f"M {_format_float(x0)} {_format_float(y0)}")
-        commands.extend(
-            f"L {_format_float(x)} {_format_float(y)}"
-            for x, y in converted[1:]
-        )
+        commands.extend(f"L {_format_float(x)} {_format_float(y)}" for x, y in converted[1:])
         commands.append("Z")
 
     path_data = " ".join(commands)
