@@ -1,31 +1,45 @@
 # Renderhane Relief Geometry Worker — Phase 0
 
-Bu klasör, 16-bit bir relief haritasını gerçek fiziksel ölçülerde kapalı hacme dönüştüren bağımsız prototipi içerir.
+Bu klasör, AI ile hazırlanmış veya elle düzenlenmiş bir **8/16-bit rölyef haritasını** gerçek fiziksel ölçülerde, doğrulanabilir üretim geometrisine dönüştüren bağımsız prototipi içerir.
 
-## Bu sürüm ne yapar?
+Asıl ürün **Relief Pro**’dur: gerçek fiziksel kabartma ile aynı koordinat sisteminden üretilmiş UV renk katmanlarının birlikte teslim edilmesi. Epoksili **Dome** ürünü ayrı bir hattır.
 
-- 8/16-bit gri tonlu relief haritası okur.
-- Fiziksel genişlik, taban kalınlığı ve maksimum rölyef derinliği uygular.
-- En-boy oranından yüksekliği otomatik çözebilir.
+## Ürün gerçeği
+
+Bu worker:
+
+- tam 3D varlık tahmin etmez,
+- Rodin/Hunyuan/TRELLIS çıktısını doğrudan üretim dosyası saymaz,
+- milimetre ölçüsü, taban, dış siluet, mesh topolojisi ve export doğrulamasını deterministik kodla yapar,
+- dijital test geçse bile fiziksel P1S/A1 mini ve UV testini zorunlu bırakır.
+
+## Şu anda yaptığı işler
+
+- 8/16-bit gri tonlu rölyef haritası okur.
+- Dikdörtgen kalibrasyon plakası veya maskeye bağlı tek parçalı dış siluet üretir.
+- Dış siluette kopuk adaları, noktasal temasları ve Phase 0’da desteklenmeyen iç delikleri reddeder.
 - Percentile clamp, gamma, inversion ve Gaussian smoothing uygular.
-- Düz arka yüzlü, dikdörtgen bir watertight mesh üretir.
-- STL'yi milimetre, GLB'yi metre biriminde dışa aktarır.
-- Normalize edilmiş 16-bit relief haritası ve üretim raporu üretir.
-- Aynı girdilerle deterministik dosya çıktısı verir.
+- Gerçek X/Y ölçüsünü, taban kalınlığını ve maksimum rölyef derinliğini uygular.
+- Düz arka yüzlü, watertight/manifold tek hacim oluşturur.
+- STL’yi milimetre, GLB’yi metre, generic 3MF’yi milimetre biriminde dışa aktarır.
+- STL/GLB/3MF dosyalarını tekrar açarak ölçü ve watertight kontrolü yapar.
+- Kaynakla aynı dönüşümü kullanan UV renk, white mask, varnish mask ve siluet maskesi üretir.
+- Fiziksel `contour.svg` ve registration overlay üretir.
+- Artifact SHA-256 değerlerini, reçete hash’ini, birimleri, bounds ve sınırlamaları raporlar.
+- Aynı girdi, reçete ve yazılım ortamında byte-deterministic dosyalar üretir.
 
-## Bilinçli kapsam sınırı
+## Bilinçli Phase 0 sınırları
 
-Bu prototip henüz:
+Henüz şunlar yoktur:
 
-- alfa maskesine göre dış silueti kesmez,
-- magnet yuvası açmaz,
-- askı/ayak geometrisi eklemez,
-- 3MF üretmez,
-- UV baskı maskesi üretmez,
-- semantic layer veya normal-map birleşimi yapmaz,
-- doğrudan Renderhane job sistemine bağlı değildir.
+- magnet yuvası veya askı deliği boolean işlemi,
+- semantik katman/normal map birleşimi,
+- otomatik minimum yazdırılabilir detay analizi,
+- Bambu Studio’ya özel proje 3MF profili,
+- üretim uygulamasındaki workflow/queue entegrasyonu,
+- fiziksel UV kafa açıklığı garantisi.
 
-Mask verilirse Phase 0'da yalnızca mask dışındaki rölyef yüksekliği sıfırlanır; dikdörtgen taban korunur. Bu davranış bilinçlidir ve raporda ürün özelliği olarak kabul edilmemelidir.
+Siluet modu yalnızca **tek, deliksiz ve 4-bağlantılı** dış formu kabul eder. İç delik veya bir noktada birleşen bölgeler yanlış/tehlikeli topoloji üretmemesi için reddedilir.
 
 ## Kurulum
 
@@ -33,93 +47,114 @@ Mask verilirse Phase 0'da yalnızca mask dışındaki rölyef yüksekliği sıf�
 cd workers/relief
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\\Scripts\\activate
-pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt
 ```
 
-## Kullanım
+## Tek model oluşturma
 
 ```bash
 python relief_builder.py \
   --relief-map /path/to/relief-map-16.png \
+  --mask /path/to/alpha-mask.png \
+  --shape-mode silhouette \
+  --uv-artwork /path/to/uv-print.png \
+  --white-mask /path/to/white-mask.png \
+  --varnish-mask /path/to/varnish-mask.png \
   --out-dir /tmp/renderhane-relief \
   --width-mm 70 \
   --base-thickness-mm 3.0 \
   --relief-depth-mm 1.2 \
-  --grid-long-edge 256
+  --grid-long-edge 256 \
+  --artwork-long-edge-px 2048
 ```
 
-Opsiyonel:
-
-```bash
-  --height-mm 70 \
-  --mask /path/to/mask.png \
-  --percentile-low 2 \
-  --percentile-high 98 \
-  --gamma 1.0 \
-  --smoothing-sigma-px 1.0 \
-  --invert-depth
-```
+`--height-mm` verilmezse, siluet crop oranı korunur. Açıkça farklı bir yükseklik verilirse rapor aspect-ratio değişimini advisory olarak gösterir.
 
 ## Çıktı
 
 ```text
 out-dir/
-├── model.stl                       # mm
-├── model.glb                       # metres; web preview
+├── model.stl                         # milimetre
+├── model.glb                         # metre; web önizleme
+├── model.3mf                         # generic 3MF, milimetre
 ├── relief-map-normalized-16.png
-└── manufacturing-report.json
+├── height-preview.png
+├── uv-print-aligned.png              # verilmişse
+├── white-mask-aligned.png            # verilmişse
+├── varnish-mask-aligned.png          # verilmişse
+├── silhouette-mask-aligned.png       # mask verilmişse
+├── contour.svg                       # fiziksel dış kontur
+├── registration-overlay.svg
+├── manufacturing-report.json
+├── artifact-manifest.json
+└── manufacturing-package.zip
 ```
 
-Rapor şu kontrolleri içerir:
+Rapor iki ayrı durum taşır:
 
-- watertight
-- winding consistency
-- closed volume
-- açık kenar sayısı
-- vertex/face sayısı
-- fiziksel bounds
-- hacim
-- Z aralığı
-- uyarılar
-- production status
+- `digital_status`: `validated | needs_review`
+- `production_status`: `physical_validation_required | blocked`
+
+Dijital doğrulama geçmesi, fiziksel üretimin doğrulandığı anlamına gelmez.
+
+## Dört derinlikli Phase 0 paketi
+
+```bash
+python run_phase0_benchmark.py \
+  --relief-map /path/to/manual-relief-map-16.png \
+  --mask /path/to/alpha-mask.png \
+  --front-master /path/to/front-master.png \
+  --uv-artwork /path/to/uv-print.png \
+  --white-mask /path/to/white-mask.png \
+  --varnish-mask /path/to/varnish-mask.png \
+  --out-dir /tmp/kapadokya-phase0 \
+  --width-mm 70 \
+  --base-thickness-mm 3 \
+  --depths 0.6,1.0,1.4,1.8
+```
+
+Çıkış klasörü boş olmalıdır. Bu kural eski ve yeni artifact’ların yanlışlıkla aynı pakete karışmasını önler.
+
+Paket içinde:
+
+- dört ayrı 3MF/STL/GLB seti,
+- dijital benchmark özeti,
+- P1S/A1 mini ölçüm formu,
+- UV test talimatı,
+- fiziksel karar alanları
+
+bulunur. Varsayılan rölyef derinliği fiziksel sonuçlar kaydedilene kadar `null` kalır.
+
+## UV yükseklik kuponu
+
+```bash
+python generate_uv_clearance_coupon.py \
+  --out-dir /tmp/renderhane-uv-coupon
+```
+
+Kupon 3 mm taban üzerinde 0.0 / 0.6 / 1.0 / 1.4 / 1.8 mm yükseltilmiş bölgeler içerir. **UV operatörünün güvenli kafa açıklığı onayı olmadan makineye konulmamalıdır.**
 
 ## Test
 
 ```bash
-pytest -q
+python -m pytest workers/relief/tests -q
 ```
 
-Testler:
+Testler şu alanları kapsar:
 
-- doğru fiziksel ölçüyü,
-- watertight ve sıfır açık kenarı,
-- STL/GLB birim dönüşümünü,
-- mask davranışını,
-- dosya bazında deterministik çıktıyı,
-- geçersiz reçete reddini
+- fiziksel bounds ve birim dönüşümü,
+- watertight, winding, hacim ve açık kenarlar,
+- STL/GLB/3MF yeniden yükleme,
+- byte determinism,
+- dış siluet ve kontur,
+- kopuk bölge/iç delik reddi,
+- UV katmanlarının ortak koordinat dönüşümü,
+- aspect-ratio advisory,
+- geçersiz veya tehlikeli reçete reddi,
+- stale benchmark klasörü reddi,
+- dört-derinlik paketinin fiziksel kararı açık bırakması,
+- UV clearance kuponu.
 
-doğrular.
+## Phase 0 çıkış kapısı
 
-## Yerel doğrulama sonucu
-
-Sentetik 96 × 64, 16-bit relief haritası; `70 mm` genişlik, `3.0 mm` taban, `1.2 mm` rölyef ve `128 px` grid ile test edildi:
-
-```text
-extents:            70.000000 × 46.666667 × 4.200000 mm
-watertight:         true
-winding_consistent: true
-is_volume:          true
-open_edge_count:    0
-euler_number:       2
-production_status:  ready
-```
-
-Aynı test iki kez çalıştırıldığında STL, GLB, 16-bit PNG ve JSON rapor SHA-256 değerleri bire bir aynı çıktı.
-
-## Sonraki teknik adım
-
-1. Siluet maskesinden kapalı 2D poligon üretme.
-2. Poligon içi height-field triangulation.
-3. Manifold3D ile magnet yuvası boolean işlemi.
-4. Generic 3MF export ve doğrulama.
-5. Kapadokya golden master ile fiziksel P1S/A1 mini testi.
+Dijital çekirdeğin tamamlanması için testlerin ve CI smoke benchmark’ının geçmesi gerekir. **Issue #53 ancak dört derinlik P1S ve A1 mini’de basılıp UV kuponu ölçüldüğünde kapanmalıdır.**
