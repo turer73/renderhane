@@ -33,6 +33,81 @@ jobs:
       - name: Typecheck
         run: npm run type-check
 
+  relief-worker:
+    name: Relief Worker — Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: workers/relief/requirements-dev.txt
+
+      - name: Install worker dependencies
+        run: python -m pip install -r workers/relief/requirements-dev.txt
+
+      - name: Run relief worker tests
+        run: python -m pytest workers/relief/tests -q
+
+      - name: Generate rights-safe Kapadokya fixture
+        run: |
+          mkdir -p .phase0
+          python benchmarks/relief/generate_synthetic_kapadokya.py \
+            --out-dir .phase0/kapadokya-inputs
+
+      - name: Run four-depth digital smoke benchmark
+        run: |
+          python workers/relief/run_phase0_benchmark.py \
+            --relief-map .phase0/kapadokya-inputs/manual-relief-map-16.png \
+            --mask .phase0/kapadokya-inputs/alpha-mask.png \
+            --front-master .phase0/kapadokya-inputs/front-master.png \
+            --uv-artwork .phase0/kapadokya-inputs/uv-print.png \
+            --white-mask .phase0/kapadokya-inputs/white-mask.png \
+            --varnish-mask .phase0/kapadokya-inputs/varnish-mask.png \
+            --out-dir .phase0/kapadokya-benchmark \
+            --width-mm 70 \
+            --base-thickness-mm 3 \
+            --depths 0.6,1.0,1.4,1.8 \
+            --grid-long-edge 96 \
+            --artwork-long-edge-px 512
+
+      - name: Generate UV clearance coupon
+        run: |
+          python workers/relief/generate_uv_clearance_coupon.py \
+            --out-dir .phase0/uv-coupon \
+            --grid-long-edge 96
+
+      - name: Enforce digital and physical status separation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(Path('.phase0/kapadokya-benchmark/benchmark-summary.json').read_text())
+          assert summary['digital_benchmark_status'] == 'validated'
+          assert summary['physical_benchmark_status'] == 'pending'
+          assert summary['uv_benchmark_status'] == 'pending'
+          assert summary['default_relief_depth_mm'] is None
+
+          coupon = json.loads(Path('.phase0/uv-coupon/build/manufacturing-report.json').read_text())
+          assert coupon['validation']['digital_status'] == 'validated'
+          assert coupon['validation']['production_status'] == 'physical_validation_required'
+          PY
+
+      - name: Upload digital smoke artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relief-phase0-python-${{ matrix.python-version }}
+          path: .phase0/
+          if-no-files-found: error
+          retention-days: 7
+
   test:
     name: Test
     runs-on: ubuntu-latest
