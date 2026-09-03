@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -13,6 +14,7 @@ MODULE_PATH = Path(__file__).resolve().parents[1] / "relief_builder.py"
 SPEC = importlib.util.spec_from_file_location("relief_builder", MODULE_PATH)
 assert SPEC and SPEC.loader
 relief_builder = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = relief_builder
 SPEC.loader.exec_module(relief_builder)
 
 BuildRecipe = relief_builder.BuildRecipe
