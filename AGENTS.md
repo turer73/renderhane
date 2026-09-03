@@ -9,7 +9,8 @@ Read these first:
 1. `CLAUDE.md`
 2. `docs/plans/2026-09-03-manufacturing-relief-system-research-and-plan.md`
 3. `docs/manufacturing-relief-mvp.md`
-4. GitHub issues `#53` through `#57`
+4. `docs/plans/2026-09-03-agent-assisted-relief-development.md`
+5. GitHub issues `#53` through `#57`
 
 ## Product truth
 
@@ -59,15 +60,25 @@ Required first benchmark:
 
 Do not build the full editor, public API or Bambu-specific project 3MF before the deterministic CLI and benchmark are verified.
 
+## Agent roles
+
+DeepSeek, Claude Code, Gemini CLI and OpenCode are development accelerators, not sources of truth. Their output must be checked against tests, geometry metrics and physical samples.
+
+- **OpenCode:** local orchestration and controlled implementation workflow.
+- **DeepSeek:** economical code exploration, implementation drafts, tests and log analysis.
+- **Claude Code:** independent architecture, security, migration and manufacturability review.
+- **Gemini CLI/API:** multimodal comparison of front masters, masks, depth maps, UV layers and physical sample photographs; also large-context repository review.
+
+Gemini must not infer a production pass merely because a render or depth map looks convincing. Visual review is advisory; numerical validation and physical tests decide acceptance.
+
 ## Development workflow
 
 1. **Plan/read-only review**: identify exact files, invariants and tests.
 2. **Implement a small vertical slice** on `feature/manufacturing-relief-mvp`.
 3. **Run an independent review** focused on manufacturing correctness, security and backward compatibility.
-4. **Run automated verification**.
-5. **Record limitations honestly**. A passing unit test is not a physical production validation.
-
-DeepSeek, Claude Code and OpenCode are development accelerators, not sources of truth. Their output must be checked against tests, geometry metrics and physical samples.
+4. **Run Gemini multimodal review** when the change affects masks, depth, UV artwork, previews or physical benchmark photographs.
+5. **Run automated verification**.
+6. **Record limitations honestly**. A passing unit test or visual review is not a physical production validation.
 
 ## Verification commands
 
@@ -115,6 +126,7 @@ Warnings must downgrade the result to `needs_review`; never hide a failed check.
 - Build, validate and export operations must be idempotent.
 - Store secrets only in environment variables or provider credential stores.
 - Never commit API keys, tokens, cookies, service-role credentials or private URLs.
+- Gemini, DeepSeek and Claude credentials are developer tooling credentials unless a separately reviewed runtime integration is approved.
 
 ## Agent permissions
 
@@ -122,6 +134,7 @@ Warnings must downgrade the result to `needs_review`; never hide a failed check.
 - Build agents may edit only inside the repository and must not push to `master`.
 - Do not run destructive database, deployment or credential commands without explicit approval.
 - Do not merge or deploy merely because an agent says the change is correct.
+- Do not send private customer files to an external model without an explicit data-handling decision.
 
 ## Completion standard
 
