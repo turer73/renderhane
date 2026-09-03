@@ -46,20 +46,20 @@ jobs:
 
       - name: Generate rights-safe Kapadokya golden fixture
         run: |
-          mkdir -p .phase0
+          mkdir -p phase0-artifacts
           python benchmarks/relief/generate_synthetic_kapadokya.py \
-            --out-dir .phase0/kapadokya-inputs
+            --out-dir phase0-artifacts/kapadokya-inputs
 
       - name: Run digital four-depth smoke benchmark
         run: |
           python workers/relief/run_phase0_benchmark.py \
-            --relief-map .phase0/kapadokya-inputs/manual-relief-map-16.png \
-            --mask .phase0/kapadokya-inputs/alpha-mask.png \
-            --front-master .phase0/kapadokya-inputs/front-master.png \
-            --uv-artwork .phase0/kapadokya-inputs/uv-print.png \
-            --white-mask .phase0/kapadokya-inputs/white-mask.png \
-            --varnish-mask .phase0/kapadokya-inputs/varnish-mask.png \
-            --out-dir .phase0/kapadokya-benchmark \
+            --relief-map phase0-artifacts/kapadokya-inputs/manual-relief-map-16.png \
+            --mask phase0-artifacts/kapadokya-inputs/alpha-mask.png \
+            --front-master phase0-artifacts/kapadokya-inputs/front-master.png \
+            --uv-artwork phase0-artifacts/kapadokya-inputs/uv-print.png \
+            --white-mask phase0-artifacts/kapadokya-inputs/white-mask.png \
+            --varnish-mask phase0-artifacts/kapadokya-inputs/varnish-mask.png \
+            --out-dir phase0-artifacts/kapadokya-benchmark \
             --width-mm 70 \
             --base-thickness-mm 3 \
             --depths 0.6,1.0,1.4,1.8 \
@@ -69,7 +69,7 @@ jobs:
       - name: Generate UV clearance coupon
         run: |
           python workers/relief/generate_uv_clearance_coupon.py \
-            --out-dir .phase0/uv-coupon \
+            --out-dir phase0-artifacts/uv-coupon \
             --grid-long-edge 96
 
       - name: Verify digital status remains separate from physical status
@@ -78,13 +78,13 @@ jobs:
           import json
           from pathlib import Path
 
-          summary = json.loads(Path('.phase0/kapadokya-benchmark/benchmark-summary.json').read_text())
+          summary = json.loads(Path('phase0-artifacts/kapadokya-benchmark/benchmark-summary.json').read_text())
           assert summary['digital_benchmark_status'] == 'validated'
           assert summary['physical_benchmark_status'] == 'pending'
           assert summary['uv_benchmark_status'] == 'pending'
           assert summary['default_relief_depth_mm'] is None
 
-          coupon = json.loads(Path('.phase0/uv-coupon/build/manufacturing-report.json').read_text())
+          coupon = json.loads(Path('phase0-artifacts/uv-coupon/build/manufacturing-report.json').read_text())
           assert coupon['validation']['digital_status'] == 'validated'
           assert coupon['validation']['production_status'] == 'physical_validation_required'
           PY
@@ -93,6 +93,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relief-phase0-python-${{ matrix.python-version }}
-          path: .phase0/
+          path: phase0-artifacts/
           if-no-files-found: error
           retention-days: 7
