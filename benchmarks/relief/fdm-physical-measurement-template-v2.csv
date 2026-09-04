@@ -1,0 +1,9 @@
+sample_id,design_id,revision_id,engine_version,printer,printer_profile,slicer,slicer_version,nozzle_mm,layer_height_mm,material,material_brand,material_color,target_width_mm,target_height_mm,target_base_mm,target_relief_mm,measured_width_mm,measured_height_mm,measured_total_thickness_mm,measured_flat_back_deviation_mm,warping_mm,print_time_min,filament_g,detail_score_1_5,text_legibility_1_5,surface_score_1_5,operator_decision,defects,notes,photo_refs,measured_at_utc,operator
+KAP-P1S-060,kapadokya,,,,P1S,,,,0.4,0.12,PLA,,,70,,3.0,0.6,,,,,,,,,,pending,,,,,
+KAP-P1S-100,kapadokya,,,,P1S,,,,0.4,0.12,PLA,,,70,,3.0,1.0,,,,,,,,,,pending,,,,,
+KAP-P1S-140,kapadokya,,,,P1S,,,,0.4,0.12,PLA,,,70,,3.0,1.4,,,,,,,,,,pending,,,,,
+KAP-P1S-180,kapadokya,,,,P1S,,,,0.4,0.12,PLA,,,70,,3.0,1.8,,,,,,,,,,pending,,,,,
+KAP-A1M-060,kapadokya,,,,A1 mini,,,,0.4,0.12,PLA,,,70,,3.0,0.6,,,,,,,,,,pending,,,,,
+KAP-A1M-100,kapadokya,,,,A1 mini,,,,0.4,0.12,PLA,,,70,,3.0,1.0,,,,,,,,,,pending,,,,,
+KAP-A1M-140,kapadokya,,,,A1 mini,,,,0.4,0.12,PLA,,,70,,3.0,1.4,,,,,,,,,,pending,,,,,
+KAP-A1M-180,kapadokya,,,,A1 mini,,,,0.4,0.12,PLA,,,70,,3.0,1.8,,,,,,,,,,pending,,,,,
