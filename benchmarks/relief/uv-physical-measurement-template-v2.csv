@@ -1,0 +1,2 @@
+coupon_id,printer,printer_serial_or_asset,rip,rip_version,material,primer,jig_id,target_canvas_width_mm,target_canvas_height_mm,measured_canvas_width_mm,measured_canvas_height_mm,color_offset_x_mm,color_offset_y_mm,white_offset_x_mm,white_offset_y_mm,varnish_offset_x_mm,varnish_offset_y_mm,edge_bleed_mm,maximum_tested_surface_delta_mm,sharpness_score_1_5,operator_decision,defects,notes,photo_refs,measured_at_utc,operator
+UV-REG-001,,,,,,,,70,70,,,,,,,,,,,,pending,,,,,

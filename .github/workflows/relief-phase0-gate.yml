@@ -1,0 +1,206 @@
+name: Relief Phase 0 Digital Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/manufacturing-relief-mvp
+    paths:
+      - "workers/relief/**"
+      - "benchmarks/relief/**"
+      - ".github/workflows/relief-phase0-gate.yml"
+  pull_request:
+    paths:
+      - "workers/relief/**"
+      - "benchmarks/relief/**"
+      - ".github/workflows/relief-phase0-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  digital-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: workers/relief/requirements*.txt
+
+      - name: Install deterministic worker dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r workers/relief/requirements-dev.txt
+
+      - name: Run complete relief worker test suite
+        run: python -m pytest workers/relief/tests -q
+
+      - name: Generate synthetic front master, relief and masks
+        run: |
+          python workers/relief/generate_synthetic_benchmark.py \
+            --output /tmp/renderhane-phase0-fixture \
+            --width 256 \
+            --height 192
+          python - <<'PY'
+          from pathlib import Path
+          import numpy as np
+          from PIL import Image
+
+          root = Path('/tmp/renderhane-phase0-fixture')
+          relief = np.asarray(Image.open(root / 'relief-map-16.png'), dtype=np.uint16)
+          mask = np.asarray(Image.open(root / 'silhouette-mask.png').convert('L'), dtype=np.uint8)
+          h, w = mask.shape
+
+          rgba = np.zeros((h, w, 4), dtype=np.uint8)
+          rgba[..., 0] = np.round(np.linspace(40, 220, w)[None, :]).astype(np.uint8)
+          rgba[..., 1] = np.round(np.linspace(80, 180, h)[:, None]).astype(np.uint8)
+          rgba[..., 2] = np.round(relief / 65535 * 180 + 50).astype(np.uint8)
+          rgba[..., 3] = mask
+          Image.fromarray(rgba, 'RGBA').save(root / 'front-master.png')
+          Image.fromarray(rgba, 'RGBA').save(root / 'uv-artwork.png')
+          Image.fromarray(mask, 'L').save(root / 'white-mask.png')
+          Image.fromarray(mask, 'L').save(root / 'varnish-mask.png')
+          PY
+
+      - name: Validate synthetic front-master contract
+        run: |
+          python workers/relief/validate_front_master.py \
+            --image /tmp/renderhane-phase0-fixture/front-master.png \
+            --mask /tmp/renderhane-phase0-fixture/silhouette-mask.png \
+            --text-vector /tmp/renderhane-phase0-fixture/text-vector.svg \
+            --minimum-long-edge-px 192 \
+            --declared-orthographic \
+            --declared-no-cast-shadow \
+            --output /tmp/renderhane-phase0-fixture/front-master-validation.json
+
+      - name: Build four evidence-gated Relief Pro variants
+        run: |
+          python workers/relief/run_phase0.py \
+            --front-master /tmp/renderhane-phase0-fixture/front-master.png \
+            --relief-map /tmp/renderhane-phase0-fixture/relief-map-16.png \
+            --mask /tmp/renderhane-phase0-fixture/silhouette-mask.png \
+            --text-vector /tmp/renderhane-phase0-fixture/text-vector.svg \
+            --uv-artwork /tmp/renderhane-phase0-fixture/uv-artwork.png \
+            --white-mask /tmp/renderhane-phase0-fixture/white-mask.png \
+            --varnish-mask /tmp/renderhane-phase0-fixture/varnish-mask.png \
+            --output /tmp/renderhane-phase0-output \
+            --width-mm 70 \
+            --base-mm 3 \
+            --depths 0.6,1.0,1.4,1.8 \
+            --grid-long-edge 128 \
+            --minimum-long-edge-px 192 \
+            --declared-orthographic \
+            --declared-no-cast-shadow
+
+      - name: Cross-check STL GLB and 3MF units for every variant
+        run: |
+          set -euo pipefail
+          for variant in /tmp/renderhane-phase0-output/variants/relief-*mm; do
+            python workers/relief/validate_artifacts.py \
+              --stl "$variant/geometry/model.stl" \
+              --glb "$variant/geometry/model.glb" \
+              --three-mf "$variant/geometry/model.3mf" \
+              --tolerance-mm 0.02 \
+              --output "$variant/reports/artifact-consistency-report.json"
+          done
+
+      - name: Generate known-height geometry coupon
+        run: |
+          python workers/relief/generate_geometry_coupon.py \
+            --output /tmp/renderhane-geometry-coupon
+          python workers/relief/product_relief_builder.py \
+            --relief-map /tmp/renderhane-geometry-coupon/geometry-coupon-relief-map-16.png \
+            --mask /tmp/renderhane-geometry-coupon/geometry-coupon-mask.png \
+            --output /tmp/renderhane-geometry-coupon/model \
+            --width-mm 70 \
+            --height-mm 40 \
+            --base-mm 3 \
+            --relief-mm 1.8 \
+            --grid-long-edge 192
+          python workers/relief/validate_artifacts.py \
+            --stl /tmp/renderhane-geometry-coupon/model/model.stl \
+            --glb /tmp/renderhane-geometry-coupon/model/model.glb \
+            --three-mf /tmp/renderhane-geometry-coupon/model/model.3mf \
+            --output /tmp/renderhane-geometry-coupon/artifact-consistency-report.json
+
+      - name: Record gate summary
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          output = Path('/tmp/renderhane-phase0-output')
+          phase_summary_path = output / 'phase0-summary.json'
+          phase_summary = None
+          phase_summary_error = None
+          if phase_summary_path.exists():
+              try:
+                  loaded = json.loads(phase_summary_path.read_text(encoding='utf-8'))
+                  if isinstance(loaded, dict):
+                      phase_summary = loaded
+                  else:
+                      phase_summary_error = 'phase0_summary_is_not_an_object'
+              except (OSError, json.JSONDecodeError) as exc:
+                  phase_summary_error = type(exc).__name__
+
+          job_status = os.environ.get('JOB_STATUS', '').lower()
+          if job_status == 'cancelled':
+              execution = 'cancelled'
+          elif job_status == 'failure':
+              execution = 'failure'
+          elif phase_summary is None:
+              execution = 'incomplete'
+          elif (
+              phase_summary.get('digital_geometry_gate') == 'pass'
+              and phase_summary.get('digital_status') == 'validated'
+          ):
+              execution = 'success'
+          elif (
+              phase_summary.get('digital_geometry_gate') == 'fail'
+              or phase_summary.get('digital_status') == 'needs_review'
+          ):
+              execution = 'failure'
+          else:
+              execution = 'incomplete'
+
+          summary = {
+              'schema_version': 1,
+              'digital_ci_execution': execution,
+              'github_job_status': job_status or 'unknown',
+              'physical_validation_status': 'pending',
+              'production_status': 'not_approved_pending_physical_validation',
+              'notice': 'Only digital_ci_execution=success means the declared digital steps and phase summary passed. P1S, A1 mini and UV measurements are still required.',
+          }
+          if phase_summary is not None:
+              summary['phase0_summary'] = phase_summary
+          if phase_summary_error is not None:
+              summary['phase0_summary_error'] = phase_summary_error
+          Path('/tmp/relief-phase0-ci-summary.json').write_text(
+              json.dumps(summary, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
+      - name: Upload Phase 0 digital evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relief-phase0-digital-evidence
+          path: |
+            /tmp/renderhane-phase0-fixture
+            /tmp/renderhane-phase0-output
+            /tmp/renderhane-geometry-coupon
+            /tmp/relief-phase0-ci-summary.json
+          if-no-files-found: warn
+          retention-days: 21
