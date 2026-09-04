@@ -15,7 +15,7 @@ from PIL import Image
 
 from export_3mf import export_3mf
 
-ENGINE_VERSION = "product-relief-builder-v0.2.0"
+ENGINE_VERSION = "product-relief-builder-v0.3.0"
 NormalizationMode = Literal["absolute", "robust"]
 
 
@@ -306,6 +306,16 @@ def _cell_mask(mask: np.ndarray, rows: int, cols: int) -> np.ndarray:
     cells = _fill_holes(cells)
     if not cells.any():
         raise ValueError("mask vanished at requested grid resolution")
+    extrema_preserved = (
+        bool(cells[0].any())
+        and bool(cells[-1].any())
+        and bool(cells[:, 0].any())
+        and bool(cells[:, -1].any())
+    )
+    if not extrema_preserved:
+        raise ValueError(
+            "silhouette extrema vanished at requested grid resolution; increase grid_long_edge"
+        )
     return cells
 
 
@@ -573,6 +583,12 @@ def build_product_relief(
         recipe.relief_depth_mm,
     )
     mesh = _apply_pocket(mesh, recipe)
+    actual_xy_extents = np.asarray(mesh.extents[:2], dtype=np.float64)
+    expected_xy_extents = np.asarray([width_mm, height_mm], dtype=np.float64)
+    if not np.allclose(actual_xy_extents, expected_xy_extents, rtol=0.0, atol=1e-6):
+        raise RuntimeError(
+            "heightfield XY bounds do not preserve the declared physical canvas"
+        )
     validation = _validate_mesh(mesh, recipe)
 
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -15,6 +15,7 @@ import finalize_relief_pro_package as finalizer_module
 from build_relief_pro_package import build_relief_pro_package
 from finalize_relief_pro_package import finalize_package
 from product_relief_builder import ProductRecipe
+from validate_artifacts import _load_glb
 
 
 def _sha256(path: Path) -> str:
@@ -118,18 +119,15 @@ def test_finalizer_fails_shifted_geometry_registration(tmp_path: Path) -> None:
             height_mm=70.0,
             base_thickness_mm=3.0,
             relief_depth_mm=1.0,
-            grid_long_edge=96,
+            grid_long_edge=192,
         ),
     )
 
-    geometry_mask_path = package / "geometry/silhouette-mask-normalized.png"
-    geometry_mask = np.asarray(
-        Image.open(geometry_mask_path).convert("L"),
-        dtype=np.uint8,
-    )
-    shifted = np.zeros_like(geometry_mask)
-    shifted[:, 3:] = geometry_mask[:, :-3]
-    Image.fromarray(shifted, mode="L").save(geometry_mask_path)
+    glb_path = package / "geometry/model.glb"
+    shifted_mesh, _ = _load_glb(glb_path)
+    shifted_mesh.apply_translation((2.0, 0.0, 0.0))
+    shifted_mesh.apply_scale(0.001)
+    glb_path.write_bytes(shifted_mesh.export(file_type="glb"))
     geometry_report_path = package / "geometry/manufacturing-report.json"
     geometry_report = json.loads(geometry_report_path.read_text(encoding="utf-8"))
     geometry_report["validation"]["extents_mm"][:2] = [1.0, 1.0]
@@ -144,8 +142,9 @@ def test_finalizer_fails_shifted_geometry_registration(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     # Even if a caller rewrites the unsigned manifest after tampering, registration
-    # must use independently measured STL extents rather than mutable report values.
-    _refresh_manifest_artifact(package, geometry_mask_path)
+    # must freshly rasterize the GLB in independently measured STL bounds rather
+    # than trust either the cached projection or mutable report values.
+    _refresh_manifest_artifact(package, glb_path)
     _refresh_manifest_artifact(package, geometry_report_path)
 
     result = finalize_package(
@@ -161,6 +160,10 @@ def test_finalizer_fails_shifted_geometry_registration(tmp_path: Path) -> None:
         for value in result["manifest"]["digital_failures"]
     )
     assert "geometry_report:extents_mismatch" in result["manifest"]["digital_failures"]
+    assert (
+        "provenance:final_glb_projection_mismatch:final-glb-orthographic-silhouette.png"
+        in result["manifest"]["digital_failures"]
+    )
 
 
 def test_finalizer_rejects_manifested_artifact_tampering(tmp_path: Path) -> None:
@@ -315,7 +318,10 @@ def test_invalid_registration_tolerance_leaves_package_retryable(
         finalize_package(package, registration_tolerance_mm=-1)
 
     assert not (package / "reports/artifact-consistency-report.json").exists()
-    assert not (package / "reports/contour-registration-report.json").exists()
+    assert not (package / "reports/final-glb-silhouette-registration-report.json").exists()
+    assert not (package / "reports/final-glb-silhouette-overlay.png").exists()
+    assert not (package / "reports/final-glb-depth-registration-report.json").exists()
+    assert not (package / "reports/final-glb-depth-difference.png").exists()
     result = finalize_package(package)
     assert result["receipt"]["digital_package_status"] == "needs_review"
 
@@ -335,7 +341,10 @@ def test_finalizer_recovers_exact_legacy_temporary_zip(tmp_path: Path) -> None:
     "relative",
     [
         "reports/artifact-consistency-report.json",
-        "reports/contour-registration-report.json",
+        "reports/final-glb-silhouette-registration-report.json",
+        "reports/final-glb-silhouette-overlay.png",
+        "reports/final-glb-depth-registration-report.json",
+        "reports/final-glb-depth-difference.png",
     ],
 )
 def test_finalizer_recovers_uncommitted_owned_report(
@@ -500,6 +509,11 @@ def test_finalizer_fails_coherent_geometry_swap_with_spoofed_source_hash(
     assert "provenance:geometry_derivation_mismatch:model.stl" in failures
     assert result["receipt"]["digital_artifact_consistency"] == "pass"
     assert result["receipt"]["digital_contour_registration"] == "pass"
+    assert result["receipt"]["digital_final_glb_depth_registration"] == "fail"
+    assert (
+        "depth_registration:maximum_height_error_exceeds_tolerance"
+        in failures
+    )
 
 
 @pytest.mark.parametrize(
@@ -615,7 +629,10 @@ def test_finalizer_fails_incomplete_artwork_chain_even_if_manifest_is_rewritten(
         "provenance:varnish_mask_artifact_chain_incomplete"
         in result["manifest"]["digital_failures"]
     )
-    assert "provenance:uv_artwork_status_mismatch" in result["manifest"]["digital_failures"]
+    assert (
+        "provenance:artwork_file_set_status_mismatch"
+        in result["manifest"]["digital_failures"]
+    )
 
 
 def test_finalizer_preserves_declared_nested_control_filename(tmp_path: Path) -> None:
@@ -630,11 +647,11 @@ def test_finalizer_preserves_declared_nested_control_filename(tmp_path: Path) ->
     assert "notes/manifest.json" in result["manifest"]["artifacts"]
 
 
-def test_finalizer_requires_legacy_v1_package_rebuild(tmp_path: Path) -> None:
+def test_finalizer_requires_legacy_v2_package_rebuild(tmp_path: Path) -> None:
     package = _build_simple_package(tmp_path)
     manifest_path = package / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["schema_version"] = 1
+    manifest["schema_version"] = 2
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -642,3 +659,46 @@ def test_finalizer_requires_legacy_v1_package_rebuild(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="legacy_package_requires_rebuild"):
         finalize_package(package)
+
+
+def test_finalizer_requires_registration_v1_package_rebuild(tmp_path: Path) -> None:
+    package = _build_simple_package(tmp_path)
+    manifest_path = package / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["registration"]["schema_version"] = 1
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="legacy_registration_v1_requires_rebuild"):
+        finalize_package(package)
+
+
+def test_finalizer_proxy_mask_tampering_cannot_spoof_glb_registration(
+    tmp_path: Path,
+) -> None:
+    package = _build_simple_package(tmp_path, complete_artwork=True)
+    proxy_mask_path = package / "geometry/silhouette-mask-normalized.png"
+    proxy_mask = np.asarray(
+        Image.open(proxy_mask_path).convert("L"),
+        dtype=np.uint8,
+    )
+    shifted = np.zeros_like(proxy_mask)
+    shifted[:, 4:] = proxy_mask[:, :-4]
+    Image.fromarray(shifted, mode="L").save(proxy_mask_path)
+    _refresh_manifest_artifact(package, proxy_mask_path)
+
+    result = finalize_package(package)
+
+    assert result["receipt"]["digital_package_status"] == "failed"
+    assert result["receipt"]["digital_final_glb_registration"] == "pass"
+    assert result["receipt"]["digital_final_glb_depth_registration"] == "pass"
+    assert not any(
+        value.startswith("registration:")
+        for value in result["manifest"]["digital_failures"]
+    )
+    assert (
+        "provenance:geometry_derivation_mismatch:silhouette-mask-normalized.png"
+        in result["manifest"]["digital_failures"]
+    )

@@ -190,9 +190,11 @@ def run_phase0(
         variant_warnings = [
             str(value) for value in product_validation.get("warnings") or []
         ]
-        uv_artwork_status = str(manifest.get("uv_artwork_status") or "incomplete")
-        if uv_artwork_status != "complete":
-            variant_warnings.append("uv_artwork_set_incomplete")
+        artwork_file_set_status = str(
+            manifest.get("artwork_file_set_status") or "incomplete"
+        )
+        if artwork_file_set_status != "complete":
+            variant_warnings.append("artwork_file_set_incomplete")
         variant_warnings = sorted(set(variant_warnings))
         variant_failed = product_geometry_gate != "pass" or bool(variant_failures)
         variant_digital_status = (
@@ -216,7 +218,8 @@ def run_phase0(
                 "digital_geometry_gate": product_geometry_gate,
                 "digital_failures": variant_failures,
                 "digital_warnings": variant_warnings,
-                "uv_artwork_status": uv_artwork_status,
+                "artwork_file_set_status": artwork_file_set_status,
+                "artwork_semantic_registration_status": "not_validated",
                 "physical_validation_status": manifest["physical_validation_status"],
                 "production_status": manifest["production_status"],
                 "package": manifest["package_receipt"],

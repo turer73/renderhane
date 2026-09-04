@@ -14,11 +14,72 @@ import json
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from scipy.ndimage import binary_dilation, binary_erosion, gaussian_filter
 
 CANVAS = 2048
-SEED_VERSION = "1.0.0"
+SEED_VERSION = "1.1.0"
+TEXT_RENDERER = "renderhane-5x7-block-glyphs-v1"
+TEXT_CELL_PX = 26
+TEXT_TOP_PX = 1534
+TEXT_LABEL = "KAPADOKYA"
+
+GLYPHS_5X7 = {
+    "A": (
+        "01110",
+        "10001",
+        "10001",
+        "11111",
+        "10001",
+        "10001",
+        "10001",
+    ),
+    "D": (
+        "11110",
+        "10001",
+        "10001",
+        "10001",
+        "10001",
+        "10001",
+        "11110",
+    ),
+    "K": (
+        "10001",
+        "10010",
+        "10100",
+        "11000",
+        "10100",
+        "10010",
+        "10001",
+    ),
+    "O": (
+        "01110",
+        "10001",
+        "10001",
+        "10001",
+        "10001",
+        "10001",
+        "01110",
+    ),
+    "P": (
+        "11110",
+        "10001",
+        "10001",
+        "11110",
+        "10000",
+        "10000",
+        "10000",
+    ),
+    "Y": (
+        "10001",
+        "10001",
+        "01010",
+        "00100",
+        "00100",
+        "00100",
+        "00100",
+    ),
+}
 
 LAYER_COLORS = {
     0: (0, 0, 0),
@@ -45,15 +106,52 @@ def array_mask(image: Image.Image) -> np.ndarray:
     return np.asarray(image, dtype=np.float32) / 255.0
 
 
-def font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    ]
-    for path in candidates:
-        if Path(path).exists():
-            return ImageFont.truetype(path, size=size)
-    return ImageFont.load_default()
+def block_text_rectangles(
+    label: str,
+    *,
+    cell_px: int = TEXT_CELL_PX,
+    top_px: int = TEXT_TOP_PX,
+) -> list[tuple[int, int, int, int]]:
+    if not label or cell_px <= 0:
+        raise ValueError("block text label and cell size must be positive")
+    try:
+        glyphs = [GLYPHS_5X7[character] for character in label]
+    except KeyError as exc:
+        raise ValueError(f"unsupported deterministic glyph: {exc.args[0]}") from exc
+    width_cells = len(glyphs) * 5 + len(glyphs) - 1
+    left_px = (CANVAS - width_cells * cell_px) // 2
+    rectangles: list[tuple[int, int, int, int]] = []
+    cursor_x = left_px
+    for glyph in glyphs:
+        for row_index, row in enumerate(glyph):
+            for column_index, active in enumerate(row):
+                if active == "1":
+                    x = cursor_x + column_index * cell_px
+                    y = top_px + row_index * cell_px
+                    rectangles.append((x, y, x + cell_px, y + cell_px))
+        cursor_x += 6 * cell_px
+    return rectangles
+
+
+def block_text_mask(label: str = TEXT_LABEL) -> Image.Image:
+    image = Image.new("L", (CANVAS, CANVAS), 0)
+    draw = ImageDraw.Draw(image)
+    for left, top, right, bottom in block_text_rectangles(label):
+        draw.rectangle((left, top, right - 1, bottom - 1), fill=255)
+    return image
+
+
+def block_text_svg(label: str = TEXT_LABEL) -> str:
+    rectangles = "".join(
+        f'<rect x="{left}" y="{top}" width="{right - left}" '
+        f'height="{bottom - top}"/>'
+        for left, top, right, bottom in block_text_rectangles(label)
+    )
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{CANVAS}" height="{CANVAS}" '
+        f'viewBox="0 0 {CANVAS} {CANVAS}"><g id="TEXT" fill="black">'
+        f'{rectangles}</g></svg>\n'
+    )
 
 
 def draw_vertical_gradient(
@@ -254,21 +352,7 @@ def generate(out_dir: Path) -> None:
     banner = Image.composite(banner, Image.new("L", banner.size, 0), outer)
     add_layer(artwork, semantic, relief, banner, 7, (63, 55, 45), 0.84, 14)
 
-    text_mask = Image.new("L", (CANVAS, CANVAS), 0)
-    text_draw = ImageDraw.Draw(text_mask)
-    label_font = font(245)
-    label = "KAPADOKYA"
-    bbox = text_draw.textbbox((0, 0), label, font=label_font, stroke_width=4)
-    text_x = (CANVAS - (bbox[2] - bbox[0])) // 2
-    text_y = 1485
-    text_draw.text(
-        (text_x, text_y),
-        label,
-        font=label_font,
-        fill=255,
-        stroke_width=4,
-        stroke_fill=255,
-    )
+    text_mask = block_text_mask()
     text_mask = Image.composite(text_mask, Image.new("L", text_mask.size, 0), banner)
     add_layer(artwork, semantic, relief, text_mask, 8, (232, 199, 135), 1.0, 4)
 
@@ -311,11 +395,7 @@ def generate(out_dir: Path) -> None:
         encoding="utf-8",
     )
     (out_dir / "text-logo.svg").write_text(
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{CANVAS}" height="{CANVAS}" '
-        f'viewBox="0 0 {CANVAS} {CANVAS}">'
-        '<text x="1024" y="1695" text-anchor="middle" '
-        'font-family="DejaVu Sans, sans-serif" font-size="245" font-weight="700" '
-        'fill="black">KAPADOKYA</text></svg>\n',
+        block_text_svg(),
         encoding="utf-8",
     )
 
@@ -327,6 +407,14 @@ def generate(out_dir: Path) -> None:
         "rights": "Renderhane synthetic internal benchmark fixture",
         "not_final_retail_artwork": True,
         "layer_ids": {str(key): list(value) for key, value in LAYER_COLORS.items()},
+        "text_fixture": {
+            "label": TEXT_LABEL,
+            "renderer": TEXT_RENDERER,
+            "cell_px": TEXT_CELL_PX,
+            "glyph_definition_sha256": hashlib.sha256(
+                json.dumps(GLYPHS_5X7, sort_keys=True).encode("utf-8")
+            ).hexdigest(),
+        },
         "artifacts": {},
     }
     for path in sorted(out_dir.iterdir()):

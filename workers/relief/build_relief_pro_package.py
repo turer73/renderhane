@@ -16,9 +16,15 @@ import numpy as np
 from PIL import Image
 
 from product_relief_builder import ProductRecipe, build_product_relief
+from registration_contract import (
+    build_registration_contract,
+    model_mm_to_svg_transform,
+    verification_canvas_size,
+)
+from render_glb_projection import write_glb_projection_artifacts
 
-ENGINE_VERSION = "relief-pro-package-v0.2.0"
-MANIFEST_SCHEMA_VERSION = 2
+ENGINE_VERSION = "relief-pro-package-v0.4.0"
+MANIFEST_SCHEMA_VERSION = 3
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 MARKER_NAME = ".renderhane-relief-package-root"
 MARKER_CONTENT = (
@@ -235,10 +241,22 @@ def _contour_svg(
     cells = _load_boolean_mask(mask_path)
     loop = _trace_largest_loop(_boundary_edges(cells))
     rows, cols = cells.shape
-    points_mm = [
-        (point[0] * width_mm / cols, point[1] * height_mm / rows)
-        for point in loop
-    ]
+    model_to_svg = np.asarray(
+        model_mm_to_svg_transform(width_mm, height_mm),
+        dtype=np.float64,
+    )
+    points_mm: list[tuple[float, float]] = []
+    for col, row in loop:
+        model_point = np.asarray(
+            [
+                col * width_mm / cols - width_mm / 2.0,
+                height_mm / 2.0 - row * height_mm / rows,
+                1.0,
+            ],
+            dtype=np.float64,
+        )
+        svg_point = model_to_svg @ model_point
+        points_mm.append((float(svg_point[0]), float(svg_point[1])))
     # RDP operates on an open sequence. Preserve closure explicitly.
     open_points = points_mm[:-1]
     simplified = _rdp(open_points + [open_points[0]], simplify_mm)
@@ -254,7 +272,7 @@ def _contour_svg(
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_mm:.6f}mm" '
         f'height="{height_mm:.6f}mm" viewBox="0 0 {width_mm:.6f} {height_mm:.6f}">\n'
         "  <title>Renderhane Relief Pro cut contour</title>\n"
-        "  <desc>Derived from the exact normalised geometry silhouette. Do not scale.</desc>\n"
+        "  <desc>Derived from the final GLB front orthographic silhouette. Do not scale.</desc>\n"
         f'  <path id="CUT" d="{path_data}" fill="none" stroke="#000000" stroke-width="0.05"/>\n'
         "</svg>\n"
     )
@@ -264,6 +282,7 @@ def _contour_svg(
         "points_before_simplify": len(points_mm),
         "points_after_simplify": len(simplified),
         "simplify_mm": simplify_mm,
+        "transform_authority": "registration.transforms.model_mm_to_svg_mm_3x3",
     }
 
 
@@ -274,31 +293,20 @@ def _registration_contract(
     physical_width_mm: float,
     physical_height_mm: float,
     contour: dict[str, Any],
+    verification_canvas_px: tuple[int, int],
+    recipe: ProductRecipe,
+    uv_artwork_path: Path | None,
 ) -> dict[str, Any]:
-    crop_width = crop_box_px[2] - crop_box_px[0]
-    crop_height = crop_box_px[3] - crop_box_px[1]
-    return {
-        "schema_version": 1,
-        "coordinate_system": "front-view-top-left-origin",
-        "source_canvas_px": list(source_canvas_px),
-        "crop_box_px": list(crop_box_px),
-        "artwork_canvas_px": [crop_width, crop_height],
-        "physical_canvas_mm": [
-            round(physical_width_mm, 6),
-            round(physical_height_mm, 6),
-        ],
-        "pixel_pitch_mm": [
-            round(physical_width_mm / crop_width, 10),
-            round(physical_height_mm / crop_height, 10),
-        ],
-        "scale_policy": "preserve_aspect_no_independent_xy_scaling",
-        "mirror_for_print": False,
-        "contour": contour,
-        "notice": (
-            "Artwork and geometry share this front-view canvas. RIP colour conversion and "
-            "printer-specific registration remain external calibration steps."
-        ),
-    }
+    return build_registration_contract(
+        source_canvas_px=source_canvas_px,
+        crop_box_px=crop_box_px,
+        physical_width_mm=physical_width_mm,
+        physical_height_mm=physical_height_mm,
+        contour=contour,
+        verification_canvas_px=verification_canvas_px,
+        recipe=recipe,
+        uv_artwork_path=uv_artwork_path,
+    )
 
 
 def _write_zip(root: Path, destination: Path, members: Iterable[Path]) -> None:
@@ -363,6 +371,28 @@ def build_relief_pro_package(
     crop_box = tuple(int(value) for value in validation["crop_box_px"])
     physical_width = float(validation["extents_mm"][0])
     physical_height = float(validation["extents_mm"][1])
+    verification_canvas = verification_canvas_size(
+        physical_width,
+        physical_height,
+    )
+    final_glb_silhouette_path = geometry_dir / "final-glb-orthographic-silhouette.png"
+    final_glb_depth_path = geometry_dir / "final-glb-orthographic-depth-16.png"
+    final_glb_projection_path = geometry_dir / "final-glb-orthographic-projection.json"
+    write_glb_projection_artifacts(
+        geometry_dir / "model.glb",
+        silhouette_path=final_glb_silhouette_path,
+        depth_path=final_glb_depth_path,
+        evidence_path=final_glb_projection_path,
+        canvas_px=verification_canvas,
+        expected_xy_bounds_mm=(
+            -physical_width / 2.0,
+            -physical_height / 2.0,
+            physical_width / 2.0,
+            physical_height / 2.0,
+        ),
+        base_thickness_mm=recipe.base_thickness_mm,
+        relief_depth_mm=recipe.relief_depth_mm,
+    )
 
     copied_artwork: dict[str, str] = {}
     for label, source, name in (
@@ -377,7 +407,7 @@ def build_relief_pro_package(
 
     contour_path = artwork_dir / "cut-contour.svg"
     contour_info = _contour_svg(
-        geometry_dir / "silhouette-mask-normalized.png",
+        final_glb_silhouette_path,
         contour_path,
         width_mm=physical_width,
         height_mm=physical_height,
@@ -389,6 +419,9 @@ def build_relief_pro_package(
         physical_width_mm=physical_width,
         physical_height_mm=physical_height,
         contour=contour_info,
+        verification_canvas_px=verification_canvas,
+        recipe=recipe,
+        uv_artwork_path=uv_artwork,
     )
     registration_path = artwork_dir / "registration.json"
     registration_path.write_text(
@@ -432,13 +465,18 @@ def build_relief_pro_package(
         },
         "product_validation": product_validation,
         "digital_geometry_status": digital_geometry_status,
-        "uv_artwork_status": "complete" if complete_uv_set else "incomplete",
+        "artwork_file_set_status": "complete" if complete_uv_set else "incomplete",
+        "artwork_semantic_registration_status": "not_validated",
+        "digital_package_scope": (
+            "geometry_file_integrity_and_projection_not_semantic_artwork_validation"
+        ),
         "physical_validation_status": "pending",
         "production_status": "not_approved_pending_physical_validation",
         "registration": registration,
         "limitations": [
             "Generic 3MF contains geometry in millimetres but no Bambu printer/filament profile.",
             "Digital manifold checks do not prove print quality or dimensional tolerance.",
+            "The final GLB is untextured; colour, white and varnish intent remains authored artwork, not reconstructed mesh data.",
             "UV colour, white and varnish registration must be measured on the actual RIP/printer/material.",
             "This package is a production candidate until physical benchmark rows are accepted.",
         ],
@@ -543,7 +581,8 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "digital_geometry_status": manifest["digital_geometry_status"],
                 "product_validation": manifest["product_validation"],
-                "uv_artwork_status": manifest["uv_artwork_status"],
+                "artwork_file_set_status": manifest["artwork_file_set_status"],
+                "artwork_semantic_registration_status": "not_validated",
                 "physical_validation_status": manifest["physical_validation_status"],
                 "production_status": manifest["production_status"],
                 "package_receipt": manifest["package_receipt"],

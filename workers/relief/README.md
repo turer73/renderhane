@@ -115,8 +115,56 @@ Dijital doğrulama geçmesi, fiziksel üretimin doğrulandığı anlamına gelme
 
 Geçiş paketleyicisi ve finalizer `ready | needs_review | failed` dijital paket statüsü kullanır. Her uyarı sonucu `needs_review` durumuna düşürür. Bu alanlardaki `ready` yalnız dijital artifact kapsamındadır; her iki aşamada da `physical_validation_status=pending` ve `production_status=not_approved_pending_physical_validation` korunur.
 
-Relief Pro geçiş paketi manifest sözleşmesi v2'dir. V2; reçete hash'ini, original UV/white/varnish kaynaklarını ve türetilmiş artwork/contour/registration provenance zincirini zorunlu doğrular. Finalizer ayrıca paketlenmiş 16-bit height map, mask ve reçeteden kanonik geometriyi geçici dizinde yeniden üretir; normalized height/mask, STL, GLB, 3MF ve manufacturing report birebir uyuşmadan paketi mühürlemez. Byte eşitliği aynı engine/toolchain sözleşmesini gerektirir; farklı builder veya bağımlılık sürümüyle üretilmiş paket fail-closed davranır ve güncel ortamda yeniden build edilmelidir. Unsigned manifest iç tutarlılığı kanıtlar, onaylı harici kaynağın kimliğini kanıtlamaz. Eski v1 paketler sessizce yükseltilmez veya üretime hazır sayılmaz; güncel builder ile yeniden oluşturulmaları gerekir.
+Relief Pro geçiş paketi manifest sözleşmesi v3'tür. V3; reçete hash'ini, original UV/white/varnish kaynaklarını, registration v2'yi ve türetilmiş artwork/contour/projection provenance zincirini zorunlu doğrular. Finalizer ayrıca paketlenmiş 16-bit height map, mask ve reçeteden kanonik geometriyi geçici dizinde yeniden üretir; normalized height/mask, STL, GLB, 3MF ve manufacturing report birebir uyuşmadan paketi mühürlemez. Byte eşitliği aynı engine/toolchain sözleşmesini gerektirir; farklı builder veya bağımlılık sürümüyle üretilmiş paket fail-closed davranır ve güncel ortamda yeniden build edilmelidir. Unsigned manifest iç tutarlılığı kanıtlar, onaylı harici kaynağın kimliğini kanıtlamaz. Manifest v1/v2 veya registration v1 paketleri sessizce yükseltilmez ya da üretime hazır sayılmaz; güncel builder ile yeniden oluşturulmaları gerekir.
 
+### Geçiş paketi registration v2 / manifest v3
+
+`build_relief_pro_package.py` artık final `geometry/model.glb` dosyasını kaynak
+maskeden bağımsız olarak, fiziksel XY sınırları sabitlenmiş +Z ortografik kamerayla
+CPU üzerinde yeniden rasterize eder. Doğrulama tuvalinin uzun kenarı en az 1120
+pikseldir; örnek konumu piksel merkezi `(0.5, 0.5)` ve GLB birimi metre → milimetre
+dönüşümü açıktır. Paket şu ilave kanıtları taşır:
+
+- `geometry/final-glb-orthographic-silhouette.png`,
+- `geometry/final-glb-orthographic-depth-16.png`,
+- `geometry/final-glb-orthographic-projection.json`,
+- final GLB silüetinden türetilen `artwork/cut-contour.svg`,
+- `reports/final-glb-silhouette-registration-report.json`,
+- `reports/final-glb-silhouette-overlay.png`,
+- `reports/final-glb-depth-registration-report.json`,
+- `reports/final-glb-depth-difference.png`.
+
+`artwork/registration.json` sözleşmesi v2; source/crop/artwork/verification
+canvas'larını, piksel pitch değerlerini, model eksenlerini, pixel-edge matrislerini,
+depth kodlamasını, resampling/alpha politikasını, renk profili varsayımını ve katman
+niyetlerini açıkça taşır. Finalizer saklanan projeksiyonu kabul etmekle yetinmez;
+aynı final GLB'yi yeniden rasterize edip silhouette, depth ve projection kanıtlarını
+yeniden üretir. Source contour ile GLB contour arasında iki yönlü fiziksel mesafe,
+IoU ve symmetric-difference hesaplanır. Kaynaktan taze yeniden oluşturulan kanonik
+heightfield ile final GLB depth rasterı ayrıca `0.02 mm` geometri toleransında
+max/p95/mean/RMS ve signed-error ölçümleriyle karşılaştırılır.
+
+CPU projeksiyonu 600.000'den fazla görünür üçgende kaynak tüketimini sınırlamak için
+fail-closed davranır; bu sınır geometri onayı değildir. Builder ayrıca downsample
+sonrasında kaynak silüetin üst/alt/sol/sağ ekstremumlarından biri kaybolursa paketi
+üretmez ve `grid_long_edge` artışı ister. Böylece nominal fiziksel model çerçevesi ile
+gerçek GLB XY sınırlarının sessizce ayrışması önlenir.
+
+Siluet kapısı ölçümü `[max-U, max+U]` aralığıyla değerlendirir: üst sınır tolerans
+içindeyse `pass`, alt sınır dışarıdaysa `fail`, aralık toleransla kesişiyorsa
+`needs_review` olur. `U` bir verification-pixel diagonali kadardır. Mesh
+discretisation hatası belirsizliğe saklanmaz; doğrudan ölçülen farktır. Hiçbir
+durumda kullanıcı toleransı genişletilmez.
+
+Bu sözleşme dış kontur/cut ve derinlik hizasını bağımsız geometri kanıtına bağlar;
+untextured GLB'den renk, white ink veya varnish semantiği çıkardığını iddia etmez.
+Manifest dosya varlığını `artwork_file_set_status`, yerel semantik doğrulamayı ise
+ayrı `artwork_semantic_registration_status=not_validated` alanıyla taşır; eksiksiz
+dosya seti semantik registration onayı değildir.
+V2 içindeki `layer_intents` alanları beyan/provenance bilgisidir; yerel motif
+correspondence, RIP renk dönüşümü, white choke/spread, varnish modu ve gerçek
+printer/material sapması fiziksel kalibrasyon olmadan doğrulanmış sayılmaz. Dijital
+`ready` hâlâ `production_ready` değildir.
 Üretim yolları dolu output dizinini yalnız kendi regular, non-link ve tam içerikli sahiplik marker'ı mevcutsa yeniler. Kaynaklardan biri output dizininin içindeyse rerun reddedilir. Deprecated `build_package.py` için daha önce üretilmiş markersız dizinler yerinde yükseltilmez; yeni/boş bir output dizinine rebuild gerekir.
 
 ## Dört derinlikli Phase 0 paketi
@@ -169,6 +217,11 @@ Testler şu alanları kapsar:
 - STL/GLB/3MF yeniden yükleme,
 - byte determinism,
 - dış siluet ve kontur,
+- final GLB'nin sabit fiziksel kameradan bağımsız yeniden projeksiyonu,
+- asimetrik mirror/translation negatif enjeksiyonları,
+- kaynak heightfield ile final GLB arasında fiziksel derinlik farkı,
+- source-derived proxy mask spoof reddi,
+- alt-pixel/crop/transform ve dijital belirsizlik aralığı,
 - kopuk bölge/iç delik reddi,
 - UV katmanlarının ortak koordinat dönüşümü,
 - aspect-ratio advisory,

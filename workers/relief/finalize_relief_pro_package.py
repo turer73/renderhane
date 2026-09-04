@@ -23,17 +23,32 @@ from build_relief_pro_package import (
     _crop_image,
     _registration_contract,
 )
-from measure_registration import measure_registration
+from measure_depth_registration import (
+    measure_depth_registration,
+    write_depth_difference_overlay,
+)
+from measure_registration import measure_registration, write_registration_overlay
 from product_relief_builder import ProductRecipe, build_product_relief
+from registration_contract import (
+    expanded_digital_uncertainty_mm,
+    validate_registration_contract,
+    verification_canvas_size,
+)
+from render_glb_projection import write_glb_projection_artifacts
 from validate_artifacts import validate_artifact_set
 
-ENGINE_VERSION = "relief-pro-package-finalizer-v0.3.0"
+ENGINE_VERSION = "relief-pro-package-finalizer-v0.5.0"
 PACKAGE_NAME = "relief-pro-production-candidate.zip"
 RECEIPT_NAME = "package-receipt.json"
 MANIFEST_NAME = "manifest.json"
 FINALIZER_OWNED_REPORTS = (
     "reports/artifact-consistency-report.json",
     "reports/contour-registration-report.json",
+    "reports/final-glb-registration-overlay.png",
+    "reports/final-glb-silhouette-registration-report.json",
+    "reports/final-glb-silhouette-overlay.png",
+    "reports/final-glb-depth-registration-report.json",
+    "reports/final-glb-depth-difference.png",
 )
 CANONICAL_GEOMETRY_ARTIFACTS = (
     "model.stl",
@@ -440,6 +455,9 @@ def _derived_artwork_failures(
     source_hashes = manifest.get("source_hashes")
     if not isinstance(source_hashes, dict):
         return ["provenance:source_contract_missing"]
+    recipe = _product_recipe(manifest)
+    if recipe is None:
+        return ["provenance:registration_recipe_missing"]
 
     artwork_chains = (
         (
@@ -486,14 +504,62 @@ def _derived_artwork_failures(
             if not _decoded_images_match(expected, artwork):
                 failures.append(f"provenance:{label}_derived_artwork_mismatch")
 
-        actual_uv_status = "complete" if all(chain_complete) else "incomplete"
-        if manifest.get("uv_artwork_status") != actual_uv_status:
-            failures.append("provenance:uv_artwork_status_mismatch")
+        actual_file_set_status = "complete" if all(chain_complete) else "incomplete"
+        if manifest.get("artwork_file_set_status") != actual_file_set_status:
+            failures.append("provenance:artwork_file_set_status_mismatch")
+        if manifest.get("artwork_semantic_registration_status") != "not_validated":
+            failures.append("provenance:artwork_semantic_status_mismatch")
 
-        geometry_mask = root / "geometry/silhouette-mask-normalized.png"
+        verification_canvas = verification_canvas_size(
+            physical_width_mm,
+            physical_height_mm,
+        )
+        expected_silhouette = temporary_root / "final-glb-orthographic-silhouette.png"
+        expected_depth = temporary_root / "final-glb-orthographic-depth-16.png"
+        expected_projection = temporary_root / "final-glb-orthographic-projection.json"
+        try:
+            write_glb_projection_artifacts(
+                root / "geometry/model.glb",
+                silhouette_path=expected_silhouette,
+                depth_path=expected_depth,
+                evidence_path=expected_projection,
+                canvas_px=verification_canvas,
+                expected_xy_bounds_mm=(
+                    -physical_width_mm / 2.0,
+                    -physical_height_mm / 2.0,
+                    physical_width_mm / 2.0,
+                    physical_height_mm / 2.0,
+                ),
+                base_thickness_mm=recipe.base_thickness_mm,
+                relief_depth_mm=recipe.relief_depth_mm,
+            )
+        except Exception:
+            failures.append("provenance:final_glb_projection_rebuild_failed")
+            return failures
+
+        for expected, relative in (
+            (expected_silhouette, "geometry/final-glb-orthographic-silhouette.png"),
+            (expected_depth, "geometry/final-glb-orthographic-depth-16.png"),
+        ):
+            actual = root / relative
+            if not actual.is_file() or not _decoded_images_match(expected, actual):
+                failures.append(f"provenance:final_glb_projection_mismatch:{actual.name}")
+        actual_projection = root / "geometry/final-glb-orthographic-projection.json"
+        try:
+            projection_matches = (
+                json.loads(expected_projection.read_text(encoding="utf-8"))
+                == json.loads(actual_projection.read_text(encoding="utf-8"))
+            )
+        except (OSError, json.JSONDecodeError):
+            projection_matches = False
+        if not projection_matches:
+            failures.append(
+                "provenance:final_glb_projection_mismatch:final-glb-orthographic-projection.json"
+            )
+
         expected_contour = temporary_root / "cut-contour.svg"
         contour_info = _contour_svg(
-            geometry_mask,
+            expected_silhouette,
             expected_contour,
             width_mm=physical_width_mm,
             height_mm=physical_height_mm,
@@ -502,27 +568,31 @@ def _derived_artwork_failures(
         if not contour.is_file() or expected_contour.read_bytes() != contour.read_bytes():
             failures.append("provenance:cut_contour_mismatch")
 
-    source_mask = root / "source/silhouette-mask.png"
-    with Image.open(source_mask) as image:
-        source_canvas = image.size
-    expected_registration = _registration_contract(
-        source_canvas_px=source_canvas,
-        crop_box_px=crop_box,
-        physical_width_mm=physical_width_mm,
-        physical_height_mm=physical_height_mm,
-        contour=contour_info,
-    )
-    registration_path = root / "artwork/registration.json"
-    try:
-        artwork_registration = json.loads(
-            registration_path.read_text(encoding="utf-8")
+        source_mask = root / "source/silhouette-mask.png"
+        with Image.open(source_mask) as image:
+            source_canvas = image.size
+        source_uv = root / "source/uv-artwork-original.bin"
+        expected_registration = _registration_contract(
+            source_canvas_px=source_canvas,
+            crop_box_px=crop_box,
+            physical_width_mm=physical_width_mm,
+            physical_height_mm=physical_height_mm,
+            contour=contour_info,
+            verification_canvas_px=verification_canvas,
+            recipe=recipe,
+            uv_artwork_path=source_uv if source_uv.is_file() else None,
         )
-    except (OSError, json.JSONDecodeError):
-        artwork_registration = None
-    if artwork_registration != expected_registration:
-        failures.append("provenance:artwork_registration_mismatch")
-    if manifest.get("registration") != expected_registration:
-        failures.append("provenance:manifest_registration_mismatch")
+        registration_path = root / "artwork/registration.json"
+        try:
+            artwork_registration = json.loads(
+                registration_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            artwork_registration = None
+        if artwork_registration != expected_registration:
+            failures.append("provenance:artwork_registration_mismatch")
+        if manifest.get("registration") != expected_registration:
+            failures.append("provenance:manifest_registration_mismatch")
     return failures
 
 
@@ -630,6 +700,14 @@ def finalize_package(
             "legacy_package_requires_rebuild: expected Relief Pro manifest "
             f"schema {MANIFEST_SCHEMA_VERSION}"
         )
+    registration_contract = manifest.get("registration")
+    if (
+        not isinstance(registration_contract, dict)
+        or registration_contract.get("schema_version") != 2
+    ):
+        raise ValueError(
+            "legacy_registration_v1_requires_rebuild: expected registration schema 2"
+        )
     _verify_no_package_links(root)
     legacy_temporary = root / f"{PACKAGE_NAME}.tmp"
     if legacy_temporary.exists():
@@ -728,14 +806,94 @@ def finalize_package(
         physical_width_mm=artwork_width_mm,
         physical_height_mm=artwork_height_mm,
     )
-    registration = measure_registration(
-        source_mask_path=source_mask_path,
-        geometry_mask_path=geometry / "silhouette-mask-normalized.png",
-        crop_box_px=crop_box,
-        physical_width_mm=physical_width_mm,
-        physical_height_mm=physical_height_mm,
-        tolerance_mm=registration_tolerance_mm,
-    )
+    try:
+        validate_registration_contract(registration_contract)
+        digital_uncertainty_mm = expanded_digital_uncertainty_mm(
+            registration_contract
+        )
+    except (KeyError, TypeError, ValueError):
+        metadata_failures.append("registration_contract:invalid")
+        digital_uncertainty_mm = 0.0
+    recipe = _product_recipe(manifest)
+    if recipe is None:
+        raise ValueError("manifest recipe is invalid")
+    reports.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix="renderhane-relief-measure-") as temporary:
+        fresh_projection = Path(temporary)
+        canonical_geometry = fresh_projection / "canonical-source-geometry"
+        build_product_relief(
+            root / "source/relief-map-16.png",
+            root / "source/silhouette-mask.png",
+            canonical_geometry,
+            recipe,
+        )
+        fresh_silhouette = fresh_projection / "final-glb-silhouette.png"
+        fresh_depth = fresh_projection / "final-glb-depth-16.png"
+        fresh_evidence = fresh_projection / "final-glb-projection.json"
+        write_glb_projection_artifacts(
+            geometry / "model.glb",
+            silhouette_path=fresh_silhouette,
+            depth_path=fresh_depth,
+            evidence_path=fresh_evidence,
+            canvas_px=verification_canvas_size(
+                physical_width_mm,
+                physical_height_mm,
+            ),
+            expected_xy_bounds_mm=(
+                -physical_width_mm / 2.0,
+                -physical_height_mm / 2.0,
+                physical_width_mm / 2.0,
+                physical_height_mm / 2.0,
+            ),
+            base_thickness_mm=recipe.base_thickness_mm,
+            relief_depth_mm=recipe.relief_depth_mm,
+        )
+        registration = measure_registration(
+            source_mask_path=source_mask_path,
+            geometry_mask_path=fresh_silhouette,
+            crop_box_px=crop_box,
+            physical_width_mm=physical_width_mm,
+            physical_height_mm=physical_height_mm,
+            tolerance_mm=registration_tolerance_mm,
+            expanded_digital_uncertainty_mm=digital_uncertainty_mm,
+            source_resampling="coverage",
+            evidence_source="fresh_final_glb_front_orthographic_silhouette",
+            evidence_independence="independent_cpu_mesh_rasterization",
+        )
+        depth_registration = measure_depth_registration(
+            normalized_height_path=canonical_geometry / "relief-map-normalized-16.png",
+            cell_mask_path=canonical_geometry / "silhouette-mask-normalized.png",
+            observed_depth_path=fresh_depth,
+            observed_silhouette_path=fresh_silhouette,
+            relief_depth_mm=recipe.relief_depth_mm,
+            tolerance_mm=tolerance_mm,
+        )
+        _write_json_atomic(
+            root,
+            reports / "final-glb-silhouette-registration-report.json",
+            registration.to_dict(),
+        )
+        _write_json_atomic(
+            root,
+            reports / "final-glb-depth-registration-report.json",
+            depth_registration.to_dict(),
+        )
+        write_registration_overlay(
+            source_mask_path=source_mask_path,
+            geometry_mask_path=fresh_silhouette,
+            crop_box_px=crop_box,
+            destination=reports / "final-glb-silhouette-overlay.png",
+            source_resampling="coverage",
+        )
+        write_depth_difference_overlay(
+            normalized_height_path=canonical_geometry / "relief-map-normalized-16.png",
+            cell_mask_path=canonical_geometry / "silhouette-mask-normalized.png",
+            observed_depth_path=fresh_depth,
+            observed_silhouette_path=fresh_silhouette,
+            relief_depth_mm=recipe.relief_depth_mm,
+            tolerance_mm=tolerance_mm,
+            destination=reports / "final-glb-depth-difference.png",
+        )
 
     failures: list[str] = []
     warnings: list[str] = []
@@ -753,10 +911,14 @@ def finalize_package(
     if product_contract is not None:
         warnings.extend(product_contract["warnings"])
     warnings.extend(consistency.warnings)
-    if manifest.get("uv_artwork_status") != "complete":
-        warnings.append("uv_artwork_set_incomplete")
+    if manifest.get("artwork_file_set_status") != "complete":
+        warnings.append("artwork_file_set_incomplete")
     failures.extend(f"registration:{value}" for value in registration.failures)
     warnings.extend(f"registration:{value}" for value in registration.warnings)
+    failures.extend(
+        f"depth_registration:{value}" for value in depth_registration.failures
+    )
+    warnings.extend(f"depth_registration:{value}" for value in depth_registration.warnings)
     failures = sorted(set(failures))
     warnings = sorted(set(warnings))
 
@@ -767,18 +929,11 @@ def finalize_package(
     else:
         digital_status = "ready"
 
-    reports.mkdir(parents=True, exist_ok=True)
     consistency_path = reports / "artifact-consistency-report.json"
     _write_json_atomic(
         root,
         consistency_path,
         consistency_data,
-    )
-    registration_path = reports / "contour-registration-report.json"
-    _write_json_atomic(
-        root,
-        registration_path,
-        registration.to_dict(),
     )
 
     manifest["package_finalizer_version"] = ENGINE_VERSION
@@ -786,6 +941,17 @@ def finalize_package(
     manifest["digital_package_status"] = digital_status
     manifest["digital_artifact_consistency"] = consistency.decision
     manifest["digital_contour_registration"] = registration.decision
+    manifest["digital_final_glb_registration"] = registration.decision
+    manifest["digital_final_glb_silhouette_registration"] = registration.decision
+    manifest["digital_final_glb_depth_registration"] = depth_registration.decision
+    manifest["compatibility_aliases"] = {
+        "digital_contour_registration": "digital_final_glb_silhouette_registration",
+        "digital_final_glb_registration": "digital_final_glb_silhouette_registration",
+    }
+    manifest["artwork_semantic_registration_status"] = "not_validated"
+    manifest["digital_package_scope"] = (
+        "geometry_file_integrity_and_projection_not_semantic_artwork_validation"
+    )
     manifest["digital_failures"] = failures
     manifest["digital_warnings"] = warnings
     manifest["physical_validation_status"] = "pending"
@@ -819,6 +985,9 @@ def finalize_package(
         "digital_package_status": digital_status,
         "digital_artifact_consistency": consistency.decision,
         "digital_contour_registration": registration.decision,
+        "digital_final_glb_registration": registration.decision,
+        "digital_final_glb_silhouette_registration": registration.decision,
+        "digital_final_glb_depth_registration": depth_registration.decision,
         "physical_validation_status": "pending",
         "production_status": "not_approved_pending_physical_validation",
     }

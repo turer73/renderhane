@@ -99,12 +99,14 @@ def test_relief_pro_package_contains_aligned_geometry_artwork_and_receipt(tmp_pa
     output = tmp_path / "package"
     manifest = _build(paths, output)
 
-    assert manifest["schema_version"] == 2
-    assert manifest["engine_version"] == "relief-pro-package-v0.2.0"
+    assert manifest["schema_version"] == 3
+    assert manifest["engine_version"] == "relief-pro-package-v0.4.0"
     assert manifest["digital_geometry_status"] == "ready"
     assert manifest["product_validation"]["digital_status"] == "validated"
     assert manifest["product_validation"]["warnings"] == []
-    assert manifest["uv_artwork_status"] == "complete"
+    assert manifest["artwork_file_set_status"] == "complete"
+    assert manifest["artwork_semantic_registration_status"] == "not_validated"
+    assert "semantic_artwork_validation" in manifest["digital_package_scope"]
     assert manifest["physical_validation_status"] == "pending"
     assert manifest["production_status"] == "not_approved_pending_physical_validation"
 
@@ -113,6 +115,9 @@ def test_relief_pro_package_contains_aligned_geometry_artwork_and_receipt(tmp_pa
         "geometry/model.stl",
         "geometry/model.3mf",
         "geometry/manufacturing-report.json",
+        "geometry/final-glb-orthographic-silhouette.png",
+        "geometry/final-glb-orthographic-depth-16.png",
+        "geometry/final-glb-orthographic-projection.json",
         "artwork/uv-artwork-srgb.png",
         "artwork/white-mask.png",
         "artwork/varnish-mask.png",
@@ -129,8 +134,15 @@ def test_relief_pro_package_contains_aligned_geometry_artwork_and_receipt(tmp_pa
         assert (output / relative).is_file(), relative
 
     registration = json.loads((output / "artwork/registration.json").read_text(encoding="utf-8"))
+    assert registration["schema_version"] == 2
     assert registration["physical_canvas_mm"] == pytest.approx([70.0, 70.0], abs=0.8)
+    assert registration["verification_canvas_px"] == [1120, 1120]
     assert registration["scale_policy"] == "preserve_aspect_no_independent_xy_scaling"
+    assert registration["raster_convention"]["sample_location_px"] == [0.5, 0.5]
+    assert registration["layer_intents"]["cut_contour"]["geometry_binding"] == (
+        "derived_from_final_glb_front_projection"
+    )
+    assert registration["uncertainty_budget"]["production_approval"] is False
 
     receipt = json.loads((output / "package-receipt.json").read_text(encoding="utf-8"))
     package = output / receipt["package"]
@@ -142,6 +154,7 @@ def test_relief_pro_package_contains_aligned_geometry_artwork_and_receipt(tmp_pa
         names = set(archive.namelist())
     assert "manifest.json" in names
     assert "geometry/model.3mf" in names
+    assert "geometry/final-glb-orthographic-silhouette.png" in names
     assert "artwork/registration.json" in names
     assert "package-receipt.json" not in names
 

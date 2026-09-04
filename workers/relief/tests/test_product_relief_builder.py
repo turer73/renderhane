@@ -8,7 +8,11 @@ import pytest
 import trimesh
 from PIL import Image
 
-from product_relief_builder import ProductRecipe, build_product_relief
+from product_relief_builder import (
+    ProductRecipe,
+    _cell_mask,
+    build_product_relief,
+)
 
 
 def _sha256(path: Path) -> str:
@@ -57,8 +61,8 @@ def test_silhouette_builder_creates_single_watertight_trimmed_product(tmp_path: 
     assert validation["component_count"] == 1
     assert validation["mask_trimmed"] is True
     assert validation["physical_validation"] == "pending"
-    assert validation["extents_mm"][0] == pytest.approx(70.0, abs=0.7)
-    assert validation["extents_mm"][1] == pytest.approx(70.0, abs=0.7)
+    assert validation["extents_mm"][0] == pytest.approx(70.0, abs=1e-6)
+    assert validation["extents_mm"][1] == pytest.approx(70.0, abs=1e-6)
     assert validation["extents_mm"][2] <= 4.2 + 0.02
 
     mesh = trimesh.load_mesh(output / "model.stl")
@@ -87,6 +91,21 @@ def test_product_builder_is_deterministic_without_boolean_features(tmp_path: Pat
 
     for name in ("model.stl", "model.glb", "model.3mf", "relief-map-normalized-16.png"):
         assert _sha256(first / name) == _sha256(second / name), name
+
+
+def test_grid_rejects_thin_extrema_instead_of_silently_shrinking_bounds() -> None:
+    mask = np.zeros((100, 100), dtype=bool)
+    mask[30:70, 30:70] = True
+    mask[46, 0:30] = True
+    mask[46, 70:100] = True
+    mask[0:30, 46] = True
+    mask[70:100, 46] = True
+
+    with pytest.raises(
+        ValueError,
+        match="silhouette extrema vanished.*increase grid_long_edge",
+    ):
+        _cell_mask(mask, 24, 24)
 
 
 def test_magnet_pocket_preserves_watertight_single_body(tmp_path: Path) -> None:

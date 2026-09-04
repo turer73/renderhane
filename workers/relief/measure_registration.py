@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
-ENGINE_VERSION = "mask-registration-measure-v0.1.0"
+ENGINE_VERSION = "mask-registration-measure-v0.3.0"
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,13 @@ class RegistrationReport:
     schema_version: int
     engine_version: str
     decision: str
+    evidence_source: str
+    evidence_independence: str
+    expanded_digital_uncertainty_mm: float
+    guard_banded_maximum_edge_distance_mm: float
+    uncertainty_lower_maximum_edge_distance_mm: float
+    source_resampling: str
+
     tolerance_mm: float
     source_crop_box_px: list[int]
     comparison_canvas_px: list[int]
@@ -53,12 +60,55 @@ def _boundary(mask: np.ndarray) -> np.ndarray:
     return mask & ~eroded
 
 
-def _resize_mask(mask: np.ndarray, size: tuple[int, int]) -> np.ndarray:
+def _resize_mask(
+    mask: np.ndarray,
+    size: tuple[int, int],
+    *,
+    resampling: str,
+) -> np.ndarray:
+    if resampling not in {"nearest", "coverage"}:
+        raise ValueError("source_resampling must be 'nearest' or 'coverage'")
     image = Image.fromarray((mask * 255).astype(np.uint8), mode="L")
+    method = (
+        Image.Resampling.NEAREST
+        if resampling == "nearest"
+        else Image.Resampling.BOX
+    )
     return np.asarray(
-        image.resize(size, Image.Resampling.NEAREST),
+        image.resize(size, method),
         dtype=np.uint8,
-    ) > 127
+    ) >= 128
+
+
+def write_registration_overlay(
+    *,
+    source_mask_path: Path,
+    geometry_mask_path: Path,
+    crop_box_px: tuple[int, int, int, int],
+    destination: Path,
+    source_resampling: str = "coverage",
+) -> None:
+    source_full = _load_mask(source_mask_path)
+    geometry = _load_mask(geometry_mask_path)
+    left, top, right, bottom = crop_box_px
+    if not (0 <= left < right <= source_full.shape[1]):
+        raise ValueError("crop_box_px X bounds are invalid")
+    if not (0 <= top < bottom <= source_full.shape[0]):
+        raise ValueError("crop_box_px Y bounds are invalid")
+    source = _resize_mask(
+        source_full[top:bottom, left:right],
+        (geometry.shape[1], geometry.shape[0]),
+        resampling=source_resampling,
+    )
+    overlay = np.full((*geometry.shape, 3), 255, dtype=np.uint8)
+    overlay[source & geometry] = (210, 214, 218)
+    overlay[source & ~geometry] = (220, 50, 47)
+    overlay[~source & geometry] = (0, 150, 199)
+    source_edge = _boundary(source)
+    geometry_edge = _boundary(geometry)
+    overlay[source_edge & geometry_edge] = (25, 25, 25)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(overlay, mode="RGB").save(destination)
 
 
 def _edge_distances_mm(
@@ -94,6 +144,10 @@ def measure_registration(
     physical_width_mm: float,
     physical_height_mm: float,
     tolerance_mm: float = 0.5,
+    expanded_digital_uncertainty_mm: float = 0.0,
+    source_resampling: str = "nearest",
+    evidence_source: str = "mask_pair",
+    evidence_independence: str = "unspecified",
 ) -> RegistrationReport:
     if not math.isfinite(physical_width_mm) or physical_width_mm <= 0:
         raise ValueError("physical_width_mm must be positive and finite")
@@ -103,6 +157,16 @@ def measure_registration(
         raise ValueError("tolerance_mm must be positive and finite")
 
     source_full = _load_mask(source_mask_path)
+    if (
+        not math.isfinite(expanded_digital_uncertainty_mm)
+        or expanded_digital_uncertainty_mm < 0
+    ):
+        raise ValueError("expanded_digital_uncertainty_mm must be finite and non-negative")
+    if source_resampling not in {"nearest", "coverage"}:
+        raise ValueError("source_resampling must be 'nearest' or 'coverage'")
+    if not evidence_source.strip() or not evidence_independence.strip():
+        raise ValueError("registration evidence labels must not be empty")
+
     geometry = _load_mask(geometry_mask_path)
     left, top, right, bottom = crop_box_px
     if not (0 <= left < right <= source_full.shape[1]):
@@ -114,6 +178,7 @@ def measure_registration(
     source = _resize_mask(
         source_crop,
         (geometry.shape[1], geometry.shape[0]),
+        resampling=source_resampling,
     )
     if not source.any() or not geometry.any():
         raise ValueError("source or geometry mask contains no foreground")
@@ -135,24 +200,46 @@ def measure_registration(
     maximum = float(np.max(distances))
     p95 = float(np.percentile(distances, 95.0))
     mean = float(np.mean(distances))
+    guard_banded_maximum = maximum + expanded_digital_uncertainty_mm
+    uncertainty_lower_maximum = max(
+        0.0,
+        maximum - expanded_digital_uncertainty_mm,
+    )
 
     failures: list[str] = []
     warnings: list[str] = []
-    if maximum > tolerance_mm:
+    if uncertainty_lower_maximum > tolerance_mm:
         failures.append("maximum_contour_registration_exceeds_tolerance")
+    elif guard_banded_maximum > tolerance_mm:
+        warnings.append(
+            "maximum_contour_registration_uncertainty_overlaps_tolerance"
+        )
     if iou < 0.985:
         warnings.append("silhouette_iou_below_0_985")
     if p95 > tolerance_mm * 0.5:
         warnings.append("p95_contour_registration_above_half_tolerance")
 
-    decision = "pass" if not failures and not warnings else (
-        "pass_with_warnings" if not failures else "fail"
-    )
+    if failures:
+        decision = "fail"
+    elif "maximum_contour_registration_uncertainty_overlaps_tolerance" in warnings:
+        decision = "needs_review"
+    elif warnings:
+        decision = "pass_with_warnings"
+    else:
+        decision = "pass"
     return RegistrationReport(
-        schema_version=1,
+        schema_version=2,
         engine_version=ENGINE_VERSION,
         decision=decision,
+        evidence_source=evidence_source,
+        evidence_independence=evidence_independence,
         tolerance_mm=tolerance_mm,
+        expanded_digital_uncertainty_mm=round(expanded_digital_uncertainty_mm, 10),
+        guard_banded_maximum_edge_distance_mm=round(guard_banded_maximum, 8),
+        uncertainty_lower_maximum_edge_distance_mm=round(
+            uncertainty_lower_maximum, 8
+        ),
+        source_resampling=source_resampling,
         source_crop_box_px=[left, top, right, bottom],
         comparison_canvas_px=[geometry.shape[1], geometry.shape[0]],
         physical_canvas_mm=[round(physical_width_mm, 8), round(physical_height_mm, 8)],
@@ -185,6 +272,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--physical-width-mm", type=float, required=True)
     parser.add_argument("--physical-height-mm", type=float, required=True)
     parser.add_argument("--tolerance-mm", type=float, default=0.5)
+    parser.add_argument(
+        "--source-resampling",
+        choices=("nearest", "coverage"),
+        default="nearest",
+    )
+    parser.add_argument(
+        "--expanded-digital-uncertainty-mm",
+        type=float,
+        default=0.0,
+    )
+    parser.add_argument("--evidence-source", default="mask_pair")
+    parser.add_argument("--evidence-independence", default="unspecified")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
 
@@ -196,6 +295,10 @@ def main(argv: list[str] | None = None) -> int:
             physical_width_mm=args.physical_width_mm,
             physical_height_mm=args.physical_height_mm,
             tolerance_mm=args.tolerance_mm,
+            expanded_digital_uncertainty_mm=args.expanded_digital_uncertainty_mm,
+            source_resampling=args.source_resampling,
+            evidence_source=args.evidence_source,
+            evidence_independence=args.evidence_independence,
         )
     except Exception as exc:
         print(f"registration measurement failed: {exc}", file=sys.stderr)

@@ -68,7 +68,7 @@ def _build(paths: dict[str, Path], output: Path, grid: int = 96) -> None:
 def test_finalizer_includes_consistency_report_inside_sealed_zip(tmp_path: Path) -> None:
     paths = _fixture(tmp_path / "fixture")
     package_dir = tmp_path / "package"
-    _build(paths, package_dir, grid=96)
+    _build(paths, package_dir, grid=192)
 
     result = finalize_package(package_dir)
     receipt = result["receipt"]
@@ -76,6 +76,9 @@ def test_finalizer_includes_consistency_report_inside_sealed_zip(tmp_path: Path)
     assert receipt["digital_geometry_status"] == "ready"
     assert receipt["digital_artifact_consistency"] == "pass"
     assert receipt["digital_contour_registration"] == "pass"
+    assert receipt["digital_final_glb_registration"] == "pass"
+    assert receipt["digital_final_glb_silhouette_registration"] == "pass"
+    assert receipt["digital_final_glb_depth_registration"] == "pass"
     assert receipt["physical_validation_status"] == "pending"
     assert receipt["production_status"] == "not_approved_pending_physical_validation"
 
@@ -89,18 +92,36 @@ def test_finalizer_includes_consistency_report_inside_sealed_zip(tmp_path: Path)
         "geometry/model.3mf",
     ]
     registration_report_path = (
-        package_dir / "reports/contour-registration-report.json"
+        package_dir / "reports/final-glb-silhouette-registration-report.json"
     )
     assert registration_report_path.is_file()
     registration_report = json.loads(
         registration_report_path.read_text(encoding="utf-8")
     )
     assert registration_report["decision"] == "pass"
+    assert registration_report["evidence_source"] == (
+        "fresh_final_glb_front_orthographic_silhouette"
+    )
+    assert registration_report["evidence_independence"] == "independent_cpu_mesh_rasterization"
+    assert registration_report["guard_banded_maximum_edge_distance_mm"] <= 0.5
+    overlay_path = package_dir / "reports/final-glb-silhouette-overlay.png"
+    assert overlay_path.is_file()
+    depth_report = json.loads(
+        (package_dir / "reports/final-glb-depth-registration-report.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert depth_report["decision"] == "pass"
+    assert depth_report["guard_banded_maximum_error_mm"] <= 0.02
+    assert (package_dir / "reports/final-glb-depth-difference.png").is_file()
 
     with zipfile.ZipFile(package_dir / receipt["package"]) as archive:
         names = set(archive.namelist())
     assert "reports/artifact-consistency-report.json" in names
-    assert "reports/contour-registration-report.json" in names
+    assert "reports/final-glb-silhouette-overlay.png" in names
+    assert "reports/final-glb-silhouette-registration-report.json" in names
+    assert "reports/final-glb-depth-registration-report.json" in names
+    assert "reports/final-glb-depth-difference.png" in names
     assert "manifest.json" in names
     assert "package-receipt.json" not in names
 
@@ -112,7 +133,9 @@ def test_finalizer_preserves_geometry_warnings_in_status(tmp_path: Path) -> None
 
     result = finalize_package(package_dir)
 
-    assert result["receipt"]["digital_geometry_status"] == "needs_review"
+    assert result["receipt"]["digital_geometry_status"] == "failed"
+    assert any(value.startswith("registration:") for value in result["manifest"]["digital_failures"])
+    assert result["receipt"]["digital_final_glb_registration"] == "fail"
     assert "low_grid_resolution" in result["manifest"]["digital_warnings"]
     assert result["receipt"]["physical_validation_status"] == "pending"
 
@@ -144,7 +167,7 @@ def test_finalizer_accepts_clean_non_round_physical_dimensions(tmp_path: Path) -
         recipe=ProductRecipe(
             width_mm=70.1234567,
             height_mm=53.7654321,
-            grid_long_edge=96,
+            grid_long_edge=192,
         ),
     )
 
@@ -161,13 +184,13 @@ def test_incomplete_uv_set_never_finalizes_as_ready(tmp_path: Path) -> None:
         relief_map=paths["relief"],
         mask=paths["mask"],
         output_dir=package_dir,
-        recipe=ProductRecipe(width_mm=70.0, height_mm=70.0, grid_long_edge=96),
+        recipe=ProductRecipe(width_mm=70.0, height_mm=70.0, grid_long_edge=192),
     )
 
     result = finalize_package(package_dir)
 
     assert result["receipt"]["digital_package_status"] == "needs_review"
-    assert "uv_artwork_set_incomplete" in result["manifest"]["digital_warnings"]
+    assert "artwork_file_set_incomplete" in result["manifest"]["digital_warnings"]
     assert result["receipt"]["production_status"] == "not_approved_pending_physical_validation"
 
 

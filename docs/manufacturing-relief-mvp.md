@@ -89,8 +89,14 @@ MVP’nin güvenilir ilk çıktıları:
 
 - `model.glb`: web önizleme ve arşiv,
 - `model.stl`: dilimleyiciye aktarılabilir üretim geometrisi,
+- `model.3mf`: milimetre birimli generic üretim geometrisi,
 - `uv-print.png`: rölyef ile aynı koordinat sistemindeki baskı dosyası,
-- `depth-map.png`: kullanıcı kontrolü ve yeniden üretim,
+- `depth-16.png`: mutlak unsigned 16-bit manufacturing height master,
+- `final-glb-orthographic-silhouette.png`: final GLB'den sabit fiziksel kamerayla türetilmiş silüet,
+- `final-glb-orthographic-depth-16.png`: aynı kameradan final GLB depth kanıtı,
+- `cut-contour.svg`: final GLB silüetinden milimetre cinsinden türetilmiş kesim konturu,
+- `registration.json`: piksel-edge/model/SVG dönüşümleri ve ölçüm belirsizliği sözleşmesi,
+- silüet overlay'i ile ayrı depth-difference raporu,
 - `preview.png`: Renderhane sonuç kartı,
 - `manufacturing-report.json`: ölçü, üçgen sayısı, sınır kutusu, manifold durumu, minimum kalınlık ve uyarılar.
 
@@ -117,6 +123,20 @@ Bir iş `completed` sayılmadan önce:
 - küçük adacıklar ve baskıda kaybolacak detaylar raporlanmalı,
 - UV görseli ile mesh dış konturu eşleşmeli.
 
+
+Dijital registration kapısı final GLB'yi taze yeniden rasterize eder; saklanmış bir
+proxy maskeyi geometri kanıtı olarak kabul etmez. Dış kontur iki yönlü fiziksel
+mesafe/IoU ile, Z yüzeyi ise kaynaktan taze yeniden üretilen heightfield'a karşı
+max/p95/mean/RMS hata ile ölçülür. `digital_status=validated` veya paket `ready`
+yalnız dijital kapsamı ifade eder. UV renk, white ve varnish motiflerinin yerel
+semantik eşleşmesi ile RIP/printer/material sapması fiziksel kupon ve ölçüm olmadan
+doğrulanmış sayılmaz.
+Manifestte `artwork_file_set_status=complete` yalnız üç artwork dosyasının provenance
+zincirinin eksiksiz olduğunu gösterir; semantik örtüşme ayrıca
+`artwork_semantic_registration_status=not_validated` olarak tutulur. CPU projeksiyonu
+600.000 görünür üçgen üstünde, builder ise downsample sırasında kaynak silüetin fiziksel
+ekstremumlarından biri kaybolduğunda fail-closed davranır; ikinci durumda çözüm
+`grid_long_edge` değerini yükseltmektir.
 Doğrulanamayan çıktı “üretime hazır” etiketi almamalı; `needs_review` durumuna geçmelidir.
 
 ## 7. Renderhane entegrasyonu

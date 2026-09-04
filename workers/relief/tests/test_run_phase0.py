@@ -291,7 +291,8 @@ def test_phase0_fails_closed_when_product_geometry_gate_fails(
                 "failures": ["mesh_not_watertight"],
                 "warnings": [],
             },
-            "uv_artwork_status": "incomplete",
+            "artwork_file_set_status": "incomplete",
+            "artwork_semantic_registration_status": "not_validated",
             "physical_validation_status": "pending",
             "production_status": "not_approved_pending_physical_validation",
             "package_receipt": {
