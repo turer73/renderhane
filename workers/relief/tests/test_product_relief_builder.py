@@ -59,7 +59,7 @@ def test_silhouette_builder_creates_single_watertight_trimmed_product(tmp_path: 
     assert validation["physical_validation"] == "pending"
     assert validation["extents_mm"][0] == pytest.approx(70.0, abs=0.7)
     assert validation["extents_mm"][1] == pytest.approx(70.0, abs=0.7)
-    assert validation["extents_mm"][2] <= pytest.approx(4.2, abs=0.02)
+    assert validation["extents_mm"][2] <= 4.2 + 0.02
 
     mesh = trimesh.load_mesh(output / "model.stl")
     assert mesh.is_watertight

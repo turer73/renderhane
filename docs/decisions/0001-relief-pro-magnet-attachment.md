@@ -73,6 +73,6 @@ A relief face and a separately printed rear carrier can place the magnet pocket 
 
 - Four relief-height benchmark variants are generated without a pocket.
 - Pocket topology remains covered by automated tests.
-- Pocket packages are always `ready_with_warnings` at best until physical evidence exists.
+- Pocket packages are always `needs_review` at best until physical evidence exists.
 - Product engineering and relief-height experiments remain separable.
 - The UI must label attachment style explicitly rather than hiding it inside a generic magnet preset.

@@ -54,7 +54,7 @@ def test_rear_magnet_pocket_forces_physical_bridge_warning(tmp_path: Path) -> No
 
     result = finalize_package(package)
 
-    assert result["receipt"]["digital_geometry_status"] == "ready_with_warnings"
+    assert result["receipt"]["digital_geometry_status"] == "needs_review"
     assert (
         "magnet_pocket_requires_bridge_retention_and_orientation_physical_test"
         in result["manifest"]["digital_warnings"]

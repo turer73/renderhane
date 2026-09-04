@@ -17,12 +17,11 @@ from pathlib import Path
 from typing import Iterable
 
 from PIL import Image
-
 from relief_builder import (
-    BuildRecipe,
     ENGINE_NAME,
     ENGINE_VERSION,
     FIXED_ZIP_TIME,
+    BuildRecipe,
     build,
     canonical_json_bytes,
     sha256_file,
@@ -324,6 +323,7 @@ def run_benchmark(
                 grid_long_edge=grid_long_edge,
                 shape_mode="silhouette",
                 artwork_long_edge_px=artwork_long_edge_px,
+                normalization_mode="absolute",
             ),
             copied_mask,
             aligned_layers,

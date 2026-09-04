@@ -312,7 +312,11 @@ def validate_mesh(
     bounds = np.asarray(mesh.bounds, dtype=np.float64)
     tolerance_xy = 0.01
     tolerance_z = max(0.01, recipe.relief_depth_mm * 0.005)
-    expected_total_depth = recipe.base_thickness_mm + recipe.relief_depth_mm
+    active = active_mask > 0.05 if active_mask is not None else np.ones_like(relief, dtype=bool)
+    active_values = relief[active]
+    actual_relief_min = float(active_values.min()) * recipe.relief_depth_mm
+    actual_relief_max = float(active_values.max()) * recipe.relief_depth_mm
+    expected_total_depth = recipe.base_thickness_mm + actual_relief_max
 
     if abs(extents[0] - recipe.width_mm) > tolerance_xy:
         warnings.append("width_out_of_tolerance")
@@ -333,15 +337,14 @@ def validate_mesh(
         if back_flatness > 1e-8:
             warnings.append("back_plane_not_flat")
 
-    active = active_mask > 0.05 if active_mask is not None else np.ones_like(relief, dtype=bool)
-    active_values = relief[active]
-    actual_relief_min = float(active_values.min()) * recipe.relief_depth_mm
-    actual_relief_max = float(active_values.max()) * recipe.relief_depth_mm
     positive_z = z[z > 1e-9]
     minimum_solid_thickness = float(positive_z.min()) if positive_z.size else 0.0
     if minimum_solid_thickness + tolerance_z < recipe.base_thickness_mm:
         warnings.append("minimum_base_thickness_violated")
-    if abs(actual_relief_max - recipe.relief_depth_mm) > tolerance_z:
+    if (
+        recipe.normalization_mode == "robust"
+        and abs(actual_relief_max - recipe.relief_depth_mm) > tolerance_z
+    ):
         warnings.append("relief_peak_not_reached")
 
     areas = np.asarray(mesh.area_faces, dtype=np.float64)

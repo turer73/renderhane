@@ -309,7 +309,7 @@ def write_contour_svg(
   <path d="{path_data}" fill="none" stroke="#000" stroke-width="{_format_float(stroke)}" fill-rule="evenodd"/>
 </svg>
 '''
-    destination.write_text(svg, encoding="utf-8")
+    destination.write_text(svg, encoding="utf-8", newline="\n")
 
 
 def write_registration_svg(
@@ -338,4 +338,4 @@ def write_registration_svg(
   </g>
 </svg>
 '''
-    destination.write_text(svg, encoding="utf-8")
+    destination.write_text(svg, encoding="utf-8", newline="\n")

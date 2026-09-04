@@ -16,6 +16,34 @@ def _normalise(values: np.ndarray) -> np.ndarray:
     return ((values - lo) / (hi - lo)).astype(np.float32)
 
 
+def _write_text_vector(path: Path, width: int, height: int) -> None:
+    """Write a rights-safe vector companion for the synthetic glyph bars."""
+    glyph_width = max(2.0, width * 0.055)
+    glyph_height = max(2.0, height * 0.075)
+    glyph_y = ((0.67 + 1.0) * 0.5 * (height - 1)) - glyph_height * 0.5
+    glyphs = "\n".join(
+        (
+            "    <rect "
+            f'x="{((centre + 1.0) * 0.5 * (width - 1) - glyph_width * 0.5):.3f}" '
+            f'y="{glyph_y:.3f}" width="{glyph_width:.3f}" '
+            f'height="{glyph_height:.3f}" />'
+        )
+        for centre in (-0.46, -0.23, 0.0, 0.23, 0.46)
+    )
+    path.write_text(
+        (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">\n'
+            "  <title>Rights-safe synthetic text-vector fixture</title>\n"
+            '  <g id="synthetic-glyph-bars" fill="#000000">\n'
+            f"{glyphs}\n"
+            "  </g>\n"
+            "</svg>\n"
+        ),
+        encoding="utf-8",
+    )
+
+
 def generate(output_dir: Path, width: int = 256, height: int = 192) -> dict[str, str]:
     """Create a deterministic 16-bit relief fixture and matching silhouette mask.
 
@@ -66,22 +94,26 @@ def generate(output_dir: Path, width: int = 256, height: int = 192) -> dict[str,
     relief_path = output_dir / "relief-map-16.png"
     mask_path = output_dir / "silhouette-mask.png"
     preview_path = output_dir / "relief-map-preview.png"
+    text_vector_path = output_dir / "text-vector.svg"
     manifest_path = output_dir / "fixture-manifest.json"
 
     Image.fromarray(relief_u16, mode="I;16").save(relief_path)
     Image.fromarray(mask_u8, mode="L").save(mask_path)
     Image.fromarray(preview_u8, mode="L").save(preview_path)
+    _write_text_vector(text_vector_path, width, height)
 
     manifest = {
         "fixture": "synthetic-relief-v1",
         "purpose": "deterministic software regression only",
         "is_physical_ground_truth": False,
+        "rights_scope": "synthetic-generated-no-third-party-assets",
         "width_px": width,
         "height_px": height,
         "files": {
             "relief_map_16": relief_path.name,
             "silhouette_mask": mask_path.name,
             "preview": preview_path.name,
+            "text_vector": text_vector_path.name,
         },
     }
     manifest_path.write_text(

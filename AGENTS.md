@@ -7,7 +7,7 @@ Renderhane is a production SaaS built with Next.js 16, TypeScript, Supabase, Clo
 Read these first:
 
 1. `CLAUDE.md`
-2. `docs/plans/2026-09-03-manufacturing-relief-system-research-and-plan.md`
+2. `docs/plans/2026-09-03-renderhane-manufacturing-relief-research-plan.md`
 3. `docs/manufacturing-relief-mvp.md`
 4. `docs/plans/2026-09-03-agent-assisted-relief-development.md`
 5. GitHub issues `#53` through `#57`

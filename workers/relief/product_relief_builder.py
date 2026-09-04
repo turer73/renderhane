@@ -7,7 +7,7 @@ import math
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import trimesh
@@ -15,7 +15,8 @@ from PIL import Image
 
 from export_3mf import export_3mf
 
-ENGINE_VERSION = "product-relief-builder-v0.1.0"
+ENGINE_VERSION = "product-relief-builder-v0.2.0"
+NormalizationMode = Literal["absolute", "robust"]
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class ProductRecipe:
     pocket_y_mm: float = 0.0
     minimum_remaining_base_mm: float = 0.8
     pocket_edge_clearance_mm: float = 1.5
+    normalization_mode: NormalizationMode = "absolute"
 
     def validate(self) -> None:
         if not math.isfinite(self.width_mm) or self.width_mm <= 0:
@@ -49,6 +51,8 @@ class ProductRecipe:
             raise ValueError("grid_long_edge must be between 24 and 1024")
         if not math.isfinite(self.gamma) or self.gamma <= 0:
             raise ValueError("gamma must be positive and finite")
+        if self.normalization_mode not in {"absolute", "robust"}:
+            raise ValueError("normalization_mode must be absolute or robust")
         if not 0 <= self.percentile_low < self.percentile_high <= 100:
             raise ValueError("percentile range is invalid")
 
@@ -91,18 +95,55 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _load_relief(path: Path) -> np.ndarray:
+def _is_unsigned_16bit_grayscale(
+    path: Path,
+    *,
+    mode: str,
+    format_name: str | None,
+    array: np.ndarray,
+) -> bool:
+    if array.ndim != 2 or not np.issubdtype(array.dtype, np.integer):
+        return False
+    if array.size and (int(array.min()) < 0 or int(array.max()) > 65535):
+        return False
+    if format_name != "PNG":
+        return False
+    with path.open("rb") as handle:
+        header = handle.read(26)
+    return (
+        mode in {"I", "I;16", "I;16B", "I;16L", "I;16N"}
+        and header[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10))
+        and header[12:16] == b"IHDR"
+        and header[24:26] == bytes((16, 0))
+    )
+
+
+def _load_relief(path: Path, *, require_16bit: bool) -> np.ndarray:
     with Image.open(path) as image:
+        mode = image.mode
+        format_name = image.format
         array = np.asarray(image)
+    is_16bit_grayscale = _is_unsigned_16bit_grayscale(
+        path,
+        mode=mode,
+        format_name=format_name,
+        array=array,
+    )
+    if require_16bit and not is_16bit_grayscale:
+        raise ValueError(
+            "canonical relief map must be a 16-bit grayscale PNG image; "
+            "use normalization_mode='robust' only for legacy candidate inputs"
+        )
     if array.ndim == 3:
         array = array[..., :3].astype(np.float64).mean(axis=2)
     array = array.astype(np.float64)
     if array.size == 0 or not np.isfinite(array).all():
         raise ValueError("relief map is empty or non-finite")
     max_value = float(array.max())
-    if max_value > 1.0:
-        denominator = 65535.0 if max_value > 255.0 else 255.0
-        array = array / denominator
+    if require_16bit:
+        array = array / 65535.0
+    elif max_value > 1.0:
+        array = array / (65535.0 if max_value > 255.0 else 255.0)
     return np.clip(array, 0.0, 1.0).astype(np.float32)
 
 
@@ -198,20 +239,46 @@ def _crop_inputs(relief: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.n
     return relief[top:bottom, left:right], mask[top:bottom, left:right], (left, top, right, bottom)
 
 
-def _normalise_relief(relief: np.ndarray, mask: np.ndarray, recipe: ProductRecipe) -> np.ndarray:
+def _normalise_relief(
+    relief: np.ndarray,
+    mask: np.ndarray,
+    recipe: ProductRecipe,
+) -> tuple[np.ndarray, dict[str, Any]]:
     inside = relief[mask]
     if inside.size == 0:
         raise ValueError("no relief pixels remain inside mask")
-    low = float(np.percentile(inside, recipe.percentile_low))
-    high = float(np.percentile(inside, recipe.percentile_high))
-    if high <= low:
-        raise ValueError("relief map has no usable dynamic range")
-    normalised = np.clip((relief - low) / (high - low), 0.0, 1.0)
+    input_min = float(inside.min())
+    input_max = float(inside.max())
+    if recipe.normalization_mode == "absolute":
+        normalised = np.clip(relief, 0.0, 1.0)
+        normalization = {
+            "mode": "absolute",
+            "input_min": input_min,
+            "input_max": input_max,
+            "scale": "uint16_code_value_divided_by_65535",
+            "percentile_low": None,
+            "percentile_high": None,
+        }
+    else:
+        low = float(np.percentile(inside, recipe.percentile_low))
+        high = float(np.percentile(inside, recipe.percentile_high))
+        if high <= low:
+            raise ValueError("relief map has no usable dynamic range")
+        normalised = np.clip((relief - low) / (high - low), 0.0, 1.0)
+        normalization = {
+            "mode": "robust",
+            "input_min": input_min,
+            "input_max": input_max,
+            "percentile_low": recipe.percentile_low,
+            "percentile_high": recipe.percentile_high,
+            "clipped_low": low,
+            "clipped_high": high,
+        }
     if recipe.invert_depth:
         normalised = 1.0 - normalised
     normalised = np.power(normalised, recipe.gamma).astype(np.float32)
     normalised[~mask] = 0.0
-    return normalised
+    return normalised, normalization
 
 
 def _grid_shape(width_px: int, height_px: int, long_edge: int) -> tuple[int, int]:
@@ -435,11 +502,20 @@ def _validate_mesh(mesh: trimesh.Trimesh, recipe: ProductRecipe) -> dict[str, An
         failures.append("base_thickness_not_preserved")
     if recipe.grid_long_edge < 96:
         warnings.append("low_grid_resolution")
+    if recipe.normalization_mode == "robust":
+        warnings.append("legacy_robust_normalization_not_canonical")
+    if recipe.pocket_diameter_mm is not None:
+        warnings.append(
+            "magnet_pocket_requires_bridge_retention_and_orientation_physical_test"
+        )
 
     return {
-        "production_status": "ready" if not failures and not warnings else (
-            "needs_review" if not failures else "failed"
+        "digital_status": "validated" if not failures and not warnings else "needs_review",
+        "production_status": (
+            "physical_validation_required" if not failures and not warnings else "blocked"
         ),
+        "physical_validation_required": True,
+        "claim_scope": "phase0_digital_geometry_only",
         "digital_geometry_gate": "pass" if not failures else "fail",
         "watertight": bool(mesh.is_watertight),
         "winding_consistent": bool(mesh.is_winding_consistent),
@@ -469,10 +545,13 @@ def build_product_relief(
     if not mask_path.is_file():
         raise FileNotFoundError(mask_path)
 
-    source = _load_relief(relief_map_path)
+    source = _load_relief(
+        relief_map_path,
+        require_16bit=recipe.normalization_mode == "absolute",
+    )
     mask = _load_mask(mask_path, source.shape)
     source, mask, crop_box = _crop_inputs(source, mask)
-    normalised = _normalise_relief(source, mask, recipe)
+    normalised, normalization = _normalise_relief(source, mask, recipe)
 
     rows, cols = _grid_shape(source.shape[1], source.shape[0], recipe.grid_long_edge)
     grid_relief = _resize_float(normalised, (cols, rows))
@@ -507,7 +586,12 @@ def build_product_relief(
     glb_mesh = mesh.copy()
     glb_mesh.apply_scale(0.001)
     glb_path.write_bytes(glb_mesh.export(file_type="glb"))
-    export_3mf(stl_path, three_mf_path, title="Renderhane Product Relief")
+    export_3mf(
+        stl_path,
+        three_mf_path,
+        title="Renderhane Product Relief",
+        source_unit="millimeter",
+    )
 
     Image.fromarray(
         np.round(grid_relief * 65535.0).astype(np.uint16), mode="I;16"
@@ -527,6 +611,7 @@ def build_product_relief(
     validation["mask_trimmed"] = True
     validation["grid_vertices"] = [cols, rows]
     validation["grid_cells_foreground"] = int(cells.sum())
+    validation["normalization"] = normalization
 
     report = ProductBuildReport(
         schema_version=1,
@@ -541,6 +626,7 @@ def build_product_relief(
     (output_dir / "manufacturing-report.json").write_text(
         json.dumps(report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     return report
 
@@ -556,6 +642,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--relief-mm", type=float, default=1.2)
     parser.add_argument("--grid-long-edge", type=int, default=192)
     parser.add_argument("--gamma", type=float, default=1.0)
+    parser.add_argument(
+        "--normalization-mode",
+        choices=("absolute", "robust"),
+        default="absolute",
+    )
     parser.add_argument("--invert-depth", action="store_true")
     parser.add_argument("--pocket-diameter-mm", type=float)
     parser.add_argument("--pocket-depth-mm", type=float)
@@ -570,6 +661,7 @@ def main(argv: list[str] | None = None) -> int:
         relief_depth_mm=args.relief_mm,
         grid_long_edge=args.grid_long_edge,
         gamma=args.gamma,
+        normalization_mode=args.normalization_mode,
         invert_depth=args.invert_depth,
         pocket_diameter_mm=args.pocket_diameter_mm,
         pocket_depth_mm=args.pocket_depth_mm,

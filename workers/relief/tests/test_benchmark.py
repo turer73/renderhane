@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
+from xml.etree import ElementTree
 
 import pytest
 
@@ -21,6 +23,23 @@ generator = _load_module(
     WORKER_DIR / "generate_synthetic_benchmark.py",
 )
 benchmark = _load_module("benchmark", WORKER_DIR / "benchmark.py")
+
+
+def test_synthetic_fixture_includes_rights_safe_text_vector(tmp_path: Path) -> None:
+    fixture_dir = tmp_path / "fixture"
+    generated = generator.generate(fixture_dir, width=96, height=72)
+
+    text_vector = Path(generated["text_vector"])
+    svg_root = ElementTree.parse(text_vector).getroot()
+    manifest = json.loads(
+        (fixture_dir / "fixture-manifest.json").read_text(encoding="utf-8")
+    )
+
+    assert svg_root.tag == "{http://www.w3.org/2000/svg}svg"
+    assert svg_root.attrib["viewBox"] == "0 0 96 72"
+    assert len(svg_root.findall(".//{http://www.w3.org/2000/svg}rect")) == 5
+    assert manifest["rights_scope"] == "synthetic-generated-no-third-party-assets"
+    assert manifest["files"]["text_vector"] == text_vector.name
 
 
 def test_synthetic_multi_depth_benchmark_passes_digital_gate(tmp_path: Path) -> None:

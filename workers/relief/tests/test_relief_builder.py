@@ -34,6 +34,15 @@ def write_gradient(path: Path, width: int = 96, height: int = 64) -> None:
     surface = 0.65 * x + 0.35 * y
     bump = 0.15 * np.exp(-(((x[None, :] - 0.5) / 0.18) ** 2 + ((y - 0.5) / 0.24) ** 2))
     image = np.clip(surface + bump, 0.0, 1.0)
+    # Keep a full-scale calibration plateau inside both rectangle and common
+    # centered-mask fixtures so absolute mode can prove the declared Z ceiling.
+    half_size = max(3, min(width, height) // 8)
+    center_x = width // 2
+    center_y = height // 2
+    image[
+        center_y - half_size : center_y + half_size,
+        center_x - half_size : center_x + half_size,
+    ] = 1.0
     Image.fromarray(np.round(image * 65535.0).astype(np.uint16)).save(path)
 
 
@@ -104,11 +113,15 @@ def test_outputs_are_byte_deterministic_in_same_environment(tmp_path: Path) -> N
         "model.3mf",
         "relief-map-normalized-16.png",
         "height-preview.png",
+        "contour.svg",
+        "registration-overlay.svg",
         "manufacturing-report.json",
         "artifact-manifest.json",
         "manufacturing-package.zip",
     ]:
         assert file_hash(out_a / name) == file_hash(out_b / name), name
+    assert b"\r\n" not in (out_a / "contour.svg").read_bytes()
+    assert b"\r\n" not in (out_a / "registration-overlay.svg").read_bytes()
 
 
 def test_artifact_manifest_contains_hashes_and_package_is_complete(tmp_path: Path) -> None:
@@ -239,10 +252,21 @@ def test_recipe_rejects_unsafe_or_invalid_values() -> None:
         BuildRecipe(grid_long_edge=1024),
         BuildRecipe(mask_threshold=1.0),
         BuildRecipe(width_mm=float("nan")),
+        BuildRecipe(normalization_mode="invalid"),  # type: ignore[arg-type]
     ]
     for recipe in invalid:
         with pytest.raises(ValueError):
             recipe.validate()
+
+
+def test_cli_exposes_absolute_default_and_explicit_robust_mode() -> None:
+    base = ["--relief-map", "relief.png", "--out-dir", "output"]
+    assert relief_builder.parse_args(base).normalization_mode == "absolute"
+    assert (
+        relief_builder.parse_args([*base, "--normalization-mode", "robust"])
+        .normalization_mode
+        == "robust"
+    )
 
 
 def test_aligned_uv_layers_share_one_transform_and_canvas(tmp_path: Path) -> None:
@@ -353,15 +377,81 @@ def test_explicit_height_aspect_change_is_advisory_not_geometry_failure(tmp_path
     ]
 
 
-def test_low_effective_precision_is_reported_as_advisory(tmp_path: Path) -> None:
+def test_default_absolute_mode_rejects_8_bit_source(tmp_path: Path) -> None:
     source = tmp_path / "eight-bit.png"
     values = np.tile(np.arange(64, dtype=np.uint8), (64, 1))
     Image.fromarray(values, mode="L").save(source)
-    report = build(source, tmp_path / "out", BuildRecipe(grid_long_edge=64))
+
+    with pytest.raises(ValueError, match="unsigned 16-bit grayscale PNG"):
+        build(source, tmp_path / "absolute-out", BuildRecipe(grid_long_edge=64))
+
+
+def test_robust_mode_reports_low_effective_precision_as_advisory(tmp_path: Path) -> None:
+    source = tmp_path / "eight-bit.png"
+    values = np.tile(np.arange(64, dtype=np.uint8), (64, 1))
+    Image.fromarray(values, mode="L").save(source)
+    report = build(
+        source,
+        tmp_path / "robust-out",
+        BuildRecipe(grid_long_edge=64, normalization_mode="robust"),
+    )
     assert report.source_image_info["storage_bits_per_sample"] == 8
     assert report.source_image_info["effective_precision_bits_estimate"] <= 8
     assert "relief_map_has_8_bit_or_lower_effective_precision" in report.validation["advisories"]
     assert report.validation["digital_status"] == "validated"
+
+
+def test_absolute_mode_rejects_unsigned_16bit_tiff_renamed_as_png(tmp_path: Path) -> None:
+    source = tmp_path / "renamed-tiff.png"
+    values = np.tile(np.arange(32, dtype=np.uint16), (32, 1))
+    Image.fromarray(values).save(source, format="TIFF")
+
+    with pytest.raises(ValueError, match="unsigned 16-bit grayscale PNG"):
+        build(source, tmp_path / "absolute-tiff-out", BuildRecipe(grid_long_edge=32))
+
+
+def test_absolute_mode_preserves_low_uint16_code_values(tmp_path: Path) -> None:
+    source = tmp_path / "low-codes-16.png"
+    values = np.zeros((32, 32), dtype=np.uint16)
+    values[:, 16:] = 1
+    Image.fromarray(values).save(source)
+
+    output = tmp_path / "absolute-low-codes"
+    report = build(
+        source,
+        output,
+        BuildRecipe(
+            grid_long_edge=32,
+            smoothing_sigma_px=0.0,
+            normalization_mode="absolute",
+        ),
+    )
+
+    normalized = np.asarray(Image.open(output / "relief-map-normalized-16.png"))
+    assert set(np.unique(normalized)) == {0, 1}
+    assert report.recipe["normalization_mode"] == "absolute"
+    assert report.relief_statistics["normalized_max"] == round(1.0 / 65535.0, 9)
+
+
+def test_build_recipe_positional_fields_keep_their_previous_meaning() -> None:
+    recipe = BuildRecipe(
+        71.0,
+        72.0,
+        3.1,
+        1.2,
+        3.0,
+        97.0,
+        1.1,
+        0.5,
+        128,
+        True,
+        "silhouette",
+        0.6,
+        1024,
+    )
+
+    assert recipe.artwork_long_edge_px == 1024
+    assert recipe.normalization_mode == "absolute"
 
 
 def test_mismatched_aligned_layer_canvas_is_rejected(tmp_path: Path) -> None:

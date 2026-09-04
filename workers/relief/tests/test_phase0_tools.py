@@ -89,7 +89,7 @@ def test_phase0_runner_keeps_physical_decision_pending(tmp_path: Path) -> None:
         assert "DIGITAL-STATUS.md" in names
         assert "physical-measurements.csv" in names
         assert "inputs/front-master.png" in names
-    status = (out / "DIGITAL-STATUS.md").read_text()
+    status = (out / "DIGITAL-STATUS.md").read_text(encoding="utf-8")
     assert "unit-test fixture" in status
     assert "üretime hazır" in status
 

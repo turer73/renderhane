@@ -1,2 +1,2 @@
--r requirements-dev.txt
+-r requirements.txt
 manifold3d>=3.0.1

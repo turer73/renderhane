@@ -25,19 +25,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: workers/relief/requirements-manufacturing.txt
+          cache-dependency-path: workers/relief/requirements*.txt
 
       - name: Install deterministic worker dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r workers/relief/requirements-manufacturing.txt
+          python -m pip install -r workers/relief/requirements-dev.txt
 
       - name: Run complete relief worker test suite
         run: python -m pytest workers/relief/tests -q
@@ -74,6 +74,7 @@ jobs:
           python workers/relief/validate_front_master.py \
             --image /tmp/renderhane-phase0-fixture/front-master.png \
             --mask /tmp/renderhane-phase0-fixture/silhouette-mask.png \
+            --text-vector /tmp/renderhane-phase0-fixture/text-vector.svg \
             --minimum-long-edge-px 192 \
             --declared-orthographic \
             --declared-no-cast-shadow \
@@ -85,6 +86,7 @@ jobs:
             --front-master /tmp/renderhane-phase0-fixture/front-master.png \
             --relief-map /tmp/renderhane-phase0-fixture/relief-map-16.png \
             --mask /tmp/renderhane-phase0-fixture/silhouette-mask.png \
+            --text-vector /tmp/renderhane-phase0-fixture/text-vector.svg \
             --uv-artwork /tmp/renderhane-phase0-fixture/uv-artwork.png \
             --white-mask /tmp/renderhane-phase0-fixture/white-mask.png \
             --varnish-mask /tmp/renderhane-phase0-fixture/varnish-mask.png \
@@ -93,8 +95,6 @@ jobs:
             --base-mm 3 \
             --depths 0.6,1.0,1.4,1.8 \
             --grid-long-edge 128 \
-            --pocket-diameter-mm 12 \
-            --pocket-depth-mm 2 \
             --minimum-long-edge-px 192 \
             --declared-orthographic \
             --declared-no-cast-shadow
@@ -132,29 +132,69 @@ jobs:
 
       - name: Record gate summary
         if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           output = Path('/tmp/renderhane-phase0-output')
+          phase_summary_path = output / 'phase0-summary.json'
+          phase_summary = None
+          phase_summary_error = None
+          if phase_summary_path.exists():
+              try:
+                  loaded = json.loads(phase_summary_path.read_text(encoding='utf-8'))
+                  if isinstance(loaded, dict):
+                      phase_summary = loaded
+                  else:
+                      phase_summary_error = 'phase0_summary_is_not_an_object'
+              except (OSError, json.JSONDecodeError) as exc:
+                  phase_summary_error = type(exc).__name__
+
+          job_status = os.environ.get('JOB_STATUS', '').lower()
+          if job_status == 'cancelled':
+              execution = 'cancelled'
+          elif job_status == 'failure':
+              execution = 'failure'
+          elif phase_summary is None:
+              execution = 'incomplete'
+          elif (
+              phase_summary.get('digital_geometry_gate') == 'pass'
+              and phase_summary.get('digital_status') == 'validated'
+          ):
+              execution = 'success'
+          elif (
+              phase_summary.get('digital_geometry_gate') == 'fail'
+              or phase_summary.get('digital_status') == 'needs_review'
+          ):
+              execution = 'failure'
+          else:
+              execution = 'incomplete'
+
           summary = {
               'schema_version': 1,
-              'digital_ci_execution': 'completed',
+              'digital_ci_execution': execution,
+              'github_job_status': job_status or 'unknown',
               'physical_validation_status': 'pending',
               'production_status': 'not_approved_pending_physical_validation',
-              'notice': 'A green CI run proves only the declared digital checks. P1S, A1 mini and UV measurements are still required.',
+              'notice': 'Only digital_ci_execution=success means the declared digital steps and phase summary passed. P1S, A1 mini and UV measurements are still required.',
           }
-          if (output / 'phase0-summary.json').exists():
-              summary['phase0_summary'] = json.loads((output / 'phase0-summary.json').read_text())
+          if phase_summary is not None:
+              summary['phase0_summary'] = phase_summary
+          if phase_summary_error is not None:
+              summary['phase0_summary_error'] = phase_summary_error
           Path('/tmp/relief-phase0-ci-summary.json').write_text(
-              json.dumps(summary, indent=2, sort_keys=True) + '\n'
+              json.dumps(summary, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
           )
           PY
 
       - name: Upload Phase 0 digital evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relief-phase0-digital-evidence
           path: |

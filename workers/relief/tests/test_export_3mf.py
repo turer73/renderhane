@@ -63,6 +63,65 @@ def test_3mf_export_is_byte_deterministic(tmp_path: Path) -> None:
     assert _sha256(first) == _sha256(second)
 
 
+def test_3mf_export_converts_meter_source_coordinates_to_millimeters(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source-in-meters.stl"
+    output = tmp_path / "model.3mf"
+    trimesh.creation.box(extents=[0.07, 0.05, 0.0042]).export(source)
+
+    report = export_3mf(source, output, source_unit="meter")
+
+    assert report.source_unit == "meter"
+    assert report.unit == "millimeter"
+    assert report.extents_mm == pytest.approx([70.0, 50.0, 4.2], abs=1e-5)
+
+
+def test_3mf_export_applies_scene_node_transform_before_unit_scaling(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "transformed-source.glb"
+    output = tmp_path / "model.3mf"
+    scene = trimesh.Scene()
+    transform = trimesh.transformations.scale_and_translate(
+        scale=[2.0, 3.0, 4.0],
+        translate=[0.1, 0.2, 0.3],
+    )
+    scene.add_geometry(
+        trimesh.creation.box(extents=[0.01, 0.02, 0.003]),
+        node_name="transformed-box",
+        transform=transform,
+    )
+    source.write_bytes(scene.export(file_type="glb"))
+
+    report = export_3mf(source, output, source_unit="meter")
+
+    assert report.extents_mm == pytest.approx([20.0, 60.0, 12.0], abs=1e-5)
+    with zipfile.ZipFile(output) as archive:
+        root = ET.fromstring(archive.read("3D/3dmodel.model"))
+    vertices = root.findall(f".//{{{CORE_NS}}}vertex")
+    coordinates = [
+        [float(vertex.attrib[axis]) for axis in ("x", "y", "z")]
+        for vertex in vertices
+    ]
+    assert [min(values) for values in zip(*coordinates)] == pytest.approx(
+        [90.0, 170.0, 294.0],
+        abs=1e-5,
+    )
+    assert [max(values) for values in zip(*coordinates)] == pytest.approx(
+        [110.0, 230.0, 306.0],
+        abs=1e-5,
+    )
+
+
+def test_3mf_export_rejects_unknown_source_unit(tmp_path: Path) -> None:
+    source = tmp_path / "source.stl"
+    trimesh.creation.box(extents=[70.0, 50.0, 4.2]).export(source)
+
+    with pytest.raises(ValueError, match="source_unit"):
+        export_3mf(source, tmp_path / "model.3mf", source_unit="inch")
+
+
 def test_3mf_export_rejects_open_mesh(tmp_path: Path) -> None:
     source = tmp_path / "open.stl"
     output = tmp_path / "open.3mf"

@@ -12,11 +12,16 @@ from typing import Any
 
 from PIL import Image
 
+from build_relief_pro_package import _has_link_like_component, _is_link_like
 from export_3mf import export_3mf
 from relief_builder import BuildRecipe, build
 
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 ENGINE_VERSION = "manufacturing-package-v0.1.0"
+LEGACY_MARKER_NAME = ".renderhane-relief-legacy-package-root"
+LEGACY_MARKER_CONTENT = (
+    "Renderhane legacy relief package workspace. Safe to replace by this tool only.\n"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -89,6 +94,43 @@ def _copy_optional(source: Path | None, destination: Path) -> Path | None:
     return destination
 
 
+def _prepare_output(output_dir: Path, inputs: tuple[Path | None, ...]) -> Path:
+    candidate = output_dir.expanduser().absolute()
+    if _has_link_like_component(candidate):
+        raise ValueError(f"refusing linked output directory: {candidate}")
+    resolved = candidate.resolve()
+    protected = {Path("/").resolve(), Path.home().resolve(), Path.cwd().resolve()}
+    if resolved in protected or len(resolved.parts) < 3:
+        raise ValueError(f"refusing unsafe output directory: {resolved}")
+    for source in inputs:
+        if source is not None and source.expanduser().resolve().is_relative_to(resolved):
+            raise ValueError("package input cannot be inside the output directory")
+
+    if resolved.exists():
+        marker = resolved / LEGACY_MARKER_NAME
+        children = list(resolved.iterdir())
+        marker_is_valid = False
+        if children and not _is_link_like(marker) and marker.is_file():
+            try:
+                marker_is_valid = (
+                    marker.read_text(encoding="utf-8") == LEGACY_MARKER_CONTENT
+                )
+            except (OSError, UnicodeError):
+                marker_is_valid = False
+        if children and not marker_is_valid:
+            raise FileExistsError(
+                f"output directory is not an existing Renderhane package: {resolved}"
+            )
+        shutil.rmtree(resolved)
+    resolved.mkdir(parents=True, exist_ok=False)
+    (resolved / LEGACY_MARKER_NAME).write_text(
+        LEGACY_MARKER_CONTENT,
+        encoding="utf-8",
+        newline="\n",
+    )
+    return resolved
+
+
 def _write_deterministic_zip(root: Path, output: Path, members: list[Path]) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
@@ -128,9 +170,10 @@ def build_package(
         varnish_mask,
     )
 
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = _prepare_output(
+        output_dir,
+        (relief_map, mask, uv_artwork, white_mask, varnish_mask),
+    )
 
     geometry_dir = output_dir / "geometry"
     artwork_dir = output_dir / "artwork"
@@ -153,6 +196,7 @@ def build_package(
         (reports_dir / "geometry-report.json").write_text(
             json.dumps(build_report_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
 
     stl_path = geometry_dir / "model.stl"
@@ -161,10 +205,19 @@ def build_package(
         raise RuntimeError("Relief builder did not produce model.stl and model.glb")
 
     three_mf_path = geometry_dir / "model.3mf"
-    three_mf_report = export_3mf(stl_path, three_mf_path, title=title)
+    three_mf_report = export_3mf(
+        stl_path,
+        three_mf_path,
+        title=title,
+        source_unit="millimeter",
+    )
+    three_mf_report_data = three_mf_report.to_dict()
+    three_mf_report_data["source"] = "geometry/model.stl"
+    three_mf_report_data["output"] = "geometry/model.3mf"
     (reports_dir / "3mf-report.json").write_text(
-        json.dumps(three_mf_report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        json.dumps(three_mf_report_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     copied_artwork: list[Path] = []
@@ -179,7 +232,7 @@ def build_package(
 
     validation = build_report_data.get("validation", {}) if isinstance(build_report_data, dict) else {}
     digital_geometry_ready = (
-        validation.get("production_status") == "ready"
+        validation.get("digital_status") == "validated"
         and validation.get("watertight") is True
         and validation.get("is_volume") is True
         and validation.get("open_edge_count") in (0, None)
@@ -242,6 +295,7 @@ def build_package(
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     package_members = [*artifact_paths, manifest_path]
@@ -256,6 +310,7 @@ def build_package(
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     return manifest
 
@@ -274,6 +329,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-mm", type=float, default=3.0)
     parser.add_argument("--relief-mm", type=float, default=1.2)
     parser.add_argument("--grid-long-edge", type=int, default=192)
+    parser.add_argument(
+        "--normalization-mode",
+        choices=("absolute", "robust"),
+        default="robust",
+        help=(
+            "deprecated CLI compatibility defaults to robust; use absolute with "
+            "the canonical 16-bit PNG manufacturing master"
+        ),
+    )
     args = parser.parse_args(argv)
 
     recipe_kwargs: dict[str, Any] = {
@@ -281,6 +345,7 @@ def main(argv: list[str] | None = None) -> int:
         "base_thickness_mm": args.base_mm,
         "relief_depth_mm": args.relief_mm,
         "grid_long_edge": args.grid_long_edge,
+        "normalization_mode": args.normalization_mode,
     }
     if args.height_mm is not None:
         recipe_kwargs["height_mm"] = args.height_mm

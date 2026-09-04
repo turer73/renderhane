@@ -66,6 +66,9 @@ def run_benchmark(
             "base_thickness_mm": base_thickness_mm,
             "relief_depth_mm": depth_mm,
             "grid_long_edge": grid_long_edge,
+            # Deprecated facade preserves its historical percentile-normalized
+            # behavior. New callers must use run_phase0_benchmark.py (absolute).
+            "normalization_mode": "robust",
         }
         if height_mm is not None:
             recipe_kwargs["height_mm"] = height_mm
@@ -100,6 +103,7 @@ def run_benchmark(
             {
                 "depth_mm": depth_mm,
                 "output_dir": str(variant_dir.relative_to(output_dir)),
+                "digital_status": validation.get("digital_status", "unknown"),
                 "production_status": validation.get("production_status", "unknown"),
                 "watertight": validation.get("watertight"),
                 "winding_consistent": validation.get("winding_consistent"),
@@ -142,6 +146,7 @@ def run_benchmark(
             handle,
             fieldnames=[
                 "depth_mm",
+                "digital_status",
                 "production_status",
                 "watertight",
                 "winding_consistent",
@@ -157,6 +162,7 @@ def run_benchmark(
             writer.writerow(
                 {
                     "depth_mm": record["depth_mm"],
+                    "digital_status": record["digital_status"],
                     "production_status": record["production_status"],
                     "watertight": record["watertight"],
                     "winding_consistent": record["winding_consistent"],
@@ -171,7 +177,7 @@ def run_benchmark(
     failures = [
         record
         for record in records
-        if record["production_status"] != "ready"
+        if record["digital_status"] != "validated"
         or record["watertight"] is not True
         or record["is_volume"] is not True
         or record["open_edge_count"] not in (0, None)

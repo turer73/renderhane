@@ -8,7 +8,7 @@ import sys
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Literal
 from xml.etree import ElementTree as ET
 
 import numpy as np
@@ -18,6 +18,7 @@ CORE_NS = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 CONTENT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+SourceUnit = Literal["millimeter", "meter"]
 
 ET.register_namespace("", CORE_NS)
 
@@ -29,6 +30,7 @@ class ExportReport:
     output: str
     source_sha256: str
     output_sha256: str
+    source_unit: str
     unit: str
     vertex_count: int
     triangle_count: int
@@ -44,6 +46,7 @@ class ExportReport:
             "output": self.output,
             "source_sha256": self.source_sha256,
             "output_sha256": self.output_sha256,
+            "source_unit": self.source_unit,
             "unit": self.unit,
             "vertex_count": self.vertex_count,
             "triangle_count": self.triangle_count,
@@ -72,7 +75,12 @@ def _format_float(value: float) -> str:
 def _load_single_mesh(source: Path) -> trimesh.Trimesh:
     loaded = trimesh.load(source, force="scene", process=False)
     if isinstance(loaded, trimesh.Scene):
-        geometries = [geometry.copy() for geometry in loaded.geometry.values()]
+        geometries: list[trimesh.Trimesh] = []
+        for node_name in sorted(loaded.graph.nodes_geometry):
+            transform, geometry_name = loaded.graph.get(node_name)
+            geometry = loaded.geometry[geometry_name].copy()
+            geometry.apply_transform(transform)
+            geometries.append(geometry)
         if not geometries:
             raise ValueError("Source contains no mesh geometry")
         mesh = trimesh.util.concatenate(geometries)
@@ -202,10 +210,20 @@ def _write_deterministic_zip(output: Path, members: Iterable[tuple[str, bytes]])
             archive.writestr(info, payload, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 
 
-def export_3mf(source: Path, output: Path, *, title: str = "Renderhane Relief") -> ExportReport:
+def export_3mf(
+    source: Path,
+    output: Path,
+    *,
+    title: str = "Renderhane Relief",
+    source_unit: SourceUnit = "millimeter",
+) -> ExportReport:
     if not source.is_file():
         raise FileNotFoundError(source)
+    if source_unit not in {"millimeter", "meter"}:
+        raise ValueError("source_unit must be millimeter or meter")
     mesh = _load_single_mesh(source)
+    if source_unit == "meter":
+        mesh.apply_scale(1000.0)
     _validate_for_manufacturing(mesh)
 
     members = [
@@ -221,6 +239,7 @@ def export_3mf(source: Path, output: Path, *, title: str = "Renderhane Relief") 
         output=str(output),
         source_sha256=_sha256(source),
         output_sha256=_sha256(output),
+        source_unit=source_unit,
         unit="millimeter",
         vertex_count=int(len(mesh.vertices)),
         triangle_count=int(len(mesh.faces)),
@@ -233,14 +252,29 @@ def export_3mf(source: Path, output: Path, *, title: str = "Renderhane Relief") 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export a validated mesh as deterministic generic 3MF")
-    parser.add_argument("--input", type=Path, required=True, help="Validated STL/OBJ/GLB in millimetres")
+    parser.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Validated STL/OBJ/GLB using the coordinates declared by --source-unit",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--title", default="Renderhane Relief")
+    parser.add_argument(
+        "--source-unit",
+        choices=("millimeter", "meter"),
+        default="millimeter",
+    )
     parser.add_argument("--report", type=Path, default=None)
     args = parser.parse_args(argv)
 
     try:
-        report = export_3mf(args.input, args.output, title=args.title)
+        report = export_3mf(
+            args.input,
+            args.output,
+            title=args.title,
+            source_unit=args.source_unit,
+        )
     except Exception as exc:
         print(f"3MF export failed: {exc}", file=sys.stderr)
         return 2

@@ -8,13 +8,18 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from build_relief_pro_package import MARKER_NAME, build_relief_pro_package
+from build_relief_pro_package import (
+    _has_link_like_component,
+    _is_link_like,
+    build_relief_pro_package,
+)
 from product_relief_builder import ProductRecipe
 from validate_front_master import validate_front_master
 
 ENGINE_VERSION = "phase0-runner-v0.1.0"
 DEFAULT_DEPTHS_MM = [0.6, 1.0, 1.4, 1.8]
 PHASE0_MARKER = ".renderhane-phase0-root"
+PHASE0_MARKER_CONTENT = "Renderhane Manufacturing Relief Phase 0 workspace.\n"
 
 
 def _sha256(path: Path) -> str:
@@ -25,21 +30,39 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _prepare_root(path: Path) -> Path:
-    resolved = path.expanduser().resolve()
+def _prepare_root(
+    path: Path,
+    inputs: tuple[Path | None, ...] = (),
+) -> Path:
+    candidate = path.expanduser().absolute()
+    if _has_link_like_component(candidate):
+        raise ValueError(f"refusing linked Phase 0 output path: {candidate}")
+    resolved = candidate.resolve()
     protected = {Path("/").resolve(), Path.home().resolve(), Path.cwd().resolve()}
     if resolved in protected or len(resolved.parts) < 3:
         raise ValueError(f"unsafe Phase 0 output path: {resolved}")
+    for source in inputs:
+        if source is not None and source.expanduser().resolve().is_relative_to(resolved):
+            raise ValueError("Phase 0 input cannot be inside the output directory")
     if resolved.exists():
         marker = resolved / PHASE0_MARKER
         children = list(resolved.iterdir())
-        if children and not marker.is_file():
+        marker_is_valid = False
+        if children and not _is_link_like(marker) and marker.is_file():
+            try:
+                marker_is_valid = (
+                    marker.read_text(encoding="utf-8") == PHASE0_MARKER_CONTENT
+                )
+            except (OSError, UnicodeError):
+                marker_is_valid = False
+        if children and not marker_is_valid:
             raise FileExistsError(f"refusing to replace unowned directory: {resolved}")
         shutil.rmtree(resolved)
     resolved.mkdir(parents=True, exist_ok=False)
     (resolved / PHASE0_MARKER).write_text(
-        "Renderhane Manufacturing Relief Phase 0 workspace.\n",
+        PHASE0_MARKER_CONTENT,
         encoding="utf-8",
+        newline="\n",
     )
     return resolved
 
@@ -79,7 +102,18 @@ def run_phase0(
     allow_review_input: bool = False,
 ) -> dict[str, Any]:
     depths = depths_mm or list(DEFAULT_DEPTHS_MM)
-    root = _prepare_root(output_dir)
+    root = _prepare_root(
+        output_dir,
+        (
+            front_master,
+            relief_map,
+            mask,
+            text_vector,
+            uv_artwork,
+            white_mask,
+            varnish_mask,
+        ),
+    )
 
     front_report = validate_front_master(
         front_master,
@@ -92,6 +126,7 @@ def run_phase0(
     (root / "front-master-validation.json").write_text(
         json.dumps(front_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     decision = front_report["decision"]
@@ -103,8 +138,25 @@ def run_phase0(
             "or use --allow-review-input for a non-approved candidate build"
         )
 
+    front_warnings = [
+        f"front_master:{value}"
+        for value in front_report.get("warnings") or []
+    ]
+    front_review_items = [
+        f"front_master:{value}"
+        for value in front_report.get("human_checks_required") or []
+    ]
+    front_needs_review = (
+        decision not in {"pass", "pass_contract_checks"}
+        or bool(front_warnings)
+        or bool(front_review_items)
+    )
+
     variants: list[dict[str, Any]] = []
-    all_digital_ready = True
+    any_digital_failure = False
+    needs_digital_review = front_needs_review
+    digital_failures: set[str] = set()
+    digital_warnings: set[str] = set(front_warnings + front_review_items)
     for depth_mm in depths:
         slug = f"{depth_mm:.3f}".rstrip("0").rstrip(".").replace(".", "p")
         variant_dir = root / "variants" / f"relief-{slug}mm"
@@ -127,20 +179,59 @@ def run_phase0(
             recipe=recipe,
             title=f"Renderhane Relief Pro {depth_mm:g} mm",
         )
-        digital_ready = manifest["digital_geometry_status"] == "ready"
-        all_digital_ready = all_digital_ready and digital_ready
+        product_validation = manifest.get("product_validation") or {}
+        product_digital_status = str(
+            product_validation.get("digital_status") or "needs_review"
+        )
+        product_geometry_gate = str(
+            product_validation.get("digital_geometry_gate") or "fail"
+        )
+        variant_failures = [str(value) for value in product_validation.get("failures") or []]
+        variant_warnings = [
+            str(value) for value in product_validation.get("warnings") or []
+        ]
+        uv_artwork_status = str(manifest.get("uv_artwork_status") or "incomplete")
+        if uv_artwork_status != "complete":
+            variant_warnings.append("uv_artwork_set_incomplete")
+        variant_warnings = sorted(set(variant_warnings))
+        variant_failed = product_geometry_gate != "pass" or bool(variant_failures)
+        variant_digital_status = (
+            "needs_review"
+            if (
+                product_digital_status != "validated" or bool(variant_warnings)
+            )
+            else "validated"
+        )
+        variant_needs_review = variant_digital_status != "validated"
+        any_digital_failure = any_digital_failure or variant_failed
+        needs_digital_review = needs_digital_review or variant_needs_review
+        digital_failures.update(variant_failures)
+        digital_warnings.update(variant_warnings)
         variants.append(
             {
                 "depth_mm": depth_mm,
                 "directory": variant_dir.relative_to(root).as_posix(),
                 "digital_geometry_status": manifest["digital_geometry_status"],
-                "uv_artwork_status": manifest["uv_artwork_status"],
+                "digital_status": variant_digital_status,
+                "digital_geometry_gate": product_geometry_gate,
+                "digital_failures": variant_failures,
+                "digital_warnings": variant_warnings,
+                "uv_artwork_status": uv_artwork_status,
                 "physical_validation_status": manifest["physical_validation_status"],
+                "production_status": manifest["production_status"],
                 "package": manifest["package_receipt"],
             }
         )
 
-    candidate_only = decision == "needs_review" or allow_review_input
+    candidate_only = (
+        front_needs_review
+        or any_digital_failure
+        or needs_digital_review
+        or allow_review_input
+    )
+    digital_status = (
+        "needs_review" if any_digital_failure or needs_digital_review else "validated"
+    )
     summary = {
         "schema_version": 1,
         "engine_version": ENGINE_VERSION,
@@ -156,7 +247,10 @@ def run_phase0(
         },
         "front_master_decision": decision,
         "candidate_only": candidate_only,
-        "digital_geometry_gate": "pass" if all_digital_ready else "fail",
+        "digital_status": digital_status,
+        "digital_geometry_gate": "fail" if any_digital_failure else "pass",
+        "digital_failures": sorted(digital_failures),
+        "digital_warnings": sorted(digital_warnings),
         "physical_validation_status": "pending",
         "production_status": "not_approved_pending_physical_validation",
         "variants": variants,
@@ -171,6 +265,7 @@ def run_phase0(
     (root / "phase0-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     return summary
 
@@ -229,7 +324,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
-    return 0 if summary["digital_geometry_gate"] == "pass" else 1
+    return 0 if (
+        summary["digital_geometry_gate"] == "pass"
+        and summary["digital_status"] == "validated"
+    ) else 1
 
 
 if __name__ == "__main__":

@@ -1,2 +1,2 @@
--r requirements-manufacturing.txt
+-r requirements-dev.txt
 ruff>=0.8,<1

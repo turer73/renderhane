@@ -5,8 +5,10 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image
 
+import finalize_relief_pro_package as finalizer_module
 from build_relief_pro_package import build_relief_pro_package
 from finalize_relief_pro_package import finalize_package
 from product_relief_builder import ProductRecipe
@@ -73,6 +75,7 @@ def test_finalizer_includes_consistency_report_inside_sealed_zip(tmp_path: Path)
 
     assert receipt["digital_geometry_status"] == "ready"
     assert receipt["digital_artifact_consistency"] == "pass"
+    assert receipt["digital_contour_registration"] == "pass"
     assert receipt["physical_validation_status"] == "pending"
     assert receipt["production_status"] == "not_approved_pending_physical_validation"
 
@@ -80,10 +83,24 @@ def test_finalizer_includes_consistency_report_inside_sealed_zip(tmp_path: Path)
     assert report_path.is_file()
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["decision"] == "pass"
+    assert [artifact["path"] for artifact in report["artifacts"]] == [
+        "geometry/model.stl",
+        "geometry/model.glb",
+        "geometry/model.3mf",
+    ]
+    registration_report_path = (
+        package_dir / "reports/contour-registration-report.json"
+    )
+    assert registration_report_path.is_file()
+    registration_report = json.loads(
+        registration_report_path.read_text(encoding="utf-8")
+    )
+    assert registration_report["decision"] == "pass"
 
     with zipfile.ZipFile(package_dir / receipt["package"]) as archive:
         names = set(archive.namelist())
     assert "reports/artifact-consistency-report.json" in names
+    assert "reports/contour-registration-report.json" in names
     assert "manifest.json" in names
     assert "package-receipt.json" not in names
 
@@ -95,6 +112,75 @@ def test_finalizer_preserves_geometry_warnings_in_status(tmp_path: Path) -> None
 
     result = finalize_package(package_dir)
 
-    assert result["receipt"]["digital_geometry_status"] == "ready_with_warnings"
+    assert result["receipt"]["digital_geometry_status"] == "needs_review"
     assert "low_grid_resolution" in result["manifest"]["digital_warnings"]
     assert result["receipt"]["physical_validation_status"] == "pending"
+
+
+def test_finalized_package_is_deterministic_across_roots(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path / "fixture", size=96)
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    _build(paths, first, grid=96)
+    _build(paths, second, grid=96)
+
+    first_result = finalize_package(first)
+    second_result = finalize_package(second)
+
+    assert first_result["receipt"]["sha256"] == second_result["receipt"]["sha256"]
+    assert first_result["receipt"]["manifest_sha256"] == second_result["receipt"]["manifest_sha256"]
+
+
+def test_finalizer_accepts_clean_non_round_physical_dimensions(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path / "fixture", size=96)
+    package_dir = tmp_path / "package"
+    build_relief_pro_package(
+        relief_map=paths["relief"],
+        mask=paths["mask"],
+        uv_artwork=paths["uv"],
+        white_mask=paths["white"],
+        varnish_mask=paths["varnish"],
+        output_dir=package_dir,
+        recipe=ProductRecipe(
+            width_mm=70.1234567,
+            height_mm=53.7654321,
+            grid_long_edge=96,
+        ),
+    )
+
+    result = finalize_package(package_dir)
+
+    assert result["receipt"]["digital_package_status"] == "ready"
+    assert result["manifest"]["digital_failures"] == []
+
+
+def test_incomplete_uv_set_never_finalizes_as_ready(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path / "fixture", size=96)
+    package_dir = tmp_path / "package"
+    build_relief_pro_package(
+        relief_map=paths["relief"],
+        mask=paths["mask"],
+        output_dir=package_dir,
+        recipe=ProductRecipe(width_mm=70.0, height_mm=70.0, grid_long_edge=96),
+    )
+
+    result = finalize_package(package_dir)
+
+    assert result["receipt"]["digital_package_status"] == "needs_review"
+    assert "uv_artwork_set_incomplete" in result["manifest"]["digital_warnings"]
+    assert result["receipt"]["production_status"] == "not_approved_pending_physical_validation"
+
+
+def test_finalizer_cli_returns_nonzero_for_needs_review(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        finalizer_module,
+        "finalize_package",
+        lambda *args, **kwargs: {
+            "receipt": {"digital_geometry_status": "needs_review"}
+        },
+    )
+
+    assert finalizer_module.main(["--package-dir", str(tmp_path)]) == 1

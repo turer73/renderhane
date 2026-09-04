@@ -14,15 +14,15 @@ from typing import Any, Literal
 import numpy as np
 from PIL import Image
 
-
 ENGINE_NAME = "renderhane-relief-builder"
-ENGINE_VERSION = "0.2.0-phase0"
+ENGINE_VERSION = "0.3.0-phase0"
 REPORT_SCHEMA_VERSION = 2
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 MAX_SOURCE_PIXELS = 20_000_000
 MAX_SOURCE_FILE_BYTES = 64 * 1024 * 1024
 
 ShapeMode = Literal["rectangle", "silhouette"]
+NormalizationMode = Literal["absolute", "robust"]
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,8 @@ class BuildRecipe:
     shape_mode: ShapeMode = "rectangle"
     mask_threshold: float = 0.5
     artwork_long_edge_px: int = 2048
+    # Appended to preserve the positional meaning of every pre-existing field.
+    normalization_mode: NormalizationMode = "absolute"
 
     def validate(self) -> None:
         numeric = {
@@ -82,6 +84,26 @@ class BuildRecipe:
             raise ValueError("mask_threshold must be between 0.05 and 0.95")
         if not 256 <= self.artwork_long_edge_px <= 4096:
             raise ValueError("artwork_long_edge_px must be between 256 and 4096")
+        if self.normalization_mode not in {"absolute", "robust"}:
+            raise ValueError("normalization_mode must be absolute or robust")
+
+
+def is_canonical_unsigned_16bit_png(path: Path, image: Image.Image) -> bool:
+    """Verify the canonical PNG container and its unsigned grayscale IHDR."""
+    try:
+        with path.open("rb") as handle:
+            header = handle.read(26)
+    except OSError:
+        return False
+    return bool(
+        image.format == "PNG"
+        and len(header) == 26
+        and header[:8] == b"\x89PNG\r\n\x1a\n"
+        and int.from_bytes(header[8:12], "big") == 13
+        and header[12:16] == b"IHDR"
+        and header[24] == 16
+        and header[25] == 0
+    )
 
 
 @dataclass
@@ -195,11 +217,13 @@ def validate_image_dimensions(image: Image.Image, label_name: str) -> tuple[int,
 def inspect_source_image(path: Path, array: np.ndarray) -> dict[str, Any]:
     with Image.open(path) as image:
         mode = image.mode
-    storage_bits = {
+        canonical_unsigned_16bit_png = is_canonical_unsigned_16bit_png(path, image)
+    storage_bits = 16 if canonical_unsigned_16bit_png else {
         "L": 8,
         "I;16": 16,
         "I;16B": 16,
         "I;16L": 16,
+        "I;16N": 16,
         "I": 32,
         "F": 32,
     }.get(mode)
@@ -208,6 +232,7 @@ def inspect_source_image(path: Path, array: np.ndarray) -> dict[str, Any]:
     return {
         "pil_mode": mode,
         "storage_bits_per_sample": storage_bits,
+        "canonical_unsigned_16bit_png": canonical_unsigned_16bit_png,
         "unique_value_count": unique_count,
         "effective_precision_bits_estimate": effective_bits,
         "minimum_value": float(array.min()),

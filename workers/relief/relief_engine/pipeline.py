@@ -65,7 +65,10 @@ def build(
         raise ValueError(f"Unknown aligned layer keys: {sorted(unknown_layers)}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    source = load_grayscale(relief_map_path)
+    source = load_grayscale(
+        relief_map_path,
+        require_unsigned_16bit=recipe.normalization_mode == "absolute",
+    )
     source_image_info = inspect_source_image(relief_map_path, source)
     source_height, source_width = source.shape
     source_mask = load_mask_at_source_size(mask_path, (source_width, source_height))
@@ -79,7 +82,11 @@ def build(
     working_source = source[top:bottom, left:right]
     working_mask = source_mask[top:bottom, left:right] if source_mask is not None else None
 
-    resized = resize_float_map(working_source, recipe.grid_long_edge)
+    resized = resize_float_map(
+        working_source,
+        recipe.grid_long_edge,
+        normalization_mode=recipe.normalization_mode,
+    )
     mask = resize_mask(working_mask, (resized.shape[1], resized.shape[0]))
     normalized = normalize_relief(resized, recipe, mask)
 

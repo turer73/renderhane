@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import shutil
+import stat
 import sys
 import zipfile
 from dataclasses import asdict
@@ -16,9 +17,13 @@ from PIL import Image
 
 from product_relief_builder import ProductRecipe, build_product_relief
 
-ENGINE_VERSION = "relief-pro-package-v0.1.0"
+ENGINE_VERSION = "relief-pro-package-v0.2.0"
+MANIFEST_SCHEMA_VERSION = 2
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 MARKER_NAME = ".renderhane-relief-package-root"
+MARKER_CONTENT = (
+    "Renderhane Relief Pro package workspace. Safe to replace by this tool only.\n"
+)
 MAX_CANVAS_PIXELS = 36_000_000
 
 
@@ -30,16 +35,51 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _safe_prepare_output(output_dir: Path) -> Path:
-    resolved = output_dir.expanduser().resolve()
+def _is_link_like(path: Path) -> bool:
+    try:
+        metadata = path.lstat()
+    except OSError:
+        return False
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    return path.is_symlink() or bool(reparse_flag and attributes & reparse_flag)
+
+
+def _has_link_like_component(path: Path) -> bool:
+    current = path
+    while True:
+        if _is_link_like(current):
+            return True
+        if current == current.parent:
+            return False
+        current = current.parent
+
+
+def _safe_prepare_output(
+    output_dir: Path,
+    inputs: tuple[Path | None, ...],
+) -> Path:
+    candidate = output_dir.expanduser().absolute()
+    if _has_link_like_component(candidate):
+        raise ValueError(f"refusing linked output directory: {candidate}")
+    resolved = candidate.resolve()
     protected = {Path("/").resolve(), Path.home().resolve(), Path.cwd().resolve()}
     if resolved in protected or len(resolved.parts) < 3:
         raise ValueError(f"refusing unsafe output directory: {resolved}")
+    for source in inputs:
+        if source is not None and source.expanduser().resolve().is_relative_to(resolved):
+            raise ValueError("package input cannot be inside the output directory")
 
     if resolved.exists():
         marker = resolved / MARKER_NAME
         children = list(resolved.iterdir())
-        if children and not marker.is_file():
+        marker_is_valid = False
+        if children and not _is_link_like(marker) and marker.is_file():
+            try:
+                marker_is_valid = marker.read_text(encoding="utf-8") == MARKER_CONTENT
+            except (OSError, UnicodeError):
+                marker_is_valid = False
+        if children and not marker_is_valid:
             raise FileExistsError(
                 f"output directory is not an existing Renderhane package: {resolved}"
             )
@@ -47,8 +87,9 @@ def _safe_prepare_output(output_dir: Path) -> Path:
 
     resolved.mkdir(parents=True, exist_ok=False)
     (resolved / MARKER_NAME).write_text(
-        "Renderhane Relief Pro package workspace. Safe to replace by this tool only.\n",
+        MARKER_CONTENT,
         encoding="utf-8",
+        newline="\n",
     )
     return resolved
 
@@ -217,12 +258,46 @@ def _contour_svg(
         f'  <path id="CUT" d="{path_data}" fill="none" stroke="#000000" stroke-width="0.05"/>\n'
         "</svg>\n"
     )
-    destination.write_text(svg, encoding="utf-8")
+    destination.write_text(svg, encoding="utf-8", newline="\n")
     return {
         "source_mask_px": [cols, rows],
         "points_before_simplify": len(points_mm),
         "points_after_simplify": len(simplified),
         "simplify_mm": simplify_mm,
+    }
+
+
+def _registration_contract(
+    *,
+    source_canvas_px: tuple[int, int],
+    crop_box_px: tuple[int, int, int, int],
+    physical_width_mm: float,
+    physical_height_mm: float,
+    contour: dict[str, Any],
+) -> dict[str, Any]:
+    crop_width = crop_box_px[2] - crop_box_px[0]
+    crop_height = crop_box_px[3] - crop_box_px[1]
+    return {
+        "schema_version": 1,
+        "coordinate_system": "front-view-top-left-origin",
+        "source_canvas_px": list(source_canvas_px),
+        "crop_box_px": list(crop_box_px),
+        "artwork_canvas_px": [crop_width, crop_height],
+        "physical_canvas_mm": [
+            round(physical_width_mm, 6),
+            round(physical_height_mm, 6),
+        ],
+        "pixel_pitch_mm": [
+            round(physical_width_mm / crop_width, 10),
+            round(physical_height_mm / crop_height, 10),
+        ],
+        "scale_policy": "preserve_aspect_no_independent_xy_scaling",
+        "mirror_for_print": False,
+        "contour": contour,
+        "notice": (
+            "Artwork and geometry share this front-view canvas. RIP colour conversion and "
+            "printer-specific registration remain external calibration steps."
+        ),
     }
 
 
@@ -262,7 +337,10 @@ def build_relief_pro_package(
             "varnish_mask": varnish_mask,
         }
     )
-    root = _safe_prepare_output(output_dir)
+    root = _safe_prepare_output(
+        output_dir,
+        (relief_map, mask, uv_artwork, white_mask, varnish_mask),
+    )
     geometry_dir = root / "geometry"
     artwork_dir = root / "artwork"
     reports_dir = root / "reports"
@@ -272,6 +350,13 @@ def build_relief_pro_package(
 
     shutil.copyfile(relief_map, source_dir / "relief-map-16.png")
     shutil.copyfile(mask, source_dir / "silhouette-mask.png")
+    for source, name in (
+        (uv_artwork, "uv-artwork-original.bin"),
+        (white_mask, "white-mask-original.bin"),
+        (varnish_mask, "varnish-mask-original.bin"),
+    ):
+        if source is not None:
+            shutil.copyfile(source, source_dir / name)
 
     build_report = build_product_relief(relief_map, mask, geometry_dir, recipe)
     validation = build_report.validation
@@ -298,41 +383,46 @@ def build_relief_pro_package(
         height_mm=physical_height,
     )
 
-    crop_width = crop_box[2] - crop_box[0]
-    crop_height = crop_box[3] - crop_box[1]
-    registration = {
-        "schema_version": 1,
-        "coordinate_system": "front-view-top-left-origin",
-        "source_canvas_px": list(canvas),
-        "crop_box_px": list(crop_box),
-        "artwork_canvas_px": [crop_width, crop_height],
-        "physical_canvas_mm": [round(physical_width, 6), round(physical_height, 6)],
-        "pixel_pitch_mm": [
-            round(physical_width / crop_width, 10),
-            round(physical_height / crop_height, 10),
-        ],
-        "scale_policy": "preserve_aspect_no_independent_xy_scaling",
-        "mirror_for_print": False,
-        "contour": contour_info,
-        "notice": (
-            "Artwork and geometry share this front-view canvas. RIP colour conversion and "
-            "printer-specific registration remain external calibration steps."
-        ),
-    }
+    registration = _registration_contract(
+        source_canvas_px=canvas,
+        crop_box_px=crop_box,
+        physical_width_mm=physical_width,
+        physical_height_mm=physical_height,
+        contour=contour_info,
+    )
     registration_path = artwork_dir / "registration.json"
     registration_path.write_text(
         json.dumps(registration, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     complete_uv_set = all(value is not None for value in (uv_artwork, white_mask, varnish_mask))
-    digital_ready = validation.get("digital_geometry_gate") == "pass"
+    product_validation = {
+        "digital_status": str(validation.get("digital_status") or "needs_review"),
+        "digital_geometry_gate": str(validation.get("digital_geometry_gate") or "fail"),
+        "failures": [str(value) for value in validation.get("failures") or []],
+        "warnings": [str(value) for value in validation.get("warnings") or []],
+    }
+    if (
+        product_validation["digital_geometry_gate"] != "pass"
+        or product_validation["failures"]
+    ):
+        digital_geometry_status = "failed"
+    elif (
+        product_validation["digital_status"] != "validated"
+        or product_validation["warnings"]
+    ):
+        digital_geometry_status = "needs_review"
+    else:
+        digital_geometry_status = "ready"
     manifest = {
-        "schema_version": 1,
+        "schema_version": MANIFEST_SCHEMA_VERSION,
         "engine_version": ENGINE_VERSION,
         "title": title,
         "product_line": "relief-pro",
         "recipe": asdict(recipe),
+        "recipe_sha256": build_report.recipe_sha256,
         "source_hashes": {
             "relief_map_sha256": _sha256(relief_map),
             "mask_sha256": _sha256(mask),
@@ -340,7 +430,8 @@ def build_relief_pro_package(
             "white_mask_sha256": _sha256(white_mask) if white_mask else None,
             "varnish_mask_sha256": _sha256(varnish_mask) if varnish_mask else None,
         },
-        "digital_geometry_status": "ready" if digital_ready else "needs_review",
+        "product_validation": product_validation,
+        "digital_geometry_status": digital_geometry_status,
         "uv_artwork_status": "complete" if complete_uv_set else "incomplete",
         "physical_validation_status": "pending",
         "production_status": "not_approved_pending_physical_validation",
@@ -370,6 +461,7 @@ def build_relief_pro_package(
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     package_path = root / "relief-pro-production-candidate.zip"
@@ -380,12 +472,15 @@ def build_relief_pro_package(
         "bytes": package_path.stat().st_size,
         "sha256": _sha256(package_path),
         "manifest_sha256": _sha256(manifest_path),
+        "digital_geometry_status": digital_geometry_status,
         "physical_validation_status": "pending",
+        "production_status": "not_approved_pending_physical_validation",
     }
     receipt_path = root / "package-receipt.json"
     receipt_path.write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     return {**manifest, "package_receipt": receipt}
 
@@ -405,6 +500,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--relief-mm", type=float, default=1.2)
     parser.add_argument("--grid-long-edge", type=int, default=192)
     parser.add_argument("--gamma", type=float, default=1.0)
+    parser.add_argument(
+        "--normalization-mode",
+        choices=("absolute", "robust"),
+        default="absolute",
+        help="absolute requires the canonical 16-bit PNG master; robust is legacy/advisory",
+    )
     parser.add_argument("--invert-depth", action="store_true")
     parser.add_argument("--pocket-diameter-mm", type=float)
     parser.add_argument("--pocket-depth-mm", type=float)
@@ -417,6 +518,7 @@ def main(argv: list[str] | None = None) -> int:
         relief_depth_mm=args.relief_mm,
         grid_long_edge=args.grid_long_edge,
         gamma=args.gamma,
+        normalization_mode=args.normalization_mode,
         invert_depth=args.invert_depth,
         pocket_diameter_mm=args.pocket_diameter_mm,
         pocket_depth_mm=args.pocket_depth_mm,
@@ -440,6 +542,7 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(
             {
                 "digital_geometry_status": manifest["digital_geometry_status"],
+                "product_validation": manifest["product_validation"],
                 "uv_artwork_status": manifest["uv_artwork_status"],
                 "physical_validation_status": manifest["physical_validation_status"],
                 "production_status": manifest["production_status"],

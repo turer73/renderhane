@@ -6,7 +6,7 @@
 
 Before making recommendations or edits for Manufacturing Relief, read:
 
-- `docs/plans/2026-09-03-manufacturing-relief-system-research-and-plan.md`
+- `docs/plans/2026-09-03-renderhane-manufacturing-relief-research-plan.md`
 - `docs/manufacturing-relief-mvp.md`
 - `docs/plans/2026-09-03-agent-assisted-relief-development.md`
 - GitHub issues `#53` through `#57`

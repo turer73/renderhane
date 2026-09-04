@@ -19,6 +19,7 @@ from relief_engine import (
     BuildRecipe,
     BuildReport,
     MeshValidation,
+    NormalizationMode,
     ShapeMode,
     build,
     build_rectangular_relief_mesh,
@@ -36,7 +37,7 @@ from relief_engine import (
 __all__ = [
     "ENGINE_NAME", "ENGINE_VERSION", "FIXED_ZIP_TIME",
     "MAX_SOURCE_FILE_BYTES", "MAX_SOURCE_PIXELS", "REPORT_SCHEMA_VERSION",
-    "BuildRecipe", "BuildReport", "MeshValidation", "ShapeMode",
+    "BuildRecipe", "BuildReport", "MeshValidation", "NormalizationMode", "ShapeMode",
     "build", "build_rectangular_relief_mesh", "build_silhouette_relief_mesh",
     "canonical_json_bytes", "count_open_edges", "dependency_versions",
     "inspect_source_image", "sha256_bytes", "sha256_file",
@@ -46,7 +47,12 @@ __all__ = [
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--relief-map", required=True, type=Path, help="8/16-bit grayscale PNG or image")
+    parser.add_argument(
+        "--relief-map",
+        required=True,
+        type=Path,
+        help="Canonical unsigned 16-bit grayscale PNG, or a legacy image in robust mode",
+    )
     parser.add_argument("--mask", type=Path, help="Optional grayscale mask; required for silhouette mode")
     parser.add_argument("--out-dir", required=True, type=Path)
     parser.add_argument("--width-mm", type=float, default=70.0)
@@ -62,6 +68,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--shape-mode", choices=("rectangle", "silhouette"), default="rectangle")
     parser.add_argument("--mask-threshold", type=float, default=0.5)
     parser.add_argument("--artwork-long-edge-px", type=int, default=2048)
+    parser.add_argument(
+        "--normalization-mode",
+        choices=("absolute", "robust"),
+        default="absolute",
+        help="absolute preserves uint16/65535 heights; robust is legacy percentile normalization",
+    )
     parser.add_argument("--uv-artwork", type=Path)
     parser.add_argument("--white-mask", type=Path)
     parser.add_argument("--varnish-mask", type=Path)
@@ -78,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         grid_long_edge=args.grid_long_edge, invert_depth=args.invert_depth,
         shape_mode=args.shape_mode, mask_threshold=args.mask_threshold,
         artwork_long_edge_px=args.artwork_long_edge_px,
+        normalization_mode=args.normalization_mode,
     )
     aligned_layers = {
         key: value
