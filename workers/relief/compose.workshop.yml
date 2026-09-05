@@ -1,0 +1,43 @@
+# Run from the repository root:
+# docker compose -f workers/relief/compose.workshop.yml up --build -d
+# Supply RELIEF_WORKSHOP_TOKEN securely in the shell (never commit it).
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: workers/relief/Dockerfile
+    environment:
+      RELIEF_WORKSHOP_DATA: /data
+      RELIEF_WORKSHOP_TOKEN: ${RELIEF_WORKSHOP_TOKEN:?A server-only token of at least 32 characters is required}
+    ports:
+      - "127.0.0.1:8421:8421"
+    volumes:
+      - workshop-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    cpus: 1
+  worker:
+    build:
+      context: ../..
+      dockerfile: workers/relief/Dockerfile
+    command: ["python", "workshop_worker.py"]
+    environment:
+      RELIEF_WORKSHOP_DATA: /data
+    volumes:
+      - workshop-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=2g
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    network_mode: none
+    mem_limit: 6g
+    cpus: 4
+volumes:
+  workshop-data:
