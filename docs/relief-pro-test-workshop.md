@@ -62,7 +62,16 @@ Compose yalnız `127.0.0.1:8421` yayınlar. Raw API'yi internete açmayın.
 1. En az 32 rastgele karakterli `RELIEF_WORKSHOP_TOKEN` değerini secret store/shell'de ayarlayın.
 2. Repo kökünde `docker compose -f workers/relief/compose.workshop.yml up --build -d`.
 3. Vercel/Next sunucusunda `RELIEF_WORKSHOP_ENABLED=true`, `RELIEF_WORKSHOP_URL`
-   (worker'a ulaşılabilen HTTPS origin, path/query yok) ve aynı `RELIEF_WORKSHOP_TOKEN`.
+   (worker'a ulaşılabilen HTTPS origin, path/query yok),
+   ve aynı `RELIEF_WORKSHOP_TOKEN` ayarlanır. Production/preview ortamında
+   worker origin kodda sabitlenen exact değerle birebir aynı olmalıdır;
+   Vercel branch-preview değeri `https://relief-workshop.renderhane.com`.
+   Yalnız HTTPS, varsayılan port, kök path ve exact hostname/origin kabul edilir;
+   userinfo, kontrol karakteri, IP/loopback/private literal ve URL path/query reddedilir.
+   Bu allowlist, yanlış yönlendirilmiş server-side secret'ın beklenmeyen bir hedefe
+   gönderilmesini engelleyen fail-closed sınırıdır. URL sabit origin’den eksik
+   veya farklıysa atölye yapılandırılmamış sayılır; ikinci bir runtime env allowlist’i
+   kullanılmaz.
    Cloudflare Access kullanılıyorsa `RELIEF_WORKSHOP_ACCESS_CLIENT_ID` ve
    `RELIEF_WORKSHOP_ACCESS_CLIENT_SECRET` birlikte, yalnız server-side secret olarak
    ayarlanır; tek taraflı veya biçimsiz yapılandırma fail-closed olur.
@@ -71,6 +80,11 @@ Compose yalnız `127.0.0.1:8421` yayınlar. Raw API'yi internete açmayın.
    kalibrasyon → revizyon oluştur → final dosyalar/coverage/ZIP'i kontrol et.
 5. Sunucu restartından sonra aynı revizyon listesini, pending işin geri alınmasını,
    indirilen dosya hash'lerini, yetkisiz/başka owner erişiminin reddini doğrulayın.
+
+Bu branch'te production atölye etkinleştirmesi yapılmış değildir. Production için
+`RELIEF_WORKSHOP_ENABLED=true` açılması, trusted origin/token/Access secret'larının
+ayrı ayrı ayarlanması ve gerçek yönetici UI → API → worker akışının kanıtlanması
+gereken sonraki release adımıdır; bu doküman canlı production onayı değildir.
 
 Yerel Windows geliştirmesinde aynı sabitlenmiş bağımlılıkları kullanan Python 3.11
 ile `workshop_http.py` (yalnız loopback developer WSGI server) ve ayrı terminalde

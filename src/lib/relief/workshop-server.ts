@@ -1,11 +1,51 @@
 import "server-only";
+import { isIP } from "node:net";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth/admin-check";
 import { readBoundedBody, workshopWorkerPath, WORKSHOP_MAX_BODY } from "./workshop";
-import { parseWorkshopReply, WORKSHOP_ARTIFACT_TYPES, WORKSHOP_MAX_ARTIFACT } from "./workshop-response";
+import { isWorkshopArtifactTypeForName, parseWorkshopReply, WORKSHOP_MAX_ARTIFACT } from "./workshop-response";
 import { verifiedArtifactStream } from "./workshop-artifact-stream";
 
 type WorkshopConfig = { origin: string; token: string; accessHeaders: Record<string, string> };
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const TRUSTED_WORKSHOP_ORIGIN = "https://relief-workshop.renderhane.com";
+
+function hasControlCharacters(value: string): boolean {
+  return /[\u0000-\u001f\u007f]/.test(value);
+}
+
+function parseSafeOrigin(value: string, options: { allowLocalHttp: boolean }): URL | null {
+  if (!value || hasControlCharacters(value)) return null;
+  try {
+    const url = new URL(value);
+    const local = options.allowLocalHttp && LOOPBACK_HOSTS.has(url.hostname);
+    if ((url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
+        url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
+        (url.protocol === "https:" && url.port)) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function trustedOriginForEnvironment(address: string): URL | null {
+  const test = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const development = process.env.NODE_ENV === "development" && !process.env.VERCEL_ENV;
+  const deployed = process.env.NODE_ENV === "production" ||
+    process.env.VERCEL_ENV === "preview" || process.env.VERCEL_ENV === "production";
+  const configured = parseSafeOrigin(address, { allowLocalHttp: test || development });
+  if (!configured) return null;
+
+  // Production/preview must name one exact HTTPS origin. IP literals are
+  // intentionally limited to test/dev loopback use.
+  if (deployed || (!test && !development)) {
+    const hostname = configured.hostname.replace(/^\[|\]$/g, "");
+    if (configured.protocol !== "https:" || isIP(hostname) || LOOPBACK_HOSTS.has(configured.hostname) ||
+        configured.origin !== TRUSTED_WORKSHOP_ORIGIN) return null;
+  }
+  return configured;
+}
 
 export function workshopConfig(): WorkshopConfig | null {
   if (process.env.RELIEF_WORKSHOP_ENABLED !== "true") return null;
@@ -18,10 +58,8 @@ export function workshopConfig(): WorkshopConfig | null {
       (accessClientId && (accessClientId.length < 20 || accessClientSecret.length < 32 ||
         /[\u0000-\u001f\u007f]/.test(accessClientId) || /[\u0000-\u001f\u007f]/.test(accessClientSecret)))) return null;
   try {
-    const url = new URL(address);
-    const localDev = process.env.NODE_ENV !== "production" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-    if ((url.protocol !== "https:" && !(localDev && url.protocol === "http:")) ||
-        url.username || url.password || url.search || url.hash || url.pathname !== "/") return null;
+    const url = trustedOriginForEnvironment(address);
+    if (!url) return null;
     return { origin: url.origin, token, accessHeaders: accessClientId ? {
       "CF-Access-Client-Id": accessClientId,
       "CF-Access-Client-Secret": accessClientSecret,
@@ -79,7 +117,7 @@ export async function proxyWorkshop(request: Request, parts: string[]): Promise<
       const declaredLength = upstream.headers.get("content-length") ?? "";
       const length = Number(declaredLength);
       const hash = upstream.headers.get("x-artifact-sha256") ?? "";
-      if (!contentType || !WORKSHOP_ARTIFACT_TYPES.includes(contentType) || !/^\d+$/.test(declaredLength) ||
+      if (!contentType || !isWorkshopArtifactTypeForName(parts[2] ?? "", contentType) || !/^\d+$/.test(declaredLength) ||
           !Number.isSafeInteger(length) || length <= 0 || length > WORKSHOP_MAX_ARTIFACT ||
           !/^[0-9a-f]{64}$/.test(hash) || !upstream.body) {
         await upstream.body?.cancel();
@@ -89,7 +127,9 @@ export async function proxyWorkshop(request: Request, parts: string[]): Promise<
       headers.set("Content-Type", contentType);
       headers.set("Content-Length", String(length));
       const disposition = upstream.headers.get("content-disposition");
-      if (disposition && /^attachment; filename="[a-zA-Z0-9_.-]+"$/.test(disposition)) {
+      if (contentType === "image/svg+xml") {
+        headers.set("Content-Disposition", 'attachment; filename="cut-contour.svg"');
+      } else if (disposition && /^attachment; filename="[a-zA-Z0-9_.-]+"$/.test(disposition)) {
         headers.set("Content-Disposition", contentType === "image/png" ? disposition.replace("attachment", "inline") : disposition);
       }
       headers.set("X-Artifact-SHA256", hash);

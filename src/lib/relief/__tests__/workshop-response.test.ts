@@ -13,8 +13,17 @@ function completed() {
       uv_artwork: { status: "pass", outside_silhouette_pixels: 0, outside_silhouette_area_mm2: 0, max_nearest_silhouette_distance_mm: 0 },
       white_mask: { status: "not_evaluable" }, varnish_mask: { status: "not_evaluable" },
     } },
-    artifacts: Object.fromEntries(["model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence", "registration", "layer-coverage"].map((name) =>
-      [name, { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" }])),
+    artifacts: {
+      "model-glb": { bytes: 3, sha256: "b".repeat(64), content_type: "model/gltf-binary" },
+      "model-stl": { bytes: 3, sha256: "b".repeat(64), content_type: "model/stl" },
+      "model-3mf": { bytes: 3, sha256: "b".repeat(64), content_type: "model/3mf" },
+      depth: { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+      silhouette: { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+      evidence: { bytes: 3, sha256: "b".repeat(64), content_type: "application/zip" },
+      registration: { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" },
+      "layer-coverage": { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" },
+      "cut-contour": { bytes: 3, sha256: "b".repeat(64), content_type: "image/svg+xml" },
+    },
   } };
 }
 
@@ -39,21 +48,30 @@ describe("workshop public response contract", () => {
       { production_status: "production_ready" }, { digital_geometry_status: "surprisingly_ok" },
     ]) expect(() => parseWorkshopReply({ revision: { ...completed(), result: { ...completed().result, ...change } } }, [id], "GET")).toThrow();
   });
-  it("requires all coverage layers and a recognized overall status", () => {
+  it("allows omitted optional artwork coverage but keeps geometry and reported coverage fail-closed", () => {
     const source = completed().result.coverage;
     for (const missing of ["uv_artwork", "white_mask", "varnish_mask"]) {
       const item = completed();
       Object.assign(item.result, { coverage: { ...source, layers: Object.fromEntries(
         Object.entries(source.layers).filter(([name]) => name !== missing),
       ) } });
+      expect(parseWorkshopReply({ revision: item }, [id], "GET").revision?.result?.coverage.layers).not.toHaveProperty(missing);
+    }
+    for (const change of [
+      { layer_coverage_status: "approved" },
+      { layers: { unknown: { status: "pass" } } },
+      { layers: { uv_artwork: { status: "approved" } } },
+    ]) {
+      const item = completed();
+      Object.assign(item.result, { coverage: { ...source, ...change } });
       expect(() => parseWorkshopReply({ revision: item }, [id], "GET")).toThrow("invalid_worker_response");
     }
     const item = completed();
-    item.result.coverage.layer_coverage_status = "approved";
+    Object.assign(item.result, { digital_geometry_status: undefined });
     expect(() => parseWorkshopReply({ revision: item }, [id], "GET")).toThrow("invalid_worker_response");
   });
   it("rejects invalid artifact hashes/types/sizes and non-numeric coverage", () => {
-    for (const change of [{ sha256: "invalid" }, { bytes: 0 }, { bytes: 134217729 }, { content_type: "image/svg+xml" }]) {
+    for (const change of [{ sha256: "invalid" }, { bytes: 0 }, { bytes: 134217729 }, { content_type: "image/svg+xml" }, { content_type: "application/json" }]) {
       const item = completed();
       Object.assign(item.result.artifacts["model-glb"], change);
       expect(() => parseWorkshopReply({ revision: item }, [id], "GET")).toThrow();

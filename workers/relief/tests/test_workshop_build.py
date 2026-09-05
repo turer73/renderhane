@@ -29,7 +29,8 @@ def test_real_workshop_revision_build_finalization_download_and_restart(tmp_path
     assert result["artwork_semantic_registration_status"] == "not_validated"
     assert result["physical_validation_status"] == "pending"
     assert result["production_status"] == "not_approved"
-    assert set(result["artifacts"]) >= {"model-glb", "model-stl", "model-3mf", "evidence", "overlay", "difference"}
+    assert set(result["artifacts"]) >= {"model-glb", "model-stl", "model-3mf", "cut-contour", "evidence", "overlay", "difference"}
+    assert result["artifacts"]["cut-contour"]["content_type"] == "image/svg+xml"
     for name, metadata in result["artifacts"].items():
         artifact, checked = reopened.artifact_path("operator-a", submitted["id"], name)
         assert hashlib.sha256(artifact.read_bytes()).hexdigest() == checked["sha256"] == metadata["sha256"]

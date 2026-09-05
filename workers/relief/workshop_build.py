@@ -129,6 +129,7 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
         "model-3mf": (package / "geometry/model.3mf", "model/3mf"),
         "manifest": (package / "manifest.json", "application/json"),
         "registration": (package / "artwork/registration.json", "application/json"),
+        "cut-contour": (package / "artwork/cut-contour.svg", "image/svg+xml"),
         "layer-coverage": (root / "layer-coverage-report.json", "application/json"),
         "revision": (root / "revision.json", "application/json"),
         "silhouette": (package / "geometry/final-glb-orthographic-silhouette.png", "image/png"),
