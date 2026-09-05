@@ -5,6 +5,8 @@
  * To add a new tool: add an entry here + add a tab in workspace tool-form-panel.
  */
 
+import { TOOL_CREDITS } from "@/lib/fal/models";
+
 export type ToolId =
   | "bg-remove"
   | "scene"
@@ -154,7 +156,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "📱",
     gradient: "from-indigo-500/10 to-indigo-500/5",
     border: "border-indigo-200 hover:border-indigo-400 dark:border-indigo-800 dark:hover:border-indigo-600",
-    creditCost: 52,
+    creditCost: TOOL_CREDITS["social-kit"],
     inputType: "pipeline",
     segments: ["ecommerce"],
     href: "/app/tools/social-kit",

@@ -89,10 +89,20 @@ export async function POST(request: NextRequest) {
 
   const jobIds: string[] = [];
   const errors: string[] = [];
+  const submissionStates: Record<string, string> = {};
+  let acceptedScenes = 0;
 
   results.forEach((r, i) => {
     if (r.status === "fulfilled") {
       jobIds.push(r.value.jobId);
+      submissionStates[r.value.jobId] = r.value.submissionState;
+      if (r.value.submissionState === "accepted") {
+        acceptedScenes++;
+      } else {
+        errors.push(
+          `Scene "${APLUS_SCENES[i].id}": ${r.value.warning ?? r.value.submissionState}`
+        );
+      }
     } else {
       const err = r.reason;
       if (err instanceof CreditError && err.code === "INSUFFICIENT") {
@@ -113,12 +123,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({
-    jobIds,
-    totalCost: jobIds.length * 8,
-    sceneCount: APLUS_SCENES.length,
-    completedScenes: jobIds.length,
-    estimatedTime: "~1min",
-    ...(errors.length > 0 ? { warnings: errors } : {}),
-  });
+  const reconciliationPending = Object.values(submissionStates).some(
+    (state) => state !== "accepted"
+  );
+  return NextResponse.json(
+    {
+      jobIds,
+      totalCost: jobIds.length * 8,
+      sceneCount: APLUS_SCENES.length,
+      completedScenes: acceptedScenes,
+      submittedScenes: jobIds.length,
+      estimatedTime: "~1min",
+      submissionStates,
+      ...(errors.length > 0 ? { warnings: errors } : {}),
+    },
+    {
+      status: reconciliationPending ? 202 : 200,
+      ...(reconciliationPending
+        ? { headers: { "Retry-After": "30" } }
+        : {}),
+    }
+  );
 }
