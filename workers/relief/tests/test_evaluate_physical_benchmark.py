@@ -194,6 +194,80 @@ def test_pending_template_stays_incomplete_and_not_approved(tmp_path: Path) -> N
     assert report["production_status"] == "not_approved"
 
 
+def test_committed_physical_templates_are_aligned_and_fail_closed() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    fdm_path = (
+        repository_root
+        / "benchmarks/relief/fdm-physical-measurement-template-v2.csv"
+    )
+    uv_path = (
+        repository_root
+        / "benchmarks/relief/uv-physical-measurement-template-v2.csv"
+    )
+
+    with fdm_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        fdm_raw_rows = list(csv.reader(handle))
+    assert fdm_raw_rows[0] == FDM_FIELDS
+    assert len(fdm_raw_rows) == 9
+    assert all(len(row) == 33 for row in fdm_raw_rows)
+
+    with fdm_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        fdm_reader = csv.DictReader(handle)
+        assert fdm_reader.fieldnames == FDM_FIELDS
+        fdm_rows = list(fdm_reader)
+    with uv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        uv_reader = csv.DictReader(handle)
+        assert uv_reader.fieldnames == UV_FIELDS
+        uv_rows = list(uv_reader)
+
+    assert len(FDM_FIELDS) == 33
+    assert len(fdm_rows) == 8
+    assert {
+        (row["printer"], float(row["target_relief_mm"])) for row in fdm_rows
+    } == {
+        (printer, depth)
+        for printer in ("P1S", "A1 mini")
+        for depth in (0.6, 1.0, 1.4, 1.8)
+    }
+    for row in fdm_rows:
+        assert row["nozzle_mm"] == "0.4"
+        assert row["layer_height_mm"] == "0.12"
+        assert row["material"] == "PLA"
+        assert row["target_width_mm"] == "70"
+        assert row["target_base_mm"] == "3.0"
+        assert row["operator_decision"] == "pending"
+        assert all(
+            not row[field]
+            for field in (
+                "measured_width_mm",
+                "measured_height_mm",
+                "measured_total_thickness_mm",
+                "measured_flat_back_deviation_mm",
+                "warping_mm",
+                "print_time_min",
+                "filament_g",
+                "detail_score_1_5",
+                "text_legibility_1_5",
+                "surface_score_1_5",
+                "defects",
+                "notes",
+                "photo_refs",
+                "measured_at_utc",
+                "operator",
+            )
+        )
+
+    assert len(uv_rows) == 1
+    assert uv_rows[0]["operator_decision"] == "pending"
+
+    report = evaluate_physical_benchmark(fdm_csv=fdm_path, uv_csv=uv_path)
+
+    assert report["fdm"]["complete"] is False
+    assert report["uv"]["complete"] is False
+    assert report["physical_gate"] == "incomplete"
+    assert report["production_status"] == "not_approved"
+
+
 def test_uv_registration_over_limit_fails_physical_gate(tmp_path: Path) -> None:
     fdm = tmp_path / "fdm.csv"
     uv = tmp_path / "uv.csv"
