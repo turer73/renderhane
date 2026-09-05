@@ -1,7 +1,20 @@
 import type { WorkshopArtifact, WorkshopRevision } from "./workshop";
+import { WORKSHOP_REQUIRED_ARTIFACTS } from "./workshop";
 
 export const WORKSHOP_MAX_ARTIFACT = 128 * 1024 * 1024;
-export const WORKSHOP_ARTIFACT_TYPES = ["image/png", "application/json", "application/zip", "model/gltf-binary", "model/stl", "model/3mf"];
+const WORKSHOP_ARTIFACT_CONTENT_TYPES: Record<string, string> = {
+  "model-glb": "model/gltf-binary", "model-stl": "model/stl", "model-3mf": "model/3mf",
+  candidate: "application/zip", "manufacturing-package": "application/zip", evidence: "application/zip",
+  manifest: "application/json", receipt: "application/json", registration: "application/json",
+  "layer-coverage": "application/json", revision: "application/json",
+  depth: "image/png", silhouette: "image/png", overlay: "image/png", difference: "image/png",
+  "uv-artwork": "image/png", "white-mask": "image/png", "varnish-mask": "image/png",
+  "cut-contour": "image/svg+xml",
+};
+export const WORKSHOP_ARTIFACT_TYPES = [...new Set(Object.values(WORKSHOP_ARTIFACT_CONTENT_TYPES))];
+export function isWorkshopArtifactTypeForName(name: string, contentType: string): boolean {
+  return WORKSHOP_ARTIFACT_CONTENT_TYPES[name] === contentType;
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const hash = /^[0-9a-f]{64}$/;
 function requireValue(condition: unknown): asserts condition {
@@ -27,14 +40,13 @@ function texts(value: unknown): string[] {
 function coverage(value: unknown): Record<string, unknown> {
   const data = record(value);
   const layers = record(data.layers);
-  const layerNames = ["uv_artwork", "white_mask", "varnish_mask"];
+  const layerNames = new Set(["uv_artwork", "white_mask", "varnish_mask"]);
   const statuses = ["pass", "fail", "not_evaluable"];
   const overallStatus = text(data.layer_coverage_status, 32);
   requireValue(statuses.includes(overallStatus));
-  for (const name of layerNames) requireValue(Object.hasOwn(layers, name));
   const projected: Record<string, unknown> = {};
   for (const [name, raw] of Object.entries(layers)) {
-    requireValue(layerNames.includes(name));
+    requireValue(layerNames.has(name));
     const layer = record(raw);
     const status = text(layer.status, 32);
     requireValue(statuses.includes(status));
@@ -62,10 +74,14 @@ function result(value: unknown): NonNullable<WorkshopRevision["result"]> {
     const bytes = number(artifact.bytes, 1, WORKSHOP_MAX_ARTIFACT);
     const sha256 = text(artifact.sha256, 64);
     const content_type = text(artifact.content_type, 64);
-    requireValue(Number.isSafeInteger(bytes) && hash.test(sha256) && WORKSHOP_ARTIFACT_TYPES.includes(content_type));
+    requireValue(Number.isSafeInteger(bytes) && hash.test(sha256) && isWorkshopArtifactTypeForName(name, content_type));
+    // SVG is permitted only for the generated cut contour and is always
+    // delivered as an attachment by the proxy; never treat arbitrary SVG as
+    // an inline preview artifact.
+    requireValue(content_type !== "image/svg+xml" || name === "cut-contour");
     artifacts[name] = { bytes, sha256, content_type };
   }
-  for (const name of ["model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence", "registration", "layer-coverage"]) {
+  for (const name of WORKSHOP_REQUIRED_ARTIFACTS) {
     requireValue(Object.hasOwn(artifacts, name));
   }
   return {

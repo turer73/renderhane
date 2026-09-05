@@ -1,7 +1,13 @@
 /** Public wire types only. No worker address, credential or native processing. */
 export const WORKSHOP_MAX_BODY = 4_000_000;
 export const WORKSHOP_LAYERS = ["relief_map", "mask", "uv_artwork", "white_mask", "varnish_mask"] as const;
+/** Known workshop artifact names, including the generated production cut contour. */
+export const WORKSHOP_REQUIRED_ARTIFACTS = [
+  "model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence",
+  "registration", "layer-coverage", "cut-contour",
+] as const;
 export type WorkshopLayer = typeof WORKSHOP_LAYERS[number];
+export type WorkshopRequiredArtifact = typeof WORKSHOP_REQUIRED_ARTIFACTS[number];
 export interface WorkshopArtifact {
   bytes: number;
   sha256: string;

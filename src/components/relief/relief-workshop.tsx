@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { WORKSHOP_LAYERS, WORKSHOP_MAX_BODY, type WorkshopLayer, type WorkshopRevision } from "@/lib/relief/workshop";
+import { startWorkshopPolling } from "@/lib/relief/workshop-polling";
 
 const API = "/api/relief/workshop";
 const labels: Record<WorkshopLayer, string> = {
@@ -32,7 +33,41 @@ const errorLabels: Record<string, string> = {
   invalid_worker_artifact: "Dosyanın türü, boyutu veya hash bilgisi doğrulanamadı. İndirme başlatılmadı.",
   retry_unavailable: "Bu revizyon şu anda tekrar denenemiyor. Durumu yenileyin veya yeni bir revizyon oluşturun.",
 };
-const message = (code: string) => errorLabels[code] ?? code;
+const genericError = "Atölye isteği güvenle tamamlanamadı. Kayıtlı revizyonlar değiştirilmedi; bağlantıyı kontrol edip yeniden deneyin.";
+
+export function workshopErrorMessage(code: unknown) {
+  return typeof code === "string" ? errorLabels[code] ?? genericError : genericError;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+/** Reject proxy/HTML/corrupt JSON before it can be treated as a UI state. */
+export async function readWorkshopUiJson(response: Response): Promise<Record<string, unknown>> {
+  try {
+    const data = record(await response.json());
+    if (!data) throw new Error("invalid_worker_response");
+    return data;
+  } catch {
+    throw new Error(workshopErrorMessage("invalid_worker_response"));
+  }
+}
+
+function revisionsFromReply(data: Record<string, unknown>): WorkshopRevision[] {
+  if (!Array.isArray(data.revisions) || typeof data.worker_online !== "boolean" ||
+    !data.revisions.every((revision) => {
+      const item = record(revision);
+      return typeof item?.id === "string" && typeof item.state === "string";
+    })) throw new Error(workshopErrorMessage("invalid_worker_response"));
+  return data.revisions as WorkshopRevision[];
+}
+
+function revisionIdFromReply(data: Record<string, unknown>): string {
+  const revision = record(data.revision);
+  if (typeof revision?.id !== "string") throw new Error(workshopErrorMessage("invalid_worker_response"));
+  return revision.id;
+}
 const artifactUrl = (id: string, name: string) => `${API}/${id}/artifacts/${name}`;
 
 async function asBase64(file: File): Promise<string> {
@@ -62,45 +97,37 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const res = await fetch(API, { cache: "no-store", signal });
-    const data = await res.json();
-    if (!res.ok) throw new Error(message(data.error));
-    if (!mounted.current) return;
-    setRevisions(data.revisions);
+    const data = await readWorkshopUiJson(res);
+    if (!res.ok) throw new Error(workshopErrorMessage(data.error));
+    const revisions = revisionsFromReply(data);
+    if (!mounted.current) return false;
+    setRevisions(revisions);
     setOnline(data.worker_online === true);
     setConnectionError(null);
-    setSelectedId((current) => current ?? data.revisions[0]?.id ?? null);
-    return data.revisions.some((revision: WorkshopRevision) => revision.state === "queued" || revision.state === "running");
+    setSelectedId((current) => current ?? revisions[0]?.id ?? null);
+    return revisions.some((revision) => revision.state === "queued" || revision.state === "running");
   }, []);
 
   useEffect(() => {
     mounted.current = true;
     if (!configured) return;
-    let timer: ReturnType<typeof setTimeout>;
     const controller = new AbortController();
-    let failures = 0;
-    async function poll() {
-      let delay = 30_000;
-      try {
-        if (document.visibilityState === "hidden") return;
-        const active = await refresh(controller.signal);
-        failures = 0;
-        delay = active ? 5_000 : 30_000;
-      } catch (err) {
-        failures += 1;
-        delay = Math.min(60_000, 5_000 * 2 ** Math.min(failures, 4));
+    const stopPolling = startWorkshopPolling({
+      isVisible: () => document.visibilityState !== "hidden",
+      refresh: () => refresh(controller.signal),
+      onError: (err) => {
         if (!controller.signal.aborted) {
           setOnline(false);
-          setConnectionError(err instanceof Error ? err.message : "Durum okunamadı.");
+          setConnectionError(err instanceof Error ? err.message : genericError);
         }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-          timer = setTimeout(poll, delay);
-        }
-      }
-    }
-    void poll();
-    return () => { mounted.current = false; controller.abort(); clearTimeout(timer); };
+      },
+      onSettled: () => { if (!controller.signal.aborted) setLoading(false); },
+      addVisibilityListener: (listener) => document.addEventListener("visibilitychange", listener),
+      removeVisibilityListener: (listener) => document.removeEventListener("visibilitychange", listener),
+      setTimer: (callback, delay) => setTimeout(callback, delay),
+      clearTimer: (timer) => clearTimeout(timer),
+    });
+    return () => { mounted.current = false; controller.abort(); stopPolling(); };
   }, [configured, refresh]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -123,9 +150,9 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
       const body = JSON.stringify(payload);
       if (new TextEncoder().encode(body).byteLength > WORKSHOP_MAX_BODY) throw new Error(errorLabels.request_limit_4MB);
       const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-      const data = await res.json();
-      if (!res.ok) throw new Error(message(data.error));
-      setSelectedId(data.revision.id);
+      const data = await readWorkshopUiJson(res);
+      if (!res.ok) throw new Error(workshopErrorMessage(data.error));
+      setSelectedId(revisionIdFromReply(data));
       setNotice(data.deduplicated ? "Aynı kaynak ve reçete zaten kayıtlı; mevcut revizyon açıldı. Yeni iş veya ücret oluşmadı." : "Değişmez revizyon kaydedildi. Sayfayı kapatsanız da worker kuyruğu devam eder.");
       await refresh();
     } catch (err) {
@@ -137,8 +164,9 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
     setBusy(true); setError(null);
     try {
       const res = await fetch(`${API}/${id}/retry`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(message(data.error));
+      const data = await readWorkshopUiJson(res);
+      if (!res.ok) throw new Error(workshopErrorMessage(data.error));
+      revisionIdFromReply(data);
       await refresh();
     } catch (err) { setError(err instanceof Error ? err.message : "Tekrar deneme başarısız."); }
     finally { setBusy(false); }
@@ -226,7 +254,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
           <h2 className="text-lg font-semibold">2. Önizleme ve kanıt</h2>
           {!selected ? <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed p-8 text-center">
             <p className="font-medium">İlk dijital numuneyi oluşturun</p>
-            <p className="mt-2 max-w-sm text-sm text-muted-foreground">Final GLB’nin ortografik derinliği ve silueti; ayrı hazırlanmış renk katmanı ve ölçüm raporları burada görünür.</p>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">Final GLB + ayrı artwork katmanlarının ortografik derinliği, silueti ve ölçüm raporları burada görünür.</p>
           </div> : <>
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <span>{states[selected.state]} · deneme {selected.attempts}/3</span>
@@ -234,7 +262,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
             </div>
             {selected.state === "queued" || selected.state === "running" ? <p role="status" className="rounded-lg bg-muted p-6 text-sm">{online ? "Worker sırayla geometri üretimi, bağımsız export kontrolü ve projeksiyon ölçümünü çalıştırıyor." : "İş diskte kayıtlı. Worker bağlantısı geri geldiğinde kuyruk devam edebilir."} Bu işlem birkaç dakika sürebilir.</p> : null}
             {selected.error && <div role="alert" className="space-y-3 rounded-lg border border-red-500/30 p-4 text-sm">
-              <p>{message(selected.error)}</p>
+              <p>{workshopErrorMessage(selected.error)}</p>
               {selected.attempts < 3 && <Button variant="outline" disabled={busy || !online} onClick={() => retry(selected.id)}>Aynı revizyonu tekrar dene</Button>}
             </div>}
             {result && <>
@@ -264,9 +292,9 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
               </div>}
               <div className="flex flex-wrap gap-2">
                 <Button asChild><a href={artifactUrl(selected.id, "evidence")}>Test ve ölçüm paketini indir</a></Button>
-                {["model-glb", "model-stl", "model-3mf", "registration", "layer-coverage"].map((name) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{name.replace("model-", "").toUpperCase()}</a></Button>)}
+                {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
               </div>
-              <p className="text-xs text-muted-foreground">SVG kesim konturu, test ZIP’i içindeki üretim adayı paketinin artwork/cut-contour.svg dosyasındadır. GLB/STL/3MF dosyaları generic geometridir; yazıcı/filament profili içermez.</p>
+              <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>
               <details className="rounded-lg border p-3 text-xs">
                 <summary className="cursor-pointer font-medium">Revizyon ve dosya parmak izleri</summary>
                 <p className="mt-3 break-all">Reçete/kaynak/motor SHA-256: {selected.spec_hash}</p>

@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ReliefWorkshop } from "@/components/relief/relief-workshop";
+import { ReliefWorkshop, readWorkshopUiJson, workshopErrorMessage } from "@/components/relief/relief-workshop";
+import { WORKSHOP_REQUIRED_ARTIFACTS } from "../workshop";
 
 describe("workshop initial UI truth", () => {
   it("does not claim a configured or completed worker when configuration is absent", () => {
@@ -20,5 +21,13 @@ describe("workshop initial UI truth", () => {
     expect(html).toContain("disabled=");
     expect(html).not.toContain("Worker bağlı");
     expect(html).not.toContain("Dijital işlem bitti");
+  });
+  it("keeps the direct SVG cut contour in the public artifact contract", () => {
+    expect(WORKSHOP_REQUIRED_ARTIFACTS).toContain("cut-contour");
+  });
+  it("uses stable Turkish fallbacks for rejected or malformed worker replies", async () => {
+    expect(workshopErrorMessage("same_origin_required")).toContain("kendi Renderhane adresinden");
+    expect(workshopErrorMessage("invalid_worker_artifact")).toContain("İndirme başlatılmadı");
+    await expect(readWorkshopUiJson(new Response("<html>broken"))).rejects.toThrow("Worker yanıtı doğrulanamadı");
   });
 });

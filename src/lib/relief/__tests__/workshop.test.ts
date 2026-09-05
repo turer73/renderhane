@@ -60,10 +60,22 @@ describe("private Relief Pro workshop", () => {
   });
   it("never allows insecure production transport, embedded credentials or URL paths", () => {
     vi.stubEnv("NODE_ENV", "production");
-    for (const address of ["http://127.0.0.1:8421", "https://u:p@example.com", "https://example.com/admin", "https://example.com/?q=x"]) {
+    for (const address of ["http://127.0.0.1:8421", "https://u:p@example.com", "https://example.com/admin", "https://example.com/?q=x", "https://private-worker.example:8443", "https://127.0.0.1", "https://localhost", "https://2130706433"]) {
       vi.stubEnv("RELIEF_WORKSHOP_URL", address);
       expect(workshopConfig()).toBeNull();
     }
+    vi.stubEnv("RELIEF_WORKSHOP_URL", "https://relief-workshop.renderhane.com");
+    expect(workshopConfig()?.origin).toBe("https://relief-workshop.renderhane.com");
+  });
+  it("requires the exact trusted HTTPS origin in preview and rejects control characters", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("RELIEF_WORKSHOP_URL", "https://other-worker.example");
+    expect(workshopConfig()).toBeNull();
+    vi.stubEnv("RELIEF_WORKSHOP_URL", "https://relief-workshop.renderhane.com");
+    expect(workshopConfig()?.origin).toBe("https://relief-workshop.renderhane.com");
+    vi.stubEnv("RELIEF_WORKSHOP_URL", "https://relief-workshop.renderhane.com/\n");
+    expect(workshopConfig()).toBeNull();
   });
   it("rejects cross-origin writes, including retries", async () => {
     expect((await proxyWorkshop(request("{}", "https://evil.example"), [])).status).toBe(403);
@@ -127,6 +139,21 @@ describe("private Relief Pro workshop", () => {
     expect(response.headers.get("x-artifact-sha256")).toBe(sha);
     expect(await response.text()).toBe("png");
   });
+  it("serves a valid cut contour only as a hashed attachment", async () => {
+    const contour = "contour";
+    const sha = createHash("sha256").update(contour).digest("hex");
+    vi.mocked(fetch).mockResolvedValue(new Response(contour, { headers: {
+      "Content-Type": "image/svg+xml", "Content-Length": String(contour.length),
+      "Content-Disposition": 'attachment; filename="cut-contour.svg"', "X-Artifact-SHA256": sha,
+    } }));
+    const response = await proxyWorkshop(new Request(`${base}/${id}/artifacts/cut-contour`), [id, "artifacts", "cut-contour"]);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/svg+xml");
+    expect(response.headers.get("content-length")).toBe(String(contour.length));
+    expect(response.headers.get("content-disposition")).toBe('attachment; filename="cut-contour.svg"');
+    expect(response.headers.get("x-artifact-sha256")).toBe(sha);
+    expect(await response.text()).toBe(contour);
+  });
   it("rejects malformed nested revisions and route/response mismatches", async () => {
     for (const body of [{ revisions: [{}], worker_online: true }, { revision: queued }, { revisions: [], worker_online: "yes" }]) {
       vi.mocked(fetch).mockResolvedValue(Response.json(body));
@@ -153,6 +180,32 @@ describe("private Relief Pro workshop", () => {
       vi.mocked(fetch).mockResolvedValue(new Response("png", { headers: { "Content-Type": "image/png", ...headers } }));
       expect((await proxyWorkshop(new Request(base), [id, "artifacts", "depth"])).status).toBe(502);
     }
+    vi.mocked(fetch).mockResolvedValue(new Response("<svg/>", { headers: {
+      "Content-Type": "image/svg+xml", "Content-Length": "6", "X-Artifact-SHA256": "a".repeat(64),
+    } }));
+    expect((await proxyWorkshop(new Request(base), [id, "artifacts", "depth"])).status).toBe(502);
+  });
+  it("accepts optional artwork coverage and binds SVG only to cut-contour", async () => {
+    const sha = "a".repeat(64);
+    const artifacts = Object.fromEntries([
+      ["model-glb", "model/gltf-binary"], ["model-stl", "model/stl"], ["model-3mf", "model/3mf"],
+      ["depth", "image/png"], ["silhouette", "image/png"], ["evidence", "application/zip"],
+      ["registration", "application/json"], ["layer-coverage", "application/json"], ["cut-contour", "image/svg+xml"],
+    ].map(([name, content_type]) => [name, { bytes: 1, sha256: sha, content_type }]));
+    const result = {
+      digital_geometry_status: "ready", digital_failures: [], digital_warnings: [], artwork_file_set_status: "incomplete",
+      artwork_semantic_registration_status: "not_validated", physical_validation_status: "pending", production_status: "not_approved",
+      physical_width_mm: 70, physical_height_mm: 60, coverage: { layer_coverage_status: "not_evaluable", layers: {} }, artifacts,
+    };
+    vi.mocked(fetch).mockResolvedValue(Response.json({ revision: { ...queued, state: "completed", result }, deduplicated: false }));
+    const accepted = await proxyWorkshop(request(), []);
+    expect(accepted.status).toBe(200);
+    const wrongSvg = { ...artifacts, preview: { bytes: 1, sha256: sha, content_type: "image/svg+xml" } };
+    vi.mocked(fetch).mockResolvedValue(Response.json({ revision: { ...queued, state: "completed", result: { ...result, artifacts: wrongSvg } } }));
+    expect((await proxyWorkshop(request(), [])).status).toBe(502);
+    const wrongContour = { ...artifacts, ["cut-contour"]: { bytes: 1, sha256: sha, content_type: "application/json" } };
+    vi.mocked(fetch).mockResolvedValue(Response.json({ revision: { ...queued, state: "completed", result: { ...result, artifacts: wrongContour } } }));
+    expect((await proxyWorkshop(request(), [])).status).toBe(502);
   });
   it("ties upstream cancellation to the client and budgets long bounded downloads", async () => {
     const client = new AbortController();
