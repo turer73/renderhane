@@ -63,6 +63,9 @@ Compose yalnız `127.0.0.1:8421` yayınlar. Raw API'yi internete açmayın.
 2. Repo kökünde `docker compose -f workers/relief/compose.workshop.yml up --build -d`.
 3. Vercel/Next sunucusunda `RELIEF_WORKSHOP_ENABLED=true`, `RELIEF_WORKSHOP_URL`
    (worker'a ulaşılabilen HTTPS origin, path/query yok) ve aynı `RELIEF_WORKSHOP_TOKEN`.
+   Cloudflare Access kullanılıyorsa `RELIEF_WORKSHOP_ACCESS_CLIENT_ID` ve
+   `RELIEF_WORKSHOP_ACCESS_CLIENT_SECRET` birlikte, yalnız server-side secret olarak
+   ayarlanır; tek taraflı veya biçimsiz yapılandırma fail-closed olur.
    Hiçbiri `NEXT_PUBLIC_` değildir. Worker URL'si tarayıcıya verilmez.
 4. Yönetici oturumuyla `/tr/app/relief` → kaynak/kullanım sınırı onayı → sentetik
    kalibrasyon → revizyon oluştur → final dosyalar/coverage/ZIP'i kontrol et.
