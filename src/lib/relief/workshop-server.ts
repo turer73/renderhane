@@ -5,17 +5,27 @@ import { readBoundedBody, workshopWorkerPath, WORKSHOP_MAX_BODY } from "./worksh
 import { parseWorkshopReply, WORKSHOP_ARTIFACT_TYPES, WORKSHOP_MAX_ARTIFACT } from "./workshop-response";
 import { verifiedArtifactStream } from "./workshop-artifact-stream";
 
-export function workshopConfig(): { origin: string; token: string } | null {
+type WorkshopConfig = { origin: string; token: string; accessHeaders: Record<string, string> };
+
+export function workshopConfig(): WorkshopConfig | null {
   if (process.env.RELIEF_WORKSHOP_ENABLED !== "true") return null;
   const token = process.env.RELIEF_WORKSHOP_TOKEN ?? "";
   const address = process.env.RELIEF_WORKSHOP_URL;
+  const accessClientId = process.env.RELIEF_WORKSHOP_ACCESS_CLIENT_ID ?? "";
+  const accessClientSecret = process.env.RELIEF_WORKSHOP_ACCESS_CLIENT_SECRET ?? "";
   if (!address || token.length < 32) return null;
+  if (Boolean(accessClientId) !== Boolean(accessClientSecret) ||
+      (accessClientId && (accessClientId.length < 20 || accessClientSecret.length < 32 ||
+        /[\u0000-\u001f\u007f]/.test(accessClientId) || /[\u0000-\u001f\u007f]/.test(accessClientSecret)))) return null;
   try {
     const url = new URL(address);
     const localDev = process.env.NODE_ENV !== "production" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if ((url.protocol !== "https:" && !(localDev && url.protocol === "http:")) ||
         url.username || url.password || url.search || url.hash || url.pathname !== "/") return null;
-    return { origin: url.origin, token };
+    return { origin: url.origin, token, accessHeaders: accessClientId ? {
+      "CF-Access-Client-Id": accessClientId,
+      "CF-Access-Client-Secret": accessClientSecret,
+    } : {} };
   } catch {
     return null;
   }
@@ -58,6 +68,7 @@ export async function proxyWorkshop(request: Request, parts: string[]): Promise<
     const upstream = await fetch(`${config.origin}${path}`, {
       method: request.method,
       headers: { Authorization: `Bearer ${config.token}`, "X-Relief-Owner": user.id,
+        ...config.accessHeaders,
         ...(body ? { "Content-Type": "application/json" } : {}) },
       body: body ? Buffer.from(body) : undefined,
       redirect: "error", cache: "no-store",

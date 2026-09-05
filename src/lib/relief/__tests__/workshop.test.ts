@@ -20,6 +20,8 @@ describe("private Relief Pro workshop", () => {
     vi.stubEnv("RELIEF_WORKSHOP_ENABLED", "true");
     vi.stubEnv("RELIEF_WORKSHOP_URL", "https://private-worker.example");
     vi.stubEnv("RELIEF_WORKSHOP_TOKEN", "x".repeat(40));
+    vi.stubEnv("RELIEF_WORKSHOP_ACCESS_CLIENT_ID", "");
+    vi.stubEnv("RELIEF_WORKSHOP_ACCESS_CLIENT_SECRET", "");
     mocks.getUser.mockResolvedValue({ data: { user: { id, email: "operator@example.com" } }, error: null });
     mocks.isAdmin.mockReturnValue(true);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ revisions: [], worker_online: true })));
@@ -50,6 +52,11 @@ describe("private Relief Pro workshop", () => {
     vi.stubEnv("RELIEF_WORKSHOP_ENABLED", "true");
     vi.stubEnv("RELIEF_WORKSHOP_TOKEN", "short");
     expect(workshopConfig()).toBeNull();
+    vi.stubEnv("RELIEF_WORKSHOP_TOKEN", "x".repeat(40));
+    vi.stubEnv("RELIEF_WORKSHOP_ACCESS_CLIENT_ID", "0123456789abcdef0123456789abcdef.access");
+    expect(workshopConfig()).toBeNull();
+    vi.stubEnv("RELIEF_WORKSHOP_ACCESS_CLIENT_SECRET", "s".repeat(48));
+    expect(workshopConfig()).not.toBeNull();
   });
   it("never allows insecure production transport, embedded credentials or URL paths", () => {
     vi.stubEnv("NODE_ENV", "production");
@@ -69,13 +76,22 @@ describe("private Relief Pro workshop", () => {
     await expect(readBoundedBody(new Response("abcd").body, 3)).rejects.toThrow("request_too_large");
   });
   it("forwards the authenticated owner, never a browser-supplied owner or credential", async () => {
+    vi.stubEnv("RELIEF_WORKSHOP_ACCESS_CLIENT_ID", "service-client-id.access");
+    vi.stubEnv("RELIEF_WORKSHOP_ACCESS_CLIENT_SECRET", "s".repeat(48));
     vi.mocked(fetch).mockResolvedValue(Response.json({ revision: queued, deduplicated: false }));
     const req = request();
     req.headers.set("X-Relief-Owner", "victim");
     req.headers.set("Authorization", "Bearer browser-secret");
+    req.headers.set("CF-Access-Client-Id", "browser-client");
+    req.headers.set("CF-Access-Client-Secret", "browser-secret");
     expect((await proxyWorkshop(req, [])).status).toBe(200);
     const [, init] = vi.mocked(fetch).mock.calls[0];
-    expect(init?.headers).toMatchObject({ "X-Relief-Owner": id, Authorization: `Bearer ${"x".repeat(40)}` });
+    expect(init?.headers).toMatchObject({
+      "X-Relief-Owner": id,
+      Authorization: `Bearer ${"x".repeat(40)}`,
+      "CF-Access-Client-Id": "service-client-id.access",
+      "CF-Access-Client-Secret": "s".repeat(48),
+    });
     expect(init?.redirect).toBe("error");
     expect(init?.cache).toBe("no-store");
   });
