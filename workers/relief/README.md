@@ -41,12 +41,46 @@ Bu modüller Phase A içinde silinmez. Önce benzersiz yetenekler ve çağıran 
 - Artifact SHA-256 değerlerini, reçete hash’ini, birimleri, bounds ve sınırlamaları raporlar.
 - Aynı girdi, reçete ve yazılım ortamında byte-deterministic dosyalar üretir.
 
+## Semantic label → canonical height compiler
+
+Semantic label artwork, fiziksel rölyef yüksekliğinin upstream girdisidir. Compiler
+etiket PNG'sini **aynı piksel tuvalinde** okur; resize, crop, fitting veya resampling
+yapmaz. `L` (uint8) ve unsigned 16-bit PNG etiketleri kabul edilir. Reçete alanları
+strict'tir: bilinmeyen alanlar, tekrar eden stable ID/rank/name değerleri ve etikette
+bulunmayan/fazladan ID'ler fail-closed reddedilir.
+
+Her region'ın fiziksel kenar/plateau yüksekliği, profil ve mm cinsinden bevel'i
+anisotropic pixel pitch (`W/N`, `H/M`) ile değerlendirilir. Candidate/detail girdileri
+yalnız aynı canvas'ta bounded yardımcı sinyallerdir; `candidate_orientation` ile
+direct/inverted seçilebilir. Çıktı tek-valued bir heightfield'dir.
+Minimum-feature, component çapı, plateau, detail clipping ve fiziksel yüzey eğimi
+(max/p95, yalnız diagnostik) rapora yazılır.
+
+```bash
+python compile_semantic_relief.py \
+  --labels /path/to/semantic-labels.png \
+  --recipe /path/to/semantic-recipe.json \
+  --output /tmp/semantic-relief \
+  --width-mm 70 --height-mm 70 --relief-depth-mm 1.2 \
+  --minimum-feature-mm 0.6 \
+  --depth-candidate /path/to/candidate.png \
+  --detail-source /path/to/detail.png
+```
+
+Çıktı `relief-map-16.png` içinde mutlak yüksekliği tek seferlik half-up uint16
+kuantizasyonuyla, `silhouette-mask.png` içinde aynı label canvas'ının aktif maskesini
+taşır. `semantic-relief-report.json` canonical recipe hash'ini ve ayrı durumları
+(`compiler_status`, `physical_validation_status=pending`,
+`production_status=not_approved_pending_physical_validation`) içerir. Dijital
+compiler doğrulaması fiziksel baskı/UV/RIP onayı değildir.
+
 ## Bilinçli Phase 0 sınırları
 
 Kanonik `relief_engine` çekirdeğinde henüz şunlar yoktur:
 
 - magnet yuvası veya askı deliği boolean işlemi,
-- semantik katman/normal map birleşimi,
+- UV artwork/normal-map görünüm katmanlarının compiler çıktısıyla otomatik birleşimi
+  (semantic label → height compiler ayrı ve kanonik bir upstream aşamadır),
 - otomatik minimum yazdırılabilir detay analizi,
 - Bambu Studio’ya özel proje 3MF profili,
 - üretim uygulamasındaki workflow/queue entegrasyonu,

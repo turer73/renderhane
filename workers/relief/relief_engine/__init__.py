@@ -26,6 +26,13 @@ from .models import (
     sha256_file,
 )
 from .pipeline import build
+from .semantic_ops import (
+    SEMANTIC_ENGINE_VERSION,
+    SEMANTIC_RECIPE_SCHEMA_VERSION,
+    SEMANTIC_REPORT_SCHEMA_VERSION,
+    SemanticReliefInputError,
+    compile_semantic_relief,
+)
 
 __all__ = [
     "ENGINE_NAME",
@@ -40,6 +47,7 @@ __all__ = [
     "NormalizationMode",
     "ShapeMode",
     "build",
+    "compile_semantic_relief",
     "build_rectangular_relief_mesh",
     "build_silhouette_relief_mesh",
     "canonical_json_bytes",
@@ -48,6 +56,10 @@ __all__ = [
     "inspect_source_image",
     "sha256_bytes",
     "sha256_file",
+    "SEMANTIC_ENGINE_VERSION",
+    "SEMANTIC_RECIPE_SCHEMA_VERSION",
+    "SEMANTIC_REPORT_SCHEMA_VERSION",
+    "SemanticReliefInputError",
     "trace_boundary_loops",
     "validate_mesh",
 ]
