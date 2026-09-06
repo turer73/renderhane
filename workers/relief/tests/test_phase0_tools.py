@@ -79,6 +79,8 @@ def test_phase0_runner_keeps_physical_decision_pending(tmp_path: Path) -> None:
     assert summary["default_relief_depth_mm"] is None
     assert len(summary["builds"]) == 2
     assert (out / "physical-measurements.csv").read_text().count("pending") == 8
+    assert (out / "fdm-physical-measurements-v2.csv").read_text().count("pending") == 8
+    assert (out / "uv-physical-measurements-v2.csv").read_text().count("pending") == 1
 
     package = out / "renderhane-relief-pro-phase0.zip"
     with zipfile.ZipFile(package) as archive:
@@ -88,6 +90,8 @@ def test_phase0_runner_keeps_physical_decision_pending(tmp_path: Path) -> None:
         assert "PHYSICAL-TEST.md" in names
         assert "DIGITAL-STATUS.md" in names
         assert "physical-measurements.csv" in names
+        assert "fdm-physical-measurements-v2.csv" in names
+        assert "uv-physical-measurements-v2.csv" in names
         assert "inputs/front-master.png" in names
     status = (out / "DIGITAL-STATUS.md").read_text(encoding="utf-8")
     assert "unit-test fixture" in status

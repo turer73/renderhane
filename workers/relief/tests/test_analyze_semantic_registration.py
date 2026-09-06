@@ -94,6 +94,28 @@ def test_unbound_label_maps_cannot_claim_semantic_validation(tmp_path: Path) -> 
     assert report["failures"] == ["source_bindings_missing"]
 
 
+def test_independent_derived_source_binding_is_reported_explicitly(
+    tmp_path: Path,
+) -> None:
+    labels = _two_regions()
+    manifest = _manifest()
+    manifest["source_bindings"] = {
+        "geometry_source_role": "final_glb_orthographic_depth",
+        "geometry_source_sha256": "a" * 64,
+        "artwork_source_role": "aligned_uv_artwork",
+        "artwork_source_sha256": "b" * 64,
+        "binding_scope": "independent_derived_artifacts",
+    }
+
+    report = _analyze(tmp_path, labels, labels, manifest=manifest)
+
+    assert report["decision"] == "pass"
+    assert (
+        report["evidence_source"]
+        == "independently_derived_final_geometry_and_artwork_label_rasters"
+    )
+
+
 def test_local_inner_edge_deformation_fails_even_when_outer_silhouette_is_identical(
     tmp_path: Path,
 ) -> None:
