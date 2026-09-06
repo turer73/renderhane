@@ -1,5 +1,9 @@
 import type { WorkshopArtifact, WorkshopRevision } from "./workshop";
-import { WORKSHOP_REQUIRED_ARTIFACTS } from "./workshop";
+import {
+  LEGACY_WORKSHOP_ARTIFACT_KEYS,
+  LEGACY_WORKSHOP_ENGINE_SHA256,
+  WORKSHOP_REQUIRED_ARTIFACTS,
+} from "./workshop";
 
 export const WORKSHOP_MAX_ARTIFACT = 128 * 1024 * 1024;
 const WORKSHOP_ARTIFACT_CONTENT_TYPES: Record<string, string> = {
@@ -59,13 +63,20 @@ function coverage(value: unknown): Record<string, unknown> {
   return { layer_coverage_status: overallStatus, layers: projected };
 }
 
-function result(value: unknown): NonNullable<WorkshopRevision["result"]> {
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const keys = Object.keys(value);
+  return keys.length === expected.length && expected.every((key) => Object.hasOwn(value, key));
+}
+
+function result(value: unknown, legacyAllowed: boolean): NonNullable<WorkshopRevision["result"]> {
   const data = record(value);
   requireValue(["ready", "needs_review", "failed"].includes(text(data.digital_geometry_status, 32)));
   // A new wire value cannot grant semantic or physical approval in this pilot.
   requireValue(data.artwork_semantic_registration_status === "not_validated" &&
     data.physical_validation_status === "pending" && data.production_status === "not_approved");
   const artifacts: Record<string, WorkshopArtifact> = {};
+  const legacyArtifactContract = legacyAllowed && data.artifact_contract_status === "legacy_missing_cut_contour";
+  requireValue(data.artifact_contract_status === undefined || legacyArtifactContract);
   const entries = Object.entries(record(data.artifacts));
   requireValue(entries.length <= 32);
   for (const [name, raw] of entries) {
@@ -82,9 +93,12 @@ function result(value: unknown): NonNullable<WorkshopRevision["result"]> {
     artifacts[name] = { bytes, sha256, content_type };
   }
   for (const name of WORKSHOP_REQUIRED_ARTIFACTS) {
+    if (legacyArtifactContract && name === "cut-contour") continue;
     requireValue(Object.hasOwn(artifacts, name));
   }
+  requireValue(!legacyArtifactContract || !Object.hasOwn(artifacts, "cut-contour"));
   return {
+    ...(legacyArtifactContract ? { artifact_contract_status: "legacy_missing_cut_contour" as const } : {}),
     digital_geometry_status: text(data.digital_geometry_status),
     digital_failures: texts(data.digital_failures), digital_warnings: texts(data.digital_warnings),
     artwork_file_set_status: text(data.artwork_file_set_status, 64),
@@ -93,7 +107,6 @@ function result(value: unknown): NonNullable<WorkshopRevision["result"]> {
     coverage: coverage(data.coverage), artifacts,
   };
 }
-
 function revision(value: unknown): WorkshopRevision {
   const data = record(value);
   const id = text(data.id, 36), spec_hash = text(data.spec_hash, 64);
@@ -105,7 +118,12 @@ function revision(value: unknown): WorkshopRevision {
   const spec = record(data.spec), recipe = record(spec.recipe);
   const depth = number(recipe.relief_depth_mm);
   requireValue([0.6, 1, 1.4, 1.8].includes(depth) && recipe.base_thickness_mm === 3);
-  const completed = data.result === null ? null : result(data.result);
+  const rawResult = data.result === null ? null : record(data.result);
+  const rawArtifacts = rawResult === null ? null : record(rawResult.artifacts);
+  const legacyAllowed = state === "completed" && data.error === null &&
+    spec.engine_sha256 === LEGACY_WORKSHOP_ENGINE_SHA256 && rawArtifacts !== null &&
+    hasExactKeys(rawArtifacts, LEGACY_WORKSHOP_ARTIFACT_KEYS);
+  const completed = rawResult === null ? null : result(rawResult, legacyAllowed);
   requireValue((state === "completed") === (completed !== null));
   return {
     id, spec_hash, state: state as WorkshopRevision["state"], attempts,

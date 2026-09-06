@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseWorkshopReply } from "../workshop-response";
+import { LEGACY_WORKSHOP_ENGINE_SHA256 } from "../workshop";
 
 const id = "00000000-0000-4000-8000-000000000001";
 const queued = { id, spec_hash: "a".repeat(64), state: "queued", attempts: 0, created_at: 1,
@@ -27,7 +28,56 @@ function completed() {
   } };
 }
 
+const legacyArtifactContentTypes: Record<string, string> = {
+  candidate: "application/zip", depth: "image/png", difference: "image/png", evidence: "application/zip",
+  "layer-coverage": "application/json", manifest: "application/json", "model-3mf": "model/3mf",
+  "model-glb": "model/gltf-binary", "model-stl": "model/stl", overlay: "image/png",
+  registration: "application/json", revision: "application/json", silhouette: "image/png",
+  "uv-artwork": "image/png", "varnish-mask": "image/png", "white-mask": "image/png",
+};
+
+function legacyCompleted() {
+  const source = completed();
+  const artifacts = Object.fromEntries(Object.entries(legacyArtifactContentTypes).map(([name, content_type]) => [name, {
+    bytes: 3, sha256: "b".repeat(64), content_type,
+  }]));
+  return { ...source, spec: { ...source.spec, engine_sha256: LEGACY_WORKSHOP_ENGINE_SHA256 }, result: {
+    ...source.result,
+    artifacts,
+    artifact_contract_status: "legacy_missing_cut_contour",
+  } };
+}
+
 describe("workshop public response contract", () => {
+  it("accepts only the exact legacy raw contract and never invents a contour", () => {
+    const item = legacyCompleted();
+    const parsed = parseWorkshopReply({ revision: item }, [id], "GET").revision;
+    expect(parsed?.result?.artifact_contract_status).toBe("legacy_missing_cut_contour");
+    expect(parsed?.result?.artifacts).not.toHaveProperty("cut-contour");
+    expect(parsed?.spec).not.toHaveProperty("engine_sha256");
+
+    const wrongEngine = { ...item, spec: { ...item.spec, engine_sha256: "wrong" } };
+    const superset = { ...item, result: { ...item.result, artifacts: {
+      ...item.result.artifacts, "extra-artifact": item.result.artifacts.candidate,
+    } } };
+    const missingArtifact = { ...item, result: { ...item.result, artifacts: Object.fromEntries(
+      Object.entries(item.result.artifacts).filter(([name]) => name !== "candidate"),
+    ) } };
+    const markerMissing = { ...item, result: { ...item.result, artifact_contract_status: undefined } };
+    for (const invalid of [wrongEngine, superset, missingArtifact, markerMissing]) {
+      expect(() => parseWorkshopReply({ revision: invalid }, [id], "GET")).toThrow("invalid_worker_response");
+    }
+  });
+
+  it("accepts only the explicitly marked legacy result without inventing a contour", () => {
+    const item = legacyCompleted();
+    const parsed = parseWorkshopReply({ revision: item }, [id], "GET").revision;
+    expect(parsed?.result?.artifact_contract_status).toBe("legacy_missing_cut_contour");
+    expect(parsed?.result?.artifacts).not.toHaveProperty("cut-contour");
+    const unmarked = { ...item, result: { ...item.result, artifact_contract_status: undefined } };
+    expect(() => parseWorkshopReply({ revision: unmarked }, [id], "GET")).toThrow("invalid_worker_response");
+  });
+
   it("accepts the four lifecycle states without promoting physical or semantic status", () => {
     for (const item of [queued, { ...queued, state: "running", attempts: 1 }, { ...queued, state: "failed", attempts: 3, error: "build_timeout" }, completed()]) {
       expect(parseWorkshopReply({ revision: item }, [id], "GET")).toEqual({ revision: item });

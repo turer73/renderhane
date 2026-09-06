@@ -34,6 +34,7 @@ const errorLabels: Record<string, string> = {
   retry_unavailable: "Bu revizyon şu anda tekrar denenemiyor. Durumu yenileyin veya yeni bir revizyon oluşturun.",
 };
 const genericError = "Atölye isteği güvenle tamamlanamadı. Kayıtlı revizyonlar değiştirilmedi; bağlantıyı kontrol edip yeniden deneyin.";
+export const LEGACY_CUT_CONTOUR_WARNING = "Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; kesim konturu olan yeni bir revizyon oluşturun.";
 
 export function workshopErrorMessage(code: unknown) {
   return typeof code === "string" ? errorLabels[code] ?? genericError : genericError;
@@ -294,7 +295,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
                 <Button asChild><a href={artifactUrl(selected.id, "evidence")}>Test ve ölçüm paketini indir</a></Button>
                 {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
               </div>
-              <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>
+              {result.artifact_contract_status === "legacy_missing_cut_contour" ? <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; kesim konturu olan yeni bir revizyon oluşturun.</p> : <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>}
               <details className="rounded-lg border p-3 text-xs">
                 <summary className="cursor-pointer font-medium">Revizyon ve dosya parmak izleri</summary>
                 <p className="mt-3 break-all">Reçete/kaynak/motor SHA-256: {selected.spec_hash}</p>
