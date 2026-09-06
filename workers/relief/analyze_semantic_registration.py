@@ -159,12 +159,25 @@ def _parse_manifest(
             or set(raw_bindings) != expected_binding_keys
         ):
             raise ValueError("semantic source bindings have an invalid contract")
-        if raw_bindings["geometry_source_role"] != "relief_map":
-            raise ValueError("semantic geometry source role must be relief_map")
-        if raw_bindings["artwork_source_role"] != "uv_artwork":
-            raise ValueError("semantic artwork source role must be uv_artwork")
-        if raw_bindings["binding_scope"] != "revision_inputs_not_derivation_proof":
+        source_contracts = {
+            "revision_inputs_not_derivation_proof": ("relief_map", "uv_artwork"),
+            "independent_derived_artifacts": (
+                "final_glb_orthographic_depth",
+                "aligned_uv_artwork",
+            ),
+        }
+        binding_scope = raw_bindings["binding_scope"]
+        expected_roles = source_contracts.get(binding_scope)
+        if expected_roles is None:
             raise ValueError("semantic source binding scope is invalid")
+        if raw_bindings["geometry_source_role"] != expected_roles[0]:
+            raise ValueError(
+                "semantic geometry source role does not match binding scope"
+            )
+        if raw_bindings["artwork_source_role"] != expected_roles[1]:
+            raise ValueError(
+                "semantic artwork source role does not match binding scope"
+            )
         for field in ("geometry_source_sha256", "artwork_source_sha256"):
             value = raw_bindings[field]
             if (
@@ -520,13 +533,25 @@ def analyze_semantic_registration(
         else "validated"
     )
 
+    independent_derivation = (
+        canonical_manifest.get("source_bindings", {}).get("binding_scope")
+        == "independent_derived_artifacts"
+    )
     return {
         "schema_version": REPORT_SCHEMA_VERSION,
         "engine_version": ENGINE_VERSION,
         "artwork_semantic_registration_status": status,
         "decision": "fail" if failures else "pass",
-        "evidence_source": "same_source_stable_region_id_rasters",
-        "evidence_independence": "geometry_labels_vs_manufacturing_artwork_labels",
+        "evidence_source": (
+            "independently_derived_final_geometry_and_artwork_label_rasters"
+            if independent_derivation
+            else "same_source_stable_region_id_rasters"
+        ),
+        "evidence_independence": (
+            "final_glb_depth_classification_vs_aligned_artwork_colour_classification"
+            if independent_derivation
+            else "geometry_labels_vs_manufacturing_artwork_labels"
+        ),
         "alignment_policy": "exact_canvas_no_fitting_no_resampling",
         "coordinate_system": {
             "origin": "top_left",
@@ -562,8 +587,16 @@ def analyze_semantic_registration(
         "failures": failures,
         "limitations": [
             "This validates declared region geometry, not colour accuracy, ICC/RIP output, ink, varnish height, or printer calibration.",
-            "Revision hashes bind the label maps to named inputs but do not prove the correctness of their upstream derivation.",
-            "The label maps must be independently derived from approved geometry and manufacturing artwork in one physical XY coordinate system.",
+            (
+                "The bound label maps were independently derived from the final GLB depth projection and aligned artwork; this still does not validate physical RIP, ink or material behaviour."
+                if independent_derivation
+                else "Revision hashes bind the label maps to named inputs but do not prove the correctness of their upstream derivation."
+            ),
+            (
+                "The derivation contract is calibration-fixture-specific and must not be generalized to arbitrary customer artwork."
+                if independent_derivation
+                else "The label maps must be independently derived from approved geometry and manufacturing artwork in one physical XY coordinate system."
+            ),
         ],
     }
 

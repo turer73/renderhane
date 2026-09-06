@@ -189,7 +189,9 @@ Paket içinde:
 
 - dört ayrı 3MF/STL/GLB seti,
 - dijital benchmark özeti,
-- P1S/A1 mini ölçüm formu,
+- değerlendiriciyle uyumlu `fdm-physical-measurements-v2.csv`,
+- değerlendiriciyle uyumlu `uv-physical-measurements-v2.csv`,
+- eski çağıranlar için aynı FDM formunun `physical-measurements.csv` kopyası,
 - UV test talimatı,
 - fiziksel karar alanları
 
@@ -203,6 +205,29 @@ python generate_uv_clearance_coupon.py \
 ```
 
 Kupon 3 mm taban üzerinde 0.0 / 0.6 / 1.0 / 1.4 / 1.8 mm yükseltilmiş bölgeler içerir. **UV operatörünün güvenli kafa açıklığı onayı olmadan makineye konulmamalıdır.**
+
+## Gerçek fiziksel doğrulama kiti
+
+Hak sorunu olmayan kalibrasyon tasarımından dört FDM varyantı, final GLB'den
+bağımsız semantik türetim kanıtı, UV yükseklik kuponu ve v2 ölçüm formları üretmek
+için:
+
+```bash
+python prepare_physical_validation_kit.py \
+  --out-dir /tmp/renderhane-relief-physical-kit \
+  --jobs 1
+```
+
+Kalibrasyon profili `grid_long_edge=512` kullanır. 256 ve 384 gridleri sabit
+semantik eşiklerde ok bölgesini geçemediği için eşikler genişletilmemiştir. 512
+profilinde final GLB depth rasterı ve hizalı UV artwork ayrı algoritmalarla stable-ID
+haritalarına dönüştürülür; karşılaştırma aşamasında translation/scale/warp fitting
+yapılmaz. Bu türetim yalnız analitik `calibration-v1` fixture'ı içindir; arbitrary
+untextured müşteri GLB'sinden semantik anlam çıkarıldığı iddia edilmez.
+
+Çıktıdaki `PRINT-AND-MEASURE.md` gerçek P1S/A1 mini ve UV/RIP/ICC prosedürüdür.
+Boş fiziksel formlar nedeniyle ilk `physical_gate=incomplete` ve
+`production_status=not_approved` sonucu bilinçli davranıştır.
 
 ## Test
 
@@ -228,7 +253,8 @@ Testler şu alanları kapsar:
 - geçersiz veya tehlikeli reçete reddi,
 - stale benchmark klasörü reddi,
 - dört-derinlik paketinin fiziksel kararı açık bırakması,
-- UV clearance kuponu.
+- UV clearance kuponu,
+- final GLB depth ile hizalı artwork'ten bağımsız kalibrasyon semantiği.
 
 ## Phase 0 çıkış kapısı
 

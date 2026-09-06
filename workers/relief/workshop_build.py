@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import csv
 import hashlib
 import json
 import os
@@ -14,6 +13,10 @@ from analyze_artwork_layers import analyze_artwork_layers
 from analyze_semantic_registration import write_semantic_registration_artifacts
 from build_relief_pro_package import build_relief_pro_package
 from finalize_relief_pro_package import finalize_package
+from physical_evidence_templates import (
+    write_bound_fdm_template,
+    write_bound_uv_template,
+)
 from PIL import Image
 from product_relief_builder import ProductRecipe
 from workshop_contract import engine_fingerprint, toolchain
@@ -50,41 +53,34 @@ def sync_attempt(root: Path, storage_root: Path) -> None:
 
 def write_physical_templates(root: Path, job: dict, width_mm: float, height_mm: float) -> list[Path]:
     """Bind targets to this design, without inventing measurements or other depths' revisions."""
-    templates = Path(__file__).resolve().parents[2] / "benchmarks/relief"
     destination = root / "physical-measurement"
     destination.mkdir()
     source_hash = hashlib.sha256(canonical_json(job["spec"]["source_hashes"]).encode()).hexdigest()[:12]
     design_id = f"workshop-{source_hash}"
-    written = []
-    for kind in ("fdm", "uv"):
-        name = f"{kind}-physical-measurement-template-v2.csv"
-        with (templates / name).open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle)
-            fields = reader.fieldnames
-            rows = list(reader)
-        for row in rows:
-            if None in row or any(value is None for value in row.values()):
-                raise ValueError("physical_template_column_mismatch")
-            if kind == "fdm":
-                depth = float(row["target_relief_mm"])
-                same_depth = depth == job["spec"]["recipe"]["relief_depth_mm"]
-                row.update({"design_id": design_id,
-                    "sample_id": f"{design_id}-{row['printer'].replace(' ', '-')}-{round(depth * 100):03d}",
-                    "revision_id": job["id"] if same_depth else "",
-                    "engine_version": job["spec"]["package_engine"] if same_depth else "",
-                    "target_width_mm": str(width_mm), "target_height_mm": str(height_mm),
-                    "target_base_mm": str(job["spec"]["recipe"]["base_thickness_mm"])})
-            else:
-                row.update({"coupon_id": f"UV-{design_id}-{job['id'][:8]}",
-                    "target_canvas_width_mm": str(width_mm), "target_canvas_height_mm": str(height_mm)})
-        path = destination / name
-        with path.open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
-            writer.writeheader()
-            writer.writerows(rows)
-            handle.flush()
+    active_depth = float(job["spec"]["recipe"]["relief_depth_mm"])
+    depths = (0.6, 1.0, 1.4, 1.8)
+    fdm = write_bound_fdm_template(
+        destination / "fdm-physical-measurement-template-v2.csv",
+        design_id=design_id,
+        revisions_by_depth={depth: job["id"] if depth == active_depth else "" for depth in depths},
+        engines_by_depth={
+            depth: job["spec"]["package_engine"] if depth == active_depth else ""
+            for depth in depths
+        },
+        target_width_mm=width_mm,
+        target_height_mm=height_mm,
+        target_base_mm=float(job["spec"]["recipe"]["base_thickness_mm"]),
+    )
+    uv = write_bound_uv_template(
+        destination / "uv-physical-measurement-template-v2.csv",
+        coupon_id=f"UV-{design_id}-{job['id'][:8]}",
+        target_width_mm=width_mm,
+        target_height_mm=height_mm,
+    )
+    written = [fdm, uv]
+    for path in written:
+        with path.open("r+b") as handle:
             os.fsync(handle.fileno())
-        written.append(path)
     return written
 
 
