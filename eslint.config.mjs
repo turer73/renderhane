@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "out/**",
     "build/**",
+    "**/.pytest_cache/**",
     "next-env.d.ts",
   ]),
 ]);

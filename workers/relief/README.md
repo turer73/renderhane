@@ -41,12 +41,46 @@ Bu modüller Phase A içinde silinmez. Önce benzersiz yetenekler ve çağıran 
 - Artifact SHA-256 değerlerini, reçete hash’ini, birimleri, bounds ve sınırlamaları raporlar.
 - Aynı girdi, reçete ve yazılım ortamında byte-deterministic dosyalar üretir.
 
+## Semantic label → canonical height compiler
+
+Semantic label artwork, fiziksel rölyef yüksekliğinin upstream girdisidir. Compiler
+etiket PNG'sini **aynı piksel tuvalinde** okur; resize, crop, fitting veya resampling
+yapmaz. `L` (uint8) ve unsigned 16-bit PNG etiketleri kabul edilir. Reçete alanları
+strict'tir: bilinmeyen alanlar, tekrar eden stable ID/rank/name değerleri ve etikette
+bulunmayan/fazladan ID'ler fail-closed reddedilir.
+
+Her region'ın fiziksel kenar/plateau yüksekliği, profil ve mm cinsinden bevel'i
+anisotropic pixel pitch (`W/N`, `H/M`) ile değerlendirilir. Candidate/detail girdileri
+yalnız aynı canvas'ta bounded yardımcı sinyallerdir; `candidate_orientation` ile
+direct/inverted seçilebilir. Çıktı tek-valued bir heightfield'dir.
+Minimum-feature, component çapı, plateau, detail clipping ve fiziksel yüzey eğimi
+(max/p95, yalnız diagnostik) rapora yazılır.
+
+```bash
+python compile_semantic_relief.py \
+  --labels /path/to/semantic-labels.png \
+  --recipe /path/to/semantic-recipe.json \
+  --output /tmp/semantic-relief \
+  --width-mm 70 --height-mm 70 --relief-depth-mm 1.2 \
+  --minimum-feature-mm 0.6 \
+  --depth-candidate /path/to/candidate.png \
+  --detail-source /path/to/detail.png
+```
+
+Çıktı `relief-map-16.png` içinde mutlak yüksekliği tek seferlik half-up uint16
+kuantizasyonuyla, `silhouette-mask.png` içinde aynı label canvas'ının aktif maskesini
+taşır. `semantic-relief-report.json` canonical recipe hash'ini ve ayrı durumları
+(`compiler_status`, `physical_validation_status=pending`,
+`production_status=not_approved_pending_physical_validation`) içerir. Dijital
+compiler doğrulaması fiziksel baskı/UV/RIP onayı değildir.
+
 ## Bilinçli Phase 0 sınırları
 
 Kanonik `relief_engine` çekirdeğinde henüz şunlar yoktur:
 
 - magnet yuvası veya askı deliği boolean işlemi,
-- semantik katman/normal map birleşimi,
+- UV artwork/normal-map görünüm katmanlarının compiler çıktısıyla otomatik birleşimi
+  (semantic label → height compiler ayrı ve kanonik bir upstream aşamadır),
 - otomatik minimum yazdırılabilir detay analizi,
 - Bambu Studio’ya özel proje 3MF profili,
 - üretim uygulamasındaki workflow/queue entegrasyonu,
@@ -189,7 +223,9 @@ Paket içinde:
 
 - dört ayrı 3MF/STL/GLB seti,
 - dijital benchmark özeti,
-- P1S/A1 mini ölçüm formu,
+- değerlendiriciyle uyumlu `fdm-physical-measurements-v2.csv`,
+- değerlendiriciyle uyumlu `uv-physical-measurements-v2.csv`,
+- eski çağıranlar için aynı FDM formunun `physical-measurements.csv` kopyası,
 - UV test talimatı,
 - fiziksel karar alanları
 
@@ -203,6 +239,29 @@ python generate_uv_clearance_coupon.py \
 ```
 
 Kupon 3 mm taban üzerinde 0.0 / 0.6 / 1.0 / 1.4 / 1.8 mm yükseltilmiş bölgeler içerir. **UV operatörünün güvenli kafa açıklığı onayı olmadan makineye konulmamalıdır.**
+
+## Gerçek fiziksel doğrulama kiti
+
+Hak sorunu olmayan kalibrasyon tasarımından dört FDM varyantı, final GLB'den
+bağımsız semantik türetim kanıtı, UV yükseklik kuponu ve v2 ölçüm formları üretmek
+için:
+
+```bash
+python prepare_physical_validation_kit.py \
+  --out-dir /tmp/renderhane-relief-physical-kit \
+  --jobs 1
+```
+
+Kalibrasyon profili `grid_long_edge=512` kullanır. 256 ve 384 gridleri sabit
+semantik eşiklerde ok bölgesini geçemediği için eşikler genişletilmemiştir. 512
+profilinde final GLB depth rasterı ve hizalı UV artwork ayrı algoritmalarla stable-ID
+haritalarına dönüştürülür; karşılaştırma aşamasında translation/scale/warp fitting
+yapılmaz. Bu türetim yalnız analitik `calibration-v1` fixture'ı içindir; arbitrary
+untextured müşteri GLB'sinden semantik anlam çıkarıldığı iddia edilmez.
+
+Çıktıdaki `PRINT-AND-MEASURE.md` gerçek P1S/A1 mini ve UV/RIP/ICC prosedürüdür.
+Boş fiziksel formlar nedeniyle ilk `physical_gate=incomplete` ve
+`production_status=not_approved` sonucu bilinçli davranıştır.
 
 ## Test
 
@@ -228,7 +287,8 @@ Testler şu alanları kapsar:
 - geçersiz veya tehlikeli reçete reddi,
 - stale benchmark klasörü reddi,
 - dört-derinlik paketinin fiziksel kararı açık bırakması,
-- UV clearance kuponu.
+- UV clearance kuponu,
+- final GLB depth ile hizalı artwork'ten bağımsız kalibrasyon semantiği.
 
 ## Phase 0 çıkış kapısı
 
