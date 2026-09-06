@@ -1,6 +1,9 @@
 /** Public wire types only. No worker address, credential or native processing. */
 export const WORKSHOP_MAX_BODY = 4_000_000;
-export const WORKSHOP_LAYERS = ["relief_map", "mask", "uv_artwork", "white_mask", "varnish_mask"] as const;
+export const WORKSHOP_LAYERS = [
+  "relief_map", "mask", "uv_artwork", "white_mask", "varnish_mask",
+  "geometry_semantic_ids", "artwork_semantic_ids",
+] as const;
 /** Known workshop artifact names, including the generated production cut contour. */
 export const WORKSHOP_REQUIRED_ARTIFACTS = [
   "model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence",
@@ -34,7 +37,7 @@ export interface WorkshopRevision {
     digital_failures: string[];
     digital_warnings: string[];
     artwork_file_set_status: string;
-    artwork_semantic_registration_status: "not_validated";
+    artwork_semantic_registration_status: "not_validated" | "validated" | "failed";
     physical_validation_status: "pending";
     production_status: "not_approved";
     physical_width_mm: number;

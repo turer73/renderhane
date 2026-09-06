@@ -84,7 +84,8 @@ def make_app(store: WorkshopStore, token: str):
             message = str(exc)
             allowed = ("width must", "dimensions must", "all input layers", "relief_map must",
                        "silhouette must", "mask must", "white_mask must", "varnish_mask must",
-                       "uv_artwork must", "canvas must", "PNG inputs", "queue_limit", "pilot_storage_limit")
+                       "uv_artwork must", "semantic", "canvas must", "PNG inputs", "queue_limit",
+                       "pilot_storage_limit")
             return respond(400, {"error": message if message.startswith(allowed) else "invalid_submission_or_artifact"})
         except Exception:
             return respond(503, {"error": "workshop_unavailable"})

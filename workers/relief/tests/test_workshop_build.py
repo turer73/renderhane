@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import hashlib
 import csv
+import hashlib
 import io
 import json
 import zipfile
@@ -26,10 +26,15 @@ def test_real_workshop_revision_build_finalization_download_and_restart(tmp_path
     result = persisted["result"]
     assert result["digital_geometry_status"] == "ready", result["digital_failures"]
     assert result["coverage"]["layer_coverage_status"] == "pass"
-    assert result["artwork_semantic_registration_status"] == "not_validated"
+    assert result["artwork_semantic_registration_status"] == "validated"
     assert result["physical_validation_status"] == "pending"
     assert result["production_status"] == "not_approved"
-    assert set(result["artifacts"]) >= {"model-glb", "model-stl", "model-3mf", "cut-contour", "evidence", "overlay", "difference"}
+    assert set(result["artifacts"]) >= {
+        "model-glb", "model-stl", "model-3mf", "cut-contour", "evidence",
+        "overlay", "difference", "semantic-registration",
+        "geometry-semantic-ids", "artwork-semantic-ids",
+        "semantic-overlay", "semantic-difference",
+    }
     assert result["artifacts"]["cut-contour"]["content_type"] == "image/svg+xml"
     for name, metadata in result["artifacts"].items():
         artifact, checked = reopened.artifact_path("operator-a", submitted["id"], name)
@@ -38,8 +43,18 @@ def test_real_workshop_revision_build_finalization_download_and_restart(tmp_path
     evidence, _ = reopened.artifact_path("operator-a", submitted["id"], "evidence")
     with zipfile.ZipFile(evidence) as package:
         assert "relief-pro-production-candidate.zip" in package.namelist()
+        assert "semantic-registration-report.json" in package.namelist()
+        assert "semantic-registration-overlay.png" in package.namelist()
+        assert "semantic-registration-difference.png" in package.namelist()
+        assert "semantic-registration/geometry-semantic-ids.png" in package.namelist()
+        assert "semantic-registration/artwork-semantic-ids.png" in package.namelist()
         assert "physical-measurement/fdm-physical-measurement-template-v2.csv" in package.namelist()
         assert json.loads(package.read("revision.json"))["spec_hash"] == submitted["spec_hash"]
+        semantic = json.loads(package.read("semantic-registration-report.json"))
+        revision = json.loads(package.read("revision.json"))
+        assert semantic["artwork_semantic_registration_status"] == "validated"
+        assert semantic["source_bindings"]["geometry_source_sha256"] == revision["spec"]["source_hashes"]["relief_map"]
+        assert semantic["source_bindings"]["artwork_source_sha256"] == revision["spec"]["source_hashes"]["uv_artwork"]
         rows = list(csv.DictReader(io.StringIO(package.read("physical-measurement/fdm-physical-measurement-template-v2.csv").decode())))
         assert len(rows) == 8
         for row in rows:

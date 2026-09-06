@@ -11,6 +11,8 @@ const labels: Record<WorkshopLayer, string> = {
   relief_map: "16-bit mutlak yükseklik haritası *", mask: "Siluet — 0/255 gri maske *",
   uv_artwork: "UV renk — RGB / RGBA", white_mask: "White — gri mürekkep kapsamı",
   varnish_mask: "Varnish — gri mürekkep kapsamı",
+  geometry_semantic_ids: "Geometri semantik ID — 8/16-bit gri PNG",
+  artwork_semantic_ids: "Artwork semantik ID — 8/16-bit gri PNG",
 };
 const states = { queued: "Sırada", running: "Geometri doğrulanıyor", completed: "Dijital işlem bitti", failed: "İşlem başarısız" };
 const errorLabels: Record<string, string> = {
@@ -145,8 +147,24 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
       else {
         const entries = WORKSHOP_LAYERS.map((role) => [role, form.get(role)] as const)
           .filter((entry): entry is readonly [WorkshopLayer, File] => entry[1] instanceof File && entry[1].size > 0);
-        if (entries.reduce((sum, [, file]) => sum + file.size, 0) > 2_900_000) throw new Error(errorLabels.request_limit_4MB);
+        const manifestFile = form.get("semantic_manifest");
+        const semanticEntries = entries.filter(([role]) => role.endsWith("semantic_ids"));
+        const hasManifest = manifestFile instanceof File && manifestFile.size > 0;
+        if ((semanticEntries.length !== 0 && semanticEntries.length !== 2) || (semanticEntries.length === 2) !== hasManifest) {
+          throw new Error("Semantik doğrulama için iki ID PNG'si ve manifest JSON birlikte gerekir.");
+        }
+        const totalBytes = entries.reduce((sum, [, file]) => sum + file.size, 0) + (hasManifest ? manifestFile.size : 0);
+        if (totalBytes > 2_900_000) throw new Error(errorLabels.request_limit_4MB);
         payload.layers = Object.fromEntries(await Promise.all(entries.map(async ([role, file]) => [role, await asBase64(file)])));
+        if (hasManifest) {
+          try {
+            const parsed = JSON.parse(await manifestFile.text());
+            if (!record(parsed)) throw new Error("invalid manifest");
+            payload.semantic_manifest = parsed;
+          } catch {
+            throw new Error("Semantik manifest geçerli bir JSON nesnesi olmalı.");
+          }
+        }
       }
       const body = JSON.stringify(payload);
       if (new TextEncoder().encode(body).byteLength > WORKSHOP_MAX_BODY) throw new Error(errorLabels.request_limit_4MB);
@@ -192,8 +210,8 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
       </header>
 
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
-        Dijital geçiş, üretim onayı değildir. Renk içeriğinin kabartmayla yerel örtüşmesi henüz otomatik doğrulanmıyor.
-        P1S / A1 mini baskısı ve gerçek UV/RIP ölçümleri olmadan bu paketler yalnız test adayıdır.
+        Dijital geçiş, üretim onayı değildir. Yerel eşleşme yalnız aynı koordinattaki kararlı semantik ID çiftiyle doğrulanır;
+        nihai GLB’den bağımsız ID türetimi hâlâ ayrı kapıdır. P1S / A1 mini baskısı ve gerçek UV/RIP ölçümleri olmadan bu paketler yalnız test adayıdır.
       </div>
       {!configured && <p role="status" className="rounded-xl border p-4 text-sm">Atölye arayüzü hazır; dosya işlemek için kalıcı worker, sunucu bağlantısı ve erişim anahtarı yapılandırılmalı. Hiçbir dosya gönderilmiyor.</p>}
       {error && <p role="alert" className="break-words rounded-lg border border-red-500/40 bg-red-500/5 p-3 text-sm">{error}</p>}
@@ -213,10 +231,13 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
                 </select>
               </label>
               {mode === "sample" ? <p className="text-xs text-muted-foreground">Daire ve ok aynı analitik bölgelerden renklendirilir ve yükseltilir. Müşteri/marka varlığı içermez; gerçek ürün kalitesi kanıtı değildir.</p> : <>
-                <p className="text-xs text-muted-foreground">PNG katmanları aynı boyutta, 32–4096 px olmalı. Toplam en fazla 2,9 MB. Beauty render yerine üretim artwork’ü yükleyin.</p>
+                <p className="text-xs text-muted-foreground">PNG katmanları aynı boyutta, 32–4096 px olmalı. Toplam en fazla 2,9 MB. Beauty render yerine üretim artwork’ü yükleyin. Semantik kontrol isteğe bağlıdır; iki ID PNG dosyası ve manifest birlikte gerekir.</p>
                 {WORKSHOP_LAYERS.map((role) => <label key={role} className="block text-sm font-medium">{labels[role]}
                   <input name={role} type="file" accept="image/png" required={role === "relief_map" || role === "mask"} className={`${fieldClass} file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs`} />
                 </label>)}
+                <label className="block text-sm font-medium">Semantik manifest — JSON
+                  <input name="semantic_manifest" type="file" accept="application/json,.json" className={`${fieldClass} file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs`} />
+                </label>
               </>}
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-sm font-medium">Genişlik (mm)
@@ -269,7 +290,13 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
             {result && <>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Gate label="Dijital geometri" value={result.digital_geometry_status === "ready" ? "Geçti" : result.digital_geometry_status === "failed" ? "Başarısız" : "İnceleme gerekli"} pass={result.digital_geometry_status === "ready"} />
-                <Gate label="İç renk–kabartma örtüşmesi" value="Doğrulanmadı" />
+                <Gate
+                  label="Semantik ID raster eşleşmesi"
+                  value={result.artwork_semantic_registration_status === "validated"
+                    ? selected.spec.sample ? "Kalibrasyon ID’leri eşleşti" : "Beyan edilen ID’ler eşleşti"
+                    : result.artwork_semantic_registration_status === "failed" ? "Başarısız" : "Doğrulanmadı"}
+                  pass={result.artwork_semantic_registration_status === "validated"}
+                />
                 <Gate label="Fiziksel üretim" value="Onaylanmadı" />
               </div>
               <p className="text-sm">{result.physical_width_mm.toFixed(2)} × {result.physical_height_mm.toFixed(2)} mm · 3 mm taban · {selected.spec.recipe.relief_depth_mm} mm kabartma</p>
@@ -286,6 +313,23 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
                 <input type="range" min={0} max={100} value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} className="mt-2 w-full" />
               </label>
               <p className="text-xs text-muted-foreground">Görsel bindirme nitel incelemedir. GLB dokusuzdur; renk dosyası GLB’den yeniden üretilmiş albedo değildir. Kesin kontrolleri rapordan okuyun.</p>
+              {result.artifacts["semantic-overlay"] && result.artifacts["semantic-difference"] ? <div className="space-y-2">
+                <h3 className="text-sm font-medium">Semantik örtüşme kanıtı</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <figure>
+                    <div className="relative h-64 overflow-hidden rounded-lg border bg-slate-950">
+                      <Image src={artifactUrl(selected.id, "semantic-overlay")} alt="Geometri ve artwork semantik sınır bindirmesi" fill unoptimized sizes="(max-width: 640px) 90vw, 30vw" className="object-contain" />
+                    </div>
+                    <figcaption className="mt-1 text-xs text-muted-foreground">Sınırlar: kırmızı geometri, camgöbeği artwork, beyaz çakışma.</figcaption>
+                  </figure>
+                  <figure>
+                    <div className="relative h-64 overflow-hidden rounded-lg border bg-slate-950">
+                      <Image src={artifactUrl(selected.id, "semantic-difference")} alt="Kararlı semantik ID piksel farkı" fill unoptimized sizes="(max-width: 640px) 90vw, 30vw" className="object-contain" />
+                    </div>
+                    <figcaption className="mt-1 text-xs text-muted-foreground">Yeşil aynı ID; kırmızı yalnız geometri; mavi yalnız artwork; amber yanlış ID.</figcaption>
+                  </figure>
+                </div>
+              </div> : null}
               <CoverageSummary coverage={result.coverage} />
               {(result.digital_failures.length > 0 || result.digital_warnings.length > 0) && <div className="rounded-lg border border-amber-500/40 p-3 text-sm">
                 <h3 className="font-medium">Dijital bulgular</h3>
@@ -293,7 +337,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
               </div>}
               <div className="flex flex-wrap gap-2">
                 <Button asChild><a href={artifactUrl(selected.id, "evidence")}>Test ve ölçüm paketini indir</a></Button>
-                {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
+                {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["semantic-registration", "Semantik kayıt JSON"], ["semantic-overlay", "Semantik overlay PNG"], ["semantic-difference", "Semantik fark PNG"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
               </div>
               {result.artifact_contract_status === "legacy_missing_cut_contour" ? <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; kesim konturu olan yeni bir revizyon oluşturun.</p> : <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>}
               <details className="rounded-lg border p-3 text-xs">

@@ -11,8 +11,11 @@ const WORKSHOP_ARTIFACT_CONTENT_TYPES: Record<string, string> = {
   candidate: "application/zip", "manufacturing-package": "application/zip", evidence: "application/zip",
   manifest: "application/json", receipt: "application/json", registration: "application/json",
   "layer-coverage": "application/json", revision: "application/json",
+  "semantic-registration": "application/json",
   depth: "image/png", silhouette: "image/png", overlay: "image/png", difference: "image/png",
   "uv-artwork": "image/png", "white-mask": "image/png", "varnish-mask": "image/png",
+  "geometry-semantic-ids": "image/png", "artwork-semantic-ids": "image/png",
+  "semantic-overlay": "image/png", "semantic-difference": "image/png",
   "cut-contour": "image/svg+xml",
 };
 export const WORKSHOP_ARTIFACT_TYPES = [...new Set(Object.values(WORKSHOP_ARTIFACT_CONTENT_TYPES))];
@@ -71,9 +74,10 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
 function result(value: unknown, legacyAllowed: boolean): NonNullable<WorkshopRevision["result"]> {
   const data = record(value);
   requireValue(["ready", "needs_review", "failed"].includes(text(data.digital_geometry_status, 32)));
-  // A new wire value cannot grant semantic or physical approval in this pilot.
-  requireValue(data.artwork_semantic_registration_status === "not_validated" &&
-    data.physical_validation_status === "pending" && data.production_status === "not_approved");
+  const semanticStatus = text(data.artwork_semantic_registration_status, 32);
+  requireValue(["not_validated", "validated", "failed"].includes(semanticStatus));
+  // Semantic evidence never grants physical or production approval.
+  requireValue(data.physical_validation_status === "pending" && data.production_status === "not_approved");
   const artifacts: Record<string, WorkshopArtifact> = {};
   const legacyArtifactContract = legacyAllowed && data.artifact_contract_status === "legacy_missing_cut_contour";
   requireValue(data.artifact_contract_status === undefined || legacyArtifactContract);
@@ -97,12 +101,23 @@ function result(value: unknown, legacyAllowed: boolean): NonNullable<WorkshopRev
     requireValue(Object.hasOwn(artifacts, name));
   }
   requireValue(!legacyArtifactContract || !Object.hasOwn(artifacts, "cut-contour"));
+  const semanticArtifactNames = [
+    "semantic-registration", "geometry-semantic-ids", "artwork-semantic-ids",
+    "semantic-overlay", "semantic-difference",
+  ];
+  const semanticArtifactCount = semanticArtifactNames.filter((name) => Object.hasOwn(artifacts, name)).length;
+  requireValue(semanticArtifactCount === 0 || semanticArtifactCount === semanticArtifactNames.length);
+  requireValue(
+    (semanticStatus === "not_validated" && semanticArtifactCount === 0) ||
+    (semanticStatus !== "not_validated" && semanticArtifactCount === semanticArtifactNames.length),
+  );
   return {
     ...(legacyArtifactContract ? { artifact_contract_status: "legacy_missing_cut_contour" as const } : {}),
     digital_geometry_status: text(data.digital_geometry_status),
     digital_failures: texts(data.digital_failures), digital_warnings: texts(data.digital_warnings),
     artwork_file_set_status: text(data.artwork_file_set_status, 64),
-    artwork_semantic_registration_status: "not_validated", physical_validation_status: "pending", production_status: "not_approved",
+    artwork_semantic_registration_status: semanticStatus as "not_validated" | "validated" | "failed",
+    physical_validation_status: "pending", production_status: "not_approved",
     physical_width_mm: number(data.physical_width_mm, 20, 140), physical_height_mm: number(data.physical_height_mm, Number.EPSILON, 140),
     coverage: coverage(data.coverage), artifacts,
   };
