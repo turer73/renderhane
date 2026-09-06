@@ -11,7 +11,7 @@ describe("workshop initial UI truth", () => {
     expect(html).toContain("Worker yapılandırılmadı");
     expect(html).toContain("Hiçbir dosya gönderilmiyor");
     expect(html).toContain("disabled=");
-    expect(html).toContain("henüz otomatik doğrulanmıyor");
+    expect(html).toContain("kararlı semantik ID çiftiyle doğrulanır");
     expect(html).toContain("fiziksel onay düğmesi sunmaz");
     expect(html).not.toContain("/artifacts/");
   });

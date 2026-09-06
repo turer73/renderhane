@@ -92,11 +92,39 @@ describe("workshop public response contract", () => {
       { ...completed(), result: { ...completed().result, artifacts: {} } },
     ]) expect(() => parseWorkshopReply({ revision: item }, [id], "GET")).toThrow("invalid_worker_response");
   });
-  it("fails closed on future semantic/physical approval claims", () => {
+  it("fails closed on unsupported semantic or physical approval claims", () => {
     for (const change of [
-      { artwork_semantic_registration_status: "validated" }, { physical_validation_status: "approved" },
+      { artwork_semantic_registration_status: "surprisingly_ok" }, { physical_validation_status: "approved" },
       { production_status: "production_ready" }, { digital_geometry_status: "surprisingly_ok" },
     ]) expect(() => parseWorkshopReply({ revision: { ...completed(), result: { ...completed().result, ...change } } }, [id], "GET")).toThrow();
+  });
+  it("accepts semantic pass/fail only with the complete hashed evidence bundle", () => {
+    for (const status of ["validated", "failed"] as const) {
+      const item = completed();
+      Object.assign(item.result, {
+        artwork_semantic_registration_status: status,
+        artifacts: {
+          ...item.result.artifacts,
+          "semantic-registration": { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" },
+          "geometry-semantic-ids": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+          "artwork-semantic-ids": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+          "semantic-overlay": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+          "semantic-difference": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+        },
+      });
+      const parsed = parseWorkshopReply({ revision: item }, [id], "GET");
+      if (!("revision" in parsed) || !parsed.revision) throw new Error("expected revision");
+      expect(parsed.revision.result?.artwork_semantic_registration_status).toBe(status);
+    }
+    const unsupportedClaim = completed();
+    Object.assign(unsupportedClaim.result, { artwork_semantic_registration_status: "validated" });
+    expect(() => parseWorkshopReply({ revision: unsupportedClaim }, [id], "GET")).toThrow("invalid_worker_response");
+    const partialEvidence = completed();
+    Object.assign(partialEvidence.result, { artifacts: {
+      ...partialEvidence.result.artifacts,
+      "semantic-registration": { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" },
+    } });
+    expect(() => parseWorkshopReply({ revision: partialEvidence }, [id], "GET")).toThrow("invalid_worker_response");
   });
   it("allows omitted optional artwork coverage but keeps geometry and reported coverage fail-closed", () => {
     const source = completed().result.coverage;

@@ -15,8 +15,10 @@ SQLite volume'ündedir. Bu bilinçli sınır, çok kiracılı/çok bölgeli SaaS
 ## İşleyiş
 
 1. Unsigned 16-bit absolute height PNG, binary silhouette ve opsiyonel UV/white/varnish
-   katmanlarını aynı canvas üzerinde kabul et. Perspective/beauty artwork otomatik
-   düzeltilmez. 32–4096 px/kenar, toplam ham PNG 2.9 MB, JSON/base64 istek 4 MB.
+   katmanlarını aynı canvas üzerinde kabul et. İsteğe bağlı semantik kontrolde ayrıca
+   geometri/artwork için iki kararlı ID PNG'si ile region manifesti birlikte zorunludur.
+   Perspective/beauty artwork otomatik düzeltilmez. 32–4096 px/kenar, toplam ham PNG
+   2.9 MB, JSON/base64 istek 4 MB.
 2. 20–140 mm genişlik, siluetten hesaplanan yükseklik, 3 mm taban,
    0.6/1.0/1.4/1.8 mm kabartma. Grid 256, gamma 1, absolute normalizasyon;
    toleranslar mevcut finalizer'da 0.02 mm geometri/depth ve 0.5 mm registration kalır.
@@ -38,9 +40,23 @@ SQLite volume'ündedir. Bu bilinçli sınır, çok kiracılı/çok bölgeli SaaS
    uzaklık anizotropik Euclidean distance transform ile piksel merkezleri arasındadır,
    continuous contour/Hausdorff veya UV yazıcı hatası değildir. Alpha/ink sample > 0
    konservatif kapsamdır; filtreleme veya ICC dönüşümü uygulanmaz.
-7. Canonical finalized ZIP değiştirilmeden kanıt ZIP'ine eklenir. Yanında coverage
-   raporu, revision hash ve pending fiziksel ölçüm şablonları bulunur. Bu yan raporlar
-   canonical finalizer semantik onayı gibi gösterilmez. Her indirmede sahiplik,
+7. Semantik ID çifti varsa hiçbir global fitting/resampling yapılmadan her region için
+   IoU, çift yönlü boundary maksimum/p95/ortalama uzaklığı, centroid kayması, alan farkı
+   ve bağlı bileşen sayısı fiziksel mm cinsinden ölçülür. Eksik/fazla/değişmiş ID,
+   eşik aşımı veya tek taraflı dosya fail-closed sonuç verir. Manifest ile label
+   dosyaları immutable revizyondaki gerçek `relief_map` ve `uv_artwork` SHA-256
+   değerlerine sunucu tarafında bağlanır; istemci bu binding'i beyan edemez. Her iki
+   ID haritasının sıfır-olmayan kapsamı siluet maskesiyle piksel piksel aynı olmak
+   zorundadır; yalnız birkaç örnek piksel etiketleyerek sahte geçiş üretilemez.
+8. Canonical finalized ZIP değiştirilmeden kanıt ZIP'ine eklenir. Yanında coverage,
+   opsiyonel semantik kayıt raporu/ID girdileri, tam tuval overlay/fark PNG'leri,
+   revision hash ve pending fiziksel ölçüm şablonları bulunur. Overlay'de kırmızı
+   geometri sınırı, camgöbeği artwork sınırı, beyaz çakışmadır. Fark PNG'sinde yeşil
+   aynı ID, kırmızı yalnız geometri, mavi yalnız artwork ve amber yanlış pozitif ID'dir.
+   JSON ayrıca piksel/alan farkını, confusion çiftlerini ve olası tam ID takaslarını
+   taşır. Semantik rapor yalnız beyan edilen ID raster eşleşmesini doğrular; hash
+   binding upstream türetimin doğru yapıldığını tek başına kanıtlamaz.
+   Her indirmede sahiplik,
    allowlist, dosya boyutu ve SHA-256 yeniden kontrol edilir; dosyalar public R2'ye konmaz.
    Readiness JSON atomik değiştirilir; Docker/Linux'ta dosya ve dizin girdileri
    leaf-to-root fsync edildikten sonra SQLite completed olur. Windows dev akışında
@@ -52,6 +68,32 @@ SQLite volume'ündedir. Bu bilinçli sınır, çok kiracılı/çok bölgeli SaaS
 `state=completed` yalnızca işin bittiğini belirtir. Geometri, coverage, semantik
 örtüşme, fiziksel doğrulama ve üretim durumları ayrı gösterilir. Eksik UV seti veya
 uyarılar gizlenmez. Dokusuz final GLB'den `orthographic-albedo.png` varmış gibi davranılmaz.
+
+Semantik manifest istemci girdisi yalnız region kimliklerini ve gerekirse daha sıkı
+dijital eşikleri taşır; `source_bindings` alanı gönderilmez, revision service üretir:
+
+```json
+{
+  "schema_version": 1,
+  "regions": [
+    {"id": 1, "name": "zemin"},
+    {"id": 2, "name": "yazi"},
+    {"id": 3, "name": "ok"}
+  ],
+  "thresholds": {
+    "minimum_iou": 0.985,
+    "maximum_boundary_distance_mm": 0.25,
+    "maximum_p95_boundary_distance_mm": 0.125,
+    "maximum_centroid_offset_mm": 0.125,
+    "maximum_relative_area_delta": 0.015
+  }
+}
+```
+
+ID `0` arka plandır ve manifestte bulunmaz. Pozitif ID'ler iki rasterda da manifestle
+tam eşleşmeli ve sıfır-olmayan pikseller silhouette maskesini eksiksiz kaplamalıdır.
+Bu eşikler fiziksel yazıcı toleransı değil, aynı XY koordinatındaki dijital region
+farkı eşikleridir; fiziksel 0.02/0.5 mm kapıları değiştirilmemiştir.
 
 ## Çalıştırma
 
@@ -115,8 +157,11 @@ kanıtlanmalıdır. Yerel testlerin geçmesi bu canlı kontrollerin yerine geçm
 
 ## Fiziksel ve semantik kalan işler
 
-- Same-source semantic/vector ID katmanları, geometriye karşı yerel iç kenar testi;
-  renk benzerliği veya yalnız dış siluet IoU bu testi ikame etmez.
+- Final GLB'den bağımsız yeniden türetilmiş semantic/vector ID projeksiyonu ve
+  geometriye karşı yerel iç kenar testi. Mevcut kararlı-ID raster ölçümü bu sözleşmenin
+  fail-closed metrik/kanıt katmanını sağlar; upstream ID türetimini veya nihai GLB'deki
+  semantik kimliği tek başına kanıtlamaz. Renk benzerliği veya yalnız dış siluet IoU
+  bu testi ikame etmez.
 - Nihai tekstürlü geometriye bağlı ortografik albedo/raster sözleşmesi, ICC/RIP,
   alpha premultiplication, white choke/spread ve varnish profil doğrulaması.
 - Gerçek cihazdan ölçülmüş hata bütçesi ve minimum çizgi/boşluk/duvar eşikleri.

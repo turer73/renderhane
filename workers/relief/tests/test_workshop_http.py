@@ -8,10 +8,8 @@ from typing import Any
 
 import numpy as np
 from PIL import Image
-
 from workshop_http import make_app
 from workshop_store import WorkshopStore
-
 
 TOKEN = "x" * 32
 
@@ -100,12 +98,27 @@ def test_http_rejects_bad_token_missing_owner_content_type_and_body_limit(tmp_pa
 
 def test_http_rejects_invalid_contract_inputs_without_echoing_request(tmp_path: Path) -> None:
     app = make_app(WorkshopStore(tmp_path / "workshop"), TOKEN)
+    incomplete_semantic = np.ones((32, 32), dtype=np.uint16)
+    incomplete_semantic[0, 0] = 0
     cases = [
         ("eight_bit_height", {"layers": _uploaded_layers(relief_8bit=True)}),
         ("nonfinite", {"recipe": {"width_mm": float("nan")}}),
         ("unknown_field", {"unknown": "must-not-be-echoed"}),
         ("unknown_sample", {"sample": "unknown-sample"}),
         ("mixed_sample_layer", {"sample": "calibration-v1", "layers": {}}),
+        ("semantic_missing_pair", {
+            "layers": {**_uploaded_layers(), "geometry_semantic_ids": _png(np.ones((32, 32), dtype=np.uint16))},
+            "semantic_manifest": {"schema_version": 1, "regions": [{"id": 1, "name": "base"}]},
+        }),
+        ("semantic_silhouette_coverage_gap", {
+            "layers": {
+                **_uploaded_layers(),
+                "uv_artwork": _png(np.zeros((32, 32, 3), dtype=np.uint8)),
+                "geometry_semantic_ids": _png(incomplete_semantic),
+                "artwork_semantic_ids": _png(incomplete_semantic),
+            },
+            "semantic_manifest": {"schema_version": 1, "regions": [{"id": 1, "name": "base"}]},
+        }),
         ("bad_png", {"layers": {"relief_map": base64.b64encode(b"\x89PNG\r\n\x1a\nbad-not-an-image-data").decode(), "mask": _uploaded_layers()["mask"]}}),
     ]
     for label, changes in cases:

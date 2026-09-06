@@ -10,11 +10,11 @@ import os
 import zipfile
 from pathlib import Path
 
-from PIL import Image
-
 from analyze_artwork_layers import analyze_artwork_layers
+from analyze_semantic_registration import write_semantic_registration_artifacts
 from build_relief_pro_package import build_relief_pro_package
 from finalize_relief_pro_package import finalize_package
+from PIL import Image
 from product_relief_builder import ProductRecipe
 from workshop_contract import engine_fingerprint, toolchain
 from workshop_store import WorkshopStore, canonical_json
@@ -104,8 +104,16 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
         paths[role].write_bytes(raw)
     package = root / "package"
     recipe = ProductRecipe(**job["spec"]["recipe"])
-    build_relief_pro_package(**paths, output_dir=package, recipe=recipe,
-                            title="Relief Pro — digital test candidate")
+    build_relief_pro_package(
+        relief_map=paths["relief_map"],
+        mask=paths["mask"],
+        uv_artwork=paths.get("uv_artwork"),
+        white_mask=paths.get("white_mask"),
+        varnish_mask=paths.get("varnish_mask"),
+        output_dir=package,
+        recipe=recipe,
+        title="Relief Pro — digital test candidate",
+    )
     finalized = finalize_package(package)
     manifest = finalized["manifest"]
     # Coverage is measured on ORIGINAL inputs: cropping must not hide spilled ink.
@@ -118,10 +126,23 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
         width_mm=pitch * width, height_mm=pitch * height,
     )
     write_json(root / "layer-coverage-report.json", coverage)
+    semantic_report = None
+    semantic_manifest = job["spec"].get("semantic_manifest")
+    if semantic_manifest is not None:
+        semantic_report = write_semantic_registration_artifacts(
+            paths["geometry_semantic_ids"],
+            paths["artwork_semantic_ids"],
+            semantic_manifest,
+            physical_width_mm=pitch * width,
+            physical_height_mm=pitch * height,
+            report_path=root / "semantic-registration-report.json",
+            overlay_path=root / "semantic-registration-overlay.png",
+            difference_path=root / "semantic-registration-difference.png",
+        )
     write_json(root / "revision.json", {"id": job["id"], "spec_hash": job["spec_hash"],
                                        "spec": job["spec"]})
-    # Evidence bundle keeps the canonical finalized ZIP intact. Sidecar checks are
-    # NOT retrospectively presented as canonical finalizer/semantic approval.
+    # Evidence bundle keeps the canonical finalized ZIP intact. The semantic
+    # sidecar is scoped to the immutable revision and cannot grant physical approval.
     candidates = {
         "candidate": (package / "relief-pro-production-candidate.zip", "application/zip"),
         "model-glb": (package / "geometry/model.glb", "model/gltf-binary"),
@@ -135,6 +156,29 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
         "silhouette": (package / "geometry/final-glb-orthographic-silhouette.png", "image/png"),
         "depth": (package / "geometry/final-glb-orthographic-depth-16.png", "image/png"),
     }
+    if semantic_report is not None:
+        candidates.update({
+            "semantic-registration": (
+                root / "semantic-registration-report.json",
+                "application/json",
+            ),
+            "geometry-semantic-ids": (
+                paths["geometry_semantic_ids"],
+                "image/png",
+            ),
+            "artwork-semantic-ids": (
+                paths["artwork_semantic_ids"],
+                "image/png",
+            ),
+            "semantic-overlay": (
+                root / "semantic-registration-overlay.png",
+                "image/png",
+            ),
+            "semantic-difference": (
+                root / "semantic-registration-difference.png",
+                "image/png",
+            ),
+        })
     for role, filename in (("uv-artwork", "uv-artwork-srgb.png"), ("white-mask", "white-mask.png"),
                            ("varnish-mask", "varnish-mask.png")):
         path = package / "artwork" / filename
@@ -147,10 +191,30 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
     physical_templates = write_physical_templates(root, job, recipe.width_mm, pitch * (bottom - top))
     evidence = root / "workshop-evidence.zip"
     with zipfile.ZipFile(evidence, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
-        for path in (candidates["candidate"][0], root / "layer-coverage-report.json", root / "revision.json"):
+        evidence_files = [
+            candidates["candidate"][0],
+            root / "layer-coverage-report.json",
+            root / "revision.json",
+        ]
+        if semantic_report is not None:
+            evidence_files.extend(
+                [
+                    root / "semantic-registration-report.json",
+                    root / "semantic-registration-overlay.png",
+                    root / "semantic-registration-difference.png",
+                ]
+            )
+        for path in evidence_files:
             info = zipfile.ZipInfo(path.name, (1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             bundle.writestr(info, path.read_bytes())
+        if semantic_report is not None:
+            for role in ("geometry_semantic_ids", "artwork_semantic_ids"):
+                path = paths[role]
+                archive_name = f"semantic-registration/{role.replace('_', '-')}.png"
+                info = zipfile.ZipInfo(archive_name, (1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                bundle.writestr(info, path.read_bytes())
         for path in physical_templates:
             info = zipfile.ZipInfo(f"physical-measurement/{path.name}", (1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
@@ -163,15 +227,20 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
             os.fsync(handle.fileno())
         artifacts[name] = {"path": path.relative_to(root).as_posix(), "bytes": path.stat().st_size,
                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "content_type": mime}
+    semantic_status = (
+        semantic_report["artwork_semantic_registration_status"]
+        if semantic_report is not None
+        else "not_validated"
+    )
     result = {"digital_geometry_status": manifest["digital_geometry_status"],
               "digital_failures": manifest["digital_failures"], "digital_warnings": manifest["digital_warnings"],
               "artwork_file_set_status": manifest["artwork_file_set_status"],
-              "artwork_semantic_registration_status": "not_validated",
+              "artwork_semantic_registration_status": semantic_status,
               "physical_validation_status": "pending", "production_status": "not_approved",
               "coverage": coverage, "artifacts": artifacts,
               "physical_width_mm": recipe.width_mm, "physical_height_mm": pitch * (bottom - top),
               "limitations": ["No albedo is reconstructed from the untextured GLB.",
-                              "Silhouette coverage is not internal semantic alignment.",
+                              "Layer coverage is not internal semantic alignment; only the optional stable-ID semantic report measures declared regions.",
                               "Minimum printable details and actual RIP/ink/head clearance are not approved."]}
     # The readiness marker is replaced atomically, then directory entries and
     # data are flushed. The parent publishes the DB state only after child exit.
