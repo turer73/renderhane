@@ -14,16 +14,38 @@ import build_relief_pro_package as package_builder
 from workshop_store import LEASE_SECONDS, MAX_ATTEMPTS, WorkshopStore
 
 
-def _spec(*, width_mm: float = 70.0, layer_hash: str = "a" * 64) -> dict:
-    return {
+REQUIRED_ARTIFACT_NAMES = {
+    "model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence",
+    "registration", "layer-coverage", "cut-contour",
+}
+LEGACY_ARTIFACT_NAMES = {
+    "candidate", "depth", "difference", "evidence", "layer-coverage", "manifest",
+    "model-3mf", "model-glb", "model-stl", "overlay", "registration", "revision",
+    "silhouette", "uv-artwork", "varnish-mask", "white-mask",
+}
+
+
+def _spec(*, width_mm: float = 70.0, layer_hash: str = "a" * 64,
+          engine_sha256: str | None = None) -> dict:
+    spec = {
         "workshop_version": "relief-workshop-v1",
         "recipe": {"width_mm": width_mm, "relief_depth_mm": 1.0},
         "source_hashes": {"relief_map": layer_hash, "mask": "b" * 64},
     }
+    if engine_sha256 is not None:
+        spec["engine_sha256"] = engine_sha256
+    return spec
 
 
 def _payload(marker: str = "one") -> dict:
     return {"layers": {"relief_map": marker, "mask": marker}}
+
+
+def _required_result(extra: dict | None = None) -> dict:
+    artifacts = {name: {} for name in REQUIRED_ARTIFACT_NAMES}
+    if extra:
+        artifacts.update(extra)
+    return {"artifacts": artifacts}
 
 
 def test_real_sqlite_owner_isolation_dedup_and_revision_identity(tmp_path: Path) -> None:
@@ -87,7 +109,7 @@ def test_expired_lease_fences_stale_worker_and_enforces_three_attempt_limit(
     assert second["id"] == first["id"]
     assert second["lease_token"] != first["lease_token"]
     assert store.heartbeat(first, now=started + LEASE_SECONDS + 1) is False
-    assert store.finish(first, {"artifacts": {}}) is False
+    assert store.finish(first, _required_result()) is False
 
     third = store.claim(now=started + 2 * (LEASE_SECONDS + 1))
     assert third is not None
@@ -110,9 +132,12 @@ def test_failed_retry_is_bounded_and_completed_revision_is_immutable(tmp_path: P
     assert store.retry("alice", revision["id"]) is True
     retried = store.claim()
     assert retried is not None
-    result = {"artifacts": {}, "marker": "immutable"}
+    result = _required_result()
+    result["marker"] = "immutable"
     assert store.finish(retried, result) is True
-    assert store.finish(retried, {"artifacts": {}, "marker": "overwritten"}) is False
+    overwritten = _required_result()
+    overwritten["marker"] = "overwritten"
+    assert store.finish(retried, overwritten) is False
     assert store.retry("alice", revision["id"]) is False
     duplicate, created = store.submit("alice", _spec(), _payload("new"))
     assert created is False
@@ -135,7 +160,7 @@ def _completed_artifact_job(store: WorkshopStore, owner: str = "alice") -> tuple
         "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
         "content_type": "application/json",
     }
-    assert store.finish(job, {"artifacts": {"report": metadata}}) is True
+    assert store.finish(job, _required_result({"report": metadata})) is True
     return revision, job, artifact
 
 
@@ -188,3 +213,84 @@ def test_artifact_symlink_and_database_path_tampering_are_rejected(
         ))
     with pytest.raises(ValueError, match="invalid artifact path"):
         store.artifact_path("alice", revision["id"], "linked")
+
+
+def test_legacy_completed_projection_marks_missing_cut_contour_without_mutating_row(
+    tmp_path: Path,
+) -> None:
+    store = WorkshopStore(tmp_path / "workshop")
+    revision, _ = store.submit(
+        "alice", _spec(engine_sha256="19837027de0359ff98d365db63ff3886e444b8271672114c9e793944036adaf9"), _payload()
+    )
+    legacy_artifacts = {name: {} for name in LEGACY_ARTIFACT_NAMES}
+    with store.connect() as db:
+        db.execute(
+            "UPDATE revisions SET state='completed', result=? WHERE id=?",
+            (json.dumps({"artifacts": legacy_artifacts}), revision["id"]),
+        )
+
+    public = store.get("alice", revision["id"])
+    assert public is not None
+    assert public["result"]["artifact_contract_status"] == "legacy_missing_cut_contour"
+    assert "cut-contour" not in public["result"]["artifacts"]
+    with store.connect() as db:
+        raw = db.execute("SELECT result FROM revisions WHERE id=?", (revision["id"],)).fetchone()[0]
+    assert "artifact_contract_status" not in raw
+
+
+def test_wrong_engine_legacy_shape_is_not_marked(tmp_path: Path) -> None:
+    store = WorkshopStore(tmp_path / "workshop")
+    revision, _ = store.submit("alice", _spec(engine_sha256="wrong"), _payload())
+    with store.connect() as db:
+        db.execute(
+            "UPDATE revisions SET state='completed', result=? WHERE id=?",
+            (json.dumps({"artifacts": {name: {} for name in LEGACY_ARTIFACT_NAMES}}), revision["id"]),
+        )
+    public = store.get("alice", revision["id"])
+    assert public is not None
+    assert "artifact_contract_status" not in public["result"]
+
+
+def test_superset_or_malformed_legacy_shape_is_not_marked(tmp_path: Path) -> None:
+    cases = [
+        LEGACY_ARTIFACT_NAMES | {"extra"},
+        LEGACY_ARTIFACT_NAMES - {"white-mask"},
+    ]
+    for index, names in enumerate(cases):
+        store = WorkshopStore(tmp_path / str(index))
+        revision, _ = store.submit("alice", _spec(engine_sha256="19837027de0359ff98d365db63ff3886e444b8271672114c9e793944036adaf9"), _payload())
+        with store.connect() as db:
+            db.execute(
+                "UPDATE revisions SET state='completed', result=? WHERE id=?",
+                (json.dumps({"artifacts": {name: {} for name in names}}), revision["id"]),
+            )
+        public = store.get("alice", revision["id"])
+        assert public is not None
+        assert "artifact_contract_status" not in public["result"]
+
+
+def test_new_completion_rejects_missing_or_non_dict_artifacts(tmp_path: Path) -> None:
+    results = [
+        {},
+        {"artifacts": {}},
+        {"artifacts": []},
+        {"artifacts": {name: {} for name in REQUIRED_ARTIFACT_NAMES - {"cut-contour"}}},
+    ]
+    for index, result in enumerate(results):
+        store = WorkshopStore(tmp_path / str(index))
+        store.submit("alice", _spec(), _payload())
+        job = store.claim()
+        assert job is not None
+        with pytest.raises(ValueError, match="completed result missing required artifacts"):
+            store.finish(job, result)
+
+
+def test_new_completion_accepts_all_required_artifacts(tmp_path: Path) -> None:
+    store = WorkshopStore(tmp_path / "workshop")
+    revision, _ = store.submit("alice", _spec(), _payload())
+    job = store.claim()
+    assert job is not None
+    assert store.finish(job, _required_result()) is True
+    completed = store.get("alice", revision["id"])
+    assert completed is not None
+    assert completed["state"] == "completed"

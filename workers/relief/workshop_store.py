@@ -21,6 +21,16 @@ MAX_ATTEMPTS = 3
 LEASE_SECONDS = 90
 MAX_REVISIONS = 200
 OWNER_RE = re.compile(r"^[a-zA-Z0-9_-]{1,80}$")
+LEGACY_ENGINE_SHA256 = "19837027de0359ff98d365db63ff3886e444b8271672114c9e793944036adaf9"
+LEGACY_ARTIFACT_KEYS = frozenset({
+    "candidate", "depth", "difference", "evidence", "layer-coverage", "manifest",
+    "model-3mf", "model-glb", "model-stl", "overlay", "registration", "revision",
+    "silhouette", "uv-artwork", "varnish-mask", "white-mask",
+})
+REQUIRED_COMPLETED_ARTIFACTS = frozenset({
+    "model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence",
+    "registration", "layer-coverage", "cut-contour",
+})
 
 
 def canonical_json(value: Any) -> str:
@@ -70,14 +80,26 @@ class WorkshopStore:
         finally:
             db.close()
 
-    @staticmethod
-    def public(row: sqlite3.Row) -> dict[str, Any]:
+    def public(self, row: sqlite3.Row) -> dict[str, Any]:
+        result = json.loads(row["result"]) if row["result"] else None
+        legacy_artifact_contract = False
+        if row["state"] == "completed" and row["error"] is None and isinstance(result, dict):
+            spec = json.loads(row["spec"])
+            artifacts = result.get("artifacts")
+            legacy_artifact_contract = (
+                isinstance(spec, dict) and spec.get("engine_sha256") == LEGACY_ENGINE_SHA256 and
+                isinstance(artifacts, dict) and set(artifacts) == LEGACY_ARTIFACT_KEYS
+            )
+        if isinstance(result, dict):
+            result = {key: value for key, value in result.items() if key != "artifact_contract_status"}
+            if legacy_artifact_contract:
+                result["artifact_contract_status"] = "legacy_missing_cut_contour"
         return {
             key: row[key] for key in
             ("id", "spec_hash", "state", "attempts", "created_at", "updated_at", "error")
         } | {
             "spec": json.loads(row["spec"]),
-            "result": json.loads(row["result"]) if row["result"] else None,
+            "result": result,
         }
 
     def submit(self, owner: str, spec: dict, payload: dict) -> tuple[dict, bool]:
@@ -147,6 +169,12 @@ class WorkshopStore:
                               (now + LEASE_SECONDS, now, job["id"], job["lease_token"], now)).rowcount == 1
 
     def finish(self, job: dict, result: dict | None, error: str | None = None) -> bool:
+        if error is None:
+            artifacts = result.get("artifacts") if isinstance(result, dict) else None
+            missing = REQUIRED_COMPLETED_ARTIFACTS - set(artifacts) if isinstance(artifacts, dict) else REQUIRED_COMPLETED_ARTIFACTS
+            if missing:
+                raise ValueError(f"completed result missing required artifacts: {', '.join(sorted(missing))}")
+
         now = time.time()
         with self.connect() as db:
             return db.execute("""UPDATE revisions SET state=?,result=?,error=?,updated_at=?,

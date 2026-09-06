@@ -6,6 +6,11 @@ export const WORKSHOP_REQUIRED_ARTIFACTS = [
   "model-glb", "model-stl", "model-3mf", "depth", "silhouette", "evidence",
   "registration", "layer-coverage", "cut-contour",
 ] as const;
+export const LEGACY_WORKSHOP_ENGINE_SHA256 = "19837027de0359ff98d365db63ff3886e444b8271672114c9e793944036adaf9";
+export const LEGACY_WORKSHOP_ARTIFACT_KEYS = [
+  "candidate", "depth", "difference", "evidence", "layer-coverage", "manifest", "model-3mf", "model-glb",
+  "model-stl", "overlay", "registration", "revision", "silhouette", "uv-artwork", "varnish-mask", "white-mask",
+] as const;
 export type WorkshopLayer = typeof WORKSHOP_LAYERS[number];
 export type WorkshopRequiredArtifact = typeof WORKSHOP_REQUIRED_ARTIFACTS[number];
 export interface WorkshopArtifact {
@@ -36,6 +41,7 @@ export interface WorkshopRevision {
     physical_height_mm: number;
     coverage: Record<string, unknown>;
     artifacts: Record<string, WorkshopArtifact>;
+    artifact_contract_status?: "legacy_missing_cut_contour";
   } | null;
 }
 
