@@ -7,7 +7,7 @@ import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Globe, Menu, X, ArrowRight, Eraser, QrCode, ChevronDown } from "lucide-react";
+import { Globe, Menu, X, ArrowRight, Eraser, QrCode, Radio, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export function LandingHeader() {
@@ -25,6 +25,7 @@ export function LandingHeader() {
   const freeTools = [
     { label: t("footer.bgRemoveFree"), href: `/${locale}/araclar/arka-plan-kaldirma`, icon: Eraser },
     { label: t("footer.qrCodeFree"), href: `/${locale}/araclar/qr-kod`, icon: QrCode },
+    { label: t("footer.nfcWriteFree"), href: `/${locale}/araclar/nfc-yaz`, icon: Radio },
   ];
 
   function switchLanguage() {

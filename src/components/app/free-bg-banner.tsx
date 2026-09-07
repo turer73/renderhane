@@ -2,11 +2,11 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Eraser, QrCode, ArrowRight, Zap } from "lucide-react";
+import { Eraser, QrCode, Radio, ArrowRight, Zap } from "lucide-react";
 
 /**
  * Banner showcasing free tools available without registration.
- * Two consistent cards side by side, prominent placement in hero.
+ * Consistent cards side by side, prominent placement in hero.
  */
 export function FreeBgBanner() {
   const params = useParams<{ locale: string }>();
@@ -34,6 +34,16 @@ export function FreeBgBanner() {
       hoverGradient: "hover:from-emerald-700 hover:to-teal-700",
       iconBg: "bg-white/20",
     },
+    {
+      href: `/${locale}/araclar/nfc-yaz`,
+      icon: Radio,
+      title: tr ? "NFC Etiket Yaz" : "NFC Tag Writer",
+      subtitle: tr ? "Telefondan programla • Uygulama yok" : "Program from your phone • No app",
+      badge: tr ? "Mobil" : "Mobile",
+      gradient: "from-violet-600 to-fuchsia-600",
+      hoverGradient: "hover:from-violet-700 hover:to-fuchsia-700",
+      iconBg: "bg-white/20",
+    },
   ];
 
   return (
@@ -44,8 +54,8 @@ export function FreeBgBanner() {
         <span>{tr ? "Kayıt olmadan hemen deneyin" : "Try instantly without signup"}</span>
       </div>
 
-      {/* Two cards side by side */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Cards side by side */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {tools.map((tool) => (
           <Link
             key={tool.href}
@@ -65,8 +75,8 @@ export function FreeBgBanner() {
             </div>
 
             <div className="relative mt-4 flex-1">
-              <h3 className="text-lg font-bold leading-tight">{tool.title}</h3>
-              <p className="mt-1 text-sm text-white/75">{tool.subtitle}</p>
+              <h3 className="text-base font-bold leading-tight sm:text-lg">{tool.title}</h3>
+              <p className="mt-1 text-xs text-white/75 sm:text-sm">{tool.subtitle}</p>
             </div>
 
             <div className="relative mt-4 flex items-center gap-1.5 text-sm font-semibold text-white/90 transition-colors group-hover:text-white">
