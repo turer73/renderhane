@@ -2,7 +2,8 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Eraser, QrCode, Radio, ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
+import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 /**
  * Banner showcasing free tools available without registration.
@@ -13,38 +14,16 @@ export function FreeBgBanner() {
   const locale = params.locale || "tr";
   const tr = locale === "tr";
 
-  const tools = [
-    {
-      href: `/${locale}/araclar/arka-plan-kaldirma`,
-      icon: Eraser,
-      title: tr ? "Arka Plan Kaldır" : "Remove Background",
-      subtitle: tr ? "Kayıt olmadan • Günde 3 hak" : "No signup • 3/day free",
-      badge: tr ? "Ücretsiz" : "Free",
-      gradient: "from-indigo-600 to-purple-600",
-      hoverGradient: "hover:from-indigo-700 hover:to-purple-700",
-      iconBg: "bg-white/20",
-    },
-    {
-      href: `/${locale}/araclar/qr-kod`,
-      icon: QrCode,
-      title: tr ? "QR Kod Oluşturucu" : "QR Code Generator",
-      subtitle: tr ? "URL, vCard, WiFi, SVG indirme" : "URL, vCard, WiFi, SVG download",
-      badge: tr ? "Sınırsız" : "Unlimited",
-      gradient: "from-emerald-600 to-teal-600",
-      hoverGradient: "hover:from-emerald-700 hover:to-teal-700",
-      iconBg: "bg-white/20",
-    },
-    {
-      href: `/${locale}/araclar/nfc-yaz`,
-      icon: Radio,
-      title: tr ? "NFC Etiket Yaz" : "NFC Tag Writer",
-      subtitle: tr ? "Telefondan programla • Uygulama yok" : "Program from your phone • No app",
-      badge: tr ? "Mobil" : "Mobile",
-      gradient: "from-violet-600 to-fuchsia-600",
-      hoverGradient: "hover:from-violet-700 hover:to-fuchsia-700",
-      iconBg: "bg-white/20",
-    },
-  ];
+  const tools = FREE_TOOLS.map((tool) => ({
+    href: freeToolHref(locale, tool),
+    icon: tool.icon,
+    title: tr ? tool.title.tr : tool.title.en,
+    subtitle: tr ? tool.subtitle.tr : tool.subtitle.en,
+    badge: tr ? tool.badge.tr : tool.badge.en,
+    gradient: tool.gradient,
+    hoverGradient: tool.hoverGradient,
+    iconBg: "bg-white/20",
+  }));
 
   return (
     <div className="space-y-3">

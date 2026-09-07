@@ -24,6 +24,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 interface WorkspaceHeaderProps {
   onCredits?: () => void;
@@ -101,12 +102,16 @@ export function WorkspaceHeader({
 
   return (
     <header className="flex h-14 flex-none items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-4">
-      {/* Left: Logo */}
+      {/* Left: Logo — links home so the app is never a dead end */}
       <div className="flex items-center gap-3">
-        <span className="text-lg font-bold">
+        <Link
+          href={`/${locale}`}
+          className="text-lg font-bold transition-opacity hover:opacity-80"
+          title={isTr ? "Siteye dön" : "Back to site"}
+        >
           <span className="text-primary">Render</span>
           <span className="text-foreground">hane</span>
-        </span>
+        </Link>
       </div>
 
       {/* Right: Credits + Theme + User Menu */}
@@ -189,6 +194,24 @@ export function WorkspaceHeader({
               <KeyRound className="h-4 w-4" />
               {isTr ? "Ayarlar" : "Settings"}
             </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            {/* Free tools — reachable from inside the app, not just the landing page */}
+            <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {isTr ? "Ücretsiz Araçlar" : "Free Tools"}
+            </DropdownMenuLabel>
+            {FREE_TOOLS.map((tool) => (
+              <DropdownMenuItem key={tool.slug} asChild>
+                <Link
+                  href={freeToolHref(locale, tool)}
+                  className="flex cursor-pointer items-center gap-2"
+                >
+                  <tool.icon className="h-4 w-4" />
+                  {isTr ? tool.title.tr : tool.title.en}
+                </Link>
+              </DropdownMenuItem>
+            ))}
 
             {isAdmin && (
               <>

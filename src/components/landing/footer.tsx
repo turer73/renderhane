@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Globe, Mail } from "lucide-react";
+import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 export function Footer() {
   const t = useTranslations("landing");
@@ -35,9 +36,10 @@ export function Footer() {
   ];
 
   const toolLinks = [
-    { label: t("footer.bgRemoveFree"), href: `/${locale}/araclar/arka-plan-kaldirma` },
-    { label: t("footer.qrCodeFree"), href: `/${locale}/araclar/qr-kod` },
-    { label: t("footer.nfcWriteFree"), href: `/${locale}/araclar/nfc-yaz` },
+    ...FREE_TOOLS.map((tool) => ({
+      label: t(tool.i18nKey),
+      href: freeToolHref(locale, tool),
+    })),
     { label: t("footer.apiAccess"), href: `/${locale}/app/settings` },
     { label: t("footer.shopifyIntegration"), href: `/${locale}/app` },
     { label: t("footer.blenderPlugin"), href: "https://github.com/turer73/renderhane/tree/master/plugins/blender" },
