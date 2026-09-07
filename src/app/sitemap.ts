@@ -22,6 +22,7 @@ const staticPages: { path: string; lastModified: string | null; changeFreq: "wee
   // Free tools — high SEO value
   { path: "/araclar/arka-plan-kaldirma", lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
   { path: "/araclar/qr-kod",            lastModified: "2026-04-02", changeFreq: "weekly", priority: 0.8 },
+  { path: "/araclar/nfc-yaz",           lastModified: "2026-09-07", changeFreq: "weekly", priority: 0.8 },
   // Tool landing pages — SEO
   { path: "/araclar/sahne-olustur",      lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },
   { path: "/araclar/aplus-icerik",       lastModified: "2026-04-03", changeFreq: "monthly", priority: 0.7 },

@@ -37,6 +37,7 @@ export function Footer() {
   const toolLinks = [
     { label: t("footer.bgRemoveFree"), href: `/${locale}/araclar/arka-plan-kaldirma` },
     { label: t("footer.qrCodeFree"), href: `/${locale}/araclar/qr-kod` },
+    { label: t("footer.nfcWriteFree"), href: `/${locale}/araclar/nfc-yaz` },
     { label: t("footer.apiAccess"), href: `/${locale}/app/settings` },
     { label: t("footer.shopifyIntegration"), href: `/${locale}/app` },
     { label: t("footer.blenderPlugin"), href: "https://github.com/turer73/renderhane/tree/master/plugins/blender" },

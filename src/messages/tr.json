@@ -323,6 +323,7 @@
       "freeTools": "Ücretsiz Araçlar",
       "bgRemoveFree": "Arka Plan Kaldırma",
       "qrCodeFree": "QR Kod Oluşturucu",
+      "nfcWriteFree": "NFC Etiket Programlama",
       "apiAccess": "Geliştirici API",
       "shopifyIntegration": "Shopify Entegrasyonu",
       "blenderPlugin": "Blender Plugin",
