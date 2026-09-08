@@ -16,6 +16,9 @@ const WORKSHOP_ARTIFACT_CONTENT_TYPES: Record<string, string> = {
   "uv-artwork": "image/png", "white-mask": "image/png", "varnish-mask": "image/png",
   "geometry-semantic-ids": "image/png", "artwork-semantic-ids": "image/png",
   "semantic-overlay": "image/png", "semantic-difference": "image/png",
+  "uv-appearance-artwork": "image/png", "uv-appearance-shading": "image/png",
+  "uv-appearance-normal": "image/png", "uv-appearance-varnish": "image/png",
+  "uv-appearance-ticket": "application/json",
   "cut-contour": "image/svg+xml",
 };
 export const WORKSHOP_ARTIFACT_TYPES = [...new Set(Object.values(WORKSHOP_ARTIFACT_CONTENT_TYPES))];
@@ -111,6 +114,22 @@ function result(value: unknown, legacyAllowed: boolean): NonNullable<WorkshopRev
     (semanticStatus === "not_validated" && semanticArtifactCount === 0) ||
     (semanticStatus !== "not_validated" && semanticArtifactCount === semanticArtifactNames.length),
   );
+  const appearanceArtifactNames = [
+    "uv-appearance-artwork", "uv-appearance-shading", "uv-appearance-normal",
+    "uv-appearance-varnish", "uv-appearance-ticket",
+  ];
+  const appearanceArtifactCount = appearanceArtifactNames.filter((name) => Object.hasOwn(artifacts, name)).length;
+  requireValue(appearanceArtifactCount === 0 || appearanceArtifactCount === appearanceArtifactNames.length);
+  const appearanceStatus = data.uv_appearance_status === undefined
+    ? "not_generated"
+    : text(data.uv_appearance_status, 32);
+  const unevenSurfaceStatus = data.uneven_surface_validation_status === undefined
+    ? "not_applicable"
+    : text(data.uneven_surface_validation_status, 32);
+  requireValue(
+    (appearanceArtifactCount === 0 && appearanceStatus === "not_generated" && unevenSurfaceStatus === "not_applicable") ||
+    (appearanceArtifactCount === appearanceArtifactNames.length && appearanceStatus === "not_calibrated" && unevenSurfaceStatus === "not_validated"),
+  );
   return {
     ...(legacyArtifactContract ? { artifact_contract_status: "legacy_missing_cut_contour" as const } : {}),
     digital_geometry_status: text(data.digital_geometry_status),
@@ -118,6 +137,8 @@ function result(value: unknown, legacyAllowed: boolean): NonNullable<WorkshopRev
     artwork_file_set_status: text(data.artwork_file_set_status, 64),
     artwork_semantic_registration_status: semanticStatus as "not_validated" | "validated" | "failed",
     physical_validation_status: "pending", production_status: "not_approved",
+    uv_appearance_status: appearanceStatus as "not_generated" | "not_calibrated",
+    uneven_surface_validation_status: unevenSurfaceStatus as "not_applicable" | "not_validated",
     physical_width_mm: number(data.physical_width_mm, 20, 140), physical_height_mm: number(data.physical_height_mm, Number.EPSILON, 140),
     coverage: coverage(data.coverage), artifacts,
   };

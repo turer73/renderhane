@@ -193,7 +193,11 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
 
   const selected = revisions.find((revision) => revision.id === selectedId);
   const result = selected?.result;
-  const shownLayer = result?.artifacts[overlayLayer] ? overlayLayer : result?.artifacts["uv-artwork"] ? "uv-artwork" : "silhouette";
+  const shownLayer = result?.artifacts[overlayLayer]
+    ? overlayLayer
+    : result?.artifacts["uv-appearance-artwork"]
+      ? "uv-appearance-artwork"
+      : result?.artifacts["uv-artwork"] ? "uv-artwork" : "silhouette";
   const fieldClass = "mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm disabled:opacity-50";
 
   return (
@@ -211,7 +215,8 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
 
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
         Dijital geçiş, üretim onayı değildir. Yerel eşleşme yalnız aynı koordinattaki kararlı semantik ID çiftiyle doğrulanır;
-        nihai GLB’den bağımsız ID türetimi hâlâ ayrı kapıdır. P1S / A1 mini baskısı ve gerçek UV/RIP ölçümleri olmadan bu paketler yalnız test adayıdır.
+        nihai GLB’den bağımsız ID türetimi hâlâ ayrı kapıdır. Optik derinlik yardımı fiziksel Z değildir.
+        P1S / A1 mini baskısı ve gerçek UV/RIP ölçümleri olmadan bu paketler yalnız test adayıdır.
       </div>
       {!configured && <p role="status" className="rounded-xl border p-4 text-sm">Atölye arayüzü hazır; dosya işlemek için kalıcı worker, sunucu bağlantısı ve erişim anahtarı yapılandırılmalı. Hiçbir dosya gönderilmiyor.</p>}
       {error && <p role="alert" className="break-words rounded-lg border border-red-500/40 bg-red-500/5 p-3 text-sm">{error}</p>}
@@ -288,7 +293,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
               {selected.attempts < 3 && <Button variant="outline" disabled={busy || !online} onClick={() => retry(selected.id)}>Aynı revizyonu tekrar dene</Button>}
             </div>}
             {result && <>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Gate label="Dijital geometri" value={result.digital_geometry_status === "ready" ? "Geçti" : result.digital_geometry_status === "failed" ? "Başarısız" : "İnceleme gerekli"} pass={result.digital_geometry_status === "ready"} />
                 <Gate
                   label="Semantik ID raster eşleşmesi"
@@ -296,6 +301,10 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
                     ? selected.spec.sample ? "Kalibrasyon ID’leri eşleşti" : "Beyan edilen ID’ler eşleşti"
                     : result.artwork_semantic_registration_status === "failed" ? "Başarısız" : "Doğrulanmadı"}
                   pass={result.artwork_semantic_registration_status === "validated"}
+                />
+                <Gate
+                  label="Optik derinlik yardımı"
+                  value={result.uv_appearance_status === "not_calibrated" ? "Kalibrasyonsuz aday" : "Üretilmedi"}
                 />
                 <Gate label="Fiziksel üretim" value="Onaylanmadı" />
               </div>
@@ -306,13 +315,13 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
               </div>
               <label className="block text-xs">Bindirilecek katman
                 <select value={shownLayer} onChange={(event) => setOverlayLayer(event.target.value)} className={fieldClass}>
-                  {[["uv-artwork", "UV renk"], ["white-mask", "White"], ["varnish-mask", "Varnish"], ["silhouette", "Final siluet"], ["overlay", "Siluet ölçüm overlay'i"], ["difference", "Derinlik fark raporu"]].filter(([key]) => result.artifacts[key]).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                  {[["uv-appearance-artwork", "UV renk — optik derinlik adayı"], ["uv-artwork", "UV renk — kaynak"], ["white-mask", "White"], ["varnish-mask", "Varnish"], ["uv-appearance-shading", "Optik gölge tanısı"], ["uv-appearance-normal", "Yüzey normal tanısı"], ["uv-appearance-varnish", "Vernik görünüm önerisi"], ["silhouette", "Final siluet"], ["overlay", "Siluet ölçüm overlay'i"], ["difference", "Derinlik fark raporu"]].filter(([key]) => result.artifacts[key]).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
                 </select>
               </label>
               <label className="block text-xs">Katman görünürlüğü: %{opacity}
                 <input type="range" min={0} max={100} value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} className="mt-2 w-full" />
               </label>
-              <p className="text-xs text-muted-foreground">Görsel bindirme nitel incelemedir. GLB dokusuzdur; renk dosyası GLB’den yeniden üretilmiş albedo değildir. Kesin kontrolleri rapordan okuyun.</p>
+              <p className="text-xs text-muted-foreground">Görsel bindirme nitel incelemedir. Optik derinlik adayı aynı 16-bit relief ve renk canvasından türetilir; geometriyi değiştirmez. GLB dokusuzdur, vernik görünüm önerisi gerçek mürekkep kalınlığı değildir ve RIP/ICC/UV kafa güvenliği fiziksel kupon olmadan doğrulanmaz.</p>
               {result.artifacts["semantic-overlay"] && result.artifacts["semantic-difference"] ? <div className="space-y-2">
                 <h3 className="text-sm font-medium">Semantik örtüşme kanıtı</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -337,7 +346,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
               </div>}
               <div className="flex flex-wrap gap-2">
                 <Button asChild><a href={artifactUrl(selected.id, "evidence")}>Test ve ölçüm paketini indir</a></Button>
-                {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["semantic-registration", "Semantik kayıt JSON"], ["semantic-overlay", "Semantik overlay PNG"], ["semantic-difference", "Semantik fark PNG"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
+                {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["uv-appearance-artwork", "Optik derinlik UV PNG"], ["uv-appearance-ticket", "Optik derinlik raporu"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["semantic-registration", "Semantik kayıt JSON"], ["semantic-overlay", "Semantik overlay PNG"], ["semantic-difference", "Semantik fark PNG"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
               </div>
               {result.artifact_contract_status === "legacy_missing_cut_contour" ? <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; kesim konturu olan yeni bir revizyon oluşturun.</p> : <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>}
               <details className="rounded-lg border p-3 text-xs">

@@ -9,6 +9,7 @@ function completed() {
   return { ...queued, state: "completed", attempts: 1, result: {
     digital_geometry_status: "ready", digital_failures: [], digital_warnings: [], artwork_file_set_status: "complete",
     artwork_semantic_registration_status: "not_validated", physical_validation_status: "pending", production_status: "not_approved",
+    uv_appearance_status: "not_generated", uneven_surface_validation_status: "not_applicable",
     physical_width_mm: 70, physical_height_mm: 60,
     coverage: { layer_coverage_status: "pass", layers: {
       uv_artwork: { status: "pass", outside_silhouette_pixels: 0, outside_silhouette_area_mm2: 0, max_nearest_silhouette_distance_mm: 0 },
@@ -125,6 +126,38 @@ describe("workshop public response contract", () => {
       "semantic-registration": { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" },
     } });
     expect(() => parseWorkshopReply({ revision: partialEvidence }, [id], "GET")).toThrow("invalid_worker_response");
+  });
+  it("accepts appearance only as a complete uncalibrated evidence group", () => {
+    const item = completed();
+    Object.assign(item.result, {
+      uv_appearance_status: "not_calibrated",
+      uneven_surface_validation_status: "not_validated",
+      artifacts: {
+        ...item.result.artifacts,
+        "uv-appearance-artwork": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+        "uv-appearance-shading": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+        "uv-appearance-normal": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+        "uv-appearance-varnish": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+        "uv-appearance-ticket": { bytes: 3, sha256: "b".repeat(64), content_type: "application/json" },
+      },
+    });
+    const parsed = parseWorkshopReply({ revision: item }, [id], "GET").revision;
+    expect(parsed?.result?.uv_appearance_status).toBe("not_calibrated");
+    expect(parsed?.result?.uneven_surface_validation_status).toBe("not_validated");
+
+    const partial = completed();
+    Object.assign(partial.result, { artifacts: {
+      ...partial.result.artifacts,
+      "uv-appearance-artwork": { bytes: 3, sha256: "b".repeat(64), content_type: "image/png" },
+    } });
+    expect(() => parseWorkshopReply({ revision: partial }, [id], "GET")).toThrow("invalid_worker_response");
+
+    const falseClaim = completed();
+    Object.assign(falseClaim.result, {
+      uv_appearance_status: "calibrated",
+      uneven_surface_validation_status: "validated",
+    });
+    expect(() => parseWorkshopReply({ revision: falseClaim }, [id], "GET")).toThrow("invalid_worker_response");
   });
   it("allows omitted optional artwork coverage but keeps geometry and reported coverage fail-closed", () => {
     const source = completed().result.coverage;

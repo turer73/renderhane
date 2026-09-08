@@ -13,6 +13,7 @@ describe("workshop initial UI truth", () => {
     expect(html).toContain("disabled=");
     expect(html).toContain("kararlı semantik ID çiftiyle doğrulanır");
     expect(html).toContain("fiziksel onay düğmesi sunmaz");
+    expect(html).toContain("Optik derinlik yardımı");
     expect(html).not.toContain("/artifacts/");
   });
   it("waits for real worker availability before enabling submission", () => {
