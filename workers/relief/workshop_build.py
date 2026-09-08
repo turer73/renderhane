@@ -19,6 +19,7 @@ from physical_evidence_templates import (
 )
 from PIL import Image
 from product_relief_builder import ProductRecipe
+from relief_engine.uv_appearance import build_uv_appearance
 from workshop_contract import engine_fingerprint, toolchain
 from workshop_store import WorkshopStore, canonical_json
 
@@ -28,6 +29,81 @@ def write_json(path: Path, value: dict) -> None:
         handle.write(canonical_json(value) + "\n")
         handle.flush()
         os.fsync(handle.fileno())
+
+
+def crop_png(source: Path, crop_box: tuple[int, int, int, int], destination: Path) -> None:
+    """Persist the exact package crop without resampling or mode conversion."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with Image.open(source) as image:
+        image.crop(crop_box).save(destination, format="PNG", optimize=False)
+
+
+def add_uv_appearance_assist(
+    package: Path,
+    paths: dict[str, Path],
+    build_manifest: dict,
+    recipe: ProductRecipe,
+) -> dict | None:
+    """Add an auditable optical-depth aid; never replace authored ink plates."""
+    if "uv_artwork" not in paths:
+        return None
+    registration = build_manifest["registration"]
+    crop_box = tuple(int(value) for value in registration["crop_box_px"])
+    physical_width_mm, physical_height_mm = (
+        float(value) for value in registration["physical_canvas_mm"]
+    )
+    inputs = package / "appearance-inputs"
+    cropped_relief = inputs / "relief-map-crop-16.png"
+    cropped_silhouette = inputs / "silhouette-mask-crop.png"
+    crop_png(paths["relief_map"], crop_box, cropped_relief)
+    crop_png(paths["mask"], crop_box, cropped_silhouette)
+    output = package / "appearance"
+    try:
+        ticket = build_uv_appearance(
+            cropped_relief,
+            package / "artwork" / "uv-artwork-srgb.png",
+            cropped_silhouette,
+            output,
+            physical_width_mm=physical_width_mm,
+            physical_height_mm=physical_height_mm,
+            relief_depth_mm=recipe.relief_depth_mm,
+        )
+    except ValueError as exc:
+        if str(exc) not in {
+            "RGBA artwork alpha must contain only 0 or 255",
+            "RGBA artwork alpha coverage must exactly match the explicit silhouette mask",
+        }:
+            raise
+        cropped_relief.unlink()
+        cropped_silhouette.unlink()
+        inputs.rmdir()
+        return None
+    manifest_path = package / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["uv_appearance_assist"] = {
+        "status": ticket["appearance_status"],
+        "uneven_surface_validation_status": ticket[
+            "uneven_surface_validation_status"
+        ],
+        "physical_z_mm": ticket["physical_z_mm"],
+        "production_authority": "none",
+        "source_relief": "appearance-inputs/relief-map-crop-16.png",
+        "source_silhouette": "appearance-inputs/silhouette-mask-crop.png",
+        "source_artwork": "artwork/uv-artwork-srgb.png",
+        "job_ticket": "appearance/uv-appearance-job-ticket.json",
+    }
+    manifest["limitations"] = [
+        *manifest.get("limitations", []),
+        "Depth-enhanced UV artwork is an uncalibrated optical aid, not physical relief, RIP, ICC, white-underbase or varnish approval.",
+    ]
+    for path in sorted([*inputs.iterdir(), *output.iterdir()]):
+        relative = path.relative_to(package).as_posix()
+        manifest["artifacts"][relative] = {
+            "bytes": path.stat().st_size,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+    write_json(manifest_path, manifest)
+    return ticket
 
 
 def sync_attempt(root: Path, storage_root: Path) -> None:
@@ -100,7 +176,7 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
         paths[role].write_bytes(raw)
     package = root / "package"
     recipe = ProductRecipe(**job["spec"]["recipe"])
-    build_relief_pro_package(
+    build_manifest = build_relief_pro_package(
         relief_map=paths["relief_map"],
         mask=paths["mask"],
         uv_artwork=paths.get("uv_artwork"),
@@ -109,6 +185,12 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
         output_dir=package,
         recipe=recipe,
         title="Relief Pro — digital test candidate",
+    )
+    appearance_ticket = add_uv_appearance_assist(
+        package,
+        paths,
+        build_manifest,
+        recipe,
     )
     finalized = finalize_package(package)
     manifest = finalized["manifest"]
@@ -175,6 +257,29 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
                 "image/png",
             ),
         })
+    if appearance_ticket is not None:
+        candidates.update({
+            "uv-appearance-artwork": (
+                package / "appearance/uv-artwork-depth-enhanced.png",
+                "image/png",
+            ),
+            "uv-appearance-shading": (
+                package / "appearance/shading-map-16.png",
+                "image/png",
+            ),
+            "uv-appearance-normal": (
+                package / "appearance/appearance-normal.png",
+                "image/png",
+            ),
+            "uv-appearance-varnish": (
+                package / "appearance/appearance-varnish-mask.png",
+                "image/png",
+            ),
+            "uv-appearance-ticket": (
+                package / "appearance/uv-appearance-job-ticket.json",
+                "application/json",
+            ),
+        })
     for role, filename in (("uv-artwork", "uv-artwork-srgb.png"), ("white-mask", "white-mask.png"),
                            ("varnish-mask", "varnish-mask.png")):
         path = package / "artwork" / filename
@@ -198,6 +303,16 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
                     root / "semantic-registration-report.json",
                     root / "semantic-registration-overlay.png",
                     root / "semantic-registration-difference.png",
+                ]
+            )
+        if appearance_ticket is not None:
+            evidence_files.extend(
+                [
+                    package / "appearance/uv-artwork-depth-enhanced.png",
+                    package / "appearance/shading-map-16.png",
+                    package / "appearance/appearance-normal.png",
+                    package / "appearance/appearance-varnish-mask.png",
+                    package / "appearance/uv-appearance-job-ticket.json",
                 ]
             )
         for path in evidence_files:
@@ -233,10 +348,19 @@ def build_attempt(store: WorkshopStore, job: dict) -> dict:
               "artwork_file_set_status": manifest["artwork_file_set_status"],
               "artwork_semantic_registration_status": semantic_status,
               "physical_validation_status": "pending", "production_status": "not_approved",
+              "uv_appearance_status": (
+                  appearance_ticket["appearance_status"]
+                  if appearance_ticket is not None else "not_generated"
+              ),
+              "uneven_surface_validation_status": (
+                  appearance_ticket["uneven_surface_validation_status"]
+                  if appearance_ticket is not None else "not_applicable"
+              ),
               "coverage": coverage, "artifacts": artifacts,
               "physical_width_mm": recipe.width_mm, "physical_height_mm": pitch * (bottom - top),
               "limitations": ["No albedo is reconstructed from the untextured GLB.",
                               "Layer coverage is not internal semantic alignment; only the optional stable-ID semantic report measures declared regions.",
+                              "Depth-enhanced artwork is an optical aid and never changes physical Z or approves RIP, ICC, white or varnish settings.",
                               "Minimum printable details and actual RIP/ink/head clearance are not approved."]}
     # The readiness marker is replaced atomically, then directory entries and
     # data are flushed. The parent publishes the DB state only after child exit.

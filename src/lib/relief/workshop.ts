@@ -40,6 +40,8 @@ export interface WorkshopRevision {
     artwork_semantic_registration_status: "not_validated" | "validated" | "failed";
     physical_validation_status: "pending";
     production_status: "not_approved";
+    uv_appearance_status: "not_generated" | "not_calibrated";
+    uneven_surface_validation_status: "not_applicable" | "not_validated";
     physical_width_mm: number;
     physical_height_mm: number;
     coverage: Record<string, unknown>;
