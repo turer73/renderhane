@@ -10,12 +10,16 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import shutil
 import zipfile
 from pathlib import Path
-from typing import Iterable
 
+from physical_evidence_templates import (
+    write_bound_fdm_template,
+    write_bound_uv_template,
+)
 from PIL import Image
 from relief_builder import (
     ENGINE_NAME,
@@ -145,49 +149,46 @@ def write_summary_csv(rows: list[dict[str, object]], destination: Path) -> None:
         writer.writerows(rows)
 
 
-def write_physical_measurement_form(depths: Iterable[float], destination: Path) -> None:
-    fields = [
-        "case_id",
-        "printer",
-        "relief_depth_mm",
-        "slicer_name_version",
-        "printer_profile",
-        "nozzle_mm",
-        "layer_height_mm",
-        "filament_brand_type_colour",
-        "plate_type",
-        "supports",
-        "print_time_min",
-        "filament_g",
-        "measured_width_mm",
-        "measured_height_mm",
-        "measured_total_depth_mm",
-        "max_warp_mm",
-        "small_detail_score_1_5",
-        "surface_score_1_5",
-        "uv_tested_yes_no",
-        "uv_registration_x_mm",
-        "uv_registration_y_mm",
-        "uv_blur_score_1_5",
-        "accepted_yes_no",
-        "photo_file_names",
-        "notes",
-    ]
-    with destination.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
-        writer.writeheader()
-        for printer in ("Bambu P1S", "Bambu A1 mini"):
-            for depth in depths:
-                writer.writerow(
-                    {
-                        "case_id": "kapadokya-phase0",
-                        "printer": printer,
-                        "relief_depth_mm": f"{depth:.1f}",
-                        "supports": "off",
-                        "uv_tested_yes_no": "pending",
-                        "accepted_yes_no": "pending",
-                    }
-                )
+def write_physical_measurement_forms(
+    *,
+    output_dir: Path,
+    builds: list[dict[str, object]],
+    input_hashes: dict[str, str],
+    width_mm: float,
+    height_mm: float,
+    base_thickness_mm: float,
+) -> None:
+    """Emit evaluator-compatible v2 forms plus the legacy FDM filename alias."""
+
+    source_key = hashlib.sha256(canonical_json_bytes(input_hashes)).hexdigest()[:12]
+    design_id = f"phase0-{source_key}"
+    built_revisions = {
+        float(entry["relief_depth_mm"]): str(entry["package_sha256"])
+        for entry in builds
+    }
+    revisions = {
+        depth: built_revisions.get(depth, "") for depth in DEFAULT_DEPTHS
+    }
+    engines = {
+        depth: ENGINE_VERSION if depth in built_revisions else ""
+        for depth in DEFAULT_DEPTHS
+    }
+    canonical_fdm = write_bound_fdm_template(
+        output_dir / "fdm-physical-measurements-v2.csv",
+        design_id=design_id,
+        revisions_by_depth=revisions,
+        engines_by_depth=engines,
+        target_width_mm=width_mm,
+        target_height_mm=height_mm,
+        target_base_mm=base_thickness_mm,
+    )
+    shutil.copyfile(canonical_fdm, output_dir / "physical-measurements.csv")
+    write_bound_uv_template(
+        output_dir / "uv-physical-measurements-v2.csv",
+        coupon_id=f"UV-{design_id}",
+        target_width_mm=width_mm,
+        target_height_mm=height_mm,
+    )
 
 
 def write_physical_instructions(destination: Path, width_mm: float, height_mm: float | None) -> None:
@@ -213,7 +214,7 @@ Bu paket dijital olarak doğrulanmıştır; fiziksel üretim sonucu henüz doğr
 3. Tüm derinlikleri aynı filament, nozzle, layer height ve yüzey ayarıyla basın.
 4. Baskı sonrası en az 30 dakika soğutun; genişlik, yükseklik ve toplam kalınlığı kumpasla ölçün.
 5. Yazı, ince çizgi, balon kenarı, peri bacası tepesi, düz arka yüz ve warping'i aynı ışıkta fotoğraflayın.
-6. Sonuçları `physical-measurements.csv` dosyasına işleyin. Başarısız numuneyi veri setinden çıkarmayın.
+6. Sonuçları `fdm-physical-measurements-v2.csv` dosyasına işleyin. `physical-measurements.csv` aynı formun geriye uyumluluk kopyasıdır. Başarısız numuneyi veri setinden çıkarmayın.
 
 ## UV testi
 
@@ -223,6 +224,7 @@ Bu paket dijital olarak doğrulanmıştır; fiziksel üretim sonucu henüz doğr
 4. Artwork fiziksel ölçüsü rapordaki `model_size_mm` olmalıdır.
 5. Merkez ve dört köşe registration işaretlerinde X/Y kaçıklığını milimetre olarak kaydedin.
 6. 0.5 mm üzerindeki kalibre edilmiş hizalama hatası kabul edilmez; fiziksel test yapılmadan bu eşik geçmiş sayılmaz.
+7. RIP, ICC profili, malzeme ve ölçümleri `uv-physical-measurements-v2.csv` dosyasına kaydedin.
 
 ## Karar
 
@@ -384,7 +386,15 @@ def run_benchmark(
     summary_path = output_dir / "benchmark-summary.json"
     summary_path.write_bytes(canonical_json_bytes(summary) + b"\n")
     write_summary_csv(csv_rows, output_dir / "benchmark-summary.csv")
-    write_physical_measurement_form(depths, output_dir / "physical-measurements.csv")
+    resolved_height_mm = float(build_entries[0]["validation"]["extents_mm"][1])
+    write_physical_measurement_forms(
+        output_dir=output_dir,
+        builds=build_entries,
+        input_hashes=summary["input_hashes"],
+        width_mm=width_mm,
+        height_mm=resolved_height_mm,
+        base_thickness_mm=base_thickness_mm,
+    )
     write_physical_instructions(output_dir / "PHYSICAL-TEST.md", width_mm, height_mm)
     write_digital_status(output_dir / "DIGITAL-STATUS.md", summary, source_note)
 

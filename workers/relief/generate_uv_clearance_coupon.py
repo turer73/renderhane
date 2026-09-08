@@ -13,7 +13,6 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-
 from relief_builder import BuildRecipe, build
 
 WIDTH_MM = 120.0
@@ -35,6 +34,8 @@ def ensure_empty_output_dir(output_dir: Path) -> None:
 
 def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for candidate in (
+        "C:/Windows/Fonts/segoeuib.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ):

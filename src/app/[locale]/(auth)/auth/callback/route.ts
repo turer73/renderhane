@@ -3,10 +3,13 @@ import { completeReferral } from "@/lib/referral/complete";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const { searchParams, pathname } = new URL(request.url);
+  const { searchParams, pathname, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const locale = pathname.split("/")[1] || "tr";
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  // Keep OAuth and magic-link sessions on the exact host that initiated them.
+  // This is required for preview cookies and avoids crossing an auth code from
+  // a Vercel preview deployment into the production origin.
+  const baseUrl = origin;
 
   if (!code) {
     return NextResponse.redirect(

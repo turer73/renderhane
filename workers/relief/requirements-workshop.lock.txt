@@ -1,0 +1,9 @@
+# Tested native toolchain for the private pilot. Update only with the full matrix.
+numpy==2.4.6
+Pillow==12.3.0
+scipy==1.17.1
+trimesh==4.12.2
+networkx==3.6.1
+manifold3d==3.5.2
+gunicorn==26.2.0; sys_platform != 'win32'
+packaging==26.3
