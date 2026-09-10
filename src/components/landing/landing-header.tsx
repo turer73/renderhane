@@ -7,7 +7,9 @@ import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Globe, Menu, X, ArrowRight, Eraser, QrCode, ChevronDown } from "lucide-react";
+import { Globe, Menu, X, ArrowRight, ChevronDown } from "lucide-react";
+import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
+import { useAuthStatus } from "@/hooks/use-auth-status";
 import { useState } from "react";
 
 export function LandingHeader() {
@@ -19,13 +21,16 @@ export function LandingHeader() {
   const locale = params.locale as string;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  // Signed-in visitors get one button to the app instead of login + sign-up.
+  const signedIn = useAuthStatus();
 
   const otherLocale = locale === "tr" ? "en" : "tr";
 
-  const freeTools = [
-    { label: t("footer.bgRemoveFree"), href: `/${locale}/araclar/arka-plan-kaldirma`, icon: Eraser },
-    { label: t("footer.qrCodeFree"), href: `/${locale}/araclar/qr-kod`, icon: QrCode },
-  ];
+  const freeTools = FREE_TOOLS.map((tool) => ({
+    label: t(tool.i18nKey),
+    href: freeToolHref(locale, tool),
+    icon: tool.icon,
+  }));
 
   function switchLanguage() {
     router.replace(pathname, { locale: otherLocale });
@@ -146,17 +151,22 @@ export function LandingHeader() {
           {/* Theme toggle */}
           <ThemeToggle />
 
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-            <Link href={`/${locale}/login`}>{tc("login")}</Link>
-          </Button>
+          {!signedIn && (
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+              <Link href={`/${locale}/login`}>{tc("login")}</Link>
+            </Button>
+          )}
 
           <Button
             size="sm"
             asChild
             className="bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 hover:shadow-indigo-200 dark:hover:shadow-indigo-900/50 hover:shadow-lg transition-all"
           >
-            <Link href={`/${locale}/login`} className="flex items-center gap-2">
-              {tc("tryIt")} <ArrowRight className="size-3.5" />
+            <Link
+              href={signedIn ? `/${locale}/app` : `/${locale}/login`}
+              className="flex items-center gap-2"
+            >
+              {signedIn ? tc("goToApp") : tc("tryIt")} <ArrowRight className="size-3.5" />
             </Link>
           </Button>
         </div>
@@ -219,15 +229,19 @@ export function LandingHeader() {
             </Link>
           </nav>
           <div className="mt-3 flex flex-col gap-2 border-t border-border/40 pt-3">
-            <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/${locale}/login`}>{tc("login")}</Link>
-            </Button>
+            {!signedIn && (
+              <Button variant="outline" size="sm" asChild className="w-full">
+                <Link href={`/${locale}/login`}>{tc("login")}</Link>
+              </Button>
+            )}
             <Button
               size="sm"
               asChild
               className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
             >
-              <Link href={`/${locale}/login`}>{tc("tryIt")}</Link>
+              <Link href={signedIn ? `/${locale}/app` : `/${locale}/login`}>
+                {signedIn ? tc("goToApp") : tc("tryIt")}
+              </Link>
             </Button>
           </div>
         </div>

@@ -27,6 +27,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import QRCode from "qrcode";
+import { buildVCard } from "@/lib/vcard";
+import { AuthCta } from "@/components/auth/auth-cta";
 
 /* ── Content Types ─────────────────────────────── */
 
@@ -64,40 +66,7 @@ const CONTENT_TYPES: ContentOption[] = [
 function buildPayload(type: ContentType, fields: Record<string, string>): string {
   switch (type) {
     case "url": return fields.url || "";
-    case "vcard": {
-      const lines = ["BEGIN:VCARD", "VERSION:3.0", `N:${fields.lastName || ""};${fields.firstName || ""};;;`, `FN:${fields.firstName || ""} ${fields.lastName || ""}`.trim()];
-      if (fields.phone) lines.push(`TEL;TYPE=CELL:${fields.phone}`);
-      if (fields.email) lines.push(`EMAIL:${fields.email}`);
-      if (fields.org) lines.push(`ORG:${fields.org}`);
-      if (fields.title) lines.push(`TITLE:${fields.title}`);
-      if (fields.address) lines.push(`ADR;TYPE=WORK:;;${fields.address};;;;`);
-      if (fields.website) lines.push(`URL:${fields.website}`);
-      // Social links use Apple item-grouping (itemN.URL + X-ABLabel) so they
-      // show up labeled on iOS Contacts and as tappable URLs on Android.
-      let socialIdx = 1;
-      if (fields.instagram) {
-        const handle = fields.instagram
-          .trim()
-          .replace(/^@/, "")
-          .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
-          .replace(/\/+$/, "");
-        if (handle) {
-          lines.push(`item${socialIdx}.URL:https://www.instagram.com/${handle}`);
-          lines.push(`item${socialIdx}.X-ABLabel:Instagram`);
-          socialIdx++;
-        }
-      }
-      if (fields.whatsapp) {
-        const num = fields.whatsapp.replace(/\D/g, "");
-        if (num) {
-          lines.push(`item${socialIdx}.URL:https://wa.me/${num}`);
-          lines.push(`item${socialIdx}.X-ABLabel:WhatsApp`);
-          socialIdx++;
-        }
-      }
-      lines.push("END:VCARD");
-      return lines.join("\n");
-    }
+    case "vcard": return buildVCard(fields);
     case "wifi": {
       const enc = fields.encryption || "WPA";
       const hidden = fields.hidden === "true" ? "H:true;" : "";
@@ -282,9 +251,7 @@ export default function PublicQRCodePage() {
             <Box className="size-5" />
             Renderhane
           </Link>
-          <Link href={`/${locale}/login`} className="rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25">
-            {tr ? "Giriş Yap" : "Sign In"}<ArrowRight className="ml-1.5 inline size-3.5" />
-          </Link>
+          <AuthCta locale={locale} />
         </div>
 
         <div className="relative mx-auto max-w-3xl px-4 text-center">
