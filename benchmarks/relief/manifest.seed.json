@@ -1,0 +1,397 @@
+{
+  "seed_version": "1.0.0",
+  "expands_to_schema": "benchmark.schema.json",
+  "benchmark_id": "renderhane-relief-pro-phase0-2026-09",
+  "default_recipe": {
+    "product_type": "magnet",
+    "shape_mode": "silhouette",
+    "width_mm": 70,
+    "height_mm": null,
+    "base_thickness_mm": 3.0,
+    "relief_depth_mm": 1.0,
+    "minimum_feature_mm": 0.6,
+    "edge_margin_mm": 1.2,
+    "corner_radius_mm": 1.0,
+    "invert_depth": false,
+    "percentile_low": 2,
+    "percentile_high": 98,
+    "gamma": 1.0,
+    "smoothing_sigma_px": 1.0,
+    "normal_detail_weight": 0.2,
+    "magnet_pocket": {
+      "enabled": false,
+      "diameter_mm": 12,
+      "depth_mm": 2,
+      "count": 1
+    }
+  },
+  "candidate_models": [
+    {
+      "key": "dav2-small",
+      "provider": "self-hosted-or-fal",
+      "model": "depth-anything-v2-small",
+      "license": "Apache-2.0; verify exact weights",
+      "commercial_eligible": true
+    },
+    {
+      "key": "midas",
+      "provider": "fal",
+      "model": "fal-ai/imageutils/depth",
+      "license": "verify provider/model terms",
+      "commercial_eligible": null
+    },
+    {
+      "key": "marigold",
+      "provider": "fal",
+      "model": "fal-ai/imageutils/marigold-depth",
+      "license": "RAIL++-M weights; legal review",
+      "commercial_eligible": null
+    }
+  ],
+  "physical_profiles": [
+    {
+      "printer": "Bambu P1S",
+      "nozzle_mm": 0.4,
+      "layer_height_mm": 0.12,
+      "material": "PLA"
+    },
+    {
+      "printer": "Bambu A1 mini",
+      "nozzle_mm": 0.4,
+      "layer_height_mm": 0.12,
+      "material": "PLA"
+    }
+  ],
+  "cases": [
+    {
+      "id": "kapadokya-golden",
+      "title": "Kapadokya Golden Master",
+      "category": "tourism",
+      "difficulty": "hard",
+      "golden": true,
+      "status": "planned",
+      "risk_tags": ["dense_geometry", "balloons", "text_banner", "irregular_silhouette"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": { "relief_depth_mm": 1.2 }
+    },
+    {
+      "id": "uzungol",
+      "title": "Uzungöl",
+      "category": "tourism",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["thin_minarets", "dense_trees", "water"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "safranbolu",
+      "title": "Safranbolu",
+      "category": "tourism",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["dense_architecture", "fine_windows", "text_banner"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "istanbul-silhouette",
+      "title": "İstanbul Silüeti",
+      "category": "tourism",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["thin_minarets", "layered_skyline"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "pamukkale",
+      "title": "Pamukkale Travertenleri",
+      "category": "tourism",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["low_contrast", "terraces", "white_subject"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "nemrut",
+      "title": "Nemrut Dağı",
+      "category": "tourism",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["stone_texture", "portrait_like_faces"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "sumela",
+      "title": "Sümela Manastırı",
+      "category": "tourism",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["cliff", "dense_architecture", "trees"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "eskisehir",
+      "title": "Eskişehir Odunpazarı",
+      "category": "tourism",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["repeating_windows", "dense_architecture", "text_banner"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "mardin",
+      "title": "Mardin Taş Evleri",
+      "category": "tourism",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["repeating_pattern", "low_contrast", "dense_architecture"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "antalya-kaleici",
+      "title": "Antalya Kaleiçi",
+      "category": "tourism",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["architecture", "foliage", "sea"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "portrait-front-soft",
+      "title": "Önden Yumuşak Işıklı Portre",
+      "category": "portrait",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["hair", "skin", "shallow_depth"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "portrait-side-light",
+      "title": "Yandan Işıklı Portre",
+      "category": "portrait",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["cast_shadow", "profile", "hair"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "portrait-glasses",
+      "title": "Gözlüklü Portre",
+      "category": "portrait",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["transparent_glasses", "specular", "fine_features"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "pet-portrait",
+      "title": "Evcil Hayvan Portresi",
+      "category": "portrait",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["fur", "ears", "eyes"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "two-person-portrait",
+      "title": "İki Kişilik Portre",
+      "category": "portrait",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["overlap", "multiple_faces", "hair"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "school-crest",
+      "title": "Okul/Kurs Arması",
+      "category": "logo_text",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["small_text", "symmetry", "thin_lines"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "sports-club-badge",
+      "title": "Spor Kulübü Rozeti",
+      "category": "logo_text",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["small_text", "logo", "border"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "event-medal",
+      "title": "Etkinlik Madalyası",
+      "category": "logo_text",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["date_text", "icon", "circular_border"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "cafe-logo",
+      "title": "Kafe Logosu ve Yazı",
+      "category": "logo_text",
+      "difficulty": "easy",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["typography", "flat_regions"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "monogram-sign",
+      "title": "Monogram İsimlik",
+      "category": "logo_text",
+      "difficulty": "easy",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["typography", "thin_serif", "negative_space"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "ceramic-vase",
+      "title": "Seramik Vazo",
+      "category": "single_object",
+      "difficulty": "easy",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["smooth_surface", "symmetry"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "toy-figure",
+      "title": "Oyuncak Figür",
+      "category": "single_object",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["limbs", "occlusion", "small_parts"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "shoe-product",
+      "title": "Ayakkabı Ürün Görseli",
+      "category": "single_object",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["laces", "texture", "sole"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "mug-product",
+      "title": "Kupa/Bardak",
+      "category": "single_object",
+      "difficulty": "easy",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["handle_hole", "curved_surface"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "industrial-part",
+      "title": "Basit Endüstriyel Parça",
+      "category": "single_object",
+      "difficulty": "medium",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["hard_edges", "holes", "technical_shape"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "misty-mountains",
+      "title": "Sisli Dağlar",
+      "category": "hard_case",
+      "difficulty": "extreme",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["fog", "low_contrast", "ambiguous_depth"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "dense-forest-minarets",
+      "title": "Yoğun Orman ve İnce Minareler",
+      "category": "hard_case",
+      "difficulty": "extreme",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["thin_parts", "dense_trees", "occlusion"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "dark-low-contrast",
+      "title": "Karanlık Düşük Kontrastlı Tasarım",
+      "category": "hard_case",
+      "difficulty": "extreme",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["dark_regions", "low_contrast"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "reflective-metal",
+      "title": "Yansıtıcı Metal Obje",
+      "category": "hard_case",
+      "difficulty": "extreme",
+      "golden": false,
+      "status": "planned",
+      "risk_tags": ["specular", "reflection", "false_edges"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    },
+    {
+      "id": "angled-concept-render",
+      "title": "Açılı Konsept Render — Reddedilmesi Gereken",
+      "category": "hard_case",
+      "difficulty": "hard",
+      "golden": false,
+      "status": "source_ready",
+      "risk_tags": ["perspective", "visible_side", "studio_shadow", "reject_master"],
+      "source_rights": { "usage": "internal", "license": "verify-before-use" },
+      "overrides": {}
+    }
+  ]
+}

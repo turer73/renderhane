@@ -639,6 +639,91 @@ const toolConfigs: ToolSEOConfig[] = [
     ],
   },
 
+  // ─── NFC Etiket Programlama ───
+  {
+    slug: "nfc-yaz",
+    name: {
+      tr: "Ücretsiz NFC Etiket Programlama",
+      en: "Free NFC Tag Writer",
+    },
+    description: {
+      tr: "Telefonun tarayıcısından NFC etiket ve kartlara yazma — kurulum ve kayıt gerektirmez",
+      en: "Write NFC tags and cards from the phone browser — no install, no registration",
+    },
+    faqs: [
+      {
+        q: {
+          tr: "NFC etiketine telefondan uygulama kurmadan yazabilir miyim?",
+          en: "Can I write an NFC tag from my phone without installing an app?",
+        },
+        a: {
+          tr: "Evet. Bu araç Web NFC arayüzünü kullanır: Android telefonda Chrome 89 ve üzeri ile sayfayı açar, içeriği girer ve telefonu etikete değdirirsiniz. Uygulama kurmanız veya kayıt olmanız gerekmez, sınır yoktur.",
+          en: "Yes. The tool uses the Web NFC interface: open the page in Chrome 89+ on an Android phone, enter your content and touch the tag with the phone. No app install, no registration, no limits.",
+        },
+      },
+      {
+        q: {
+          tr: "iPhone ile NFC etiketi yazabilir miyim?",
+          en: "Can I write NFC tags with an iPhone?",
+        },
+        a: {
+          tr: "Hayır. Safari Web NFC'yi desteklemediği için iPhone tarayıcıdan etikete yazamaz; iPhone'lar etiketleri yalnızca okuyabilir. Yazma için NFC donanımlı bir Android telefonda Chrome kullanın.",
+          en: "No. Safari does not support Web NFC, so an iPhone cannot write tags from the browser; iPhones can only read them. Use Chrome on an Android phone with NFC hardware to write.",
+        },
+      },
+      {
+        q: {
+          tr: "İçeriği bilgisayarda hazırlayıp telefonda yazabilir miyim?",
+          en: "Can I prepare the content on a computer and write it from the phone?",
+        },
+        a: {
+          tr: "Evet. Bilgisayarda formu doldurup bağlantı oluşturursunuz; çıkan QR kodu telefonunuzun kamerasıyla okuttuğunuzda sayfa telefonda aynı içerikle dolu açılır. Telefonda okuduğunuz bir etiketi de forma yükleyip bağlantı olarak bilgisayara gönderebilirsiniz. İçerik bağlantının # işaretinden sonrasında taşınır ve sunucuya gönderilmez.",
+          en: "Yes. Fill the form on your computer and create a link; scanning the QR code with your phone camera opens the page there already filled in. You can also load a tag you read on the phone into the form and send it to your computer as a link. The content rides after the # in the link and is never sent to the server.",
+        },
+      },
+      {
+        q: {
+          tr: "Hangi NFC etiketini almalıyım?",
+          en: "Which NFC tag should I buy?",
+        },
+        a: {
+          tr: "NTAG213 132 bayt, NTAG215 492 bayt, NTAG216 872 bayt NDEF mesajı alır. Kısa bir bağlantı için NTAG213 yeter, dijital kartvizit için genellikle NTAG215 gerekir. Araç, girdiğiniz içeriğin kaç bayt tuttuğunu ve hangi etiketlere sığdığını canlı gösterir.",
+          en: "NTAG213 holds a 132-byte NDEF message, NTAG215 492 bytes, NTAG216 872 bytes. A short link fits an NTAG213; a digital business card usually needs an NTAG215. The tool shows live how many bytes your content takes and which tags it still fits.",
+        },
+      },
+    ],
+    steps: [
+      {
+        name: { tr: "İçerik türünü seçin", en: "Select content type" },
+        text: {
+          tr: "Web adresi, kişi kartı, WiFi, telefon, konum, uygulama veya metin türlerinden birini seçin.",
+          en: "Choose URL, contact card, Wi-Fi, phone, location, app or plain text.",
+        },
+      },
+      {
+        name: { tr: "Bilgileri girin", en: "Enter the details" },
+        text: {
+          tr: "Alanları doldurun. Boyut göstergesi içeriğin kaç bayt tuttuğunu ve hangi etiketlere sığdığını anında gösterir.",
+          en: "Fill the fields. The size meter instantly shows the byte count and which tags it fits.",
+        },
+      },
+      {
+        name: { tr: "Telefonu etikete değdirin", en: "Touch the tag with your phone" },
+        text: {
+          tr: "Etikete Yaz düğmesine dokunun ve telefonun arka yüzünü etikete yaklaştırın. Yazma bir saniyeden kısa sürer.",
+          en: "Tap Write to Tag and hold the back of your phone against the tag. The write takes under a second.",
+        },
+      },
+      {
+        name: { tr: "Doğrulayın veya kilitleyin", en: "Verify or lock" },
+        text: {
+          tr: "Etiketi Oku ile yazdığınızı doğrulayın. İçeriğin bir daha değiştirilmemesi gerekiyorsa etiketi kalıcı olarak kilitleyin.",
+          en: "Use Read a Tag to verify what you wrote. Lock the tag permanently if its content must never change again.",
+        },
+      },
+    ],
+  },
+
   // ─── Sahne Oluştur ───
   {
     slug: "sahne-olustur",

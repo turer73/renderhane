@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.renderhane.com/schemas/relief-benchmark.schema.json",
+  "title": "Renderhane Relief Pro Benchmark Manifest",
+  "type": "object",
+  "required": ["schema_version", "benchmark_id", "cases"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "benchmark_id": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "default_recipe": { "$ref": "#/$defs/recipe" },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "asset": {
+      "type": "object",
+      "required": ["role", "status"],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "concept_render",
+            "front_master",
+            "alpha_mask",
+            "foreground_mask",
+            "semantic_layers",
+            "text_logo_svg",
+            "manual_relief_map_16",
+            "raw_depth",
+            "normalized_depth",
+            "normal_map",
+            "relief_map_16",
+            "glb",
+            "stl",
+            "3mf",
+            "uv_print",
+            "white_mask",
+            "varnish_mask",
+            "contour_svg",
+            "report",
+            "physical_photo"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["missing", "planned", "ready", "invalid", "superseded"]
+        },
+        "path": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "width_px": { "type": "integer", "minimum": 1 },
+        "height_px": { "type": "integer", "minimum": 1 },
+        "color_space": { "type": "string", "enum": ["sRGB", "linear", "grayscale", "n/a"] },
+        "bit_depth": { "type": "integer", "enum": [1, 8, 16, 24, 32] },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "source_rights": {
+      "type": "object",
+      "required": ["usage", "license"],
+      "properties": {
+        "usage": { "type": "string", "enum": ["internal", "benchmark_only", "commercial_ok", "unknown"] },
+        "license": { "type": "string" },
+        "author": { "type": "string" },
+        "source_url": { "type": "string", "format": "uri" },
+        "consent_reference": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "recipe": {
+      "type": "object",
+      "required": ["width_mm", "base_thickness_mm", "relief_depth_mm", "minimum_feature_mm"],
+      "properties": {
+        "product_type": { "type": "string", "enum": ["magnet", "plaque", "medal", "hanging", "desktop"] },
+        "shape_mode": { "type": "string", "enum": ["rectangle", "silhouette", "badge"] },
+        "width_mm": { "type": "number", "exclusiveMinimum": 0 },
+        "height_mm": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "base_thickness_mm": { "type": "number", "minimum": 0.8 },
+        "relief_depth_mm": { "type": "number", "minimum": 0.1, "maximum": 10 },
+        "minimum_feature_mm": { "type": "number", "minimum": 0.1 },
+        "edge_margin_mm": { "type": "number", "minimum": 0 },
+        "corner_radius_mm": { "type": "number", "minimum": 0 },
+        "invert_depth": { "type": "boolean" },
+        "percentile_low": { "type": "number", "minimum": 0, "maximum": 100 },
+        "percentile_high": { "type": "number", "minimum": 0, "maximum": 100 },
+        "gamma": { "type": "number", "exclusiveMinimum": 0 },
+        "smoothing_sigma_px": { "type": "number", "minimum": 0 },
+        "normal_detail_weight": { "type": "number", "minimum": 0, "maximum": 1 },
+        "magnet_pocket": {
+          "type": "object",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "diameter_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "depth_mm": { "type": "number", "exclusiveMinimum": 0 },
+            "count": { "type": "integer", "minimum": 1, "maximum": 4 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["provider", "model", "status"],
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "model_version": { "type": "string" },
+        "license": { "type": "string" },
+        "commercial_eligible": { "type": ["boolean", "null"] },
+        "status": { "type": "string", "enum": ["planned", "submitted", "completed", "failed", "rejected"] },
+        "runtime_ms": { "type": "integer", "minimum": 0 },
+        "provider_cost_usd": { "type": "number", "minimum": 0 },
+        "raw_asset": { "$ref": "#/$defs/asset" },
+        "normalized_asset": { "$ref": "#/$defs/asset" },
+        "orientation": { "type": "string", "enum": ["near_is_white", "near_is_black", "unknown"] },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "scores": {
+      "type": "object",
+      "properties": {
+        "semantic_order": { "type": "number", "minimum": 0, "maximum": 20 },
+        "edge_accuracy": { "type": "number", "minimum": 0, "maximum": 15 },
+        "local_detail": { "type": "number", "minimum": 0, "maximum": 10 },
+        "text_logo_safety": { "type": "number", "minimum": 0, "maximum": 10 },
+        "manual_edit_time": { "type": "number", "minimum": 0, "maximum": 15 },
+        "mesh_validation": { "type": "number", "minimum": 0, "maximum": 15 },
+        "physical_acceptance": { "type": "number", "minimum": 0, "maximum": 10 },
+        "uv_alignment": { "type": "number", "minimum": 0, "maximum": 5 },
+        "total": { "type": "number", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "watertight": { "type": ["boolean", "null"] },
+        "manifold": { "type": ["boolean", "null"] },
+        "open_edges": { "type": ["integer", "null"], "minimum": 0 },
+        "self_intersections": { "type": ["integer", "null"], "minimum": 0 },
+        "width_mm": { "type": ["number", "null"] },
+        "height_mm": { "type": ["number", "null"] },
+        "depth_mm": { "type": ["number", "null"] },
+        "min_thickness_mm": { "type": ["number", "null"] },
+        "face_count": { "type": ["integer", "null"], "minimum": 0 },
+        "vertex_count": { "type": ["integer", "null"], "minimum": 0 },
+        "volume_mm3": { "type": ["number", "null"], "minimum": 0 },
+        "uv_alignment_error_mm": { "type": ["number", "null"], "minimum": 0 },
+        "production_status": { "type": "string", "enum": ["not_run", "ready", "ready_with_warnings", "needs_review", "rejected"] },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "physical_run": {
+      "type": "object",
+      "required": ["printer", "status"],
+      "properties": {
+        "printer": { "type": "string", "enum": ["Bambu P1S", "Bambu A1 mini", "other"] },
+        "printer_profile": { "type": "string" },
+        "nozzle_mm": { "type": "number", "exclusiveMinimum": 0 },
+        "layer_height_mm": { "type": "number", "exclusiveMinimum": 0 },
+        "material": { "type": "string" },
+        "status": { "type": "string", "enum": ["planned", "printed", "failed", "accepted", "rejected"] },
+        "duration_minutes": { "type": "number", "minimum": 0 },
+        "filament_grams": { "type": "number", "minimum": 0 },
+        "first_pass_accepted": { "type": ["boolean", "null"] },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "case": {
+      "type": "object",
+      "required": ["id", "title", "category", "difficulty", "status", "source_rights", "target_recipe"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "title": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "enum": ["tourism", "portrait", "logo_text", "single_object", "hard_case"] },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard", "extreme"] },
+        "status": { "type": "string", "enum": ["planned", "source_ready", "master_ready", "candidates_ready", "mesh_ready", "printed", "uv_tested", "accepted", "rejected"] },
+        "golden": { "type": "boolean" },
+        "purpose": { "type": "string" },
+        "risk_tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "source_rights": { "$ref": "#/$defs/source_rights" },
+        "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } },
+        "target_recipe": { "$ref": "#/$defs/recipe" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
+        "scores": { "$ref": "#/$defs/scores" },
+        "validation": { "$ref": "#/$defs/validation" },
+        "physical_runs": { "type": "array", "items": { "$ref": "#/$defs/physical_run" } },
+        "manual_edit_seconds": { "type": ["integer", "null"], "minimum": 0 },
+        "reviewer_notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
