@@ -2,39 +2,28 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Eraser, QrCode, ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
+import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 /**
  * Banner showcasing free tools available without registration.
- * Two consistent cards side by side, prominent placement in hero.
+ * Consistent cards side by side, prominent placement in hero.
  */
 export function FreeBgBanner() {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const tr = locale === "tr";
 
-  const tools = [
-    {
-      href: `/${locale}/araclar/arka-plan-kaldirma`,
-      icon: Eraser,
-      title: tr ? "Arka Plan Kaldır" : "Remove Background",
-      subtitle: tr ? "Kayıt olmadan • Günde 3 hak" : "No signup • 3/day free",
-      badge: tr ? "Ücretsiz" : "Free",
-      gradient: "from-indigo-600 to-purple-600",
-      hoverGradient: "hover:from-indigo-700 hover:to-purple-700",
-      iconBg: "bg-white/20",
-    },
-    {
-      href: `/${locale}/araclar/qr-kod`,
-      icon: QrCode,
-      title: tr ? "QR Kod Oluşturucu" : "QR Code Generator",
-      subtitle: tr ? "URL, vCard, WiFi, SVG indirme" : "URL, vCard, WiFi, SVG download",
-      badge: tr ? "Sınırsız" : "Unlimited",
-      gradient: "from-emerald-600 to-teal-600",
-      hoverGradient: "hover:from-emerald-700 hover:to-teal-700",
-      iconBg: "bg-white/20",
-    },
-  ];
+  const tools = FREE_TOOLS.map((tool) => ({
+    href: freeToolHref(locale, tool),
+    icon: tool.icon,
+    title: tr ? tool.title.tr : tool.title.en,
+    subtitle: tr ? tool.subtitle.tr : tool.subtitle.en,
+    badge: tr ? tool.badge.tr : tool.badge.en,
+    gradient: tool.gradient,
+    hoverGradient: tool.hoverGradient,
+    iconBg: "bg-white/20",
+  }));
 
   return (
     <div className="space-y-3">
@@ -44,8 +33,8 @@ export function FreeBgBanner() {
         <span>{tr ? "Kayıt olmadan hemen deneyin" : "Try instantly without signup"}</span>
       </div>
 
-      {/* Two cards side by side */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Cards side by side */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {tools.map((tool) => (
           <Link
             key={tool.href}
@@ -65,8 +54,8 @@ export function FreeBgBanner() {
             </div>
 
             <div className="relative mt-4 flex-1">
-              <h3 className="text-lg font-bold leading-tight">{tool.title}</h3>
-              <p className="mt-1 text-sm text-white/75">{tool.subtitle}</p>
+              <h3 className="text-base font-bold leading-tight sm:text-lg">{tool.title}</h3>
+              <p className="mt-1 text-xs text-white/75 sm:text-sm">{tool.subtitle}</p>
             </div>
 
             <div className="relative mt-4 flex items-center gap-1.5 text-sm font-semibold text-white/90 transition-colors group-hover:text-white">

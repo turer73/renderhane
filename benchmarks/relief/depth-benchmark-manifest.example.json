@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "design_id": "kapadokya-golden-master-v1",
+  "semantic_labels": "kapadokya/semantic-labels.png",
+  "silhouette_mask": "kapadokya/silhouette-mask.png",
+  "text_mask": "kapadokya/text-mask.png",
+  "regions": {
+    "1": {
+      "name": "background-sky-and-distant-landscape",
+      "rank": 1
+    },
+    "2": {
+      "name": "middle-ground-rock-formations",
+      "rank": 2
+    },
+    "3": {
+      "name": "foreground-buildings-and-rocks",
+      "rank": 3
+    },
+    "4": {
+      "name": "kapadokya-title",
+      "rank": 4
+    },
+    "5": {
+      "name": "front-decorative-elements",
+      "rank": 5
+    }
+  },
+  "candidates": [
+    {
+      "id": "depth-anything-v2-small",
+      "model": "Depth Anything V2 Small",
+      "path": "kapadokya/depth-anything-v2-small.png",
+      "license": "Apache-2.0; verify exact weights and deployment terms",
+      "cost_usd": null,
+      "inference_seconds": null
+    },
+    {
+      "id": "midas-baseline",
+      "model": "MiDaS baseline",
+      "path": "kapadokya/midas.png",
+      "license": "verify exact model and weights",
+      "cost_usd": null,
+      "inference_seconds": null
+    },
+    {
+      "id": "marigold-depth",
+      "model": "Marigold Depth",
+      "path": "kapadokya/marigold-depth.png",
+      "license": "verify code and model-weight terms separately",
+      "cost_usd": null,
+      "inference_seconds": null
+    }
+  ],
+  "manual_measurements": {
+    "correction_minutes_required": true,
+    "physical_test_required_before_winner": true
+  },
+  "notice": "The score is a provisional digital comparison against ordinal semantic labels. It is not a production approval or a substitute for physical relief and UV tests."
+}
