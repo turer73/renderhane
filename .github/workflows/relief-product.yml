@@ -1,0 +1,89 @@
+name: Relief Product Geometry
+
+on:
+  push:
+    branches:
+      - feature/manufacturing-relief-mvp
+    paths:
+      - "workers/relief/**"
+      - ".github/workflows/relief-product.yml"
+  pull_request:
+    paths:
+      - "workers/relief/**"
+      - ".github/workflows/relief-product.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  product-geometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: workers/relief/requirements*.txt
+
+      - name: Install manufacturing dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r workers/relief/requirements-dev.txt
+
+      - name: Run manufacturing worker tests
+        run: python -m pytest workers/relief/tests -q
+
+      - name: Build silhouette-trimmed fixture with magnet pocket
+        run: |
+          python workers/relief/generate_synthetic_benchmark.py \
+            --output /tmp/relief-product-fixture \
+            --width 192 \
+            --height 192
+          python workers/relief/product_relief_builder.py \
+            --relief-map /tmp/relief-product-fixture/relief-map-16.png \
+            --mask /tmp/relief-product-fixture/silhouette-mask.png \
+            --output /tmp/relief-product-output \
+            --width-mm 70 \
+            --height-mm 70 \
+            --base-mm 3 \
+            --relief-mm 1.2 \
+            --grid-long-edge 128 \
+            --pocket-diameter-mm 12 \
+            --pocket-depth-mm 2
+
+      - name: Verify pocket remains a physical-review candidate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path('/tmp/relief-product-output/manufacturing-report.json').read_text(
+                  encoding='utf-8'
+              )
+          )
+          validation = report['validation']
+          warning = 'magnet_pocket_requires_bridge_retention_and_orientation_physical_test'
+          assert validation['digital_geometry_gate'] == 'pass'
+          assert validation['digital_status'] == 'needs_review'
+          assert validation['physical_validation_required'] is True
+          assert validation['production_status'] == 'blocked'
+          assert warning in validation['warnings']
+          PY
+
+      - name: Upload digital evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relief-product-geometry
+          path: |
+            /tmp/relief-product-fixture
+            /tmp/relief-product-output
+          if-no-files-found: warn
+          retention-days: 14

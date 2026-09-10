@@ -11,6 +11,7 @@
     "processing": "Processing...",
     "download": "Download",
     "tryIt": "Try Free",
+    "goToApp": "Go to App",
     "dashboard": "Home",
     "menu": "Menu"
   },
@@ -323,6 +324,7 @@
       "freeTools": "Free Tools",
       "bgRemoveFree": "Background Removal",
       "qrCodeFree": "QR Code Generator",
+      "nfcWriteFree": "NFC Tag Writer",
       "apiAccess": "Developer API",
       "shopifyIntegration": "Shopify Integration",
       "blenderPlugin": "Blender Plugin",
