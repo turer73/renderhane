@@ -856,6 +856,18 @@ export const TOOL_KEYS: Record<ToolType, string> = {
 };
 
 /**
+ * Social Kit is a fixed orchestration bundle. Keep its composition beside the
+ * model registry so pricing, orchestration and UI can all derive from the same
+ * source of truth.
+ */
+export const SOCIAL_KIT_SCENE_COUNT = 4;
+export const SOCIAL_KIT_SCENE_MODEL = TOOL_MODELS.scene[0];
+export const SOCIAL_KIT_VIDEO_MODEL = TOOL_MODELS.video[0];
+export const SOCIAL_KIT_VIDEO_SECONDS = Number(
+  MODELS[SOCIAL_KIT_VIDEO_MODEL].defaultParams?.duration ?? 5
+);
+
+/**
  * Credit cost per tool — derived from the first (default) model's creditCost
  * to stay in sync with MODELS automatically.
  * A+ is overridden: 4 scenes × 8 credits = 32 credits total.
@@ -870,7 +882,9 @@ export const TOOL_CREDITS: Record<ToolType, number> = {
       ])
   ) as Record<ToolType, number>),
   aplus: 32,          // 4 scenes × 8 credits
-  "social-kit": 67,   // 4 scenes (32) + 1 video (wan-i2v 35)
+  "social-kit":
+    SOCIAL_KIT_SCENE_COUNT * MODELS[SOCIAL_KIT_SCENE_MODEL].creditCost +
+    MODELS[SOCIAL_KIT_VIDEO_MODEL].creditCost,
 };
 
 /** Konuşan-avatar script üst sınırı (karakter). TTS sesi ~15 karakter/sn

@@ -126,10 +126,22 @@ export async function POST(
       autoEnhance,
     });
 
-    return NextResponse.json({
-      jobId: result.jobId,
-      creditCost: result.creditCost,
-    });
+    const reconciliationPending = result.submissionState !== "accepted";
+    return NextResponse.json(
+      {
+        jobId: result.jobId,
+        requestId: result.requestId,
+        creditCost: result.creditCost,
+        submissionState: result.submissionState,
+        ...(result.warning ? { warning: result.warning } : {}),
+      },
+      {
+        status: reconciliationPending ? 202 : 200,
+        ...(reconciliationPending
+          ? { headers: { "Retry-After": "30" } }
+          : {}),
+      }
+    );
   } catch (err) {
     if (err instanceof CreditError && err.code === "INSUFFICIENT") {
       return NextResponse.json({ error: "Yetersiz kredi" }, { status: 402 });

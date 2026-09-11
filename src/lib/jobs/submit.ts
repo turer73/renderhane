@@ -1,11 +1,17 @@
 import { getAIProvider } from "@/lib/ai";
-import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveCredits, refundCredits } from "@/lib/credits/engine";
 import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { composeSmartPrompt } from "@/lib/prompts/compose";
 import type { PromptContext } from "@/lib/prompts/presets";
+import { failJobAndRefund } from "@/lib/jobs/webhook-transitions";
+import {
+  buildFalWebhookUrl,
+  getAcceptedProviderRequestId,
+  ProviderReconciliationStateChangedError,
+  signWebhookPayload,
+} from "@/lib/jobs/provider-webhook";
 import { MAX_AVATAR_SCRIPT_CHARS, type ToolType, type ModelTier } from "@/lib/fal/models";
 
 /** Tools whose final prompt is composed server-side from structured context. */
@@ -59,11 +65,7 @@ async function enhanceImages(imageUrls: string[]): Promise<string[]> {
  * Generate an HMAC signature for webhook verification.
  * This replaces passing the raw secret in the URL query string.
  */
-export function signWebhookPayload(data: string): string {
-  const secret = process.env.FAL_WEBHOOK_SECRET;
-  if (!secret) throw new Error("FAL_WEBHOOK_SECRET is not set");
-  return crypto.createHmac("sha256", secret).update(data).digest("hex");
-}
+export { signWebhookPayload };
 
 interface SubmitJobInput {
   userId: string;
@@ -93,9 +95,47 @@ interface SubmitJobInput {
   /** Caller-provided email (web path already has it) — lets the admin check skip
    *  a redundant admin.getUserById round-trip. Omitted by API-key callers. */
   userEmail?: string;
+  /**
+   * Pre-created reservation for an atomic multi-job bundle. Internal callers
+   * only: the amount must exactly match the selected model's effective cost.
+   */
+  reservedCredit?: {
+    txId: string;
+    amount: number;
+  };
+  /** Correlates child jobs to a durable orchestration request for recovery. */
+  orchestrationRequestId?: string;
 }
 
-export async function submitJob(input: SubmitJobInput) {
+export type ProviderSubmissionState =
+  | "accepted"
+  | "indeterminate"
+  | "accepted_reconciliation_pending";
+
+export interface SubmitJobResult {
+  jobId: string;
+  requestId: string | null;
+  creditCost: number;
+  estimatedTime: string;
+  submissionState: ProviderSubmissionState;
+  composedPrompt?: string;
+  warning?:
+    | "provider_submission_outcome_indeterminate"
+    | "provider_acceptance_persistence_pending";
+}
+
+function isDefinitiveProviderRejection(status: unknown): status is number {
+  return (
+    typeof status === "number" &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408 &&
+    status !== 409 &&
+    status !== 499
+  );
+}
+
+export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult> {
   const { userId, projectId, tool, tier, prompt, autoEnhance } = input;
   let imageUrl = input.imageUrl;
   let imageUrls = input.imageUrls;
@@ -176,6 +216,17 @@ export async function submitJob(input: SubmitJobInput) {
     }
   }
 
+  if (input.reservedCredit && input.reservedCredit.amount !== creditCost) {
+    await refundCredits(input.reservedCredit.txId);
+    throw new Error(
+      `Reserved credit mismatch: expected ${creditCost}, received ${input.reservedCredit.amount}`
+    );
+  }
+
+  if (input.reservedCredit) {
+    txId = input.reservedCredit.txId;
+  }
+
   // Persist a pending job before reserving. This gives the stuck-job cleanup a
   // durable recovery record if the runtime exits during paid preprocessing.
   const originalRequest: Record<string, unknown> = { tool, tier };
@@ -187,6 +238,9 @@ export async function submitJob(input: SubmitJobInput) {
   if (input.audioUrl) originalRequest.audioUrl = input.audioUrl;
   if (autoEnhance) originalRequest.autoEnhance = true;
   if (input.extraParams) originalRequest.extraParams = input.extraParams;
+  if (input.orchestrationRequestId) {
+    originalRequest.orchestrationRequestId = input.orchestrationRequestId;
+  }
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
@@ -199,12 +253,13 @@ export async function submitJob(input: SubmitJobInput) {
       input_params: {},
       original_request: originalRequest,
       credit_cost: creditCost,
-      credit_tx_id: null,
+      credit_tx_id: txId,
     })
     .select("id")
     .single();
 
   if (jobError || !job) {
+    if (txId) await refundCredits(txId);
     console.error(
       "[submitJob] DB insert error:",
       jobError?.message,
@@ -214,19 +269,91 @@ export async function submitJob(input: SubmitJobInput) {
     throw new Error(`Failed to create job: ${jobError?.message || "no job returned"}`);
   }
 
-  const markJobFailed = async (message: string) => {
-    await supabase
-      .from("jobs")
-      .update({
-        status: "failed",
-        error_message: message,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", job.id);
+  const failDurableJob = async (message: string) =>
+    failJobAndRefund({ jobId: job.id, errorMessage: message });
+
+  const persistProviderReconciliation = async (params: {
+    stage: "tts" | "main";
+    endpointId: string;
+    state: "submission_attempted" | "accepted";
+    requestId?: string;
+    inputParams?: Record<string, unknown>;
+    expectedPrevious?: {
+      stage: "tts" | "main";
+      endpointId: string;
+      state: "submission_attempted" | "accepted";
+      requestId?: string;
+    };
+  }) => {
+    const nextProviderReconciliation = {
+      stage: params.stage,
+      endpointId: params.endpointId,
+      state: params.state,
+      ...(params.requestId ? { requestId: params.requestId } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    const nextOriginalRequest = {
+      ...originalRequest,
+      providerReconciliation: nextProviderReconciliation,
+    };
+
+    let lastError: { message?: string } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let updateQuery = supabase
+        .from("jobs")
+        .update({
+          original_request: nextOriginalRequest,
+          ...(params.inputParams ? { input_params: params.inputParams } : {}),
+          ...(params.state === "submission_attempted"
+            ? {
+                status: "processing",
+                started_at: new Date().toISOString(),
+                ...(params.stage === "main" ? { fal_request_id: null } : {}),
+              }
+            : params.requestId
+            ? {
+                fal_request_id: params.requestId,
+                started_at: new Date().toISOString(),
+              }
+            : {}),
+        })
+        .eq("id", job.id)
+        .in("status", ["pending", "processing"]);
+
+      if (params.expectedPrevious) {
+        updateQuery = params.expectedPrevious.requestId
+          ? updateQuery.eq("fal_request_id", params.expectedPrevious.requestId)
+          : updateQuery.is("fal_request_id", null);
+        updateQuery = updateQuery.contains("original_request", {
+          providerReconciliation: params.expectedPrevious,
+        });
+      }
+
+      const { data: persisted, error } = await updateQuery
+        .select("id")
+        .maybeSingle();
+      if (!error && persisted) {
+        originalRequest.providerReconciliation = nextProviderReconciliation;
+        return;
+      }
+      lastError = error;
+      if (!error && !persisted) {
+        throw new ProviderReconciliationStateChangedError();
+      }
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+      }
+    }
+
+    throw new Error(
+      `Failed to persist provider reconciliation state: ${
+        lastError?.message ?? "unknown database error"
+      }`
+    );
   };
 
   try {
-    if (creditCost > 0) {
+    if (creditCost > 0 && !txId) {
       txId = await reserveCredits(
         userId,
         creditCost,
@@ -245,7 +372,7 @@ export async function submitJob(input: SubmitJobInput) {
       }
     }
   } catch (error) {
-    await markJobFailed(
+    await failDurableJob(
       error instanceof Error ? error.message : "Failed to reserve credits"
     );
     throw error;
@@ -254,6 +381,14 @@ export async function submitJob(input: SubmitJobInput) {
   // Paid preprocessing starts only after the durable job and reservation link
   // exist. Process exits are recovered by the existing stuck-job cleanup.
   let falInput: Record<string, unknown>;
+  let mainSubmissionExpectedPrevious:
+    | {
+        stage: "tts";
+        endpointId: string;
+        state: "accepted";
+        requestId: string;
+      }
+    | undefined;
   try {
     // Clean backgrounds before 3D generation unless the user opts out.
     if (tool === "3d-model" && !input.skipBgRemove) {
@@ -287,17 +422,84 @@ export async function submitJob(input: SubmitJobInput) {
     // Talking-avatar is a bundled TTS -> video pipeline. Reserve the complete
     // avatar job cost before generating the intermediate audio.
     if (tool === "talking-avatar" && input.script && !input.audioUrl) {
-      const ttsResult = await getAIProvider().subscribe("fal-ai/f5-tts", {
+      const ttsEndpointId = "fal-ai/f5-tts";
+      const ttsInput = {
         gen_text: input.script,
         model_type: "F5-TTS",
         ref_audio_url:
           "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
         ref_text: "",
+      };
+      await persistProviderReconciliation({
+        stage: "tts",
+        endpointId: ttsEndpointId,
+        state: "submission_attempted",
       });
+
+      let ttsResult;
+      let acceptedTtsRequestId: string | null = null;
+      try {
+        ttsResult = await getAIProvider().subscribe(ttsEndpointId, ttsInput, {
+          onEnqueue: async (requestId) => {
+            await persistProviderReconciliation({
+              stage: "tts",
+              endpointId: ttsEndpointId,
+              state: "accepted",
+              requestId,
+              expectedPrevious: {
+                stage: "tts",
+                endpointId: ttsEndpointId,
+                state: "submission_attempted",
+              },
+            });
+            acceptedTtsRequestId = requestId;
+          },
+        });
+      } catch (error) {
+        const acceptedRequestId = getAcceptedProviderRequestId(error);
+        if (acceptedRequestId) {
+          return {
+            jobId: job.id,
+            requestId: acceptedRequestId,
+            creditCost,
+            estimatedTime: model.estimatedTime,
+            submissionState: "indeterminate",
+            warning: "provider_submission_outcome_indeterminate",
+          };
+        }
+        const providerError = error as { status?: number };
+        if (!isDefinitiveProviderRejection(providerError.status)) {
+          return {
+            jobId: job.id,
+            requestId: null,
+            creditCost,
+            estimatedTime: model.estimatedTime,
+            submissionState: "indeterminate",
+            warning: "provider_submission_outcome_indeterminate",
+          };
+        }
+        throw error;
+      }
       const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
       if (!ttsOutput.audio_url?.url) {
-        throw new Error("TTS generation failed — no audio produced");
+        throw new Error("TTS provider completed without an audio output");
       }
+      if (!acceptedTtsRequestId) {
+        return {
+          jobId: job.id,
+          requestId: ttsResult.requestId ?? null,
+          creditCost,
+          estimatedTime: model.estimatedTime,
+          submissionState: "indeterminate",
+          warning: "provider_submission_outcome_indeterminate",
+        };
+      }
+      mainSubmissionExpectedPrevious = {
+        stage: "tts",
+        endpointId: ttsEndpointId,
+        state: "accepted",
+        requestId: acceptedTtsRequestId,
+      };
       effectivePrompt = ttsOutput.audio_url.url;
     }
 
@@ -315,39 +517,58 @@ export async function submitJob(input: SubmitJobInput) {
       extraParams: input.extraParams,
     }));
   } catch (error) {
-    if (txId) await refundCredits(txId);
-    await markJobFailed(
+    await failDurableJob(
       error instanceof Error ? error.message : "Preprocessing failed"
     );
     throw error;
   }
 
-  // Store final fal.ai-routed URLs after preprocessing (they may expire).
-  const { error: inputUpdateError } = await supabase
-    .from("jobs")
-    .update({ input_params: falInput })
-    .eq("id", job.id);
-
-  if (inputUpdateError) {
-    if (txId) await refundCredits(txId);
-    const message = `Failed to persist job input: ${inputUpdateError.message}`;
-    await markJobFailed(message);
-    throw new Error(message);
-  }
-
   // 4. Submit to fal.ai queue with webhook
   // Sign the payload with HMAC instead of passing the raw secret in the URL
-  const webhookPayload = `${job.id}:${txId || ""}`;
-  const signature = signWebhookPayload(webhookPayload);
-  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/fal?jobId=${job.id}${txId ? `&txId=${txId}` : ""}&sig=${signature}`;
+  let webhookUrl: string;
+  try {
+    webhookUrl = buildFalWebhookUrl(job.id, txId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to configure provider webhook";
+    await failDurableJob(message);
+    throw error;
+  }
+
+  try {
+    await persistProviderReconciliation({
+      stage: "main",
+      endpointId: model.id,
+      state: "submission_attempted",
+      inputParams: falInput,
+      expectedPrevious: mainSubmissionExpectedPrevious,
+    });
+  } catch (error) {
+    if (error instanceof ProviderReconciliationStateChangedError) {
+      return {
+        jobId: job.id,
+        requestId: null,
+        creditCost,
+        estimatedTime: model.estimatedTime,
+        submissionState: "indeterminate",
+        warning: "provider_submission_outcome_indeterminate",
+        ...(usedSmartPrompt && effectivePrompt
+          ? { composedPrompt: effectivePrompt }
+          : {}),
+      };
+    }
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to persist provider submission attempt";
+    await failDurableJob(message);
+    throw error;
+  }
 
   let result;
   try {
     result = await getAIProvider().submit(model.id, falInput, webhookUrl);
   } catch (error) {
-    // Refund credits and mark job as failed (only if credits were reserved)
-    if (txId) await refundCredits(txId);
-
     // Extract meaningful error from fal.ai response
     const falError = error as { status?: number; body?: { detail?: string } };
     let errorMessage = "Failed to submit to processing queue";
@@ -363,32 +584,91 @@ export async function submitJob(input: SubmitJobInput) {
       detail: falError.body?.detail,
     });
 
-    await supabase
-      .from("jobs")
-      .update({
-        status: "failed",
-        error_message: errorMessage,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", job.id);
-    throw new Error(errorMessage);
+    if (isDefinitiveProviderRejection(falError.status)) {
+      await failDurableJob(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // A timeout, connection reset, 5xx, or conflict can arrive after fal.ai
+    // accepted the queue request. Keep the durable job and reservation alive;
+    // its signed webhook or the stale-job reconciler will decide the terminal
+    // state. Returning the job ID prevents higher-level orchestration from
+    // guessing a refund for an externally indeterminate request.
+    return {
+      jobId: job.id,
+      requestId: null,
+      creditCost,
+      estimatedTime: model.estimatedTime,
+      submissionState: "indeterminate",
+      warning: "provider_submission_outcome_indeterminate",
+      ...(usedSmartPrompt && effectivePrompt
+        ? { composedPrompt: effectivePrompt }
+        : {}),
+    };
   }
 
-  // 5. Update job with fal request ID
-  await supabase
-    .from("jobs")
-    .update({
-      fal_request_id: result.requestId,
-      status: "processing",
-      started_at: new Date().toISOString(),
-    })
-    .eq("id", job.id);
+  // 5. Persist provider acceptance. The update is idempotent and retried; if
+  // its response remains unavailable, never refund an already accepted job.
+  let acceptancePersisted = false;
+  let acceptanceError: { message?: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data: persisted, error } = await supabase
+      .from("jobs")
+      .update({
+        fal_request_id: result.requestId,
+        started_at: new Date().toISOString(),
+        original_request: {
+          ...originalRequest,
+          providerReconciliation: {
+            stage: "main",
+            endpointId: model.id,
+            state: "accepted",
+            requestId: result.requestId,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      })
+      .eq("id", job.id)
+      .in("status", ["pending", "processing"])
+      .is("fal_request_id", null)
+      .contains("original_request", {
+        providerReconciliation: {
+          stage: "main",
+          endpointId: model.id,
+          state: "submission_attempted",
+        },
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (!error && persisted) {
+      acceptancePersisted = true;
+      break;
+    }
+    acceptanceError = error;
+    if (attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+    }
+  }
+
+  if (!acceptancePersisted) {
+    console.error(
+      `[submitJob] Provider accepted ${job.id}, but request state persistence is pending:`,
+      acceptanceError?.message ?? "unknown database error"
+    );
+  }
 
   return {
     jobId: job.id,
     requestId: result.requestId,
     creditCost,
     estimatedTime: model.estimatedTime,
+    submissionState: acceptancePersisted
+      ? "accepted"
+      : "accepted_reconciliation_pending",
+    ...(!acceptancePersisted
+      ? { warning: "provider_acceptance_persistence_pending" as const }
+      : {}),
     ...(usedSmartPrompt && effectivePrompt ? { composedPrompt: effectivePrompt } : {}),
   };
 }
