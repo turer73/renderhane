@@ -16,6 +16,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 interface SidebarProps {
   className?: string;
@@ -146,8 +147,13 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         className
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5">
+      {/* Logo — links home so the app is never a dead end */}
+      <Link
+        href={`/${locale}`}
+        onClick={onNavigate}
+        className="flex items-center gap-2.5 px-5 py-5 transition-opacity hover:opacity-80"
+        title={locale === "tr" ? "Siteye dön" : "Back to site"}
+      >
         <Image
           src="/logo/icon-app.svg"
           width={32}
@@ -157,7 +163,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           className="size-8 rounded-lg"
         />
         <span className="text-lg font-bold tracking-tight">renderhane.</span>
-      </div>
+      </Link>
 
       {/* New Production CTA — hidden on admin pages */}
       {!isOnAdmin && (
@@ -203,6 +209,27 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Free tools — same links the landing page offers, kept reachable
+            after sign-in instead of only before it. */}
+        {!isOnAdmin && (
+          <div className="pt-5">
+            <span className="block px-3 pb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {locale === "tr" ? "Ücretsiz Araçlar" : "Free Tools"}
+            </span>
+            {FREE_TOOLS.map((tool) => (
+              <Link
+                key={tool.slug}
+                href={freeToolHref(locale, tool)}
+                onClick={onNavigate}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <tool.icon className="size-4" />
+                <span>{locale === "tr" ? tool.title.tr : tool.title.en}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* Bottom section: Credits + User */}

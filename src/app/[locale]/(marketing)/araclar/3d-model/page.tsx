@@ -14,6 +14,7 @@ import {
   Download,
   type LucideIcon,
 } from "lucide-react";
+import { AuthCta } from "@/components/auth/auth-cta";
 
 /* ── Data ─────────────────────────────────────── */
 
@@ -113,13 +114,7 @@ export default function Public3DModelPage() {
             <Box className="size-5" />
             Renderhane
           </Link>
-          <Link
-            href={`/${locale}/login`}
-            className="rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25"
-          >
-            {tr ? "Giris Yap" : "Sign In"}
-            <ArrowRight className="ml-1.5 inline size-3.5" />
-          </Link>
+          <AuthCta locale={locale} />
         </div>
 
         <div className="relative mx-auto max-w-3xl px-4 text-center">

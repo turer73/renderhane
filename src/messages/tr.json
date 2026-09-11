@@ -11,6 +11,7 @@
     "processing": "İşleniyor...",
     "download": "İndir",
     "tryIt": "Ücretsiz Dene",
+    "goToApp": "Uygulamaya Git",
     "dashboard": "Ana Sayfa",
     "menu": "Menü"
   },
@@ -323,6 +324,7 @@
       "freeTools": "Ücretsiz Araçlar",
       "bgRemoveFree": "Arka Plan Kaldırma",
       "qrCodeFree": "QR Kod Oluşturucu",
+      "nfcWriteFree": "NFC Etiket Programlama",
       "apiAccess": "Geliştirici API",
       "shopifyIntegration": "Shopify Entegrasyonu",
       "blenderPlugin": "Blender Plugin",

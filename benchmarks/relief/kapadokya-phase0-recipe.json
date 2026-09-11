@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "kapadokya-phase0-v1",
+  "product_line": "relief-pro",
+  "status": "requires_physical_validation",
+  "input_contract": {
+    "front_master": {
+      "projection": "orthographic-front",
+      "background": "transparent-or-documented-neutral",
+      "cast_shadow_allowed": false,
+      "side_surface_allowed": false,
+      "minimum_long_edge_px": 2048
+    },
+    "canonical_relief_map": {
+      "format": "png",
+      "bit_depth": 16,
+      "colour_space": "grayscale-linear",
+      "meaning": "0=base relief level, 65535=maximum relief level"
+    },
+    "semantic_layers": [
+      "background",
+      "middle_ground",
+      "foreground",
+      "text_logo",
+      "decorative"
+    ]
+  },
+  "geometry": {
+    "width_mm": 70.0,
+    "height_mode": "preserve_master_aspect_ratio",
+    "base_thickness_mm": 3.0,
+    "relief_depth_variants_mm": [0.6, 1.0, 1.4, 1.8],
+    "minimum_feature_mm": 0.6,
+    "flat_back_required": true,
+    "open_edge_count_required": 0,
+    "watertight_required": true,
+    "positive_volume_required": true
+  },
+  "printer_trials": [
+    {
+      "printer": "Bambu Lab P1S",
+      "nozzle_mm": 0.4,
+      "initial_layer_height_mm": 0.12,
+      "orientation": "flat_back_down"
+    },
+    {
+      "printer": "Bambu Lab A1 mini",
+      "nozzle_mm": 0.4,
+      "initial_layer_height_mm": 0.12,
+      "orientation": "flat_back_down"
+    }
+  ],
+  "uv_trial": {
+    "registration_coupon_required": true,
+    "target_registration_error_mm": 0.5,
+    "colour_artwork_space": "sRGB",
+    "white_mask": "separate-grayscale",
+    "varnish_mask": "separate-grayscale",
+    "rip_profile_required_for_final_colour": true
+  },
+  "digital_acceptance": {
+    "bounds_tolerance_mm": 0.02,
+    "deterministic_artifact_hashes": true,
+    "report_required": true,
+    "generic_3mf_validation_required": true
+  },
+  "physical_acceptance": {
+    "first_print_acceptance_target": 0.85,
+    "calibrated_profile_acceptance_target": 0.95,
+    "median_manual_correction_minutes_target": 5,
+    "decision_values": ["accepted", "accepted_with_warnings", "rejected"]
+  },
+  "honesty_notice": "No digital result is production-approved until the P1S/A1 mini and UV registration rows are measured and signed off."
+}
