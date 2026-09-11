@@ -62,3 +62,11 @@ next-env.d.ts
 
 # supabase
 supabase/.temp/
+
+# local relief manufacturing outputs (774MB+, reproducible via deterministic
+# engine; tracked only through docs/relief-artifacts-inventory.json).
+# kackar-private-* contains private customer data — never commit.
+/artifacts/
+
+# personal dev orchestration scripts, not project code
+/scripts/
