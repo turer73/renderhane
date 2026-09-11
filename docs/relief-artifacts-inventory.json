@@ -1,0 +1,86 @@
+﻿{
+    "generated_utc":  "2026-09-10T22:13:38Z",
+    "note":  "Yerel uretim ciktilari envanteri. Blob\u0027lar git\u0027te DEGIL; deterministik engine + kaynak girdilerle yeniden uretilebilir. Fiziksel baski gecerliligi icin kit-manifest\u0027lere bak.",
+    "engine":  "relief-pro-package-v0.4.0",
+    "packages":  [
+                     {
+                         "name":  "kackar-private-sample-20260906",
+                         "purpose":  "Ilk Kackar ozel numune Phase-0 paketi (1.2mm STL/GLB/3MF + UV/white/varnish maskeler)",
+                         "files":  37,
+                         "bytes":  119172873,
+                         "manifests":  {
+                                           "kackar-private-sample-20260906\\build\\DIGITAL-STATUS.md":  "014e3c058bc2008179194f27782895d5ce66e6182dd366cd4be98b5904fa02f1",
+                                           "kackar-private-sample-20260906\\build\\package-manifest.json":  "25815b36ea689db9cd6a7c92d1cbc9f219721ccd740da962a99f385f5ad0bd13",
+                                           "kackar-private-sample-20260906\\build\\builds\\1.2mm\\manufacturing-report.json":  "4475d3aa3e6ed9990d30760bd51f28a4fe7ebac5f350ae1f6dca8aa562e91133"
+                                       }
+                     },
+                     {
+                         "name":  "kackar-private-sample-20260906-v2",
+                         "purpose":  "Ayni numunenin binary-validation + xy-registration eklenmis revizyonu",
+                         "files":  39,
+                         "bytes":  106790848,
+                         "manifests":  {
+                                           "kackar-private-sample-20260906-v2\\build\\builds\\1.2mm\\manufacturing-report.json":  "befe5278ece982bbf67543011c5e3f44e9025feea69feadb4f4f629745c3ca50",
+                                           "kackar-private-sample-20260906-v2\\build\\package-manifest.json":  "06ced40a2a22d32f56a4619cbe085764dbbda22bbd0ac33cde1577553cfcc1d6",
+                                           "kackar-private-sample-20260906-v2\\build\\DIGITAL-STATUS.md":  "4b949f02f1a662802fc9d257e72a51460d1b831e4bed420d0b947313c35d3bb1"
+                                       }
+                     },
+                     {
+                         "name":  "kackar-private-sample-20260906-v3",
+                         "purpose":  "Bambu\u0027da acilabilir 3MF + uretim raporu + FDM/UV olcum sablonlu tam paket",
+                         "files":  53,
+                         "bytes":  209413023,
+                         "manifests":  {
+                                           "kackar-private-sample-20260906-v3\\MANUFACTURING-REPORT.json":  "eba61d5084665faeb06f218ff7c1fb2534c034d6afa2f518e2bb7ea18d36e939",
+                                           "kackar-private-sample-20260906-v3\\build\\package-manifest.json":  "48c2b21a03b1104cb37210622bfaf07000fda8fe4f41c5014f13f6f0a937f3b8",
+                                           "kackar-private-sample-20260906-v3\\build\\DIGITAL-STATUS.md":  "307076cc777c6800ed188c96a3c7e396da02f0c965edfcabaaff17678ee48d7a",
+                                           "kackar-private-sample-20260906-v3\\build\\builds\\1.2mm\\manufacturing-report.json":  "eba61d5084665faeb06f218ff7c1fb2534c034d6afa2f518e2bb7ea18d36e939"
+                                       }
+                     },
+                     {
+                         "name":  "kackar-private-sample-20260906-v4-appearance",
+                         "purpose":  "Sadece UV gorunum destegi (geometriyi degistirmez/dogrulamaz, not_calibrated)",
+                         "files":  5,
+                         "bytes":  1012716,
+                         "manifests":  {
+
+                                       }
+                     },
+                     {
+                         "name":  "kapadokya-product-visual-test-58e8ab0",
+                         "purpose":  "Kapadokya 70x68x4.2mm gorsel test urunu",
+                         "files":  48,
+                         "bytes":  161824618,
+                         "manifests":  {
+                                           "kapadokya-product-visual-test-58e8ab0\\build\\DIGITAL-STATUS.md":  "8ee36a71cc05c2529d1012aaab03e2642bd0701f8a37a5a8508817cd6576b49e",
+                                           "kapadokya-product-visual-test-58e8ab0\\build\\package-manifest.json":  "80e6d18ea969f5b35775a375c0a1f27c0f8bcc4e30ab43a80f3048f35f07e90f",
+                                           "kapadokya-product-visual-test-58e8ab0\\build\\builds\\1.2mm\\manufacturing-report.json":  "67080cfb180ff41b4bca4786a323cef485b83f889a80ea8b9100051e0d7420ed"
+                                       }
+                     },
+                     {
+                         "name":  "relief-bambu-fixed-20260908",
+                         "purpose":  "0.6/1.0/1.4/1.8mm kalibrasyon 3MF seti + BASKI-NOTU",
+                         "files":  7,
+                         "bytes":  74038712,
+                         "manifests":  {
+                                           "relief-bambu-fixed-20260908\\BASKI-NOTU.txt":  "519c32c601be856252f13e3eac6dfae56f3d69dc833bc2265a2c5757a2129481",
+                                           "relief-bambu-fixed-20260908\\repair-report.json":  "74308a215336973ff4204de536dbe741e517ea9c0eb89a28fae5c508f8ad46a3"
+                                       }
+                     },
+                     {
+                         "name":  "relief-pro-physical-validation-kit-a9f49c7",
+                         "purpose":  "Hak-temiz kalibrasyonla fiziksel dogrulama kiti (dijital validated, uretim onayi pending)",
+                         "files":  112,
+                         "bytes":  139541394,
+                         "manifests":  {
+                                           "relief-pro-physical-validation-kit-a9f49c7\\digital-evidence\\1.8mm\\package-manifest.json":  "a72a2c78e98b0172a40cf5240430821f7096a0605304e3cdba54a73f31290294",
+                                           "relief-pro-physical-validation-kit-a9f49c7\\digital-evidence\\0.6mm\\package-manifest.json":  "ba9eac5678bdf31b01f1376ccad551e19d9c43bb56617846904f87db2f241252",
+                                           "relief-pro-physical-validation-kit-a9f49c7\\digital-evidence\\1.0mm\\package-manifest.json":  "9c8ae75d3cd340b47c2e915748dfb452017e9568372880c38c35839b1b43e07b",
+                                           "relief-pro-physical-validation-kit-a9f49c7\\kit-manifest.json":  "657d3242d9615f6105eda94e6e21691799e45d0a6420b7cac15b011df5e3eab2",
+                                           "relief-pro-physical-validation-kit-a9f49c7\\uv-clearance-coupon\\build\\manufacturing-report.json":  "def5b78ede455e9163483c424432eb4fc3b408edf29431c4b0506029499b905c",
+                                           "relief-pro-physical-validation-kit-a9f49c7\\PRINT-AND-MEASURE.md":  "848fce866b18f4feb7bfbc665a244d41a261bb2df506ac00ee85bb36b11218ff",
+                                           "relief-pro-physical-validation-kit-a9f49c7\\digital-evidence\\1.4mm\\package-manifest.json":  "a88cdb4145509cee2bc889bab4dd5b740b69947c761140d870c3b0832593bb53"
+                                       }
+                     }
+                 ]
+}
