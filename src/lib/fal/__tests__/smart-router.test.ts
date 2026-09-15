@@ -172,12 +172,46 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('omnihuman');
   });
 
-  it('routes srt-voiceover to minimax-speech-02-hd with url output + Turkish boost', () => {
+  it('routes srt-voiceover to minimax-speech-28-hd with url output + Turkish boost', () => {
     const { modelKey, input } = routeRequest({ tool: 'srt-voiceover', prompt: 'Merhaba' });
-    expect(modelKey).toBe('minimax-speech-02-hd');
-    expect(input.text).toBe('Merhaba');
+    expect(modelKey).toBe('minimax-speech-28-hd');
+    expect(input.prompt).toBe('Merhaba');
     expect(input.output_format).toBe('url');
     expect(input.language_boost).toBe('Turkish');
+  });
+
+  it('routes talking-avatar modelKey to kling-avatar-v2-std', () => {
+    const { modelKey } = routeRequest({ tool: 'talking-avatar', imageUrl: 'http://img/1.jpg', prompt: 'http://audio/1.mp3' });
+    expect(modelKey).toBe('omnihuman');
+    const explicit = routeRequest({ tool: 'talking-avatar', modelKey: 'kling-avatar-v2-std', imageUrl: 'http://img/1.jpg', prompt: 'http://audio/1.mp3' });
+    expect(explicit.modelKey).toBe('kling-avatar-v2-std');
+    expect(explicit.input.audio_url).toBe('http://audio/1.mp3');
+  });
+
+  it('routes text-to-image modelKey to qwen-image-3', () => {
+    const { modelKey, input } = routeRequest({ tool: 'text-to-image', modelKey: 'qwen-image-3', prompt: 'bir vazo' });
+    expect(modelKey).toBe('qwen-image-3');
+    expect(input.prompt).toBe('bir vazo');
+  });
+
+  it('routes new premium modelKeys with correct input keys', () => {
+    const wan = routeRequest({ tool: 'video', modelKey: 'wan-3', imageUrl: 'http://img/1.jpg', prompt: 'dön' });
+    expect(wan.modelKey).toBe('wan-3');
+    expect(wan.input.start_image_url).toBe('http://img/1.jpg');
+    expect(wan.input.duration).toBe(5);
+    expect(wan.input.resolution).toBe('720p');
+
+    const meshy = routeRequest({ tool: '3d-model', modelKey: 'meshy-v7', imageUrl: 'http://img/1.jpg' });
+    expect(meshy.modelKey).toBe('meshy-v7');
+    expect(meshy.input.image_url).toBe('http://img/1.jpg');
+
+    const sync = routeRequest({ tool: 'talking-avatar', modelKey: 'sync-lipsync-v3', imageUrl: 'http://img/1.jpg', prompt: 'http://audio/1.mp3' });
+    expect(sync.modelKey).toBe('sync-lipsync-v3');
+    expect(sync.input.audio_url).toBe('http://audio/1.mp3');
+
+    const flare = routeRequest({ tool: 'text-to-image', modelKey: 'gpt-image-25-flare', prompt: 'logo' });
+    expect(flare.modelKey).toBe('gpt-image-25-flare');
+    expect(flare.input.quality).toBe('medium');
   });
 
   it('routes logo to recraft-v4', () => {

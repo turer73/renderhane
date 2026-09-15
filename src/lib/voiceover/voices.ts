@@ -39,6 +39,33 @@ export const SRT_VOICES: VoiceOption[] = [
 
 export const DEFAULT_SRT_VOICE = "Turkish_CalmWoman";
 
+export type SrtEngine = "minimax" | "xai";
+
+export type SrtMode = "single" | "cues";
+
+export const SRT_MODES: { id: SrtMode; labelTr: string; labelEn: string }[] = [
+  { id: "single", labelTr: "Tek parça — tek dosya (önerilen)", labelEn: "Single take — one file (recommended)" },
+  { id: "cues", labelTr: "Replik bazlı — hassas", labelEn: "Per-cue — precise" },
+];
+
+export const SRT_ENGINES: { id: SrtEngine; labelTr: string; labelEn: string }[] = [
+  { id: "minimax", labelTr: "MiniMax 2.8 — Doğal", labelEn: "MiniMax 2.8 — Natural" },
+  { id: "xai", labelTr: "xAI — Ekonomi (1kr)", labelEn: "xAI — Economy (1cr)" },
+];
+
+/** xAI sesleri (şema enum'undan; TR kalitesi replik başına değişebilir). */
+export const XAI_VOICES: VoiceOption[] = [
+  { id: "eve", labelTr: "Eve (xAI)", labelEn: "Eve (xAI)", gender: "female" },
+  { id: "leo", labelTr: "Leo (xAI)", labelEn: "Leo (xAI)", gender: "male" },
+  { id: "ara", labelTr: "Ara (xAI)", labelEn: "Ara (xAI)", gender: "female" },
+];
+
+export const DEFAULT_XAI_VOICE = "eve";
+
+export function isAllowedXaiVoice(voiceId: string): boolean {
+  return XAI_VOICES.some((v) => v.id === voiceId);
+}
+
 export const SRT_EMOTIONS = [
   "neutral",
   "happy",
@@ -112,12 +139,43 @@ export interface MinimaxVoiceSetting {
 }
 
 /**
- * fal-ai/minimax/speech-02-hd cue isteği. MODELS defaultParams'taki
- * output_format/language_boost/audio_setting üzerine eklenir.
+ * Tek-parça TTS metni: replikleri SRT boşluklarına göre duraklama
+ * işaretleriyle birleştirir. MiniMax "<#saniye#>" anlar (0.01–99.99);
+ * xAI'de sade boşluk bırakılır (süre kontrolü yok).
+ * SrtCue[] yerine {startMs,endMs,text} şekli yeter.
  */
+export function buildSinglePassText(
+  cues: { startMs: number; endMs: number; text: string }[],
+  engine: SrtEngine = "minimax"
+): string {
+  return cues
+    .map((cue, i) => {
+      if (i === 0) return cue.text;
+      const prev = cues[i - 1];
+      if (engine === "xai") return cue.text;
+      const gapMs = cue.startMs - prev.endMs;
+      const gapSec = Math.min(99.99, Math.max(0.05, gapMs / 1000));
+      return `<#${gapSec.toFixed(2)}#> ${cue.text}`;
+    })
+    .join(" ");
+}
+export function buildXaiInput(
+  text: string,
+  opts: { voiceId: string }
+): Record<string, unknown> {
+  if (!isAllowedXaiVoice(opts.voiceId)) {
+    throw new Error(`Unsupported xAI voice: "${opts.voiceId}"`);
+  }
+  return {
+    text,
+    voice: opts.voiceId,
+    language: "tr",
+  };
+}
 export function buildMinimaxInput(
   text: string,
-  opts: { voiceId: string; emotion?: string; speed?: number }
+  opts: { voiceId: string; emotion?: string; speed?: number },
+  textKey = "prompt"
 ): Record<string, unknown> {
   if (!isAllowedVoice(opts.voiceId)) {
     throw new Error(`Unsupported voice: "${opts.voiceId}"`);
@@ -127,7 +185,7 @@ export function buildMinimaxInput(
       ? opts.emotion
       : DEFAULT_SRT_EMOTION;
   return {
-    text,
+    [textKey]: text,
     voice_setting: {
       voice_id: opts.voiceId,
       speed: clampSpeed(opts.speed ?? DEFAULT_SRT_SPEED),

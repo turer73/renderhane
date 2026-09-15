@@ -180,6 +180,26 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── 3D Model — Meshy 7 (2026-09 doğrulandı) ──
+     fal $1.20/textured (~₺58) → 80kr. Hizalama SOTA; ultra-mode kapalı
+     (tek-görünüm kısıtı). Çıktı model_glb (webhook + sync destekli). */
+  "meshy-v7": {
+    id: "meshy/v7/image-to-3d",
+    displayName: {
+      tr: "Meshy 7 — Premium 3D",
+      en: "Meshy 7 — Premium 3D",
+    },
+    tier: "premium",
+    creditCost: 80,
+    estimatedTime: "~3min",
+    imageParamKey: "image_url",
+    defaultParams: {
+      should_texture: true,
+      topology: "triangle",
+      target_polycount: 30000,
+    },
+  },
+
   /* ── 3D Model — TripoSR Hızlı Önizleme ──── */
   "triposr": {
     id: "fal-ai/triposr",
@@ -358,6 +378,26 @@ export const MODELS: Record<string, ModelConfig> = {
       duration: "5",
     },
   },
+  /* ── Video — Wan 3.0 (2026-09 doğrulandı) ──
+     fal $0.10/sn @720p sesli → 5sn $0.50 (~₺24) → 40kr. duration/resolution
+     pinli (şema default 1080p + akıllı-süre = maliyet patlaması yapar).
+     Girdi anahtarı start_image_url. Çıktı {video, duration}. */
+  "wan-3": {
+    id: "alibaba/wan-3.0/image-to-video",
+    displayName: { tr: "Wan 3.0 — Sesli Video", en: "Wan 3.0 — Video+Audio" },
+    tier: "premium",
+    creditCost: 40,
+    estimatedTime: "~2min",
+    imageParamKey: "start_image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      prompt: "A smooth product showcase with gentle camera movement, professional lighting",
+      duration: 5,
+      resolution: "720p",
+      audio: true,
+      aspect_ratio: "adaptive",
+    },
+  },
   /* Kling v3 girişleri TOOL_MODELS'te değil (O3 halefleri listede) ama API v1
      modelKey ile hâlâ seçilebilir — kredi/ses ayarı gerçek maliyete göre:
      fal $0.112/sn sessiz (sesli $0.168/sn → 5sn $0.84, 25kr zararına satıyordu). */
@@ -505,13 +545,10 @@ export const MODELS: Record<string, ModelConfig> = {
   },
 
   /* ── SRT Seslendirme — MiniMax Speech-02 HD (doğal, Türkçe destekli) ──
-     fal $0.1/1k karakter. output_format "url" ZORUNLU (default "hex" döner);
-     language_boost Türkçe prozodi için; ses/emosyon/hız cue isteğinde
-     voice_setting ile gönderilir (bkz. src/lib/voiceover/voices.ts).
-     creditCost = 500 karaktere kadar taban (SRT_BASE_CREDITS). */
+     ESKİ varsayılan; kayıtlarda duruyor. Yeni varsayılan 2.8 HD. */
   "minimax-speech-02-hd": {
     id: "fal-ai/minimax/speech-02-hd",
-    displayName: { tr: "MiniMax — SRT Seslendirme", en: "MiniMax — SRT Voiceover" },
+    displayName: { tr: "MiniMax 02 — SRT Seslendirme", en: "MiniMax 02 — SRT Voiceover" },
     tier: "standard",
     creditCost: 4,
     estimatedTime: "~30s",
@@ -525,6 +562,46 @@ export const MODELS: Record<string, ModelConfig> = {
         sample_rate: 44100,
         channel: 1,
       },
+    },
+  },
+
+  /* ── SRT Seslendirme — MiniMax Speech-2.8 HD (2026-09 doğrulandı) ──
+     fal $0.1/1k karakter (02-HD ile aynı fiyat). Girdi anahtarı "prompt"
+     (02'deki "text" DEĞİL). Çıktı {audio:{url}, duration_ms} aynı.
+     voice_setting/audio_setting/language_boost şeması 02 ile aynı. */
+  "minimax-speech-28-hd": {
+    id: "fal-ai/minimax/speech-2.8-hd",
+    displayName: { tr: "MiniMax 2.8 — SRT Seslendirme", en: "MiniMax 2.8 — SRT Voiceover" },
+    tier: "standard",
+    creditCost: 4,
+    estimatedTime: "~30s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      output_format: "url",
+      language_boost: "Turkish",
+      audio_setting: {
+        format: "mp3",
+        sample_rate: 44100,
+        channel: 1,
+      },
+    },
+  },
+
+  /* ── TTS ekonomi motoru — xAI TTS (2026-09 doğrulandı) ──
+     fal $0.015/1K (~₺0.0075/500krktr) → 1kr taban. language:"tr" pinli.
+     Çıktı {audio} (duration_ms YOK → hız sığdırma çalışmaz).
+     SRT economy modunda kullanılır; avatar amiral gemisi MiniMax'te kalır. */
+  "xai-tts": {
+    id: "xai/tts/v1",
+    displayName: { tr: "xAI — Ekonomi Ses", en: "xAI — Economy Voice" },
+    tier: "fast",
+    creditCost: 1,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "text",
+    defaultParams: {
+      language: "tr",
     },
   },
 
@@ -610,6 +687,41 @@ export const MODELS: Record<string, ModelConfig> = {
     defaultParams: {
       num_images: 1,
       output_format: "png",
+    },
+  },
+
+  /* ── Text-to-Image — Qwen Image 3 (2026-09 doğrulandı) ──
+     Çok-dilli tipografi uzmanı (TR dahil 12 dil, ~10px'e kadar net yazı).
+     fal $0.04 (1K) / $0.075 (2K) → 5kr. Girdi: prompt + image_size. */
+  "qwen-image-3": {
+    id: "alibaba/qwen-image-3/text-to-image",
+    displayName: { tr: "Qwen Image 3 — Tipografi", en: "Qwen Image 3 — Typography" },
+    tier: "standard",
+    creditCost: 5,
+    estimatedTime: "~12s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      image_size: "square_hd",
+    },
+  },
+
+  /* ── Text-to-Image — GPT-Image 2.5 Flare (2026-09 doğrulandı) ──
+     Metin/yazı + prompt uyumu SOTA. Token faturalı → quality/image_size
+     pinli (medium/square_hd, tek kare) yoksa düz fiyat patlar. ~$0.08 → 8kr. */
+  "gpt-image-25-flare": {
+    id: "openai/gpt-image-2.5/flare/text-to-image",
+    displayName: { tr: "GPT-Image 2.5 — En İyi Yazı", en: "GPT-Image 2.5 — Best Text" },
+    tier: "premium",
+    creditCost: 8,
+    estimatedTime: "~15s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      quality: "medium",
+      image_size: "square_hd",
     },
   },
 
@@ -708,6 +820,34 @@ export const MODELS: Record<string, ModelConfig> = {
     creditCost: 35, // fal: $0.50 dokulu üretim
     estimatedTime: "~30s",
     imageParamKey: "image_url",
+    defaultParams: {},
+  },
+
+  /* ── Konuşan Avatar — Kling AI Avatar v2 Standard (2026-09 doğrulandı) ──
+     OmniHuman ile aynı iş (görsel + ses → konuşan kafa) ~3x ucuz.
+     fal $0.0562/sn → ~10sn $0.56 ≈ 35kr. Girdi: image_url + audio_url. */
+  "kling-avatar-v2-std": {
+    id: "fal-ai/kling-video/ai-avatar/v2/standard",
+    displayName: { tr: "Kling Avatar v2 — Ekonomik", en: "Kling Avatar v2 — Value" },
+    tier: "standard",
+    creditCost: 35,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "_unused",
+    defaultParams: {},
+  },
+
+  /* ── Konuşan Avatar — Sync v3 Lip-Sync (2026-09 doğrulandı) ──
+     fal $0.133/sn → ~10sn $1.33 (~₺64) → 85kr. Girdi image_url + audio_url,
+     süre sesi takip eder. Çıktı {video}. */
+  "sync-lipsync-v3": {
+    id: "fal-ai/sync-lipsync/v3/image-to-video",
+    displayName: { tr: "Sync v3 — Dudak Senkronu", en: "Sync v3 — Lip-Sync" },
+    tier: "standard",
+    creditCost: 85,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "_unused",
     defaultParams: {},
   },
 
@@ -841,25 +981,25 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-6-text", "tripo-v25-mv", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-v7", "meshy-6-text", "tripo-v25-mv", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["recraft-crisp-upscale", "aura-sr"],
   "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],
   // 2026-07: Kling v3 Pro girişleri O3 Pro haleflerine yerini bıraktı
   // (MODELS'te duruyorlar — eski job kayıtları anahtar çözebilsin diye).
   // Seedance 2.0 fiyat nedeniyle listede değil (110kr) — MODELS'te duruyor.
-  "video": ["wan-i2v", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
+  "video": ["wan-i2v", "wan-3", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext", "flux-kontext-max", "flux-2-pro-edit", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v5-lite-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite", "qwen-image-3", "gpt-image-25-flare"],
   "qr-code": ["qr-code-ai"],
-  "talking-avatar": ["omnihuman", "kling-avatar-v2-pro"],
+  "talking-avatar": ["omnihuman", "kling-avatar-v2-std", "kling-avatar-v2-pro", "sync-lipsync-v3"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],
-  "srt-voiceover": ["minimax-speech-02-hd"],
+  "srt-voiceover": ["minimax-speech-28-hd", "minimax-speech-02-hd"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {

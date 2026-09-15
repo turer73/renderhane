@@ -1,14 +1,20 @@
 import { describe, it, expect } from "vitest";
 import {
   SRT_VOICES,
+  XAI_VOICES,
   DEFAULT_SRT_VOICE,
+  DEFAULT_XAI_VOICE,
   buildMinimaxInput,
+  buildSinglePassText,
+  buildXaiInput,
   clampSpeed,
   fitSpeed,
   isAllowedVoice,
+  isAllowedXaiVoice,
   MAX_SYNC_CHARS,
   MAX_SYNC_CUES,
 } from "../voices";
+import { estimateSrtCredits } from "../srt";
 import { buildSchedule } from "../schedule";
 import { validateSrtVoiceover } from "../request";
 
@@ -19,18 +25,20 @@ describe("voices", () => {
     expect(SRT_VOICES).toHaveLength(3);
   });
 
-  it("builds a fal minimax input with voice_setting", () => {
+  it("builds a fal minimax input with voice_setting (2.8 prompt key)", () => {
     const input = buildMinimaxInput("Merhaba", {
       voiceId: "Turkish_Trustworthyman",
       emotion: "happy",
       speed: 1.1,
     });
-    expect(input.text).toBe("Merhaba");
+    expect(input.prompt).toBe("Merhaba");
     expect(input.voice_setting).toMatchObject({
       voice_id: "Turkish_Trustworthyman",
       speed: 1.1,
       emotion: "happy",
     });
+    const legacy = buildMinimaxInput("Selam", { voiceId: DEFAULT_SRT_VOICE }, "text");
+    expect(legacy.text).toBe("Selam");
   });
 
   it("rejects unknown voices and falls back to neutral emotion", () => {
@@ -55,6 +63,43 @@ describe("voices", () => {
   it("sync caps fit the 60s serverless budget", () => {
     expect(MAX_SYNC_CUES).toBe(20);
     expect(MAX_SYNC_CHARS).toBe(2000);
+  });
+
+  it("xAI economy estimator starts at 1 credit", () => {
+    expect(estimateSrtCredits(500, "xai")).toBe(1);
+    expect(estimateSrtCredits(1000, "xai")).toBe(1);
+    expect(estimateSrtCredits(3000, "xai")).toBe(2);
+    expect(estimateSrtCredits(500)).toBe(4);
+  });
+
+  it("buildSinglePassText joins cues with gap pauses (minimax)", () => {
+    const text = buildSinglePassText([
+      { startMs: 1000, endMs: 3000, text: "Merhaba." },
+      { startMs: 4500, endMs: 6000, text: "Hoş geldin." },
+    ]);
+    expect(text).toBe("Merhaba. <#1.50#> Hoş geldin.");
+  });
+
+  it("buildSinglePassText clamps tiny gaps and plain-joins xAI", () => {
+    const cues = [
+      { startMs: 1000, endMs: 3000, text: "Bir." },
+      { startMs: 3050, endMs: 5000, text: "İki." },
+    ];
+    expect(buildSinglePassText(cues)).toBe("Bir. <#0.05#> İki.");
+    expect(buildSinglePassText(cues, "xai")).toBe("Bir. İki.");
+  });
+
+  it("xAI input pins Turkish + allowlisted voice", () => {
+    expect(DEFAULT_XAI_VOICE).toBe("eve");
+    expect(isAllowedXaiVoice("eve")).toBe(true);
+    expect(isAllowedXaiVoice("Wise_Woman")).toBe(false);
+    expect(XAI_VOICES).toHaveLength(3);
+    expect(buildXaiInput("Selam", { voiceId: "leo" })).toMatchObject({
+      text: "Selam",
+      voice: "leo",
+      language: "tr",
+    });
+    expect(() => buildXaiInput("x", { voiceId: "Nope" })).toThrow("Unsupported xAI voice");
   });
 
   it("fitSpeed only speeds up overflowing cues, capped at 1.3", () => {
@@ -94,6 +139,22 @@ describe("schedule", () => {
 });
 
 describe("request validation", () => {
+  it("accepts engine + xaiVoiceId", () => {
+    const result = validateSrtVoiceover({
+      srt: "1\n00:00:01,000 --> 00:00:02,000\nSelam\n",
+      engine: "xai",
+      xaiVoiceId: "leo",
+      autoFit: false,
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects unknown engine", () => {
+    expect(
+      validateSrtVoiceover({ srt: "x", engine: "other" }).valid
+    ).toBe(false);
+  });
+
   it("accepts a minimal body with defaults", () => {
     const result = validateSrtVoiceover({ srt: "1\n00:00:01,000 --> 00:00:02,000\nSelam\n" });
     expect(result.valid).toBe(true);

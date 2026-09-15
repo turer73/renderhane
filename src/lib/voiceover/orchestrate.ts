@@ -7,9 +7,22 @@ import {
   refundCredits,
 } from "@/lib/credits/engine";
 import { uploadToR2 } from "@/lib/r2/upload";
-import { MODELS } from "@/lib/fal/models";
-import { buildMinimaxInput, fitSpeed, SRT_TTS_CONCURRENCY } from "./voices";
+import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
+import {
+  buildMinimaxInput,
+  buildSinglePassText,
+  buildXaiInput,
+  fitSpeed,
+  isAllowedXaiVoice,
+  DEFAULT_XAI_VOICE,
+  SRT_TTS_CONCURRENCY,
+  type SrtEngine,
+  type SrtMode,
+} from "./voices";
 import { buildSchedule } from "./schedule";
+
+/** SRT varsayılan TTS modeli (TOOL_MODELS ilk sırası). */
+const SRT_TTS_MODEL_KEY = TOOL_MODELS["srt-voiceover"][0];
 
 export interface SrtCueInput {
   index: number;
@@ -38,6 +51,11 @@ export interface OrchestrateResult {
   overflowCount: number;
   /** Otomatik sığdırma ile yeniden seslendirilen replik sayısı. */
   refitCount: number;
+  mode: SrtMode;
+  /** Tek-parça çıktının dosya URL'si (cues modunda ilk repliğinki). */
+  audioUrl: string;
+  /** Tek-parça ses süresi (fal duration_ms; cues modunda toplam plan). */
+  audioDurationMs: number;
 }
 
 interface MinimaxOutput {
@@ -51,7 +69,7 @@ async function synthesizeCue(
   modelId: string
 ): Promise<{ falUrl: string; durationMs: number }> {
   const result = await getAIProvider().subscribe(modelId, {
-    ...MODELS["minimax-speech-02-hd"].defaultParams,
+    ...MODELS[SRT_TTS_MODEL_KEY].defaultParams,
     ...buildMinimaxInput(text, voice),
   });
   const output = result.data as MinimaxOutput;
@@ -64,6 +82,21 @@ async function synthesizeCue(
         ? Math.round(output.duration_ms)
         : 0,
   };
+}
+
+async function synthesizeCueXai(
+  text: string,
+  voiceId: string
+): Promise<{ falUrl: string; durationMs: number }> {
+  const result = await getAIProvider().subscribe("xai/tts/v1", {
+    ...MODELS["xai-tts"].defaultParams,
+    ...buildXaiInput(text, { voiceId }),
+  });
+  const output = result.data as MinimaxOutput;
+  const falUrl = output.audio?.url;
+  if (!falUrl) throw new Error("TTS produced no audio");
+  // xAI duration_ms dönmez → sığdırma yok, mix istemcide gerçek boyla kurulur.
+  return { falUrl, durationMs: 0 };
 }
 
 /** Bounded parallel map — preserves order, fails fast on first error. */
@@ -96,12 +129,21 @@ export async function orchestrateSrtVoiceover(input: {
   speed: number;
   creditCost: number;
   autoFit?: boolean;
+  engine?: SrtEngine;
+  xaiVoiceId?: string;
+  mode?: SrtMode;
 }): Promise<OrchestrateResult> {
   const { userId, cues, voiceId, emotion, speed } = input;
   const autoFit = input.autoFit !== false;
+  const mode: SrtMode = input.mode === "cues" ? "cues" : "single";
+  const engine: SrtEngine = input.engine === "xai" ? "xai" : "minimax";
+  const xaiVoice =
+    input.xaiVoiceId && isAllowedXaiVoice(input.xaiVoiceId)
+      ? input.xaiVoiceId
+      : DEFAULT_XAI_VOICE;
   let { creditCost } = input;
   const supabase = createAdminClient();
-  const model = MODELS["minimax-speech-02-hd"];
+  const model = MODELS[SRT_TTS_MODEL_KEY];
 
   try {
     const email =
@@ -130,6 +172,8 @@ export async function orchestrateSrtVoiceover(input: {
         emotion,
         speed,
         autoFit,
+        mode,
+        engine,
       },
       original_request: { tool: "srt-voiceover", voiceId, emotion, speed },
       credit_cost: creditCost,
@@ -173,9 +217,100 @@ export async function orchestrateSrtVoiceover(input: {
       }
     }
 
+    // TEK-PARÇA: replikler duraklama işaretleriyle tek metinde birleşir,
+    // tek TTS çağrısı → tek dosya (daha ucuz, ses tutarlılığı tam).
+    // Zamanlama yaklaşıktır (konuşma hızı replikten repliğe oynar).
+    if (mode === "single") {
+      const fullText = buildSinglePassText(cues, engine);
+      let falUrl: string;
+      let audioDurationMs: number;
+      try {
+        const out =
+          engine === "xai"
+            ? await synthesizeCueXai(fullText, xaiVoice)
+            : await synthesizeCue(
+                fullText,
+                { voiceId, emotion, speed },
+                model.id
+              );
+        falUrl = out.falUrl;
+        audioDurationMs = out.durationMs;
+      } catch (error) {
+        const reason =
+          error instanceof Error ? error.message : "TTS request failed";
+        throw new Error(`Single take: ${reason}`);
+      }
+
+      let fileUrl = falUrl;
+      let fileSize = 0;
+      try {
+        const uploaded = await uploadToR2(falUrl, userId, "audio");
+        fileUrl = uploaded.r2Url;
+        fileSize = uploaded.fileSize;
+      } catch {
+        /* fal_url still works */
+      }
+
+      const srtTotalMs = cues.length > 0 ? cues[cues.length - 1].endMs : 0;
+      const singleTracks: SrtTrack[] = cues.map((cue) => ({
+        index: cue.index,
+        startMs: cue.startMs,
+        endMs: cue.endMs,
+        text: cue.text,
+        url: fileUrl,
+        durationMs: 0,
+        overflow: false,
+        speed,
+      }));
+
+      const { error: outputError } = await supabase.from("outputs").insert({
+        job_id: job.id,
+        user_id: userId,
+        type: "audio",
+        fal_url: falUrl,
+        r2_url: fileUrl,
+        file_size: fileSize,
+        metadata: {
+          tool: "srt-voiceover",
+          mode: "single",
+          engine,
+          voiceId,
+          emotion,
+          speed,
+          tracks: singleTracks,
+          totalMs: srtTotalMs,
+          audioDurationMs,
+        },
+      });
+      if (outputError) throw new Error(`Failed to save outputs: ${outputError.message}`);
+
+      await supabase
+        .from("jobs")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", job.id);
+
+      if (txId) await confirmSpend(txId, job.id);
+
+      return {
+        jobId: job.id,
+        creditCost,
+        tracks: singleTracks,
+        totalMs: srtTotalMs,
+        overflowCount: 0,
+        refitCount: 0,
+        mode: "single",
+        audioUrl: fileUrl,
+        audioDurationMs,
+      };
+    }
+
     // 1) Per-cue TTS (bounded parallelism). Reservation exists before paid calls.
     const synth = await mapPool(cues, SRT_TTS_CONCURRENCY, async (cue) => {
       try {
+        if (engine === "xai") {
+          const out = await synthesizeCueXai(cue.text, xaiVoice);
+          return { ...out, speed: 1 };
+        }
         const out = await synthesizeCue(
           cue.text,
           { voiceId, emotion, speed },
@@ -192,8 +327,9 @@ export async function orchestrateSrtVoiceover(input: {
     // 1b) Auto-fit: taşan repliği slota sığacak hıza oturtup yeniden
     // seslendir (en fazla 1.3x — üstü doğallığı bozar, taşma kalır).
     // İkinci geçişin fal maliyeti marj içindedir, krediye yansıtılmaz.
+    // xAI süre dönmediği için sığdırma yalnızca MiniMax'te.
     let refitCount = 0;
-    if (autoFit) {
+    if (autoFit && engine === "minimax") {
       const refits: { i: number; speed: number }[] = [];
       cues.forEach((cue, i) => {
         const fitted = fitSpeed(
@@ -265,6 +401,7 @@ export async function orchestrateSrtVoiceover(input: {
         emotion,
         speed,
         autoFit,
+        engine,
         refitCount,
         tracks,
         totalMs: schedule.totalMs,
@@ -287,6 +424,9 @@ export async function orchestrateSrtVoiceover(input: {
       totalMs: schedule.totalMs,
       overflowCount: schedule.overflowCount,
       refitCount,
+      mode: "cues",
+      audioUrl: persisted[0]?.url ?? "",
+      audioDurationMs: schedule.totalMs,
     };
   } catch (error) {
     if (txId) await refundCredits(txId);

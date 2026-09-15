@@ -4,11 +4,11 @@ import {
   TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES, type ToolType,
 } from '../models';
 
-/** All 15 tools in the platform */
+/** All 16 tools in the platform */
 const ALL_TOOLS: ToolType[] = [
   '3d-model', 'bg-remove', 'enhance', 'scene', 'video', 'aplus',
   'image-edit', 'inpainting', 'object-removal', 'text-to-image', 'qr-code',
-  'talking-avatar', 'logo', 'virtual-tryon',
+  'talking-avatar', 'logo', 'social-kit', 'virtual-tryon', 'srt-voiceover',
 ];
 
 /** Helper models that are not user-facing (0 credit cost is valid) */
@@ -71,7 +71,19 @@ describe('MODELS', () => {
     expect(MODELS['hunyuan3d-v31-pro'].creditCost).toBe(40);
   });
 
-  it('f5-tts is a free helper model for talking avatar pipeline', () => {
+  it('srt-voiceover defaults to minimax 2.8 HD (02-HD kept for old jobs)', () => {
+    expect(TOOL_MODELS['srt-voiceover'][0]).toBe('minimax-speech-28-hd');
+    expect(TOOL_MODELS['srt-voiceover']).toContain('minimax-speech-02-hd');
+    expect(MODELS['minimax-speech-28-hd'].promptParamKey).toBe('prompt');
+  });
+
+  it('talking-avatar offers omnihuman default + kling v2 options', () => {
+    expect(TOOL_MODELS['talking-avatar'][0]).toBe('omnihuman');
+    expect(TOOL_MODELS['talking-avatar']).toContain('kling-avatar-v2-std');
+    expect(MODELS['kling-avatar-v2-std'].creditCost).toBe(35);
+  });
+
+  it('f5-tts stays registered (legacy job records) at 0 credits', () => {
     expect(MODELS['f5-tts'].creditCost).toBe(0);
     expect(MODELS['f5-tts'].id).toBe('fal-ai/f5-tts');
   });
@@ -99,10 +111,14 @@ describe('MODELS', () => {
 });
 
 describe('TOOL_MODELS', () => {
-  it('maps all tool types to model arrays (social-kit excluded — orchestration)', () => {
+  it('maps all tool types to model arrays (social-kit is orchestration: empty array)', () => {
     for (const tool of ALL_TOOLS) {
       expect(TOOL_MODELS[tool], `${tool} missing from TOOL_MODELS`).toBeDefined();
-      expect(TOOL_MODELS[tool].length, `${tool} has no models`).toBeGreaterThan(0);
+      if (tool === 'social-kit') {
+        expect(TOOL_MODELS[tool]).toHaveLength(0);
+      } else {
+        expect(TOOL_MODELS[tool].length, `${tool} has no models`).toBeGreaterThan(0);
+      }
     }
   });
 

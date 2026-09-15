@@ -149,8 +149,16 @@ export function srtToPlainText(cues: SrtCue[]): string {
   return cues.map((c) => c.text).join(" ").trim();
 }
 
-/** v1 credit estimate shown in UI: base 4 up to 500 chars, +2 per extra 1000. */
-export function estimateSrtCredits(totalChars: number): number {
+/** v1 credit estimate: minimax base 4 up to 500 chars, +2 per extra 1000;
+ *  xAI economy base 1 up to 1000 chars, +1 per extra 2000. */
+export function estimateSrtCredits(
+  totalChars: number,
+  engine: "minimax" | "xai" = "minimax"
+): number {
+  if (engine === "xai") {
+    if (totalChars <= 1000) return 1;
+    return 1 + Math.ceil((totalChars - 1000) / 2000);
+  }
   if (totalChars <= 500) return SRT_BASE_CREDITS;
   return SRT_BASE_CREDITS + Math.ceil((totalChars - 500) / 1000) * 2;
 }

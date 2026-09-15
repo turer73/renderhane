@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showToast } from "./workspace-toast";
+import { proxyUrl } from "@/lib/proxy-url";
 import { Play, Square, Download, FileJson, TriangleAlert } from "lucide-react";
 
 export interface SrtVoiceoverTrack {
@@ -24,6 +25,9 @@ interface SrtVoiceoverResultProps {
   overflowCount: number;
   refitCount: number;
   jobId: string;
+  mode: "single" | "cues";
+  audioUrl: string;
+  audioDurationMs: number;
 }
 
 export function formatSrtMs(ms: number): string {
@@ -65,7 +69,7 @@ function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {
   return new Blob([ab], { type: "audio/wav" });
 }
 
-export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId }: SrtVoiceoverResultProps) {
+export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId, mode, audioUrl, audioDurationMs }: SrtVoiceoverResultProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timersRef = useRef<number[]>([]);
   const stopRef = useRef(false);
@@ -123,16 +127,23 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     });
   };
 
+  const downloadBlob = (blob: Blob, filename: string) => {
+    // Firefox detached <a> click'ini yok sayar — DOM'a takıp kaldır.
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+
   const downloadJson = () => {
     const blob = new Blob(
       [JSON.stringify({ jobId, totalMs, overflowCount, tracks }, null, 2)],
       { type: "application/json" }
     );
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `srt-voiceover-${jobId.slice(0, 8)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    downloadBlob(blob, `srt-voiceover-${jobId.slice(0, 8)}.json`);
   };
 
   /** Tarayıcıda zaman çizelgesine sadık mix: her cue startMs ofsetinde. */
@@ -140,16 +151,27 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     setMixing(true);
     try {
       const Ctx = window.OfflineAudioContext ?? window.webkitOfflineAudioContext;
-      if (!Ctx) throw new Error("no-offline-audio");
+      if (!Ctx) throw new Error("stage:context");
       const sampleRate = 44100;
       // Decode first (1-sample scratch context): fal duration_ms can be
       // missing/0, so size the mix from real decoded lengths — never cut audio.
       const decodeCtx = new Ctx(1, 1, sampleRate);
       const decoded: { buffer: AudioBuffer; offsetMs: number }[] = [];
       for (const t of tracks) {
-        const res = await fetch(t.url);
-        if (!res.ok) throw new Error(`cue-${t.index}`);
-        const buf = await decodeCtx.decodeAudioData(await res.arrayBuffer());
+        // R2 CORS vermez → aynı-origin proxy üzerinden çek (fetch engellenmesin).
+        let res: Response;
+        try {
+          res = await fetch(proxyUrl(t.url));
+        } catch {
+          throw new Error(`stage:fetch:${t.index}`);
+        }
+        if (!res.ok) throw new Error(`stage:fetch:${t.index}`);
+        let buf: AudioBuffer;
+        try {
+          buf = await decodeCtx.decodeAudioData(await res.arrayBuffer());
+        } catch {
+          throw new Error(`stage:decode:${t.index}`);
+        }
         decoded.push({ buffer: buf, offsetMs: t.startMs });
       }
       const neededMs = decoded.reduce(
@@ -164,20 +186,63 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
         src.connect(mixCtx.destination);
         src.start(d.offsetMs / 1000);
       }
-      const rendered = await mixCtx.startRendering();
+      let rendered: AudioBuffer;
+      try {
+        rendered = await mixCtx.startRendering();
+      } catch {
+        throw new Error("stage:render");
+      }
       const blob = encodeWavMono16([rendered.getChannelData(0)], sampleRate);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `srt-voiceover-${jobId.slice(0, 8)}.wav`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      downloadBlob(blob, `srt-voiceover-${jobId.slice(0, 8)}.wav`);
       showToast("Mix indirildi", "success");
-    } catch {
-      showToast("Mix alınamadı (CORS) — replikleri tek tek indirin", "error");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "";
+      const cue = msg.split(":")[2];
+      if (msg.startsWith("stage:fetch")) {
+        showToast(`${cue}. replik indirilemedi (ağ) — tek tek indirmeyi dene`, "error");
+      } else if (msg.startsWith("stage:decode")) {
+        showToast(`${cue}. replik sesi çözülemedi — tek tek indirmeyi dene`, "error");
+      } else if (msg === "stage:context") {
+        showToast("Tarayıcın ses karıştırmayı desteklemiyor", "error");
+      } else {
+        showToast("Mix kurulamadı — replikleri tek tek indirin", "error");
+      }
     } finally {
       setMixing(false);
     }
   };
+
+  // TEK-PARÇA: tek dosya — oynat + indir, replik listesi yok.
+  if (mode === "single") {
+    const drift = audioDurationMs > 0 ? audioDurationMs - totalMs : 0;
+    const driftBig =
+      audioDurationMs > 0 && totalMs > 0 && Math.abs(drift) > totalMs * 0.15;
+    return (
+      <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-foreground">
+            Tek dosya • {tracks.length} replik
+          </span>
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">tek parça</Badge>
+        </div>
+        <audio src={proxyUrl(audioUrl)} controls className="w-full" />
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          Ses {audioDurationMs > 0 ? `${(audioDurationMs / 1000).toFixed(1)}sn` : "?"} • SRT {formatSrtMs(totalMs)}
+          {driftBig && " — süreler farklı, video ile hizalamayı kontrol et"}
+        </p>
+        <div className="flex gap-1.5">
+          <Button size="sm" className="h-7 flex-1 text-[11px]" asChild>
+            <a href={proxyUrl(audioUrl)} download={`seslendirme-${jobId.slice(0, 8)}.mp3`}>
+              <Download className="h-3 w-3 mr-1" /> Ses dosyasını indir
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={downloadJson}>
+            <FileJson className="h-3 w-3 mr-1" /> Zaman çizelgesi
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">
@@ -249,7 +314,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
             )}
             {t.overflow && <TriangleAlert className="h-3 w-3 shrink-0 text-amber-500" />}
             <a
-              href={t.url}
+              href={proxyUrl(t.url)}
               download={`cue-${t.index}.mp3`}
               className="shrink-0 text-muted-foreground hover:text-foreground"
               title="Repliği indir"

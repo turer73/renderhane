@@ -27,6 +27,12 @@ export const srtVoiceoverSchema = z.object({
   speed: z.number().min(0.5).max(2).optional().default(DEFAULT_SRT_SPEED),
   /** Taşan replikleri slota sığacak hıza oturt (en fazla 1.3x). */
   autoFit: z.boolean().optional().default(true),
+  /** TTS motoru: minimax (doğal + sığdırma) veya xAI (ekonomi, sığdırma yok). */
+  engine: z.enum(["minimax", "xai"]).optional().default("minimax"),
+  /** xAI motorunda kullanılacak ses (minimax'te voiceId geçerli). */
+  xaiVoiceId: z.string().optional(),
+  /** Üretim modu: single (tek dosya, önerilen) veya cues (replik bazlı hassas). */
+  mode: z.enum(["single", "cues"]).optional().default("single"),
 });
 
 export type SrtVoiceoverRequest = z.infer<typeof srtVoiceoverSchema>;
