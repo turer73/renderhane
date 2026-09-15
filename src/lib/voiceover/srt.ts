@@ -40,14 +40,43 @@ export function parseSrtTimestamp(raw: string): number {
   return ((hours * 60 + mins) * 60 + secs) * 1000 + millis;
 }
 
+function isTagOpenerAhead(input: string, i: number): boolean {
+  // "<" at i starts a tag-like opener when the next char is a letter,
+  // "/" or "!" ("<b>", "</i>", "<!--", "<script x").
+  if (input[i] !== "<" || i + 1 >= input.length) return false;
+  const c = input.charCodeAt(i + 1);
+  return (
+    (c >= 65 && c <= 90) || // A-Z
+    (c >= 97 && c <= 122) || // a-z
+    c === 47 || // /
+    c === 33 // !
+  );
+}
+
+/**
+ * Strip tag-like segments ("<b>", "</i>", "<!--c-->", "<script x") INCLUDING
+ * unterminated openers — a "<tag" fragment must never survive into TTS
+ * speech or downstream sinks. A bare "<" before other chars ("a < b") is
+ * kept. Plain scanner, no tag-matching regex heuristics.
+ */
+function stripTagLike(input: string): string {
+  let out = "";
+  let i = 0;
+  while (i < input.length) {
+    if (isTagOpenerAhead(input, i)) {
+      const end = input.indexOf(">", i + 1);
+      i = end === -1 ? input.length : end + 1;
+    } else {
+      out += input[i];
+      i++;
+    }
+  }
+  return out;
+}
+
 /** Collapse whitespace, strip SRT styling tags (<i>, <b>, {an8}, …). */
 export function normalizeSrtText(text: string): string {
-  return text
-    // Strip tag-like openers INCLUDING unterminated ones ("<i", "<script x"):
-    // a "<tag" fragment must never survive into TTS speech or downstream
-    // sinks (CodeQL: incomplete tag stripping = HTML injection). A bare "<"
-    // before a non-letter ("a < b") is kept.
-    .replace(/<\/?[A-Za-z!][^<>]*>?/g, "")
+  return stripTagLike(text)
     .replace(/\{[^}]*\}/g, "")
     .replace(/\s+/g, " ")
     .trim();
