@@ -2154,10 +2154,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                   <Mic className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <span className="text-xs font-medium text-foreground">{srtEngine === "xai" ? "xAI • Ekonomi" : "MiniMax 2.8 • Türkçe"}</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">doğal ses</Badge>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">{srtEngine === "xai" ? "ekonomi" : "doğal ses"}</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Her replik ayrı seslendirilir, SRT zamanlarına dizilir. Ses asla kesilmez; slota sığmayan replik işaretlenir.
+                {srtMode === "single"
+                  ? "Tek çağrı, tek dosya — galeride doğrudan çalar. Süre SRT'ye oturtulur."
+                  : "Her replik ayrı seslendirilir, SRT zamanlarına dizilir. Ses asla kesilmez; slota sığmayan replik işaretlenir."}
               </p>
             </div>
 

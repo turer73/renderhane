@@ -244,7 +244,12 @@ export async function orchestrateSrtVoiceover(input: {
       let usedSpeed = speed;
       let fitPasses = 1;
 
-      const plan = planDurationFit(gaps, out.durationMs, srtTotalMs, speed);
+      let plan = planDurationFit(gaps, out.durationMs, srtTotalMs, speed);
+      // xAI boşluk işaretlerini anlamaz: boşluk ölçekleme işe yaramaz,
+      // yalnızca hız değiştiyse 2. geçişe değer.
+      if (plan !== null && engine === "xai" && plan.speed === speed) {
+        plan = null;
+      }
       if (plan !== null) {
         const retry = await take(
           buildSinglePassText(cues, engine, plan.gapsMs),
