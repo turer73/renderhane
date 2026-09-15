@@ -8,9 +8,11 @@ import {
   buildSinglePassText,
   buildXaiInput,
   clampSpeed,
+  cueGapMs,
   fitSpeed,
   isAllowedVoice,
   isAllowedXaiVoice,
+  planDurationFit,
   MAX_SYNC_CHARS,
   MAX_SYNC_CUES,
 } from "../voices";
@@ -87,6 +89,39 @@ describe("voices", () => {
     ];
     expect(buildSinglePassText(cues)).toBe("Bir. <#0.05#> İki.");
     expect(buildSinglePassText(cues, "xai")).toBe("Bir. İki.");
+  });
+
+  it("cueGapMs measures pre-cue gaps, negatives clamped", () => {
+    expect(
+      cueGapMs([
+        { startMs: 1000, endMs: 3000 },
+        { startMs: 4500, endMs: 6000 },
+        { startMs: 5900, endMs: 7000 },
+      ])
+    ).toEqual([0, 1500, 0]);
+  });
+
+  it("planDurationFit scales gaps when audio is short", () => {
+    const plan = planDurationFit([0, 1500, 500], 30000, 47000, 1);
+    expect(plan).not.toBe(null);
+    // 2000ms gaps + 17000 deficit → 9.5x
+    expect(plan?.gapsMs).toEqual([0, 14250, 4750]);
+    expect(plan?.speed).toBe(1);
+  });
+
+  it("planDurationFit slows down when no gaps to grow", () => {
+    const plan = planDurationFit([0, 0], 30000, 47000, 1);
+    expect(plan?.speed).toBeCloseTo(0.85, 5);
+  });
+
+  it("planDurationFit speeds up when audio is long, capped at 1.3", () => {
+    expect(planDurationFit([0, 500], 70000, 47000, 1)?.speed).toBe(1.3);
+    expect(planDurationFit([0, 500], 50000, 47000, 1)?.speed).toBeCloseTo(1.06, 1);
+  });
+
+  it("planDurationFit returns null inside tolerance or without data", () => {
+    expect(planDurationFit([0, 500], 46500, 47000, 1)).toBe(null);
+    expect(planDurationFit([0, 500], 0, 47000, 1)).toBe(null);
   });
 
   it("xAI input pins Turkish + allowlisted voice", () => {

@@ -149,6 +149,34 @@ describe("orchestrateSrtVoiceover auto-fit", () => {
     expect(result.refitCount).toBe(0);
   });
 
+  it("single mode fits duration with a second pass", async () => {
+    mocks.subscribe.mockReset();
+    mocks.subscribe
+      .mockResolvedValueOnce({
+        data: { audio: { url: "https://fal.media/short.mp3" }, duration_ms: 5000 },
+      })
+      .mockResolvedValueOnce({
+        data: { audio: { url: "https://fal.media/fitted.mp3" }, duration_ms: 7900 },
+      });
+
+    const result = await orchestrateSrtVoiceover({
+      userId: "user-1",
+      userEmail: "user@example.com",
+      cues: CUES,
+      voiceId: "Turkish_CalmWoman",
+      emotion: "neutral",
+      speed: 1,
+      creditCost: 4,
+      autoFit: true,
+      mode: "single",
+    });
+
+    expect(mocks.subscribe).toHaveBeenCalledTimes(2);
+    expect(result.fitPasses).toBe(2);
+    expect(result.audioUrl).toContain("fitted");
+    expect(result.audioDurationMs).toBe(7900);
+  });
+
   it("refunds when a cue fails", async () => {
     mocks.subscribe.mockReset();
     mocks.subscribe.mockResolvedValueOnce({
