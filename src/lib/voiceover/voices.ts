@@ -57,6 +57,12 @@ export const MIN_SRT_SPEED = 0.8;
 export const MAX_SRT_SPEED = 1.2;
 export const DEFAULT_SRT_SPEED = 1;
 
+/** Otomatik sığdırma: taşan replik en fazla bu hıza çıkarılır.
+ *  Üstü doğallığı bozar — o replik taşma olarak işaretlenir, asla kesilmez. */
+export const AUTO_FIT_MAX_SPEED = 1.3;
+/** Süre slotun bu oranını aşarsa sığdırma devreye girer (ölçüm payı). */
+export const AUTO_FIT_THRESHOLD = 1.02;
+
 /** Senkron endpoint üst sınırları — 60sn serverless bütçesine göre
  *  (24 cue değil: 20 cue × ~4sn / 4 paralel ≈ 20sn TTS + R2 yüklemeleri). */
 export const MAX_SYNC_CUES = 20;
@@ -75,7 +81,28 @@ export function isAllowedEmotion(emotion: string): emotion is SrtEmotion {
 
 export function clampSpeed(speed: number): number {
   if (!Number.isFinite(speed)) return DEFAULT_SRT_SPEED;
-  return Math.min(MAX_SRT_SPEED, Math.max(MIN_SRT_SPEED, speed));
+  // Üst sınır AUTO_FIT_MAX_SPEED: kullanıcı kaydırıcısı 1.2'de biter,
+  // otomatik sığdırma 1.3'e kadar çıkar (UI bandı değişmedi).
+  return Math.min(AUTO_FIT_MAX_SPEED, Math.max(MIN_SRT_SPEED, speed));
+}
+
+/**
+ * Taşan replik için hedef hız: ölçülen süre slota sığacak hız.
+ * Yalnızca hızlandırır (yavaşlatma yapmaz — kısa ses + sessizlik doğaldır),
+ * AUTO_FIT_MAX_SPEED üstünü istemez (doğallık koruması).
+ * Slota sığıyorsa null döner (yeniden seslendirme gerekmez).
+ */
+export function fitSpeed(
+  baseSpeed: number,
+  durationMs: number,
+  slotMs: number
+): number | null {
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return null;
+  if (!Number.isFinite(slotMs) || slotMs <= 0) return null;
+  if (durationMs <= slotMs * AUTO_FIT_THRESHOLD) return null;
+  const needed = baseSpeed * (durationMs / slotMs);
+  if (needed <= baseSpeed * AUTO_FIT_THRESHOLD) return null;
+  return Math.min(AUTO_FIT_MAX_SPEED, Math.round(needed * 100) / 100);
 }
 
 export interface MinimaxVoiceSetting {

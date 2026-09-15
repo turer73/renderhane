@@ -8,7 +8,7 @@ import {
 } from "@/lib/credits/engine";
 import { uploadToR2 } from "@/lib/r2/upload";
 import { MODELS } from "@/lib/fal/models";
-import { buildMinimaxInput, SRT_TTS_CONCURRENCY } from "./voices";
+import { buildMinimaxInput, fitSpeed, SRT_TTS_CONCURRENCY } from "./voices";
 import { buildSchedule } from "./schedule";
 
 export interface SrtCueInput {
@@ -26,6 +26,8 @@ export interface SrtTrack {
   url: string;
   durationMs: number;
   overflow: boolean;
+  /** Bu replikte kullanılan hız (otomatik sığdırma yükseltmiş olabilir). */
+  speed: number;
 }
 
 export interface OrchestrateResult {
@@ -34,6 +36,8 @@ export interface OrchestrateResult {
   tracks: SrtTrack[];
   totalMs: number;
   overflowCount: number;
+  /** Otomatik sığdırma ile yeniden seslendirilen replik sayısı. */
+  refitCount: number;
 }
 
 interface MinimaxOutput {
@@ -91,8 +95,10 @@ export async function orchestrateSrtVoiceover(input: {
   emotion: string;
   speed: number;
   creditCost: number;
+  autoFit?: boolean;
 }): Promise<OrchestrateResult> {
   const { userId, cues, voiceId, emotion, speed } = input;
+  const autoFit = input.autoFit !== false;
   let { creditCost } = input;
   const supabase = createAdminClient();
   const model = MODELS["minimax-speech-02-hd"];
@@ -123,6 +129,7 @@ export async function orchestrateSrtVoiceover(input: {
         voiceId,
         emotion,
         speed,
+        autoFit,
       },
       original_request: { tool: "srt-voiceover", voiceId, emotion, speed },
       credit_cost: creditCost,
@@ -169,17 +176,54 @@ export async function orchestrateSrtVoiceover(input: {
     // 1) Per-cue TTS (bounded parallelism). Reservation exists before paid calls.
     const synth = await mapPool(cues, SRT_TTS_CONCURRENCY, async (cue) => {
       try {
-        return await synthesizeCue(
+        const out = await synthesizeCue(
           cue.text,
           { voiceId, emotion, speed },
           model.id
         );
+        return { ...out, speed };
       } catch (error) {
         const reason =
           error instanceof Error ? error.message : "TTS request failed";
         throw new Error(`Cue ${cue.index}: ${reason}`);
       }
     });
+
+    // 1b) Auto-fit: taşan repliği slota sığacak hıza oturtup yeniden
+    // seslendir (en fazla 1.3x — üstü doğallığı bozar, taşma kalır).
+    // İkinci geçişin fal maliyeti marj içindedir, krediye yansıtılmaz.
+    let refitCount = 0;
+    if (autoFit) {
+      const refits: { i: number; speed: number }[] = [];
+      cues.forEach((cue, i) => {
+        const fitted = fitSpeed(
+          speed,
+          synth[i].durationMs,
+          cue.endMs - cue.startMs
+        );
+        if (fitted !== null) refits.push({ i, speed: fitted });
+      });
+      if (refits.length > 0) {
+        const redone = await mapPool(refits, SRT_TTS_CONCURRENCY, async (r) => {
+          try {
+            const out = await synthesizeCue(
+              cues[r.i].text,
+              { voiceId, emotion, speed: r.speed },
+              model.id
+            );
+            return { i: r.i, out, speed: r.speed };
+          } catch (error) {
+            const reason =
+              error instanceof Error ? error.message : "TTS request failed";
+            throw new Error(`Cue ${cues[r.i].index} (refit): ${reason}`);
+          }
+        });
+        for (const r of redone) {
+          synth[r.i] = { falUrl: r.out.falUrl, durationMs: r.out.durationMs, speed: r.speed };
+        }
+        refitCount = redone.length;
+      }
+    }
 
     // 2) Persist each cue audio to R2 (fal URLs expire). R2 failure falls back
     //    to the fal URL — same convention as submit-sync.
@@ -205,6 +249,7 @@ export async function orchestrateSrtVoiceover(input: {
       url: persisted[i].url,
       durationMs: synth[i].durationMs,
       overflow: schedule.cues[i].overflow,
+      speed: synth[i].speed,
     }));
 
     const { error: outputError } = await supabase.from("outputs").insert({
@@ -219,6 +264,8 @@ export async function orchestrateSrtVoiceover(input: {
         voiceId,
         emotion,
         speed,
+        autoFit,
+        refitCount,
         tracks,
         totalMs: schedule.totalMs,
         overflowCount: schedule.overflowCount,
@@ -239,6 +286,7 @@ export async function orchestrateSrtVoiceover(input: {
       tracks,
       totalMs: schedule.totalMs,
       overflowCount: schedule.overflowCount,
+      refitCount,
     };
   } catch (error) {
     if (txId) await refundCredits(txId);

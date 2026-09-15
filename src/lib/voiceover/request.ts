@@ -25,6 +25,8 @@ export const srtVoiceoverSchema = z.object({
     }),
   emotion: z.enum(SRT_EMOTIONS).optional().default(DEFAULT_SRT_EMOTION),
   speed: z.number().min(0.5).max(2).optional().default(DEFAULT_SRT_SPEED),
+  /** Taşan replikleri slota sığacak hıza oturt (en fazla 1.3x). */
+  autoFit: z.boolean().optional().default(true),
 });
 
 export type SrtVoiceoverRequest = z.infer<typeof srtVoiceoverSchema>;
