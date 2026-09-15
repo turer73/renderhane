@@ -29,7 +29,8 @@
     "talkingAvatar": "Konuşan Avatar",
     "logo": "Logo Üret",
     "virtualTryon": "Kıyafet Giydirme",
-    "qrCode": "QR Kod Üret"
+    "qrCode": "QR Kod Üret",
+    "srtVoiceover": "SRT Seslendirme"
   },
   "toolDescriptions": {
     "bgRemoveDesc": "Ürün fotoğrafından arka planı temizle",
@@ -44,7 +45,8 @@
     "talkingAvatarDesc": "Ürününü tanıtan konuşan video",
     "logoDesc": "Marka için profesyonel logo tasarla",
     "qrCodeDesc": "Standart veya AI sanatsal QR kod",
-    "virtualTryonDesc": "Kıyafet fotoğrafını model üzerinde gör"
+    "virtualTryonDesc": "Kıyafet fotoğrafını model üzerinde gör",
+    "srtVoiceoverDesc": "SRT altyazısını doğal sesle seslendir"
   },
   "credits": {
     "balance": "Bakiye",
@@ -407,7 +409,8 @@
     "outputTypes": {
       "glb": "3D Model",
       "image": "Görsel",
-      "video": "Video"
+      "video": "Video",
+      "audio": "Ses"
     },
     "filterAll": "Tümü",
     "filter3d": "3D Model",
@@ -440,7 +443,8 @@
     "fileSize": "Boyut: {size}",
     "creditCost": "{count} kredi",
     "original": "Orijinal",
-    "result": "Sonuç"
+    "result": "Sonuç",
+    "audioNote": "İlk repliğin sesi. Tam zaman çizelgesi Seslendir sekmesinde."
   },
   "blog": {
     "title": "Blog",

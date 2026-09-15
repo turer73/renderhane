@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { validateJobSubmit } from "../job-submit";
 
 describe("validateJobSubmit", () => {
+  it("accepts srt-voiceover as a text-only tool with prompt", () => {
+    const result = validateJobSubmit({
+      tool: "srt-voiceover",
+      prompt: "Merhaba, hoş geldiniz.",
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects srt-voiceover without prompt", () => {
+    const result = validateJobSubmit({ tool: "srt-voiceover" });
+    expect(result.valid).toBe(false);
+  });
   it("accepts the bounded logo parameter contract", () => {
     const result = validateJobSubmit({
       tool: "logo",

@@ -172,6 +172,14 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('omnihuman');
   });
 
+  it('routes srt-voiceover to minimax-speech-02-hd with url output + Turkish boost', () => {
+    const { modelKey, input } = routeRequest({ tool: 'srt-voiceover', prompt: 'Merhaba' });
+    expect(modelKey).toBe('minimax-speech-02-hd');
+    expect(input.text).toBe('Merhaba');
+    expect(input.output_format).toBe('url');
+    expect(input.language_boost).toBe('Turkish');
+  });
+
   it('routes logo to recraft-v4', () => {
     const { modelKey } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
     expect(modelKey).toBe('recraft-v4');

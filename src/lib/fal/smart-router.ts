@@ -214,6 +214,9 @@ function selectModel(tool: ToolType, tier: ModelTier, imageCount: number, extraP
     case "virtual-tryon":
       return "fashn-tryon";
 
+    case "srt-voiceover":
+      return "minimax-speech-02-hd";
+
     case "social-kit":
       throw new Error("social-kit is an orchestration tool — use the orchestration handler");
 

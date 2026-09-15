@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type OutputType = "glb" | "image" | "video";
+type OutputType = "glb" | "image" | "video" | "audio";
 
 interface DownloadMenuProps {
   url: string;

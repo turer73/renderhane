@@ -284,7 +284,7 @@ interface ProcessingJob {
   tool: string;
   status: "pending" | "processing" | "completed" | "failed";
   output_url: string | null;
-  output_type: "glb" | "image" | "video" | null;
+  output_type: "glb" | "image" | "video" | "audio" | null;
   output_id: string | null;
   error_message: string | null;
 }

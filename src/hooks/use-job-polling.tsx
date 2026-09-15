@@ -24,7 +24,7 @@ export interface PolledJob {
   error_message: string | null;
   output_id: string | null;
   output_url: string | null;
-  output_type: "glb" | "image" | "video" | null;
+  output_type: "glb" | "image" | "video" | "audio" | null;
   /** Source image used as input — for thumbnail when output is non-renderable (e.g. .glb) */
   source_image: string | null;
 }

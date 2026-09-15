@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,17 @@ import {
 import { showToast } from "./workspace-toast";
 import type { PromptContext } from "@/lib/prompts/presets";
 import { smartDefaultsFor, primaryToolTarget } from "@/lib/analysis/product-intel";
+import { parseSRT, estimateSrtCredits } from "@/lib/voiceover/srt";
+import {
+  SRT_VOICES,
+  SRT_EMOTIONS,
+  DEFAULT_SRT_VOICE,
+  DEFAULT_SRT_EMOTION,
+  DEFAULT_SRT_SPEED,
+  MAX_SYNC_CHARS,
+  MAX_SYNC_CUES,
+} from "@/lib/voiceover/voices";
+import { SrtVoiceoverResult, type SrtVoiceoverTrack } from "./srt-voiceover-result";
 
 /* ═══════════════════════════════════════════════
    AI Model & Tab configs
@@ -89,12 +100,14 @@ const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: st
   "image-to-video": { model: "Wan 2.7", credits: 35, time: "~2 dk" },
   "text-to-video": { model: "Kling O3 Pro", credits: 40, time: "~2 dk" },
   "talking-avatar": { model: "OmniHuman v1.5", credits: 100, time: "~2 dk" },
+  "srt-voiceover": { model: "MiniMax HD", credits: 4, time: "~1 dk" },
 };
 
 const TABS_VIDEO = [
   { id: "image-to-video", label: "Görsel", icon: Film },
   { id: "text-to-video", label: "Metin", icon: Type },
   { id: "talking-avatar", label: "Avatar", icon: User },
+  { id: "srt-voiceover", label: "Seslendir", icon: Mic },
 ];
 
 const ECOMMERCE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
@@ -220,6 +233,7 @@ const TAB_TO_API_TOOL: Record<string, string> = {
   "image-to-video": "video",
   "text-to-video": "video",
   "talking-avatar": "talking-avatar",
+  "srt-voiceover": "srt-voiceover",
   // E-commerce
   "scene": "scene",
   "aplus": "aplus",
@@ -422,6 +436,22 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [modelPhotoUploading, setModelPhotoUploading] = useState(false);
   const modelPhotoInputRef = useRef<HTMLInputElement>(null);
 
+  // SRT voiceover (dedicated sync endpoint — generic job akışını kullanmaz)
+  const [srtText, setSrtText] = useState("");
+  const [srtFileName, setSrtFileName] = useState<string | null>(null);
+  const [srtVoice, setSrtVoice] = useState(DEFAULT_SRT_VOICE);
+  const [srtEmotion, setSrtEmotion] = useState<string>(DEFAULT_SRT_EMOTION);
+  const [srtSpeed, setSrtSpeed] = useState(DEFAULT_SRT_SPEED);
+  const [srtBusy, setSrtBusy] = useState(false);
+  const [srtResult, setSrtResult] = useState<{
+    jobId: string;
+    creditCost: number;
+    tracks: SrtVoiceoverTrack[];
+    totalMs: number;
+    overflowCount: number;
+  } | null>(null);
+  const srtFileInputRef = useRef<HTMLInputElement>(null);
+
   // Reset active tab when tool category changes
   useEffect(() => {
     // On first mount with deep-linked tab, skip reset
@@ -455,6 +485,11 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     setModelPhotoPreview(null);
     setModelPhotoUrl(null);
     setModelPhotoUploading(false);
+    // Clear SRT voiceover state
+    setSrtText("");
+    setSrtFileName(null);
+    setSrtResult(null);
+    setSrtBusy(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool]);
 
@@ -473,6 +508,30 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const currentTextModel = TEXT_MODELS.find((m) => m.id === selectedTextModel) ?? TEXT_MODELS[0];
   const currentSceneModel = SCENE_MODELS.find((m) => m.id === selectedSceneModel) ?? SCENE_MODELS[0];
   const tabs = DEFAULT_TABS[activeTool];
+
+  // SRT önizleme — istemcide parse edilir, ücretlendirme öncesi gösterilir
+  const srtPreview = useMemo(() => {
+    if (activeTab !== "srt-voiceover" || !srtText.trim()) return null;
+    try {
+      const cues = parseSRT(srtText);
+      const chars = cues.reduce((sum, c) => sum + c.text.length, 0);
+      return {
+        cues: cues.length,
+        chars,
+        credits: estimateSrtCredits(chars),
+        overCap: cues.length > MAX_SYNC_CUES || chars > MAX_SYNC_CHARS,
+        error: null as string | null,
+      };
+    } catch (error) {
+      return {
+        cues: 0,
+        chars: 0,
+        credits: 0,
+        overCap: false,
+        error: error instanceof Error ? error.message : "Geçersiz SRT",
+      };
+    }
+  }, [activeTab, srtText]);
 
   // Footer info based on tool + tab
   const footerInfo = (() => {
@@ -494,6 +553,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     if (activeTool === "video") {
       if (activeTab === "image-to-video") {
         return { time: currentVideoModel.time, credits: currentVideoModel.credits };
+      }
+      if (activeTab === "srt-voiceover") {
+        return { time: "~1 dk", credits: srtPreview?.credits ?? 4 };
       }
       const info = VIDEO_TOOL_INFO[activeTab];
       return info ? { time: info.time, credits: info.credits } : { time: "~30 sn", credits: 20 };
@@ -627,12 +689,94 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     });
   }, [uploadToSupabase]);
 
+  /** .srt dosyasını oku → textarea'ya koy (en fazla ~20KB ham metin) */
+  const handleSrtFile = useCallback((f: File) => {
+    if (f.size > 64 * 1024) {
+      showToast("SRT dosyası çok büyük (en fazla 64KB)", "error");
+      return;
+    }
+    f.text().then((text) => {
+      setSrtText(text);
+      setSrtFileName(f.name);
+      setSrtResult(null);
+    }).catch(() => showToast("Dosya okunamadı", "error"));
+  }, []);
+
+  const handleSrtGenerate = async () => {
+    if (srtBusy) return;
+    if (!srtText.trim()) {
+      showToast("Önce SRT yapıştır veya dosya yükle", "error");
+      return;
+    }
+    if (srtPreview?.error) {
+      showToast(`SRT hatası: ${srtPreview.error}`, "error");
+      return;
+    }
+    if (srtPreview?.overCap) {
+      showToast(`Çok uzun (en fazla ${MAX_SYNC_CUES} replik / ${MAX_SYNC_CHARS} karakter) — dosyayı böl`, "error");
+      return;
+    }
+    setSrtBusy(true);
+    try {
+      const res = await fetch("/api/jobs/submit-srt-voiceover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          srt: srtText,
+          voiceId: srtVoice,
+          emotion: srtEmotion,
+          speed: srtSpeed,
+        }),
+      });
+      if (res.status === 402) {
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
+        showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
+        return;
+      }
+      if (res.status === 429) {
+        showToast("Çok hızlı! Lütfen biraz bekle.", "error");
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        showToast(
+          typeof data?.errorTr === "string" && data.errorTr
+            ? data.errorTr
+            : typeof data?.error === "string" && data.error
+              ? data.error
+              : "Seslendirme başlatılamadı. Tekrar dene.",
+          "error"
+        );
+        return;
+      }
+      setSrtResult({
+        jobId: data.jobId,
+        creditCost: data.creditCost,
+        tracks: data.tracks,
+        totalMs: data.totalMs,
+        overflowCount: data.overflowCount,
+      });
+      window.dispatchEvent(new Event("job-submitted"));
+      showToast(`Seslendirme hazır (${data.creditCost} kredi)`, "success");
+    } catch {
+      showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
+    } finally {
+      setSrtBusy(false);
+    }
+  };
+
   const handleGenerate = () => {
+    // SRT voiceover uses its dedicated sync endpoint (per-cue TTS + R2),
+    // not the generic /api/jobs/submit queue.
+    if (activeTab === "srt-voiceover") {
+      void handleSrtGenerate();
+      return;
+    }
     const name = projectName.trim() || "Yeni Proje";
     const apiTool = TAB_TO_API_TOOL[activeTab] ?? activeTool;
 
     // --- Validation ---
-    const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code"];
+    const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code", "srt-voiceover"];
     const needsImage = !textOnlyTabs.includes(activeTab);
     const needsPrompt = ["text-to-3d", "text-to-image", "text-to-video", "object-removal"].includes(activeTab);
 
@@ -1699,6 +1843,124 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           </div>
         )}
 
+        {/* SRT Seslendirme */}
+        {activeTab === "srt-voiceover" && (
+          <>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">SRT Altyazı</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => srtFileInputRef.current?.click()}
+                >
+                  <FolderUp className="h-3 w-3 mr-1" />
+                  {srtFileName ?? "Dosya yükle"}
+                </Button>
+                <input
+                  ref={srtFileInputRef}
+                  type="file"
+                  accept=".srt,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleSrtFile(f);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+              <Textarea
+                value={srtText}
+                onChange={(e) => {
+                  setSrtText(e.target.value);
+                  setSrtFileName(null);
+                  setSrtResult(null);
+                }}
+                placeholder={"1\n00:00:01,000 --> 00:00:03,500\nMerhaba, hoş geldiniz.\n\n2\n00:00:04,000 --> 00:00:06,000\nBugün harika bir gün."}
+                className="mt-1.5 min-h-[140px] text-xs font-mono bg-background/50 resize-y"
+              />
+              {srtPreview && !srtPreview.error && (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {srtPreview.cues} replik • {srtPreview.chars} karakter • ~{srtPreview.credits} kredi
+                  {srtPreview.overCap && (
+                    <span className="text-amber-600"> — anlık işlem için çok uzun, dosyayı böl</span>
+                  )}
+                </p>
+              )}
+              {srtPreview?.error && (
+                <p className="mt-1 text-[10px] text-destructive">SRT hatası: {srtPreview.error}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Ses</Label>
+                <select
+                  value={srtVoice}
+                  onChange={(e) => setSrtVoice(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {SRT_VOICES.map((v) => (
+                    <option key={v.id} value={v.id}>{v.labelTr}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Duygu</Label>
+                <select
+                  value={srtEmotion}
+                  onChange={(e) => setSrtEmotion(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {SRT_EMOTIONS.map((e) => (
+                    <option key={e} value={e}>{e}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Hız</Label>
+                <span className="text-[10px] text-muted-foreground">{srtSpeed.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min={0.8}
+                max={1.2}
+                step={0.1}
+                value={srtSpeed}
+                onChange={(e) => setSrtSpeed(Number(e.target.value))}
+                className="mt-1.5 w-full accent-primary"
+              />
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Mic className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">MiniMax HD • Türkçe</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">doğal ses</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Her replik ayrı seslendirilir, SRT zamanlarına dizilir. Ses asla kesilmez; slota sığmayan replik işaretlenir.
+              </p>
+            </div>
+
+            {srtResult && (
+              <SrtVoiceoverResult
+                tracks={srtResult.tracks}
+                totalMs={srtResult.totalMs}
+                overflowCount={srtResult.overflowCount}
+                jobId={srtResult.jobId}
+              />
+            )}
+          </>
+        )}
+
         {/* ═══════════════════════════════════════
             E-TİCARET TABS
            ═══════════════════════════════════════ */}
@@ -2141,14 +2403,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           className="w-full h-9 font-semibold"
           size="sm"
           onClick={handleGenerate}
-          disabled={uploading || modelPhotoUploading || activeTab === "talking-avatar" || activeTab.startsWith("batch-")}
+          disabled={uploading || modelPhotoUploading || srtBusy || activeTab === "talking-avatar" || activeTab.startsWith("batch-")}
         >
-          {uploading || modelPhotoUploading ? (
+          {uploading || modelPhotoUploading || srtBusy ? (
             <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-1.5" />
           )}
-          {activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
+          {activeTab === "srt-voiceover" ? (srtBusy ? "Seslendiriliyor..." : "Seslendir") : activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
         </Button>
       </div>
     </div>

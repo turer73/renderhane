@@ -25,7 +25,7 @@ export interface GenerationJob {
   stage: string;
   thumbnail: string | null;
   outputUrl: string | null;
-  outputType: "glb" | "image" | "video" | null;
+  outputType: "glb" | "image" | "video" | "audio" | null;
   tool: string;
   errorMessage: string | null;
 }

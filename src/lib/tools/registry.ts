@@ -18,7 +18,8 @@ export type ToolId =
   | "talking-avatar"
   | "logo"
   | "qr-code"
-  | "virtual-tryon";
+  | "virtual-tryon"
+  | "srt-voiceover";
 
 export type InputType =
   | "single-image"       // 1 image upload
@@ -225,6 +226,20 @@ export const TOOLS: ToolDefinition[] = [
     href: "/app/workspace?tool=qr-code",
     ready: true,
     descriptionKey: "qrCodeDesc",
+  },
+  {
+    // Workspace "Seslendir" sekmesi (video grubu) + /api/jobs/submit-srt-voiceover.
+    id: "srt-voiceover",
+    i18nKey: "srtVoiceover",
+    icon: "🎙️",
+    gradient: "from-sky-500/10 to-sky-500/5",
+    border: "border-sky-200 hover:border-sky-400 dark:border-sky-800 dark:hover:border-sky-600",
+    creditCost: 4,
+    inputType: "text-only",
+    segments: ["ecommerce"],
+    href: "/app/workspace?tool=srt-voiceover",
+    ready: true,
+    descriptionKey: "srtVoiceoverDesc",
   },
 ];
 
