@@ -124,16 +124,23 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     });
   };
 
+  const downloadBlob = (blob: Blob, filename: string) => {
+    // Firefox detached <a> click'ini yok sayar — DOM'a takıp kaldır.
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+
   const downloadJson = () => {
     const blob = new Blob(
       [JSON.stringify({ jobId, totalMs, overflowCount, tracks }, null, 2)],
       { type: "application/json" }
     );
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `srt-voiceover-${jobId.slice(0, 8)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    downloadBlob(blob, `srt-voiceover-${jobId.slice(0, 8)}.json`);
   };
 
   /** Tarayıcıda zaman çizelgesine sadık mix: her cue startMs ofsetinde. */
@@ -141,7 +148,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     setMixing(true);
     try {
       const Ctx = window.OfflineAudioContext ?? window.webkitOfflineAudioContext;
-      if (!Ctx) throw new Error("no-offline-audio");
+      if (!Ctx) throw new Error("stage:context");
       const sampleRate = 44100;
       // Decode first (1-sample scratch context): fal duration_ms can be
       // missing/0, so size the mix from real decoded lengths — never cut audio.
@@ -149,9 +156,19 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
       const decoded: { buffer: AudioBuffer; offsetMs: number }[] = [];
       for (const t of tracks) {
         // R2 CORS vermez → aynı-origin proxy üzerinden çek (fetch engellenmesin).
-        const res = await fetch(proxyUrl(t.url));
-        if (!res.ok) throw new Error(`cue-${t.index}`);
-        const buf = await decodeCtx.decodeAudioData(await res.arrayBuffer());
+        let res: Response;
+        try {
+          res = await fetch(proxyUrl(t.url));
+        } catch {
+          throw new Error(`stage:fetch:${t.index}`);
+        }
+        if (!res.ok) throw new Error(`stage:fetch:${t.index}`);
+        let buf: AudioBuffer;
+        try {
+          buf = await decodeCtx.decodeAudioData(await res.arrayBuffer());
+        } catch {
+          throw new Error(`stage:decode:${t.index}`);
+        }
         decoded.push({ buffer: buf, offsetMs: t.startMs });
       }
       const neededMs = decoded.reduce(
@@ -166,16 +183,27 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
         src.connect(mixCtx.destination);
         src.start(d.offsetMs / 1000);
       }
-      const rendered = await mixCtx.startRendering();
+      let rendered: AudioBuffer;
+      try {
+        rendered = await mixCtx.startRendering();
+      } catch {
+        throw new Error("stage:render");
+      }
       const blob = encodeWavMono16([rendered.getChannelData(0)], sampleRate);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `srt-voiceover-${jobId.slice(0, 8)}.wav`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      downloadBlob(blob, `srt-voiceover-${jobId.slice(0, 8)}.wav`);
       showToast("Mix indirildi", "success");
-    } catch {
-      showToast("Mix alınamadı — replikleri tek tek indirin", "error");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "";
+      const cue = msg.split(":")[2];
+      if (msg.startsWith("stage:fetch")) {
+        showToast(`${cue}. replik indirilemedi (ağ) — tek tek indirmeyi dene`, "error");
+      } else if (msg.startsWith("stage:decode")) {
+        showToast(`${cue}. replik sesi çözülemedi — tek tek indirmeyi dene`, "error");
+      } else if (msg === "stage:context") {
+        showToast("Tarayıcın ses karıştırmayı desteklemiyor", "error");
+      } else {
+        showToast("Mix kurulamadı — replikleri tek tek indirin", "error");
+      }
     } finally {
       setMixing(false);
     }
