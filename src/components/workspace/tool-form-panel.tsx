@@ -442,6 +442,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [srtVoice, setSrtVoice] = useState(DEFAULT_SRT_VOICE);
   const [srtEmotion, setSrtEmotion] = useState<string>(DEFAULT_SRT_EMOTION);
   const [srtSpeed, setSrtSpeed] = useState(DEFAULT_SRT_SPEED);
+  const [srtAutoFit, setSrtAutoFit] = useState(true);
   const [srtBusy, setSrtBusy] = useState(false);
   const [srtResult, setSrtResult] = useState<{
     jobId: string;
@@ -449,6 +450,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     tracks: SrtVoiceoverTrack[];
     totalMs: number;
     overflowCount: number;
+    refitCount: number;
   } | null>(null);
   const srtFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -490,6 +492,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     setSrtFileName(null);
     setSrtResult(null);
     setSrtBusy(false);
+    setSrtAutoFit(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool]);
 
@@ -726,6 +729,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           voiceId: srtVoice,
           emotion: srtEmotion,
           speed: srtSpeed,
+          autoFit: srtAutoFit,
         }),
       });
       if (res.status === 402) {
@@ -755,6 +759,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         tracks: data.tracks,
         totalMs: data.totalMs,
         overflowCount: data.overflowCount,
+        refitCount: typeof data.refitCount === "number" ? data.refitCount : 0,
       });
       window.dispatchEvent(new Event("job-submitted"));
       showToast(`Seslendirme hazır (${data.creditCost} kredi)`, "success");
@@ -1937,6 +1942,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
               />
             </div>
 
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Zamana otomatik oturt</Label>
+                <p className="text-[10px] text-muted-foreground/70">Taşan replik en fazla 1.3x hızlanır</p>
+              </div>
+              <Switch checked={srtAutoFit} onCheckedChange={setSrtAutoFit} />
+            </div>
+
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
@@ -1955,6 +1968,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 tracks={srtResult.tracks}
                 totalMs={srtResult.totalMs}
                 overflowCount={srtResult.overflowCount}
+                refitCount={srtResult.refitCount}
                 jobId={srtResult.jobId}
               />
             )}

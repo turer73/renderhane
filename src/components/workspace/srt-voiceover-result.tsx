@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showToast } from "./workspace-toast";
@@ -14,12 +14,15 @@ export interface SrtVoiceoverTrack {
   url: string;
   durationMs: number;
   overflow: boolean;
+  /** Bu replikte kullanılan hız (yoksa 1 varsayılır — eski kayıtlar). */
+  speed?: number;
 }
 
 interface SrtVoiceoverResultProps {
   tracks: SrtVoiceoverTrack[];
   totalMs: number;
   overflowCount: number;
+  refitCount: number;
   jobId: string;
 }
 
@@ -62,28 +65,38 @@ function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {
   return new Blob([ab], { type: "audio/wav" });
 }
 
-export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, jobId }: SrtVoiceoverResultProps) {
+export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId }: SrtVoiceoverResultProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timersRef = useRef<number[]>([]);
   const stopRef = useRef(false);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [mixing, setMixing] = useState(false);
 
   const stopAll = () => {
     stopRef.current = true;
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
     audioRef.current?.pause();
     audioRef.current = null;
     setPlayingIndex(null);
   };
 
-  const playTrack = (i: number, chain: boolean) => {
+  // Unmount'ta zamanlayıcı + sesi temizle
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((id) => window.clearTimeout(id));
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  const playSingle = (i: number) => {
     stopRef.current = false;
     const el = new Audio(tracks[i].url);
     audioRef.current = el;
     setPlayingIndex(tracks[i].index);
     el.onended = () => {
       if (stopRef.current) return;
-      if (chain && i + 1 < tracks.length) playTrack(i + 1, true);
-      else setPlayingIndex(null);
+      setPlayingIndex(null);
     };
     el.onerror = () => {
       showToast(`${tracks[i].index}. replik çalınamadı`, "error");
@@ -92,6 +105,21 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, jobId }: Sr
     void el.play().catch(() => {
       showToast("Ses çalınamadı", "error");
       setPlayingIndex(null);
+    });
+  };
+
+  /** Zaman çizelgesine sadık önizleme: her replik SRT offset'inde başlar
+   *  (mix ile birebir aynı dizilim; taşan replikler üst üste binebilir). */
+  const playAll = () => {
+    stopAll();
+    if (tracks.length === 0) return;
+    stopRef.current = false;
+    const base = tracks[0].startMs;
+    tracks.forEach((t, i) => {
+      const id = window.setTimeout(() => {
+        if (!stopRef.current) playSingle(i);
+      }, Math.max(0, t.startMs - base));
+      timersRef.current.push(id);
     });
   };
 
@@ -165,7 +193,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, jobId }: Sr
         )}
         <div className="ml-auto flex gap-1.5">
           {playingIndex === null ? (
-            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => playTrack(0, true)}>
+            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={playAll}>
               <Play className="h-3 w-3 mr-1" /> Tümünü çal
             </Button>
           ) : (
@@ -176,9 +204,20 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, jobId }: Sr
         </div>
       </div>
 
+      {refitCount > 0 && overflowCount === 0 && (
+        <p className="text-[10px] text-emerald-600 leading-relaxed">
+          {refitCount} replik slota oturtmak için otomatik hızlandırıldı — zaman çizelgesi tutuyor.
+        </p>
+      )}
+      {refitCount > 0 && overflowCount > 0 && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          {refitCount} replik otomatik hızlandırıldı.
+        </p>
+      )}
+
       {overflowCount > 0 && (
         <p className="text-[10px] text-amber-600 leading-relaxed">
-          İşaretli repliklerin sesi SRT slotundan uzun — ses kesilmedi, sonraki repliğe taşabilir. Hızı artırın veya metni kısaltın.
+          İşaretli repliklerin sesi SRT slotundan uzun — ses kesilmedi, sonraki repliğe taşabilir. Bu SRT doğal konuşma için yoğun: metni kısaltın veya repliği bölün.
         </p>
       )}
 
@@ -186,13 +225,14 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, jobId }: Sr
         {tracks.map((t, i) => (
           <div
             key={t.index}
+            title={`Slot ${formatSrtMs(t.startMs)} → ${formatSrtMs(t.endMs)}${t.durationMs > 0 ? ` • ses ${(t.durationMs / 1000).toFixed(1)}sn` : ""} • ${t.speed ?? 1}x hız`}
             className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] ${
               playingIndex === t.index ? "bg-primary/10 border border-primary/30" : "bg-muted/40 border border-transparent"
             }`}
           >
             <button
               type="button"
-              onClick={() => playTrack(i, false)}
+              onClick={() => playSingle(i)}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 hover:bg-primary/25"
               title={`${t.index}. repliği çal`}
             >
@@ -202,6 +242,11 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, jobId }: Sr
               {formatSrtMs(t.startMs)}
             </span>
             <span className="min-w-0 flex-1 truncate text-foreground">{t.text}</span>
+            {(t.speed ?? 1) > 1.001 && (
+              <span className="shrink-0 rounded bg-emerald-500/15 px-1 font-mono text-[9px] text-emerald-600">
+                {(t.speed ?? 1).toFixed(2).replace(/0$/, "")}x
+              </span>
+            )}
             {t.overflow && <TriangleAlert className="h-3 w-3 shrink-0 text-amber-500" />}
             <a
               href={t.url}

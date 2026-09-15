@@ -4,6 +4,7 @@ import {
   DEFAULT_SRT_VOICE,
   buildMinimaxInput,
   clampSpeed,
+  fitSpeed,
   isAllowedVoice,
   MAX_SYNC_CHARS,
   MAX_SYNC_CUES,
@@ -45,8 +46,8 @@ describe("voices", () => {
     ).toBe("neutral");
   });
 
-  it("clamps speed to the narrow timing-safe band", () => {
-    expect(clampSpeed(5)).toBe(1.2);
+  it("clamps speed to the timing-safe band (fit may reach 1.3)", () => {
+    expect(clampSpeed(5)).toBe(1.3);
     expect(clampSpeed(0.1)).toBe(0.8);
     expect(clampSpeed(Number.NaN)).toBe(1);
   });
@@ -54,6 +55,15 @@ describe("voices", () => {
   it("sync caps fit the 60s serverless budget", () => {
     expect(MAX_SYNC_CUES).toBe(20);
     expect(MAX_SYNC_CHARS).toBe(2000);
+  });
+
+  it("fitSpeed only speeds up overflowing cues, capped at 1.3", () => {
+    expect(fitSpeed(1, 1500, 3000)).toBe(null); // fits
+    expect(fitSpeed(1, 3050, 3000)).toBe(null); // within threshold
+    expect(fitSpeed(1, 3600, 3000)).toBe(1.2); // 1.2x needed
+    expect(fitSpeed(1, 6000, 3000)).toBe(1.3); // capped, still overflows
+    expect(fitSpeed(1, 0, 3000)).toBe(null); // unknown duration
+    expect(fitSpeed(1, 3000, 0)).toBe(null); // invalid slot
   });
 });
 

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { srt, voiceId, emotion, speed } = parsed.data;
+  const { srt, voiceId, emotion, speed, autoFit } = parsed.data;
 
   let cues;
   try {
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       emotion,
       speed,
       creditCost,
+      autoFit,
     });
     return NextResponse.json(result);
   } catch (error) {
