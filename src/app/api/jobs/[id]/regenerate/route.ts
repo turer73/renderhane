@@ -52,6 +52,14 @@ export async function POST(
   }
 
   const tool = job.tool as ToolType;
+  // srt-voiceover orijinal isteği (SRT + ses) bu hattın prompt/image kalıbına
+  // uymaz — sessiz fal 422 yerine açık hata dön, kullanıcı Seslendir sekmesine gitsin.
+  if (tool === "srt-voiceover") {
+    return NextResponse.json(
+      { error: "Regenerate is not supported for SRT voiceover — use the Seslendir tab." },
+      { status: 400 }
+    );
+  }
   const originalReq = (job.original_request ?? {}) as Record<string, unknown>;
   const hasOriginal = Object.keys(originalReq).length > 0;
 

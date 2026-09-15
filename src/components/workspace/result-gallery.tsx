@@ -66,6 +66,8 @@ async function downloadFile(url: string, filename: string) {
 function getFileExt(url: string): string {
   if (url.includes(".glb")) return "glb";
   if (url.includes(".mp4")) return "mp4";
+  if (url.includes(".mp3")) return "mp3";
+  if (url.includes(".wav")) return "wav";
   return "png";
 }
 
@@ -84,7 +86,7 @@ interface GalleryJob {
   model: string;
   progress?: number;
   outputUrl?: string | null;
-  outputType?: "glb" | "image" | "video" | null;
+  outputType?: "glb" | "image" | "video" | "audio" | null;
   errorMessage?: string | null;
 }
 
@@ -99,7 +101,7 @@ interface PolledJobInput {
   completed_at: string | null;
   error_message: string | null;
   output_url: string | null;
-  output_type: "glb" | "image" | "video" | null;
+  output_type: "glb" | "image" | "video" | "audio" | null;
   source_image: string | null;
 }
 
@@ -112,6 +114,7 @@ const API_TOOL_TO_CATEGORY: Record<string, string> = {
   "image-edit": "image",
   "video": "video",
   "talking-avatar": "video",
+  "srt-voiceover": "video",
   "scene": "ecommerce",
   "aplus": "ecommerce",
   "virtual-tryon": "ecommerce",
@@ -133,6 +136,7 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   "inpainting": "Inpainting",
   "video": "Video",
   "talking-avatar": "Konuşan Avatar",
+  "srt-voiceover": "SRT Seslendirme",
   "scene": "Sahne Üret",
   "aplus": "A+ İçerik",
   "virtual-tryon": "Kıyafet Giydirme",
@@ -183,6 +187,8 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "fal-ai/bytedance/omnihuman/v1.5": "OmniHuman",
   "fal-ai/omnihuman-v1-5": "OmniHuman",
   "fal-ai/f5-tts": "F5 TTS",
+  // SRT voiceover
+  "fal-ai/minimax/speech-02-hd": "MiniMax HD",
 };
 
 function getModelDisplayName(modelId: string | undefined, tool: string): string {
@@ -224,10 +230,12 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
       return category === activeTool;
     })
     .map((j) => {
-      // Pick best thumbnail: non-image outputs (GLB, video) can't render as <img>
+      // Pick best thumbnail: non-image outputs (GLB, video) can't render as <img>.
+      // Audio has no visual — fallback tile + SES badge.
       const isGlb = j.output_type === "glb" || (j.output_url?.includes(".glb") ?? false);
       const isVideo = j.output_type === "video" || (j.output_url?.includes(".mp4") ?? false);
-      const thumbUrl = (isGlb || isVideo)
+      const isAudio = j.output_type === "audio" || (j.output_url?.includes(".mp3") ?? false);
+      const thumbUrl = (isGlb || isVideo || isAudio)
         ? (j.source_image || FALLBACK_THUMB)
         : (j.output_url || j.source_image || FALLBACK_THUMB);
 
@@ -342,6 +350,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               <div className="flex gap-2">
                 {job.thumbnails.map((src, idx) => {
                   const isJobVideo = job.outputType === "video" || (job.outputUrl?.includes(".mp4") ?? false);
+                  const isJobAudio = job.outputType === "audio" || (job.outputUrl?.includes(".mp3") ?? false);
                   return (
                   <div
                     key={idx}
@@ -368,6 +377,9 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     {job.outputType === "glb" && (
                       <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
                     )}
+                    {isJobAudio && (
+                      <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">SES</div>
+                    )}
                     {isJobVideo && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="rounded-full bg-black/50 p-1.5">
@@ -382,12 +394,23 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:text-white hover:bg-white/20" onClick={() => setPreviewJob(job)}><Eye className="h-3 w-3" /></Button>
                         <div onClick={(e) => e.stopPropagation()}>
-                          <DownloadMenu
-                            url={job.outputUrl ?? src}
-                            outputType={resolveOutputType(job.outputType, job.outputUrl ?? src)}
-                            fileName={job.name.replace(/\s+/g, "_")}
-                            compact
-                          />
+                          {isJobAudio ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-white hover:text-white hover:bg-white/20"
+                              onClick={() => void downloadFile(job.outputUrl ?? src, `${job.name.replace(/\s+/g, "_")}.${getFileExt(job.outputUrl ?? src)}`)}
+                            >
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <DownloadMenu
+                              url={job.outputUrl ?? src}
+                              outputType={resolveOutputType(job.outputType === "audio" ? undefined : job.outputType, job.outputUrl ?? src)}
+                              fileName={job.name.replace(/\s+/g, "_")}
+                              compact
+                            />
+                          )}
                         </div>
                       </div>
                     )}
@@ -456,12 +479,26 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               <div className="flex items-center gap-2 flex-none">
                 <span className="text-[10px] text-muted-foreground">{job.credits} kr</span>
                 {job.status === "completed" && (job.outputUrl ?? job.thumbnails[0]) && (
-                  <DownloadMenu
-                    url={(job.outputUrl ?? job.thumbnails[0]) as string}
-                    outputType={resolveOutputType(job.outputType, (job.outputUrl ?? job.thumbnails[0]) as string)}
-                    fileName={job.name.replace(/\s+/g, "_")}
-                    compact
-                  />
+                  job.outputType === "audio" || (job.outputUrl?.includes(".mp3") ?? false) ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => void downloadFile(
+                        (job.outputUrl ?? job.thumbnails[0]) as string,
+                        `${job.name.replace(/\s+/g, "_")}.${getFileExt((job.outputUrl ?? job.thumbnails[0]) as string)}`
+                      )}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <DownloadMenu
+                      url={(job.outputUrl ?? job.thumbnails[0]) as string}
+                      outputType={resolveOutputType(job.outputType, (job.outputUrl ?? job.thumbnails[0]) as string)}
+                      fileName={job.name.replace(/\s+/g, "_")}
+                      compact
+                    />
+                  )
                 )}
                 <JobDropdown job={job} onRefetch={onRefetch} onPreview={setPreviewJob} />
               </div>
@@ -489,6 +526,7 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
 
   const isGlb = job.outputType === "glb" || url.includes(".glb");
   const isVideo = job.outputType === "video" || url.includes(".mp4");
+  const isAudio = job.outputType === "audio" || url.includes(".mp3");
 
   return (
     <div
@@ -511,11 +549,22 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
 
       {/* Download menu — format selection (GLB/STL/OBJ/GLTF for 3D, PNG/JPEG/WebP for images) */}
       <div className="absolute bottom-4 right-4 z-10" onClick={(e) => e.stopPropagation()}>
-        <DownloadMenu
-          url={url}
-          outputType={resolveOutputType(job.outputType, url)}
-          fileName={job.name.replace(/\s+/g, "_")}
-        />
+        {isAudio ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => void downloadFile(url, `${job.name.replace(/\s+/g, "_")}.${getFileExt(url)}`)}
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" /> Sesi indir
+          </Button>
+        ) : (
+          <DownloadMenu
+            url={url}
+            outputType={resolveOutputType(job.outputType === "audio" ? undefined : job.outputType, url)}
+            fileName={job.name.replace(/\s+/g, "_")}
+          />
+        )}
       </div>
 
       {/* Content */}
@@ -528,6 +577,17 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
             playsInline
             className="max-h-[85vh] max-w-[90vw] rounded-lg"
           />
+        ) : isAudio ? (
+          <div className="flex flex-col items-center gap-4 rounded-xl bg-white/5 p-8 text-center">
+            <div className="rounded-full bg-white/10 p-4">
+              <Download className="h-6 w-6 text-white/80" />
+            </div>
+            {/* Native audio element — no proxy needed for playback */}
+            <audio src={url} controls autoPlay className="w-72 max-w-[80vw]" />
+            <p className="max-w-xs text-xs text-white/60 leading-relaxed">
+              İlk repliğin sesi. Tam zaman çizelgesi (tüm replikler + mix) Seslendir sekmesinde.
+            </p>
+          </div>
         ) : isGlb ? (
           <ModelViewer
             url={proxyUrl(url)}

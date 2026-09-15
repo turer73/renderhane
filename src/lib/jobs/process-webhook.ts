@@ -42,9 +42,10 @@ function extractOutputUrl(payload: Record<string, unknown>): string | null {
   return null;
 }
 
-function getOutputType(tool: string): "glb" | "image" | "video" {
+function getOutputType(tool: string): "glb" | "image" | "video" | "audio" {
   if (tool === "3d-model") return "glb";
   if (tool === "video" || tool === "talking-avatar") return "video";
+  if (tool === "srt-voiceover") return "audio";
   return "image";
 }
 

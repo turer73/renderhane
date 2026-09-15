@@ -136,7 +136,8 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
     let r2Url: string | null = null;
     if (outputUrl) {
       try {
-        const r2Result = await uploadToR2(outputUrl, userId, tool === "video" ? "video" : "image");
+        const r2Type = tool === "video" ? "video" : tool === "srt-voiceover" ? "audio" : "image";
+        const r2Result = await uploadToR2(outputUrl, userId, r2Type);
         r2Url = r2Result.r2Url;
       } catch { /* fal_url still works */ }
     }
@@ -145,7 +146,7 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
     await supabase.from("outputs").insert({
       job_id: job.id,
       user_id: userId,
-      type: tool === "3d-model" ? "glb" : tool === "video" ? "video" : "image",
+      type: tool === "3d-model" ? "glb" : tool === "video" ? "video" : tool === "srt-voiceover" ? "audio" : "image",
       fal_url: outputUrl,
       r2_url: r2Url,
       metadata: payload,

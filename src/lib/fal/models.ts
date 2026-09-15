@@ -1,6 +1,6 @@
 export type ModelTier = "fast" | "standard" | "premium";
 
-export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "inpainting" | "object-removal" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit" | "virtual-tryon";
+export type ToolType = "3d-model" | "bg-remove" | "enhance" | "scene" | "video" | "aplus" | "image-edit" | "inpainting" | "object-removal" | "text-to-image" | "qr-code" | "talking-avatar" | "logo" | "social-kit" | "virtual-tryon" | "srt-voiceover";
 
 export interface ModelConfig {
   id: string;
@@ -504,6 +504,30 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── SRT Seslendirme — MiniMax Speech-02 HD (doğal, Türkçe destekli) ──
+     fal $0.1/1k karakter. output_format "url" ZORUNLU (default "hex" döner);
+     language_boost Türkçe prozodi için; ses/emosyon/hız cue isteğinde
+     voice_setting ile gönderilir (bkz. src/lib/voiceover/voices.ts).
+     creditCost = 500 karaktere kadar taban (SRT_BASE_CREDITS). */
+  "minimax-speech-02-hd": {
+    id: "fal-ai/minimax/speech-02-hd",
+    displayName: { tr: "MiniMax — SRT Seslendirme", en: "MiniMax — SRT Voiceover" },
+    tier: "standard",
+    creditCost: 4,
+    estimatedTime: "~30s",
+    imageParamKey: "_unused",
+    promptParamKey: "text",
+    defaultParams: {
+      output_format: "url",
+      language_boost: "Turkish",
+      audio_setting: {
+        format: "mp3",
+        sample_rate: 44100,
+        channel: 1,
+      },
+    },
+  },
+
   /* ── Logo Üretimi ──────────────────────── */
   "recraft-v4": {
     id: "fal-ai/recraft/v4.1/text-to-image",
@@ -835,6 +859,7 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],
+  "srt-voiceover": ["minimax-speech-02-hd"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {
@@ -853,6 +878,7 @@ export const TOOL_KEYS: Record<ToolType, string> = {
   logo: "logo",
   "social-kit": "socialKit",
   "virtual-tryon": "virtualTryon",
+  "srt-voiceover": "srtVoiceover",
 };
 
 /**
@@ -885,7 +911,7 @@ export const TOOLS_WITH_PROMPT: ToolType[] = ["scene", "video", "image-edit", "i
 /** Tools that DON'T need an image input (text-only).
  *  NOTE: qr-code is NOT here — it generates a QR control image server-side
  *  (submitJob) and then runs illusion-diffusion, so the router must send image_url. */
-export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "logo"];
+export const TOOLS_TEXT_ONLY: ToolType[] = ["text-to-image", "logo", "srt-voiceover"];
 
 /** Tools that accept multiple images (multi-view or dual-input) */
 export const TOOLS_MULTI_IMAGE: ToolType[] = ["3d-model", "virtual-tryon"];

@@ -45,7 +45,7 @@ export default async function OutputDetailPage({
 
   const url = output.r2_url || output.fal_url;
   const projectId = output.jobs?.project_id;
-  const outputType = output.type as "glb" | "image" | "video";
+  const outputType = output.type as "glb" | "image" | "video" | "audio";
   const sourceImageUrl = output.jobs?.projects?.source_image_url as string | undefined;
 
   function formatDate(dateStr: string): string {
@@ -131,6 +131,13 @@ export default async function OutputDetailPage({
               muted
               loop
             />
+          ) : outputType === "audio" && url ? (
+            <div className="flex w-full flex-col items-center gap-3 p-8 text-center">
+              <audio src={proxyUrl(url)} controls className="w-full max-w-md" />
+              <p className="max-w-md text-xs text-muted-foreground leading-relaxed">
+                {t("audioNote")}
+              </p>
+            </div>
           ) : (
             <div className="flex h-[300px] w-full items-center justify-center">
               <p className="text-sm text-muted-foreground">

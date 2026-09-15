@@ -28,6 +28,7 @@ const TOOL_TO_CATEGORY: Record<string, string> = {
   "virtual-tryon": "ecommerce",
   "social-kit": "ecommerce",
   "talking-avatar": "video",
+  "srt-voiceover": "video",
   logo: "design",
   "qr-code": "design",
 };
@@ -35,6 +36,7 @@ const TOOL_TO_CATEGORY: Record<string, string> = {
 const VALID_TABS = new Set([
   "bg-remove", "enhance", "text-to-image", "image-edit",
   "scene", "aplus", "virtual-tryon", "talking-avatar",
+  "srt-voiceover",
   "logo", "qr-code",
 ]);
 
