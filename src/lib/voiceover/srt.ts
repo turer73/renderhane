@@ -43,7 +43,11 @@ export function parseSrtTimestamp(raw: string): number {
 /** Collapse whitespace, strip SRT styling tags (<i>, <b>, {an8}, …). */
 export function normalizeSrtText(text: string): string {
   return text
-    .replace(/<[^>]*>/g, "")
+    // Strip tag-like openers INCLUDING unterminated ones ("<i", "<script x"):
+    // a "<tag" fragment must never survive into TTS speech or downstream
+    // sinks (CodeQL: incomplete tag stripping = HTML injection). A bare "<"
+    // before a non-letter ("a < b") is kept.
+    .replace(/<\/?[A-Za-z!][^<>]*>?/g, "")
     .replace(/\{[^}]*\}/g, "")
     .replace(/\s+/g, " ")
     .trim();

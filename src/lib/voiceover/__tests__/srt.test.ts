@@ -101,6 +101,12 @@ describe("helpers", () => {
     );
   });
 
+  it("normalizeSrtText removes unterminated tag openers but keeps comparisons", () => {
+    expect(normalizeSrtText("Selam <script alert(1)")).toBe("Selam");
+    expect(normalizeSrtText("Kapanmamıs <i italik")).toBe("Kapanmamıs");
+    expect(normalizeSrtText("a < b ve 5 <10")).toBe("a < b ve 5 <10");
+  });
+
   it("srtToPlainText joins cues", () => {
     expect(srtToPlainText(parseSRT(SAMPLE))).toBe(
       "Merhaba, hoş geldiniz. Bu ikinci cümle."
