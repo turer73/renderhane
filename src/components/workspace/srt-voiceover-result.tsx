@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showToast } from "./workspace-toast";
+import { proxyUrl } from "@/lib/proxy-url";
 import { Play, Square, Download, FileJson, TriangleAlert } from "lucide-react";
 
 export interface SrtVoiceoverTrack {
@@ -147,7 +148,8 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
       const decodeCtx = new Ctx(1, 1, sampleRate);
       const decoded: { buffer: AudioBuffer; offsetMs: number }[] = [];
       for (const t of tracks) {
-        const res = await fetch(t.url);
+        // R2 CORS vermez → aynı-origin proxy üzerinden çek (fetch engellenmesin).
+        const res = await fetch(proxyUrl(t.url));
         if (!res.ok) throw new Error(`cue-${t.index}`);
         const buf = await decodeCtx.decodeAudioData(await res.arrayBuffer());
         decoded.push({ buffer: buf, offsetMs: t.startMs });
@@ -173,7 +175,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
       showToast("Mix indirildi", "success");
     } catch {
-      showToast("Mix alınamadı (CORS) — replikleri tek tek indirin", "error");
+      showToast("Mix alınamadı — replikleri tek tek indirin", "error");
     } finally {
       setMixing(false);
     }
@@ -249,7 +251,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
             )}
             {t.overflow && <TriangleAlert className="h-3 w-3 shrink-0 text-amber-500" />}
             <a
-              href={t.url}
+              href={proxyUrl(t.url)}
               download={`cue-${t.index}.mp3`}
               className="shrink-0 text-muted-foreground hover:text-foreground"
               title="Repliği indir"
