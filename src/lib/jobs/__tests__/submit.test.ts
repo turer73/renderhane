@@ -127,7 +127,7 @@ describe("submitJob credit ordering", () => {
     expect(mocks.events).toEqual([
       "job-insert",
       `reserve:${MODELS.omnihuman.creditCost}`,
-      "subscribe:fal-ai/f5-tts",
+      "subscribe:fal-ai/minimax/speech-2.8-hd",
       "refund",
     ]);
     expect(mocks.submit).not.toHaveBeenCalled();

@@ -172,12 +172,26 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('omnihuman');
   });
 
-  it('routes srt-voiceover to minimax-speech-02-hd with url output + Turkish boost', () => {
+  it('routes srt-voiceover to minimax-speech-28-hd with url output + Turkish boost', () => {
     const { modelKey, input } = routeRequest({ tool: 'srt-voiceover', prompt: 'Merhaba' });
-    expect(modelKey).toBe('minimax-speech-02-hd');
-    expect(input.text).toBe('Merhaba');
+    expect(modelKey).toBe('minimax-speech-28-hd');
+    expect(input.prompt).toBe('Merhaba');
     expect(input.output_format).toBe('url');
     expect(input.language_boost).toBe('Turkish');
+  });
+
+  it('routes talking-avatar modelKey to kling-avatar-v2-std', () => {
+    const { modelKey } = routeRequest({ tool: 'talking-avatar', imageUrl: 'http://img/1.jpg', prompt: 'http://audio/1.mp3' });
+    expect(modelKey).toBe('omnihuman');
+    const explicit = routeRequest({ tool: 'talking-avatar', modelKey: 'kling-avatar-v2-std', imageUrl: 'http://img/1.jpg', prompt: 'http://audio/1.mp3' });
+    expect(explicit.modelKey).toBe('kling-avatar-v2-std');
+    expect(explicit.input.audio_url).toBe('http://audio/1.mp3');
+  });
+
+  it('routes text-to-image modelKey to qwen-image-3', () => {
+    const { modelKey, input } = routeRequest({ tool: 'text-to-image', modelKey: 'qwen-image-3', prompt: 'bir vazo' });
+    expect(modelKey).toBe('qwen-image-3');
+    expect(input.prompt).toBe('bir vazo');
   });
 
   it('routes logo to recraft-v4', () => {

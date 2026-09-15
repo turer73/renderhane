@@ -41,6 +41,7 @@ import { showToast } from "./workspace-toast";
 import type { PromptContext } from "@/lib/prompts/presets";
 import { smartDefaultsFor, primaryToolTarget } from "@/lib/analysis/product-intel";
 import { parseSRT, estimateSrtCredits } from "@/lib/voiceover/srt";
+import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
 import {
   SRT_VOICES,
   SRT_EMOTIONS,
@@ -83,6 +84,7 @@ const EDIT_MODELS: PickerModel[] = [
 
 const TEXT_MODELS: PickerModel[] = [
   { id: "flux-2-pro", name: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
+  { id: "qwen-image-3", name: "Qwen Image 3 — Tipografi", credits: 5, time: "~12 sn", modelKey: "qwen-image-3", tier: "standard" },
   { id: "nano-banana-pro", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~12 sn", modelKey: "nano-banana-pro", tier: "premium" },
 ];
 
@@ -94,6 +96,12 @@ const SCENE_MODELS: PickerModel[] = [
 const VIDEO_MODELS = [
   { id: "wan-v2.6", name: "Wan 2.7", credits: 35, time: "~2 dk", tier: "fast" },
   { id: "kling-o3", name: "Kling O3 Pro", credits: 40, time: "~2 dk", tier: "premium" },
+];
+
+const AVATAR_MODELS: PickerModel[] = [
+  { id: "omnihuman", name: "OmniHuman v1.5", credits: 100, time: "~2 dk", modelKey: "omnihuman", tier: "standard" },
+  { id: "kling-avatar-v2-std", name: "Kling Avatar v2 — Ekonomik", credits: 35, time: "~2 dk", modelKey: "kling-avatar-v2-std", tier: "standard" },
+  { id: "kling-avatar-v2-pro", name: "Kling Avatar v2 Pro", credits: 75, time: "~2 dk", modelKey: "kling-avatar-v2-pro", tier: "standard" },
 ];
 
 const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
@@ -113,7 +121,7 @@ const TABS_VIDEO = [
 const ECOMMERCE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
   "scene": { model: "Bria Product Shot", credits: 8, time: "~15 sn" },
   "aplus": { model: "Bria Product Shot HD", credits: 8, time: "~20 sn" },
-  "virtual-tryon": { model: "IDM-VTON", credits: 10, time: "~25 sn" },
+  "virtual-tryon": { model: "FASHN v1.6", credits: 10, time: "~15 sn" },
 };
 
 const TABS_ECOMMERCE = [
@@ -401,6 +409,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [editStyleStrength, setEditStyleStrength] = useState("medium");
   const [editAspect, setEditAspect] = useState("1:1");
   const [selectedVideoModel, setSelectedVideoModel] = useState("wan-v2.6");
+  const [selectedAvatarModel, setSelectedAvatarModel] = useState("omnihuman");
+  const [avatarScript, setAvatarScript] = useState("");
+  const [avatarVoice, setAvatarVoice] = useState(DEFAULT_SRT_VOICE);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [selectedEditModel, setSelectedEditModel] = useState("flux-kontext");
   const [selectedTextModel, setSelectedTextModel] = useState("flux-2-pro");
   const [selectedSceneModel, setSelectedSceneModel] = useState("bria-product-shot");
@@ -493,6 +505,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     setSrtResult(null);
     setSrtBusy(false);
     setSrtAutoFit(true);
+    // Clear talking-avatar state
+    setAvatarScript("");
+    setAvatarBusy(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool]);
 
@@ -507,6 +522,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
 
   const currentModel3D = AI_MODELS_3D.find((m) => m.id === selectedModel) ?? AI_MODELS_3D[0];
   const currentVideoModel = VIDEO_MODELS.find((m) => m.id === selectedVideoModel) ?? VIDEO_MODELS[0];
+  const currentAvatarModel = AVATAR_MODELS.find((m) => m.id === selectedAvatarModel) ?? AVATAR_MODELS[0];
   const currentEditModel = EDIT_MODELS.find((m) => m.id === selectedEditModel) ?? EDIT_MODELS[0];
   const currentTextModel = TEXT_MODELS.find((m) => m.id === selectedTextModel) ?? TEXT_MODELS[0];
   const currentSceneModel = SCENE_MODELS.find((m) => m.id === selectedSceneModel) ?? SCENE_MODELS[0];
@@ -548,14 +564,18 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       const enhanceExtra = (autoEnhance && activeTab === "img-to-3d") ? 4 : 0;
       const map: Record<string, { time: string; credits: number }> = {
         "img-to-3d": { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra },
-        "text-to-3d": { time: "~2 dk", credits: 22 },
-        "texture": { time: "~1 dk", credits: 8 },
+        // text-to-3d her zaman meshy-6-text (55kr) — backend rezervasyonu bu.
+        "text-to-3d": { time: "~2 dk", credits: 55 },
+        "texture": { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra },
       };
       return map[activeTab] ?? { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra };
     }
     if (activeTool === "video") {
       if (activeTab === "image-to-video") {
         return { time: currentVideoModel.time, credits: currentVideoModel.credits };
+      }
+      if (activeTab === "talking-avatar") {
+        return { time: currentAvatarModel.time, credits: currentAvatarModel.credits };
       }
       if (activeTab === "srt-voiceover") {
         return { time: "~1 dk", credits: srtPreview?.credits ?? 4 };
@@ -770,11 +790,77 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     }
   };
 
+  const handleAvatarGenerate = async () => {
+    if (avatarBusy) return;
+    if (!uploadedImageUrl) {
+      showToast("Lütfen önce bir avatar görseli yükle", "error");
+      return;
+    }
+    const script = avatarScript.trim();
+    if (!script) {
+      showToast("Lütfen konuşma metni yaz", "error");
+      return;
+    }
+    if (script.length > MAX_AVATAR_SCRIPT_CHARS) {
+      showToast(`Metin çok uzun (en fazla ${MAX_AVATAR_SCRIPT_CHARS} karakter)`, "error");
+      return;
+    }
+    if (uploading) {
+      showToast("Yükleme devam ediyor, lütfen bekle", "error");
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      const res = await fetch("/api/jobs/submit-talking-avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: uploadedImageUrl,
+          script,
+          voiceId: avatarVoice,
+          modelKey: currentAvatarModel.modelKey,
+        }),
+      });
+      if (res.status === 402) {
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
+        showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
+        return;
+      }
+      if (res.status === 429) {
+        showToast("Çok hızlı! Lütfen biraz bekle.", "error");
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        showToast(
+          typeof data?.errorTr === "string" && data.errorTr
+            ? data.errorTr
+            : typeof data?.error === "string" && data.error
+              ? data.error
+              : "Avatar üretimi başlatılamadı. Tekrar dene.",
+          "error"
+        );
+        return;
+      }
+      window.dispatchEvent(new Event("job-submitted"));
+      showToast("Avatar üretimi başlatıldı!", "success");
+    } catch {
+      showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   const handleGenerate = () => {
     // SRT voiceover uses its dedicated sync endpoint (per-cue TTS + R2),
     // not the generic /api/jobs/submit queue.
     if (activeTab === "srt-voiceover") {
       void handleSrtGenerate();
+      return;
+    }
+    // Talking avatar uses its dedicated TTS -> video endpoint.
+    if (activeTab === "talking-avatar") {
+      void handleAvatarGenerate();
       return;
     }
     const name = projectName.trim() || "Yeni Proje";
@@ -934,9 +1020,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         payload.credits = info?.credits ?? 6;
       }
     } else if (activeTab === "text-to-3d") {
-      // text-to-3d always uses meshy-6-text (standard tier)
+      // text-to-3d always uses meshy-6-text (standard tier, 55kr backend)
       payload.model = "Meshy 6";
-      payload.credits = 22;
+      payload.credits = 55;
       payload.tier = "standard";
     } else {
       // 3D model (img-to-3d, texture)
@@ -1270,7 +1356,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 defaultValue="meshy-6"
                 className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
               >
-                <option value="meshy-6">Meshy 6 — 22 kr</option>
+                <option value="meshy-6">Meshy 6 — 55 kr</option>
               </select>
             </div>
 
@@ -1832,20 +1918,62 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
 
         {/* Konuşan Avatar */}
         {activeTab === "talking-avatar" && (
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Mic className="h-7 w-7 text-primary/60" />
-            </div>
-            <div className="space-y-1.5 px-4">
-              <div className="flex items-center justify-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground">Konuşan Avatar</h3>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">Yakında</Badge>
+          <>
+            {renderImageUpload("Avatar fotoğrafını yükle", "Yüz net görünsün • PNG, JPG, WebP")}
+
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Konuşma Metni</Label>
+                <span className="text-[10px] text-muted-foreground">{avatarScript.trim().length}/{MAX_AVATAR_SCRIPT_CHARS}</span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Metin-ses dönüşümü (TTS) pipeline&apos;ı hazırlanıyor. Fotoğraftan konuşan avatar videosu oluşturma özelliği yakında aktif olacak.
+              <Textarea
+                value={avatarScript}
+                onChange={(e) => setAvatarScript(e.target.value)}
+                placeholder="Avatarın söylemesini istediğin metin...&#10;&#10;ör: Merhaba! Yeni koleksiyonumuz mağazada."
+                className="mt-1.5 min-h-[100px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Ses</Label>
+                <select
+                  value={avatarVoice}
+                  onChange={(e) => setAvatarVoice(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {SRT_VOICES.map((v) => (
+                    <option key={v.id} value={v.id}>{v.labelTr}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Model</Label>
+                <select
+                  value={selectedAvatarModel}
+                  onChange={(e) => setSelectedAvatarModel(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {AVATAR_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.credits} kr</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Mic className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">{currentAvatarModel.name}</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">{currentAvatarModel.credits} kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Metin MiniMax ile doğal sese çevrilir, fotoğrafın konuşur. Sonuç galeride video olarak belirir.
               </p>
             </div>
-          </div>
+          </>
         )}
 
         {/* SRT Seslendirme */}
@@ -2417,14 +2545,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           className="w-full h-9 font-semibold"
           size="sm"
           onClick={handleGenerate}
-          disabled={uploading || modelPhotoUploading || srtBusy || activeTab === "talking-avatar" || activeTab.startsWith("batch-")}
+          disabled={uploading || modelPhotoUploading || srtBusy || avatarBusy || activeTab.startsWith("batch-")}
         >
-          {uploading || modelPhotoUploading || srtBusy ? (
+          {uploading || modelPhotoUploading || srtBusy || avatarBusy ? (
             <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-1.5" />
           )}
-          {activeTab === "srt-voiceover" ? (srtBusy ? "Seslendiriliyor..." : "Seslendir") : activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
+          {activeTab === "srt-voiceover" ? (srtBusy ? "Seslendiriliyor..." : "Seslendir") : activeTab === "talking-avatar" ? (avatarBusy ? "Üretiliyor..." : "Avatar Üret") : activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
         </Button>
       </div>
     </div>

@@ -19,18 +19,20 @@ describe("voices", () => {
     expect(SRT_VOICES).toHaveLength(3);
   });
 
-  it("builds a fal minimax input with voice_setting", () => {
+  it("builds a fal minimax input with voice_setting (2.8 prompt key)", () => {
     const input = buildMinimaxInput("Merhaba", {
       voiceId: "Turkish_Trustworthyman",
       emotion: "happy",
       speed: 1.1,
     });
-    expect(input.text).toBe("Merhaba");
+    expect(input.prompt).toBe("Merhaba");
     expect(input.voice_setting).toMatchObject({
       voice_id: "Turkish_Trustworthyman",
       speed: 1.1,
       emotion: "happy",
     });
+    const legacy = buildMinimaxInput("Selam", { voiceId: DEFAULT_SRT_VOICE }, "text");
+    expect(legacy.text).toBe("Selam");
   });
 
   it("rejects unknown voices and falls back to neutral emotion", () => {

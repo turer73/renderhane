@@ -7,9 +7,12 @@ import {
   refundCredits,
 } from "@/lib/credits/engine";
 import { uploadToR2 } from "@/lib/r2/upload";
-import { MODELS } from "@/lib/fal/models";
+import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
 import { buildMinimaxInput, fitSpeed, SRT_TTS_CONCURRENCY } from "./voices";
 import { buildSchedule } from "./schedule";
+
+/** SRT varsayılan TTS modeli (TOOL_MODELS ilk sırası). */
+const SRT_TTS_MODEL_KEY = TOOL_MODELS["srt-voiceover"][0];
 
 export interface SrtCueInput {
   index: number;
@@ -51,7 +54,7 @@ async function synthesizeCue(
   modelId: string
 ): Promise<{ falUrl: string; durationMs: number }> {
   const result = await getAIProvider().subscribe(modelId, {
-    ...MODELS["minimax-speech-02-hd"].defaultParams,
+    ...MODELS[SRT_TTS_MODEL_KEY].defaultParams,
     ...buildMinimaxInput(text, voice),
   });
   const output = result.data as MinimaxOutput;
@@ -101,7 +104,7 @@ export async function orchestrateSrtVoiceover(input: {
   const autoFit = input.autoFit !== false;
   let { creditCost } = input;
   const supabase = createAdminClient();
-  const model = MODELS["minimax-speech-02-hd"];
+  const model = MODELS[SRT_TTS_MODEL_KEY];
 
   try {
     const email =

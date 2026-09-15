@@ -505,18 +505,38 @@ export const MODELS: Record<string, ModelConfig> = {
   },
 
   /* ── SRT Seslendirme — MiniMax Speech-02 HD (doğal, Türkçe destekli) ──
-     fal $0.1/1k karakter. output_format "url" ZORUNLU (default "hex" döner);
-     language_boost Türkçe prozodi için; ses/emosyon/hız cue isteğinde
-     voice_setting ile gönderilir (bkz. src/lib/voiceover/voices.ts).
-     creditCost = 500 karaktere kadar taban (SRT_BASE_CREDITS). */
+     ESKİ varsayılan; kayıtlarda duruyor. Yeni varsayılan 2.8 HD. */
   "minimax-speech-02-hd": {
     id: "fal-ai/minimax/speech-02-hd",
-    displayName: { tr: "MiniMax — SRT Seslendirme", en: "MiniMax — SRT Voiceover" },
+    displayName: { tr: "MiniMax 02 — SRT Seslendirme", en: "MiniMax 02 — SRT Voiceover" },
     tier: "standard",
     creditCost: 4,
     estimatedTime: "~30s",
     imageParamKey: "_unused",
     promptParamKey: "text",
+    defaultParams: {
+      output_format: "url",
+      language_boost: "Turkish",
+      audio_setting: {
+        format: "mp3",
+        sample_rate: 44100,
+        channel: 1,
+      },
+    },
+  },
+
+  /* ── SRT Seslendirme — MiniMax Speech-2.8 HD (2026-09 doğrulandı) ──
+     fal $0.1/1k karakter (02-HD ile aynı fiyat). Girdi anahtarı "prompt"
+     (02'deki "text" DEĞİL). Çıktı {audio:{url}, duration_ms} aynı.
+     voice_setting/audio_setting/language_boost şeması 02 ile aynı. */
+  "minimax-speech-28-hd": {
+    id: "fal-ai/minimax/speech-2.8-hd",
+    displayName: { tr: "MiniMax 2.8 — SRT Seslendirme", en: "MiniMax 2.8 — SRT Voiceover" },
+    tier: "standard",
+    creditCost: 4,
+    estimatedTime: "~30s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
     defaultParams: {
       output_format: "url",
       language_boost: "Turkish",
@@ -610,6 +630,23 @@ export const MODELS: Record<string, ModelConfig> = {
     defaultParams: {
       num_images: 1,
       output_format: "png",
+    },
+  },
+
+  /* ── Text-to-Image — Qwen Image 3 (2026-09 doğrulandı) ──
+     Çok-dilli tipografi uzmanı (TR dahil 12 dil, ~10px'e kadar net yazı).
+     fal $0.04 (1K) / $0.075 (2K) → 5kr. Girdi: prompt + image_size. */
+  "qwen-image-3": {
+    id: "alibaba/qwen-image-3/text-to-image",
+    displayName: { tr: "Qwen Image 3 — Tipografi", en: "Qwen Image 3 — Typography" },
+    tier: "standard",
+    creditCost: 5,
+    estimatedTime: "~12s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      image_size: "square_hd",
     },
   },
 
@@ -708,6 +745,20 @@ export const MODELS: Record<string, ModelConfig> = {
     creditCost: 35, // fal: $0.50 dokulu üretim
     estimatedTime: "~30s",
     imageParamKey: "image_url",
+    defaultParams: {},
+  },
+
+  /* ── Konuşan Avatar — Kling AI Avatar v2 Standard (2026-09 doğrulandı) ──
+     OmniHuman ile aynı iş (görsel + ses → konuşan kafa) ~3x ucuz.
+     fal $0.0562/sn → ~10sn $0.56 ≈ 35kr. Girdi: image_url + audio_url. */
+  "kling-avatar-v2-std": {
+    id: "fal-ai/kling-video/ai-avatar/v2/standard",
+    displayName: { tr: "Kling Avatar v2 — Ekonomik", en: "Kling Avatar v2 — Value" },
+    tier: "standard",
+    creditCost: 35,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "_unused",
     defaultParams: {},
   },
 
@@ -853,13 +904,13 @@ export const TOOL_MODELS: Record<ToolType, string[]> = {
   "image-edit": ["flux-kontext", "flux-kontext-max", "flux-2-pro-edit", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v5-lite-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite", "qwen-image-3"],
   "qr-code": ["qr-code-ai"],
-  "talking-avatar": ["omnihuman", "kling-avatar-v2-pro"],
+  "talking-avatar": ["omnihuman", "kling-avatar-v2-std", "kling-avatar-v2-pro"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],
-  "srt-voiceover": ["minimax-speech-02-hd"],
+  "srt-voiceover": ["minimax-speech-28-hd", "minimax-speech-02-hd"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {

@@ -112,12 +112,14 @@ export interface MinimaxVoiceSetting {
 }
 
 /**
- * fal-ai/minimax/speech-02-hd cue isteği. MODELS defaultParams'taki
+ * fal-ai TTS cue isteği. MODELS defaultParams'taki
  * output_format/language_boost/audio_setting üzerine eklenir.
+ * textKey: 2.8 HD "prompt", eski 02-HD "text".
  */
 export function buildMinimaxInput(
   text: string,
-  opts: { voiceId: string; emotion?: string; speed?: number }
+  opts: { voiceId: string; emotion?: string; speed?: number },
+  textKey = "prompt"
 ): Record<string, unknown> {
   if (!isAllowedVoice(opts.voiceId)) {
     throw new Error(`Unsupported voice: "${opts.voiceId}"`);
@@ -127,7 +129,7 @@ export function buildMinimaxInput(
       ? opts.emotion
       : DEFAULT_SRT_EMOTION;
   return {
-    text,
+    [textKey]: text,
     voice_setting: {
       voice_id: opts.voiceId,
       speed: clampSpeed(opts.speed ?? DEFAULT_SRT_SPEED),

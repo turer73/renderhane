@@ -189,6 +189,10 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "fal-ai/f5-tts": "F5 TTS",
   // SRT voiceover
   "fal-ai/minimax/speech-02-hd": "MiniMax HD",
+  "fal-ai/minimax/speech-2.8-hd": "MiniMax 2.8 HD",
+  "fal-ai/kling-video/ai-avatar/v2/standard": "Kling Avatar v2",
+  "fal-ai/kling-video/ai-avatar/v2/pro": "Kling Avatar v2 Pro",
+  "alibaba/qwen-image-3/text-to-image": "Qwen Image 3",
 };
 
 function getModelDisplayName(modelId: string | undefined, tool: string): string {
