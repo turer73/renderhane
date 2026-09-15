@@ -481,6 +481,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     mode: "single" | "cues";
     audioUrl: string;
     audioDurationMs: number;
+    fitPasses: number;
   } | null>(null);
   const srtFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -804,6 +805,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         mode: data.mode === "cues" ? "cues" : "single",
         audioUrl: typeof data.audioUrl === "string" ? data.audioUrl : "",
         audioDurationMs: typeof data.audioDurationMs === "number" ? data.audioDurationMs : 0,
+        fitPasses: typeof data.fitPasses === "number" ? data.fitPasses : 1,
       });
       window.dispatchEvent(new Event("job-submitted"));
       showToast(`Seslendirme hazır (${data.creditCost} kredi)`, "success");
@@ -2169,6 +2171,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 mode={srtResult.mode}
                 audioUrl={srtResult.audioUrl}
                 audioDurationMs={srtResult.audioDurationMs}
+                fitPasses={srtResult.fitPasses}
               />
             )}
           </>

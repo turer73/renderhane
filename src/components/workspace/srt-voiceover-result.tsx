@@ -28,6 +28,7 @@ interface SrtVoiceoverResultProps {
   mode: "single" | "cues";
   audioUrl: string;
   audioDurationMs: number;
+  fitPasses: number;
 }
 
 export function formatSrtMs(ms: number): string {
@@ -69,7 +70,7 @@ function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {
   return new Blob([ab], { type: "audio/wav" });
 }
 
-export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId, mode, audioUrl, audioDurationMs }: SrtVoiceoverResultProps) {
+export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId, mode, audioUrl, audioDurationMs, fitPasses }: SrtVoiceoverResultProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timersRef = useRef<number[]>([]);
   const stopRef = useRef(false);
@@ -230,6 +231,11 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
           Ses {audioDurationMs > 0 ? `${(audioDurationMs / 1000).toFixed(1)}sn` : "?"} • SRT {formatSrtMs(totalMs)}
           {driftBig && " — süreler farklı, video ile hizalamayı kontrol et"}
         </p>
+        {fitPasses > 1 && !driftBig && (
+          <p className="text-[10px] text-emerald-600 leading-relaxed">
+            Süre SRT&apos;ye oturtuldu.
+          </p>
+        )}
         <div className="flex gap-1.5">
           <Button size="sm" className="h-7 flex-1 text-[11px]" asChild>
             <a href={proxyUrl(audioUrl)} download={`seslendirme-${jobId.slice(0, 8)}.mp3`}>

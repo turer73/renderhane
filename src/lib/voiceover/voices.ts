@@ -142,22 +142,71 @@ export interface MinimaxVoiceSetting {
  * Tek-parça TTS metni: replikleri SRT boşluklarına göre duraklama
  * işaretleriyle birleştirir. MiniMax "<#saniye#>" anlar (0.01–99.99);
  * xAI'de sade boşluk bırakılır (süre kontrolü yok).
- * SrtCue[] yerine {startMs,endMs,text} şekli yeter.
+ * gapsMs verilirse her replik öncesi o boşluk kullanılır (süre oturtma).
  */
 export function buildSinglePassText(
   cues: { startMs: number; endMs: number; text: string }[],
-  engine: SrtEngine = "minimax"
+  engine: SrtEngine = "minimax",
+  gapsMs?: number[]
 ): string {
   return cues
     .map((cue, i) => {
       if (i === 0) return cue.text;
-      const prev = cues[i - 1];
       if (engine === "xai") return cue.text;
-      const gapMs = cue.startMs - prev.endMs;
+      const gapMs = gapsMs?.[i] ?? cue.startMs - cues[i - 1].endMs;
       const gapSec = Math.min(99.99, Math.max(0.05, gapMs / 1000));
       return `<#${gapSec.toFixed(2)}#> ${cue.text}`;
     })
     .join(" ");
+}
+
+/** Replik öncesi boşluklar (ms). İlk replik 0. Negatif boşluk 0'a kırpılır. */
+export function cueGapMs(cues: { startMs: number; endMs: number }[]): number[] {
+  return cues.map((cue, i) =>
+    i === 0 ? 0 : Math.max(0, cue.startMs - cues[i - 1].endMs)
+  );
+}
+
+/**
+ * Süre oturtma planı: ölçülen ses süresi (durMs) ile hedef SRT süresi
+ * (targetMs) arasındaki farkı kapatmak için boşluk ölçeği ve/veya hız önerir.
+ * En fazla 1 düzeltme geçişi varsayar. Döner: { gapsMs, speed } |
+ * null (zaten toleransta).
+ */
+export function planDurationFit(
+  gapsMs: number[],
+  durMs: number,
+  targetMs: number,
+  baseSpeed: number
+): { gapsMs: number[]; speed: number } | null {
+  if (!Number.isFinite(durMs) || durMs <= 0) return null;
+  if (!Number.isFinite(targetMs) || targetMs <= 0) return null;
+  const tolerance = Math.max(1000, targetMs * 0.05);
+  const deficit = targetMs - durMs;
+  if (Math.abs(deficit) <= tolerance) return null;
+
+  if (deficit > 0) {
+    // Ses kısa: boşlukları orantılı büyüt (konuşma hızına dokunma).
+    const totalGaps = gapsMs.reduce((s, g) => s + g, 0);
+    if (totalGaps >= 1000) {
+      const scale = (totalGaps + deficit) / totalGaps;
+      return {
+        gapsMs: gapsMs.map((g) => Math.min(99990, Math.round(g * scale))),
+        speed: baseSpeed,
+      };
+    }
+    // Büyütülecek boşluk yok: kontrollü yavaşlat (en fazla 0.85x).
+    const slowed = Math.max(0.85, (baseSpeed * durMs) / targetMs);
+    if (slowed < baseSpeed * 0.999) return { gapsMs, speed: Math.round(slowed * 100) / 100 };
+    return null;
+  }
+
+  // Ses uzun: hızlandır (en fazla 1.3x) + boşlukları tabana çek.
+  const faster = Math.min(AUTO_FIT_MAX_SPEED, (baseSpeed * durMs) / targetMs);
+  if (faster > baseSpeed * 1.001) {
+    return { gapsMs, speed: Math.round(faster * 100) / 100 };
+  }
+  return { gapsMs: gapsMs.map(() => 50), speed: faster };
 }
 export function buildXaiInput(
   text: string,

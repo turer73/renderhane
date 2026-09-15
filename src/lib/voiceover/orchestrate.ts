@@ -12,8 +12,10 @@ import {
   buildMinimaxInput,
   buildSinglePassText,
   buildXaiInput,
+  cueGapMs,
   fitSpeed,
   isAllowedXaiVoice,
+  planDurationFit,
   DEFAULT_XAI_VOICE,
   SRT_TTS_CONCURRENCY,
   type SrtEngine,
@@ -56,6 +58,8 @@ export interface OrchestrateResult {
   audioUrl: string;
   /** Tek-parça ses süresi (fal duration_ms; cues modunda toplam plan). */
   audioDurationMs: number;
+  /** Toplam TTS geçişi (single: 1-2, cues: 1). */
+  fitPasses: number;
 }
 
 interface MinimaxOutput {
@@ -219,28 +223,44 @@ export async function orchestrateSrtVoiceover(input: {
 
     // TEK-PARÇA: replikler duraklama işaretleriyle tek metinde birleşir,
     // tek TTS çağrısı → tek dosya (daha ucuz, ses tutarlılığı tam).
-    // Zamanlama yaklaşıktır (konuşma hızı replikten repliğe oynar).
+    // Ölçülen süre SRT'den saparsa en fazla 1 düzeltme geçişi yapılır
+    // (boşluk ölçekleme ve/veya hız). Maliyet marj içindedir.
     if (mode === "single") {
-      const fullText = buildSinglePassText(cues, engine);
-      let falUrl: string;
-      let audioDurationMs: number;
-      try {
-        const out =
-          engine === "xai"
-            ? await synthesizeCueXai(fullText, xaiVoice)
-            : await synthesizeCue(
-                fullText,
-                { voiceId, emotion, speed },
-                model.id
-              );
-        falUrl = out.falUrl;
-        audioDurationMs = out.durationMs;
-      } catch (error) {
-        const reason =
-          error instanceof Error ? error.message : "TTS request failed";
-        throw new Error(`Single take: ${reason}`);
+      const gaps = cueGapMs(cues);
+      const srtTotalMs = cues.length > 0 ? cues[cues.length - 1].endMs : 0;
+
+      const take = async (text: string, takeSpeed: number) => {
+        if (engine === "xai") return synthesizeCueXai(text, xaiVoice);
+        return synthesizeCue(text, { voiceId, emotion, speed: takeSpeed }, model.id);
+      };
+
+      let out = await take(buildSinglePassText(cues, engine, gaps), speed).catch(
+        (error) => {
+          const reason =
+            error instanceof Error ? error.message : "TTS request failed";
+          throw new Error(`Single take: ${reason}`);
+        }
+      );
+      let usedSpeed = speed;
+      let fitPasses = 1;
+
+      const plan = planDurationFit(gaps, out.durationMs, srtTotalMs, speed);
+      if (plan !== null) {
+        const retry = await take(
+          buildSinglePassText(cues, engine, plan.gapsMs),
+          plan.speed
+        ).catch((error) => {
+          const reason =
+            error instanceof Error ? error.message : "TTS request failed";
+          throw new Error(`Single take (fit): ${reason}`);
+        });
+        out = retry;
+        usedSpeed = plan.speed;
+        fitPasses = 2;
       }
 
+      const falUrl = out.falUrl;
+      const audioDurationMs = out.durationMs;
       let fileUrl = falUrl;
       let fileSize = 0;
       try {
@@ -251,7 +271,6 @@ export async function orchestrateSrtVoiceover(input: {
         /* fal_url still works */
       }
 
-      const srtTotalMs = cues.length > 0 ? cues[cues.length - 1].endMs : 0;
       const singleTracks: SrtTrack[] = cues.map((cue) => ({
         index: cue.index,
         startMs: cue.startMs,
@@ -260,7 +279,7 @@ export async function orchestrateSrtVoiceover(input: {
         url: fileUrl,
         durationMs: 0,
         overflow: false,
-        speed,
+        speed: usedSpeed,
       }));
 
       const { error: outputError } = await supabase.from("outputs").insert({
@@ -276,7 +295,8 @@ export async function orchestrateSrtVoiceover(input: {
           engine,
           voiceId,
           emotion,
-          speed,
+          speed: usedSpeed,
+          fitPasses,
           tracks: singleTracks,
           totalMs: srtTotalMs,
           audioDurationMs,
@@ -301,6 +321,7 @@ export async function orchestrateSrtVoiceover(input: {
         mode: "single",
         audioUrl: fileUrl,
         audioDurationMs,
+        fitPasses,
       };
     }
 
@@ -427,6 +448,7 @@ export async function orchestrateSrtVoiceover(input: {
       mode: "cues",
       audioUrl: persisted[0]?.url ?? "",
       audioDurationMs: schedule.totalMs,
+      fitPasses: 1,
     };
   } catch (error) {
     if (txId) await refundCredits(txId);
