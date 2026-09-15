@@ -5,6 +5,7 @@ import {
   DEFAULT_SRT_VOICE,
   DEFAULT_XAI_VOICE,
   buildMinimaxInput,
+  buildSinglePassText,
   buildXaiInput,
   clampSpeed,
   fitSpeed,
@@ -69,6 +70,23 @@ describe("voices", () => {
     expect(estimateSrtCredits(1000, "xai")).toBe(1);
     expect(estimateSrtCredits(3000, "xai")).toBe(2);
     expect(estimateSrtCredits(500)).toBe(4);
+  });
+
+  it("buildSinglePassText joins cues with gap pauses (minimax)", () => {
+    const text = buildSinglePassText([
+      { startMs: 1000, endMs: 3000, text: "Merhaba." },
+      { startMs: 4500, endMs: 6000, text: "Hoş geldin." },
+    ]);
+    expect(text).toBe("Merhaba. <#1.50#> Hoş geldin.");
+  });
+
+  it("buildSinglePassText clamps tiny gaps and plain-joins xAI", () => {
+    const cues = [
+      { startMs: 1000, endMs: 3000, text: "Bir." },
+      { startMs: 3050, endMs: 5000, text: "İki." },
+    ];
+    expect(buildSinglePassText(cues)).toBe("Bir. <#0.05#> İki.");
+    expect(buildSinglePassText(cues, "xai")).toBe("Bir. İki.");
   });
 
   it("xAI input pins Turkish + allowlisted voice", () => {

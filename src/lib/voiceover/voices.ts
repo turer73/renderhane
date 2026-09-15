@@ -41,6 +41,13 @@ export const DEFAULT_SRT_VOICE = "Turkish_CalmWoman";
 
 export type SrtEngine = "minimax" | "xai";
 
+export type SrtMode = "single" | "cues";
+
+export const SRT_MODES: { id: SrtMode; labelTr: string; labelEn: string }[] = [
+  { id: "single", labelTr: "Tek parça — tek dosya (önerilen)", labelEn: "Single take — one file (recommended)" },
+  { id: "cues", labelTr: "Replik bazlı — hassas", labelEn: "Per-cue — precise" },
+];
+
 export const SRT_ENGINES: { id: SrtEngine; labelTr: string; labelEn: string }[] = [
   { id: "minimax", labelTr: "MiniMax 2.8 — Doğal", labelEn: "MiniMax 2.8 — Natural" },
   { id: "xai", labelTr: "xAI — Ekonomi (1kr)", labelEn: "xAI — Economy (1cr)" },
@@ -132,8 +139,26 @@ export interface MinimaxVoiceSetting {
 }
 
 /**
- * xAI TTS isteği. Çıktı {audio:{url}} (duration_ms YOK).
+ * Tek-parça TTS metni: replikleri SRT boşluklarına göre duraklama
+ * işaretleriyle birleştirir. MiniMax "<#saniye#>" anlar (0.01–99.99);
+ * xAI'de sade boşluk bırakılır (süre kontrolü yok).
+ * SrtCue[] yerine {startMs,endMs,text} şekli yeter.
  */
+export function buildSinglePassText(
+  cues: { startMs: number; endMs: number; text: string }[],
+  engine: SrtEngine = "minimax"
+): string {
+  return cues
+    .map((cue, i) => {
+      if (i === 0) return cue.text;
+      const prev = cues[i - 1];
+      if (engine === "xai") return cue.text;
+      const gapMs = cue.startMs - prev.endMs;
+      const gapSec = Math.min(99.99, Math.max(0.05, gapMs / 1000));
+      return `<#${gapSec.toFixed(2)}#> ${cue.text}`;
+    })
+    .join(" ");
+}
 export function buildXaiInput(
   text: string,
   opts: { voiceId: string }

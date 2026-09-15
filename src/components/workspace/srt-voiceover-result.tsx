@@ -25,6 +25,9 @@ interface SrtVoiceoverResultProps {
   overflowCount: number;
   refitCount: number;
   jobId: string;
+  mode: "single" | "cues";
+  audioUrl: string;
+  audioDurationMs: number;
 }
 
 export function formatSrtMs(ms: number): string {
@@ -66,7 +69,7 @@ function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {
   return new Blob([ab], { type: "audio/wav" });
 }
 
-export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId }: SrtVoiceoverResultProps) {
+export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId, mode, audioUrl, audioDurationMs }: SrtVoiceoverResultProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timersRef = useRef<number[]>([]);
   const stopRef = useRef(false);
@@ -208,6 +211,38 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
       setMixing(false);
     }
   };
+
+  // TEK-PARÇA: tek dosya — oynat + indir, replik listesi yok.
+  if (mode === "single") {
+    const drift = audioDurationMs > 0 ? audioDurationMs - totalMs : 0;
+    const driftBig =
+      audioDurationMs > 0 && totalMs > 0 && Math.abs(drift) > totalMs * 0.15;
+    return (
+      <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-foreground">
+            Tek dosya • {tracks.length} replik
+          </span>
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">tek parça</Badge>
+        </div>
+        <audio src={proxyUrl(audioUrl)} controls className="w-full" />
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          Ses {audioDurationMs > 0 ? `${(audioDurationMs / 1000).toFixed(1)}sn` : "?"} • SRT {formatSrtMs(totalMs)}
+          {driftBig && " — süreler farklı, video ile hizalamayı kontrol et"}
+        </p>
+        <div className="flex gap-1.5">
+          <Button size="sm" className="h-7 flex-1 text-[11px]" asChild>
+            <a href={proxyUrl(audioUrl)} download={`seslendirme-${jobId.slice(0, 8)}.mp3`}>
+              <Download className="h-3 w-3 mr-1" /> Ses dosyasını indir
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={downloadJson}>
+            <FileJson className="h-3 w-3 mr-1" /> Zaman çizelgesi
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">

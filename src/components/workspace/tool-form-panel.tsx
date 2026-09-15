@@ -46,6 +46,7 @@ import {
   SRT_VOICES,
   SRT_EMOTIONS,
   SRT_ENGINES,
+  SRT_MODES,
   XAI_VOICES,
   DEFAULT_SRT_VOICE,
   DEFAULT_XAI_VOICE,
@@ -465,6 +466,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [srtVoice, setSrtVoice] = useState(DEFAULT_SRT_VOICE);
   const [srtXaiVoice, setSrtXaiVoice] = useState(DEFAULT_XAI_VOICE);
   const [srtEngine, setSrtEngine] = useState<"minimax" | "xai">("minimax");
+  const [srtMode, setSrtMode] = useState<"single" | "cues">("single");
   const [srtEmotion, setSrtEmotion] = useState<string>(DEFAULT_SRT_EMOTION);
   const [srtSpeed, setSrtSpeed] = useState(DEFAULT_SRT_SPEED);
   const [srtAutoFit, setSrtAutoFit] = useState(true);
@@ -476,6 +478,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     totalMs: number;
     overflowCount: number;
     refitCount: number;
+    mode: "single" | "cues";
+    audioUrl: string;
+    audioDurationMs: number;
   } | null>(null);
   const srtFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -765,6 +770,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           autoFit: srtAutoFit && srtEngine === "minimax",
           engine: srtEngine,
           xaiVoiceId: srtXaiVoice,
+          mode: srtMode,
         }),
       });
       if (res.status === 402) {
@@ -795,6 +801,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         totalMs: data.totalMs,
         overflowCount: data.overflowCount,
         refitCount: typeof data.refitCount === "number" ? data.refitCount : 0,
+        mode: data.mode === "cues" ? "cues" : "single",
+        audioUrl: typeof data.audioUrl === "string" ? data.audioUrl : "",
+        audioDurationMs: typeof data.audioDurationMs === "number" ? data.audioDurationMs : 0,
       });
       window.dispatchEvent(new Event("job-submitted"));
       showToast(`Seslendirme hazır (${data.creditCost} kredi)`, "success");
@@ -2042,6 +2051,24 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
               )}
             </div>
 
+            <div>
+              <Label className="text-xs text-muted-foreground">Çıktı</Label>
+              <select
+                value={srtMode}
+                onChange={(e) => setSrtMode(e.target.value as "single" | "cues")}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+              >
+                {SRT_MODES.map((m) => (
+                  <option key={m.id} value={m.id}>{m.labelTr}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-muted-foreground/70">
+                {srtMode === "single"
+                  ? "Tek çağrı, tek dosya — galeride doğrudan çalar."
+                  : "Her replik ayrı seslendirilir, zaman çizelgesine dizilir."}
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Motor</Label>
@@ -2107,6 +2134,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
               </p>
             )}
 
+            {srtMode === "cues" && (
             <div className="flex items-center justify-between gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Zamana otomatik oturt</Label>
@@ -2116,6 +2144,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
               </div>
               <Switch checked={srtAutoFit && srtEngine === "minimax"} onCheckedChange={setSrtAutoFit} disabled={srtEngine === "xai"} />
             </div>
+            )}
 
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
               <div className="flex items-center gap-2">
@@ -2137,6 +2166,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 overflowCount={srtResult.overflowCount}
                 refitCount={srtResult.refitCount}
                 jobId={srtResult.jobId}
+                mode={srtResult.mode}
+                audioUrl={srtResult.audioUrl}
+                audioDurationMs={srtResult.audioDurationMs}
               />
             )}
           </>

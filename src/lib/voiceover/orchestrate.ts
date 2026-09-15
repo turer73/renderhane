@@ -10,12 +10,14 @@ import { uploadToR2 } from "@/lib/r2/upload";
 import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
 import {
   buildMinimaxInput,
+  buildSinglePassText,
   buildXaiInput,
   fitSpeed,
   isAllowedXaiVoice,
   DEFAULT_XAI_VOICE,
   SRT_TTS_CONCURRENCY,
   type SrtEngine,
+  type SrtMode,
 } from "./voices";
 import { buildSchedule } from "./schedule";
 
@@ -49,6 +51,11 @@ export interface OrchestrateResult {
   overflowCount: number;
   /** Otomatik sığdırma ile yeniden seslendirilen replik sayısı. */
   refitCount: number;
+  mode: SrtMode;
+  /** Tek-parça çıktının dosya URL'si (cues modunda ilk repliğinki). */
+  audioUrl: string;
+  /** Tek-parça ses süresi (fal duration_ms; cues modunda toplam plan). */
+  audioDurationMs: number;
 }
 
 interface MinimaxOutput {
@@ -124,9 +131,11 @@ export async function orchestrateSrtVoiceover(input: {
   autoFit?: boolean;
   engine?: SrtEngine;
   xaiVoiceId?: string;
+  mode?: SrtMode;
 }): Promise<OrchestrateResult> {
   const { userId, cues, voiceId, emotion, speed } = input;
   const autoFit = input.autoFit !== false;
+  const mode: SrtMode = input.mode === "cues" ? "cues" : "single";
   const engine: SrtEngine = input.engine === "xai" ? "xai" : "minimax";
   const xaiVoice =
     input.xaiVoiceId && isAllowedXaiVoice(input.xaiVoiceId)
@@ -163,6 +172,8 @@ export async function orchestrateSrtVoiceover(input: {
         emotion,
         speed,
         autoFit,
+        mode,
+        engine,
       },
       original_request: { tool: "srt-voiceover", voiceId, emotion, speed },
       credit_cost: creditCost,
@@ -204,6 +215,93 @@ export async function orchestrateSrtVoiceover(input: {
         txId = null;
         throw new Error(`Failed to link credit reservation: ${linkError.message}`);
       }
+    }
+
+    // TEK-PARÇA: replikler duraklama işaretleriyle tek metinde birleşir,
+    // tek TTS çağrısı → tek dosya (daha ucuz, ses tutarlılığı tam).
+    // Zamanlama yaklaşıktır (konuşma hızı replikten repliğe oynar).
+    if (mode === "single") {
+      const fullText = buildSinglePassText(cues, engine);
+      let falUrl: string;
+      let audioDurationMs: number;
+      try {
+        const out =
+          engine === "xai"
+            ? await synthesizeCueXai(fullText, xaiVoice)
+            : await synthesizeCue(
+                fullText,
+                { voiceId, emotion, speed },
+                model.id
+              );
+        falUrl = out.falUrl;
+        audioDurationMs = out.durationMs;
+      } catch (error) {
+        const reason =
+          error instanceof Error ? error.message : "TTS request failed";
+        throw new Error(`Single take: ${reason}`);
+      }
+
+      let fileUrl = falUrl;
+      let fileSize = 0;
+      try {
+        const uploaded = await uploadToR2(falUrl, userId, "audio");
+        fileUrl = uploaded.r2Url;
+        fileSize = uploaded.fileSize;
+      } catch {
+        /* fal_url still works */
+      }
+
+      const srtTotalMs = cues.length > 0 ? cues[cues.length - 1].endMs : 0;
+      const singleTracks: SrtTrack[] = cues.map((cue) => ({
+        index: cue.index,
+        startMs: cue.startMs,
+        endMs: cue.endMs,
+        text: cue.text,
+        url: fileUrl,
+        durationMs: 0,
+        overflow: false,
+        speed,
+      }));
+
+      const { error: outputError } = await supabase.from("outputs").insert({
+        job_id: job.id,
+        user_id: userId,
+        type: "audio",
+        fal_url: falUrl,
+        r2_url: fileUrl,
+        file_size: fileSize,
+        metadata: {
+          tool: "srt-voiceover",
+          mode: "single",
+          engine,
+          voiceId,
+          emotion,
+          speed,
+          tracks: singleTracks,
+          totalMs: srtTotalMs,
+          audioDurationMs,
+        },
+      });
+      if (outputError) throw new Error(`Failed to save outputs: ${outputError.message}`);
+
+      await supabase
+        .from("jobs")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", job.id);
+
+      if (txId) await confirmSpend(txId, job.id);
+
+      return {
+        jobId: job.id,
+        creditCost,
+        tracks: singleTracks,
+        totalMs: srtTotalMs,
+        overflowCount: 0,
+        refitCount: 0,
+        mode: "single",
+        audioUrl: fileUrl,
+        audioDurationMs,
+      };
     }
 
     // 1) Per-cue TTS (bounded parallelism). Reservation exists before paid calls.
@@ -326,6 +424,9 @@ export async function orchestrateSrtVoiceover(input: {
       totalMs: schedule.totalMs,
       overflowCount: schedule.overflowCount,
       refitCount,
+      mode: "cues",
+      audioUrl: persisted[0]?.url ?? "",
+      audioDurationMs: schedule.totalMs,
     };
   } catch (error) {
     if (txId) await refundCredits(txId);

@@ -83,6 +83,7 @@ describe("orchestrateSrtVoiceover auto-fit", () => {
       speed: 1,
       creditCost: 4,
       autoFit: true,
+      mode: "cues",
     });
 
     expect(mocks.subscribe).toHaveBeenCalledTimes(3);
@@ -109,11 +110,43 @@ describe("orchestrateSrtVoiceover auto-fit", () => {
       speed: 1,
       creditCost: 4,
       autoFit: false,
+      mode: "cues",
     });
 
     expect(mocks.subscribe).toHaveBeenCalledTimes(2);
     expect(result.refitCount).toBe(0);
     expect(result.overflowCount).toBe(1);
+  });
+
+  it("single mode makes one TTS call and returns one file", async () => {
+    mocks.subscribe.mockReset();
+    mocks.subscribe.mockResolvedValue({
+      data: { audio: { url: "https://fal.media/full.mp3" }, duration_ms: 9000 },
+    });
+
+    const result = await orchestrateSrtVoiceover({
+      userId: "user-1",
+      userEmail: "user@example.com",
+      cues: CUES,
+      voiceId: "Turkish_CalmWoman",
+      emotion: "neutral",
+      speed: 1,
+      creditCost: 4,
+      autoFit: true,
+      mode: "single",
+    });
+
+    expect(mocks.subscribe).toHaveBeenCalledTimes(1);
+    expect(mocks.subscribe.mock.calls[0][1]).toMatchObject({
+      prompt: expect.stringContaining("<#"),
+    });
+    expect(result.mode).toBe("single");
+    expect(result.audioUrl).toContain("fal.media/full.mp3");
+    expect(result.audioDurationMs).toBe(9000);
+    expect(result.tracks).toHaveLength(2);
+    expect(result.tracks[0].url).toBe(result.tracks[1].url);
+    expect(result.overflowCount).toBe(0);
+    expect(result.refitCount).toBe(0);
   });
 
   it("refunds when a cue fails", async () => {
@@ -132,6 +165,7 @@ describe("orchestrateSrtVoiceover auto-fit", () => {
         emotion: "neutral",
         speed: 1,
         creditCost: 4,
+        mode: "cues",
         autoFit: true,
       })
     ).rejects.toThrow("Cue 2");

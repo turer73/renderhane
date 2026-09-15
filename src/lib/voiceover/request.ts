@@ -31,6 +31,8 @@ export const srtVoiceoverSchema = z.object({
   engine: z.enum(["minimax", "xai"]).optional().default("minimax"),
   /** xAI motorunda kullanılacak ses (minimax'te voiceId geçerli). */
   xaiVoiceId: z.string().optional(),
+  /** Üretim modu: single (tek dosya, önerilen) veya cues (replik bazlı hassas). */
+  mode: z.enum(["single", "cues"]).optional().default("single"),
 });
 
 export type SrtVoiceoverRequest = z.infer<typeof srtVoiceoverSchema>;
