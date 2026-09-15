@@ -39,6 +39,26 @@ export const SRT_VOICES: VoiceOption[] = [
 
 export const DEFAULT_SRT_VOICE = "Turkish_CalmWoman";
 
+export type SrtEngine = "minimax" | "xai";
+
+export const SRT_ENGINES: { id: SrtEngine; labelTr: string; labelEn: string }[] = [
+  { id: "minimax", labelTr: "MiniMax 2.8 — Doğal", labelEn: "MiniMax 2.8 — Natural" },
+  { id: "xai", labelTr: "xAI — Ekonomi (1kr)", labelEn: "xAI — Economy (1cr)" },
+];
+
+/** xAI sesleri (şema enum'undan; TR kalitesi replik başına değişebilir). */
+export const XAI_VOICES: VoiceOption[] = [
+  { id: "eve", labelTr: "Eve (xAI)", labelEn: "Eve (xAI)", gender: "female" },
+  { id: "leo", labelTr: "Leo (xAI)", labelEn: "Leo (xAI)", gender: "male" },
+  { id: "ara", labelTr: "Ara (xAI)", labelEn: "Ara (xAI)", gender: "female" },
+];
+
+export const DEFAULT_XAI_VOICE = "eve";
+
+export function isAllowedXaiVoice(voiceId: string): boolean {
+  return XAI_VOICES.some((v) => v.id === voiceId);
+}
+
 export const SRT_EMOTIONS = [
   "neutral",
   "happy",
@@ -112,10 +132,21 @@ export interface MinimaxVoiceSetting {
 }
 
 /**
- * fal-ai TTS cue isteği. MODELS defaultParams'taki
- * output_format/language_boost/audio_setting üzerine eklenir.
- * textKey: 2.8 HD "prompt", eski 02-HD "text".
+ * xAI TTS isteği. Çıktı {audio:{url}} (duration_ms YOK).
  */
+export function buildXaiInput(
+  text: string,
+  opts: { voiceId: string }
+): Record<string, unknown> {
+  if (!isAllowedXaiVoice(opts.voiceId)) {
+    throw new Error(`Unsupported xAI voice: "${opts.voiceId}"`);
+  }
+  return {
+    text,
+    voice: opts.voiceId,
+    language: "tr",
+  };
+}
 export function buildMinimaxInput(
   text: string,
   opts: { voiceId: string; emotion?: string; speed?: number },

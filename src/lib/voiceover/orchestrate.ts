@@ -8,7 +8,15 @@ import {
 } from "@/lib/credits/engine";
 import { uploadToR2 } from "@/lib/r2/upload";
 import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
-import { buildMinimaxInput, fitSpeed, SRT_TTS_CONCURRENCY } from "./voices";
+import {
+  buildMinimaxInput,
+  buildXaiInput,
+  fitSpeed,
+  isAllowedXaiVoice,
+  DEFAULT_XAI_VOICE,
+  SRT_TTS_CONCURRENCY,
+  type SrtEngine,
+} from "./voices";
 import { buildSchedule } from "./schedule";
 
 /** SRT varsayılan TTS modeli (TOOL_MODELS ilk sırası). */
@@ -69,6 +77,21 @@ async function synthesizeCue(
   };
 }
 
+async function synthesizeCueXai(
+  text: string,
+  voiceId: string
+): Promise<{ falUrl: string; durationMs: number }> {
+  const result = await getAIProvider().subscribe("xai/tts/v1", {
+    ...MODELS["xai-tts"].defaultParams,
+    ...buildXaiInput(text, { voiceId }),
+  });
+  const output = result.data as MinimaxOutput;
+  const falUrl = output.audio?.url;
+  if (!falUrl) throw new Error("TTS produced no audio");
+  // xAI duration_ms dönmez → sığdırma yok, mix istemcide gerçek boyla kurulur.
+  return { falUrl, durationMs: 0 };
+}
+
 /** Bounded parallel map — preserves order, fails fast on first error. */
 async function mapPool<T, R>(
   items: T[],
@@ -99,9 +122,16 @@ export async function orchestrateSrtVoiceover(input: {
   speed: number;
   creditCost: number;
   autoFit?: boolean;
+  engine?: SrtEngine;
+  xaiVoiceId?: string;
 }): Promise<OrchestrateResult> {
   const { userId, cues, voiceId, emotion, speed } = input;
   const autoFit = input.autoFit !== false;
+  const engine: SrtEngine = input.engine === "xai" ? "xai" : "minimax";
+  const xaiVoice =
+    input.xaiVoiceId && isAllowedXaiVoice(input.xaiVoiceId)
+      ? input.xaiVoiceId
+      : DEFAULT_XAI_VOICE;
   let { creditCost } = input;
   const supabase = createAdminClient();
   const model = MODELS[SRT_TTS_MODEL_KEY];
@@ -179,6 +209,10 @@ export async function orchestrateSrtVoiceover(input: {
     // 1) Per-cue TTS (bounded parallelism). Reservation exists before paid calls.
     const synth = await mapPool(cues, SRT_TTS_CONCURRENCY, async (cue) => {
       try {
+        if (engine === "xai") {
+          const out = await synthesizeCueXai(cue.text, xaiVoice);
+          return { ...out, speed: 1 };
+        }
         const out = await synthesizeCue(
           cue.text,
           { voiceId, emotion, speed },
@@ -195,8 +229,9 @@ export async function orchestrateSrtVoiceover(input: {
     // 1b) Auto-fit: taşan repliği slota sığacak hıza oturtup yeniden
     // seslendir (en fazla 1.3x — üstü doğallığı bozar, taşma kalır).
     // İkinci geçişin fal maliyeti marj içindedir, krediye yansıtılmaz.
+    // xAI süre dönmediği için sığdırma yalnızca MiniMax'te.
     let refitCount = 0;
-    if (autoFit) {
+    if (autoFit && engine === "minimax") {
       const refits: { i: number; speed: number }[] = [];
       cues.forEach((cue, i) => {
         const fitted = fitSpeed(
@@ -268,6 +303,7 @@ export async function orchestrateSrtVoiceover(input: {
         emotion,
         speed,
         autoFit,
+        engine,
         refitCount,
         tracks,
         totalMs: schedule.totalMs,

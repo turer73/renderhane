@@ -194,6 +194,26 @@ describe('routeRequest', () => {
     expect(input.prompt).toBe('bir vazo');
   });
 
+  it('routes new premium modelKeys with correct input keys', () => {
+    const wan = routeRequest({ tool: 'video', modelKey: 'wan-3', imageUrl: 'http://img/1.jpg', prompt: 'dön' });
+    expect(wan.modelKey).toBe('wan-3');
+    expect(wan.input.start_image_url).toBe('http://img/1.jpg');
+    expect(wan.input.duration).toBe(5);
+    expect(wan.input.resolution).toBe('720p');
+
+    const meshy = routeRequest({ tool: '3d-model', modelKey: 'meshy-v7', imageUrl: 'http://img/1.jpg' });
+    expect(meshy.modelKey).toBe('meshy-v7');
+    expect(meshy.input.image_url).toBe('http://img/1.jpg');
+
+    const sync = routeRequest({ tool: 'talking-avatar', modelKey: 'sync-lipsync-v3', imageUrl: 'http://img/1.jpg', prompt: 'http://audio/1.mp3' });
+    expect(sync.modelKey).toBe('sync-lipsync-v3');
+    expect(sync.input.audio_url).toBe('http://audio/1.mp3');
+
+    const flare = routeRequest({ tool: 'text-to-image', modelKey: 'gpt-image-25-flare', prompt: 'logo' });
+    expect(flare.modelKey).toBe('gpt-image-25-flare');
+    expect(flare.input.quality).toBe('medium');
+  });
+
   it('routes logo to recraft-v4', () => {
     const { modelKey } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
     expect(modelKey).toBe('recraft-v4');

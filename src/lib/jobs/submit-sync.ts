@@ -211,6 +211,11 @@ function extractUrl(payload: Record<string, unknown>): string | null {
   const modelMesh = payload.model_mesh as { url?: string } | undefined;
   if (modelMesh?.url) return modelMesh.url;
 
+  // Meshy v7 anahtarı (model_mesh DEĞİL) — regex'e düşmeden önce yakala,
+  // yoksa thumbnail gibi ilk URL'yi kapar.
+  const modelGlb = payload.model_glb as { url?: string } | undefined;
+  if (modelGlb?.url) return modelGlb.url;
+
   // Regex fallback
   const jsonStr = JSON.stringify(payload);
   const match = jsonStr.match(/"url"\s*:\s*"(https?:\/\/[^"]+)"/);

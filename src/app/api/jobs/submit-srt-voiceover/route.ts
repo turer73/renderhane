@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { srt, voiceId, emotion, speed, autoFit } = parsed.data;
+  const { srt, voiceId, emotion, speed, autoFit, engine, xaiVoiceId } = parsed.data;
 
   let cues;
   try {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const creditCost = estimateSrtCredits(totalChars);
+  const creditCost = estimateSrtCredits(totalChars, engine);
 
   const { data: balance } = await supabase.rpc("get_credit_balance", {
     p_user_id: user.id,
@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
       speed,
       creditCost,
       autoFit,
+      engine,
+      xaiVoiceId,
     });
     return NextResponse.json(result);
   } catch (error) {

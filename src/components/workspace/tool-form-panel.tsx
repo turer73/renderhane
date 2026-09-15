@@ -45,7 +45,10 @@ import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
 import {
   SRT_VOICES,
   SRT_EMOTIONS,
+  SRT_ENGINES,
+  XAI_VOICES,
   DEFAULT_SRT_VOICE,
+  DEFAULT_XAI_VOICE,
   DEFAULT_SRT_EMOTION,
   DEFAULT_SRT_SPEED,
   MAX_SYNC_CHARS,
@@ -61,6 +64,7 @@ const AI_MODELS_3D = [
   { id: "trellis-v1", name: "TRELLIS v1", credits: 5, time: "~15 sn", tier: "fast" },
   { id: "tripo-2.5", name: "Tripo 2.5", credits: 30, time: "~30 sn", tier: "fast" },
   { id: "meshy-6", name: "Meshy 6", credits: 55, time: "~2 dk", tier: "standard" },
+  { id: "meshy-v7", name: "Meshy 7 — Premium", credits: 80, time: "~3 dk", tier: "premium" },
   { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 28, time: "~3 dk", tier: "standard" },
   { id: "rodin", name: "Rodin Premium", credits: 35, time: "~2 dk", tier: "premium" },
 ];
@@ -85,6 +89,7 @@ const EDIT_MODELS: PickerModel[] = [
 const TEXT_MODELS: PickerModel[] = [
   { id: "flux-2-pro", name: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
   { id: "qwen-image-3", name: "Qwen Image 3 — Tipografi", credits: 5, time: "~12 sn", modelKey: "qwen-image-3", tier: "standard" },
+  { id: "gpt-image-25-flare", name: "GPT-Image 2.5 — En İyi Yazı", credits: 8, time: "~15 sn", modelKey: "gpt-image-25-flare", tier: "premium" },
   { id: "nano-banana-pro", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~12 sn", modelKey: "nano-banana-pro", tier: "premium" },
 ];
 
@@ -95,6 +100,7 @@ const SCENE_MODELS: PickerModel[] = [
 
 const VIDEO_MODELS = [
   { id: "wan-v2.6", name: "Wan 2.7", credits: 35, time: "~2 dk", tier: "fast" },
+  { id: "wan-3", name: "Wan 3.0 — Sesli", credits: 40, time: "~2 dk", tier: "premium" },
   { id: "kling-o3", name: "Kling O3 Pro", credits: 40, time: "~2 dk", tier: "premium" },
 ];
 
@@ -102,6 +108,7 @@ const AVATAR_MODELS: PickerModel[] = [
   { id: "omnihuman", name: "OmniHuman v1.5", credits: 100, time: "~2 dk", modelKey: "omnihuman", tier: "standard" },
   { id: "kling-avatar-v2-std", name: "Kling Avatar v2 — Ekonomik", credits: 35, time: "~2 dk", modelKey: "kling-avatar-v2-std", tier: "standard" },
   { id: "kling-avatar-v2-pro", name: "Kling Avatar v2 Pro", credits: 75, time: "~2 dk", modelKey: "kling-avatar-v2-pro", tier: "standard" },
+  { id: "sync-lipsync-v3", name: "Sync v3 Lip-Sync", credits: 85, time: "~2 dk", modelKey: "sync-lipsync-v3", tier: "standard" },
 ];
 
 const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
@@ -256,6 +263,7 @@ const MODEL_TO_TIER: Record<string, string> = {
   "trellis-v1": "fast",
   "tripo-2.5": "fast",
   "meshy-6": "standard",
+  "meshy-v7": "premium",
   "hunyuan3d-v3": "standard",
   "rodin": "premium",
 };
@@ -267,6 +275,7 @@ const MODEL_TO_KEY: Record<string, string> = {
   "trellis-v1": "trellis-v1",
   "tripo-2.5": "tripo-v25-mv",
   "meshy-6": "meshy-6-image",
+  "meshy-v7": "meshy-v7",
   "hunyuan3d-v3": "hunyuan3d-v3",
   "rodin": "hyper3d-rodin",
 };
@@ -274,12 +283,14 @@ const MODEL_TO_KEY: Record<string, string> = {
 /** Map video model select IDs to API tier */
 const VIDEO_MODEL_TO_TIER: Record<string, string> = {
   "wan-v2.6": "fast",
+  "wan-3": "premium",
   "kling-o3": "premium",
 };
 
 /** Map video model select IDs (image-to-video tab) to MODELS keys. */
 const VIDEO_MODEL_TO_KEY: Record<string, string> = {
   "wan-v2.6": "wan-i2v",
+  "wan-3": "wan-3",
   "kling-o3": "kling-o3-i2v",
 };
 
@@ -452,6 +463,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [srtText, setSrtText] = useState("");
   const [srtFileName, setSrtFileName] = useState<string | null>(null);
   const [srtVoice, setSrtVoice] = useState(DEFAULT_SRT_VOICE);
+  const [srtXaiVoice, setSrtXaiVoice] = useState(DEFAULT_XAI_VOICE);
+  const [srtEngine, setSrtEngine] = useState<"minimax" | "xai">("minimax");
   const [srtEmotion, setSrtEmotion] = useState<string>(DEFAULT_SRT_EMOTION);
   const [srtSpeed, setSrtSpeed] = useState(DEFAULT_SRT_SPEED);
   const [srtAutoFit, setSrtAutoFit] = useState(true);
@@ -537,7 +550,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       return {
         cues: cues.length,
         chars,
-        credits: estimateSrtCredits(chars),
+        credits: estimateSrtCredits(chars, srtEngine),
         overCap: cues.length > MAX_SYNC_CUES || chars > MAX_SYNC_CHARS,
         error: null as string | null,
       };
@@ -550,7 +563,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         error: error instanceof Error ? error.message : "Geçersiz SRT",
       };
     }
-  }, [activeTab, srtText]);
+  }, [activeTab, srtText, srtEngine]);
 
   // Footer info based on tool + tab
   const footerInfo = (() => {
@@ -749,7 +762,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           voiceId: srtVoice,
           emotion: srtEmotion,
           speed: srtSpeed,
-          autoFit: srtAutoFit,
+          autoFit: srtAutoFit && srtEngine === "minimax",
+          engine: srtEngine,
+          xaiVoiceId: srtXaiVoice,
         }),
       });
       if (res.status === 402) {
@@ -2029,17 +2044,33 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Ses</Label>
+                <Label className="text-xs text-muted-foreground">Motor</Label>
                 <select
-                  value={srtVoice}
-                  onChange={(e) => setSrtVoice(e.target.value)}
+                  value={srtEngine}
+                  onChange={(e) => setSrtEngine(e.target.value as "minimax" | "xai")}
                   className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
                 >
-                  {SRT_VOICES.map((v) => (
+                  {SRT_ENGINES.map((m) => (
+                    <option key={m.id} value={m.id}>{m.labelTr}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Ses</Label>
+                <select
+                  value={srtEngine === "xai" ? srtXaiVoice : srtVoice}
+                  onChange={(e) => (srtEngine === "xai" ? setSrtXaiVoice(e.target.value) : setSrtVoice(e.target.value))}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {(srtEngine === "xai" ? XAI_VOICES : SRT_VOICES).map((v) => (
                     <option key={v.id} value={v.id}>{v.labelTr}</option>
                   ))}
                 </select>
               </div>
+            </div>
+
+            {srtEngine === "minimax" && (
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Duygu</Label>
                 <select
@@ -2052,30 +2083,38 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Hız</Label>
-                <span className="text-[10px] text-muted-foreground">{srtSpeed.toFixed(1)}x</span>
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Hız</Label>
+                  <span className="text-[10px] text-muted-foreground">{srtSpeed.toFixed(1)}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.8}
+                  max={1.2}
+                  step={0.1}
+                  value={srtSpeed}
+                  onChange={(e) => setSrtSpeed(Number(e.target.value))}
+                  className="mt-1.5 w-full accent-primary"
+                />
               </div>
-              <input
-                type="range"
-                min={0.8}
-                max={1.2}
-                step={0.1}
-                value={srtSpeed}
-                onChange={(e) => setSrtSpeed(Number(e.target.value))}
-                className="mt-1.5 w-full accent-primary"
-              />
             </div>
+            )}
+
+            {srtEngine === "xai" && (
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Ekonomi modu: duygu/hız ve otomatik sığdırma yok, süre ölçümü yapılmaz.
+              </p>
+            )}
 
             <div className="flex items-center justify-between gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Zamana otomatik oturt</Label>
-                <p className="text-[10px] text-muted-foreground/70">Taşan replik en fazla 1.3x hızlanır</p>
+                <p className="text-[10px] text-muted-foreground/70">
+                  {srtEngine === "xai" ? "Yalnızca MiniMax motorunda" : "Taşan replik en fazla 1.3x hızlanır"}
+                </p>
               </div>
-              <Switch checked={srtAutoFit} onCheckedChange={setSrtAutoFit} />
+              <Switch checked={srtAutoFit && srtEngine === "minimax"} onCheckedChange={setSrtAutoFit} disabled={srtEngine === "xai"} />
             </div>
 
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
@@ -2083,7 +2122,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                   <Mic className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground">MiniMax HD • Türkçe</span>
+                <span className="text-xs font-medium text-foreground">{srtEngine === "xai" ? "xAI • Ekonomi" : "MiniMax 2.8 • Türkçe"}</span>
                 <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">doğal ses</Badge>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">

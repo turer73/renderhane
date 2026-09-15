@@ -180,6 +180,26 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── 3D Model — Meshy 7 (2026-09 doğrulandı) ──
+     fal $1.20/textured (~₺58) → 80kr. Hizalama SOTA; ultra-mode kapalı
+     (tek-görünüm kısıtı). Çıktı model_glb (webhook + sync destekli). */
+  "meshy-v7": {
+    id: "meshy/v7/image-to-3d",
+    displayName: {
+      tr: "Meshy 7 — Premium 3D",
+      en: "Meshy 7 — Premium 3D",
+    },
+    tier: "premium",
+    creditCost: 80,
+    estimatedTime: "~3min",
+    imageParamKey: "image_url",
+    defaultParams: {
+      should_texture: true,
+      topology: "triangle",
+      target_polycount: 30000,
+    },
+  },
+
   /* ── 3D Model — TripoSR Hızlı Önizleme ──── */
   "triposr": {
     id: "fal-ai/triposr",
@@ -356,6 +376,26 @@ export const MODELS: Record<string, ModelConfig> = {
       prompt: "A smooth product showcase with gentle camera movement, professional lighting",
       resolution: "720p",
       duration: "5",
+    },
+  },
+  /* ── Video — Wan 3.0 (2026-09 doğrulandı) ──
+     fal $0.10/sn @720p sesli → 5sn $0.50 (~₺24) → 40kr. duration/resolution
+     pinli (şema default 1080p + akıllı-süre = maliyet patlaması yapar).
+     Girdi anahtarı start_image_url. Çıktı {video, duration}. */
+  "wan-3": {
+    id: "alibaba/wan-3.0/image-to-video",
+    displayName: { tr: "Wan 3.0 — Sesli Video", en: "Wan 3.0 — Video+Audio" },
+    tier: "premium",
+    creditCost: 40,
+    estimatedTime: "~2min",
+    imageParamKey: "start_image_url",
+    promptParamKey: "prompt",
+    defaultParams: {
+      prompt: "A smooth product showcase with gentle camera movement, professional lighting",
+      duration: 5,
+      resolution: "720p",
+      audio: true,
+      aspect_ratio: "adaptive",
     },
   },
   /* Kling v3 girişleri TOOL_MODELS'te değil (O3 halefleri listede) ama API v1
@@ -548,6 +588,23 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── TTS ekonomi motoru — xAI TTS (2026-09 doğrulandı) ──
+     fal $0.015/1K (~₺0.0075/500krktr) → 1kr taban. language:"tr" pinli.
+     Çıktı {audio} (duration_ms YOK → hız sığdırma çalışmaz).
+     SRT economy modunda kullanılır; avatar amiral gemisi MiniMax'te kalır. */
+  "xai-tts": {
+    id: "xai/tts/v1",
+    displayName: { tr: "xAI — Ekonomi Ses", en: "xAI — Economy Voice" },
+    tier: "fast",
+    creditCost: 1,
+    estimatedTime: "~10s",
+    imageParamKey: "_unused",
+    promptParamKey: "text",
+    defaultParams: {
+      language: "tr",
+    },
+  },
+
   /* ── Logo Üretimi ──────────────────────── */
   "recraft-v4": {
     id: "fal-ai/recraft/v4.1/text-to-image",
@@ -646,6 +703,24 @@ export const MODELS: Record<string, ModelConfig> = {
     promptParamKey: "prompt",
     defaultParams: {
       num_images: 1,
+      image_size: "square_hd",
+    },
+  },
+
+  /* ── Text-to-Image — GPT-Image 2.5 Flare (2026-09 doğrulandı) ──
+     Metin/yazı + prompt uyumu SOTA. Token faturalı → quality/image_size
+     pinli (medium/square_hd, tek kare) yoksa düz fiyat patlar. ~$0.08 → 8kr. */
+  "gpt-image-25-flare": {
+    id: "openai/gpt-image-2.5/flare/text-to-image",
+    displayName: { tr: "GPT-Image 2.5 — En İyi Yazı", en: "GPT-Image 2.5 — Best Text" },
+    tier: "premium",
+    creditCost: 8,
+    estimatedTime: "~15s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    defaultParams: {
+      num_images: 1,
+      quality: "medium",
       image_size: "square_hd",
     },
   },
@@ -756,6 +831,20 @@ export const MODELS: Record<string, ModelConfig> = {
     displayName: { tr: "Kling Avatar v2 — Ekonomik", en: "Kling Avatar v2 — Value" },
     tier: "standard",
     creditCost: 35,
+    estimatedTime: "~2min",
+    imageParamKey: "image_url",
+    promptParamKey: "_unused",
+    defaultParams: {},
+  },
+
+  /* ── Konuşan Avatar — Sync v3 Lip-Sync (2026-09 doğrulandı) ──
+     fal $0.133/sn → ~10sn $1.33 (~₺64) → 85kr. Girdi image_url + audio_url,
+     süre sesi takip eder. Çıktı {video}. */
+  "sync-lipsync-v3": {
+    id: "fal-ai/sync-lipsync/v3/image-to-video",
+    displayName: { tr: "Sync v3 — Dudak Senkronu", en: "Sync v3 — Lip-Sync" },
+    tier: "standard",
+    creditCost: 85,
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "_unused",
@@ -892,21 +981,21 @@ export const MODELS: Record<string, ModelConfig> = {
 };
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-6-text", "tripo-v25-mv", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-v7", "meshy-6-text", "tripo-v25-mv", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["recraft-crisp-upscale", "aura-sr"],
   "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],
   // 2026-07: Kling v3 Pro girişleri O3 Pro haleflerine yerini bıraktı
   // (MODELS'te duruyorlar — eski job kayıtları anahtar çözebilsin diye).
   // Seedance 2.0 fiyat nedeniyle listede değil (110kr) — MODELS'te duruyor.
-  "video": ["wan-i2v", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
+  "video": ["wan-i2v", "wan-3", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext", "flux-kontext-max", "flux-2-pro-edit", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v5-lite-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite", "qwen-image-3"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite", "qwen-image-3", "gpt-image-25-flare"],
   "qr-code": ["qr-code-ai"],
-  "talking-avatar": ["omnihuman", "kling-avatar-v2-std", "kling-avatar-v2-pro"],
+  "talking-avatar": ["omnihuman", "kling-avatar-v2-std", "kling-avatar-v2-pro", "sync-lipsync-v3"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],

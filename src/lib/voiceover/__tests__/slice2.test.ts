@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
   SRT_VOICES,
+  XAI_VOICES,
   DEFAULT_SRT_VOICE,
+  DEFAULT_XAI_VOICE,
   buildMinimaxInput,
+  buildXaiInput,
   clampSpeed,
   fitSpeed,
   isAllowedVoice,
+  isAllowedXaiVoice,
   MAX_SYNC_CHARS,
   MAX_SYNC_CUES,
 } from "../voices";
+import { estimateSrtCredits } from "../srt";
 import { buildSchedule } from "../schedule";
 import { validateSrtVoiceover } from "../request";
 
@@ -59,6 +64,26 @@ describe("voices", () => {
     expect(MAX_SYNC_CHARS).toBe(2000);
   });
 
+  it("xAI economy estimator starts at 1 credit", () => {
+    expect(estimateSrtCredits(500, "xai")).toBe(1);
+    expect(estimateSrtCredits(1000, "xai")).toBe(1);
+    expect(estimateSrtCredits(3000, "xai")).toBe(2);
+    expect(estimateSrtCredits(500)).toBe(4);
+  });
+
+  it("xAI input pins Turkish + allowlisted voice", () => {
+    expect(DEFAULT_XAI_VOICE).toBe("eve");
+    expect(isAllowedXaiVoice("eve")).toBe(true);
+    expect(isAllowedXaiVoice("Wise_Woman")).toBe(false);
+    expect(XAI_VOICES).toHaveLength(3);
+    expect(buildXaiInput("Selam", { voiceId: "leo" })).toMatchObject({
+      text: "Selam",
+      voice: "leo",
+      language: "tr",
+    });
+    expect(() => buildXaiInput("x", { voiceId: "Nope" })).toThrow("Unsupported xAI voice");
+  });
+
   it("fitSpeed only speeds up overflowing cues, capped at 1.3", () => {
     expect(fitSpeed(1, 1500, 3000)).toBe(null); // fits
     expect(fitSpeed(1, 3050, 3000)).toBe(null); // within threshold
@@ -96,6 +121,22 @@ describe("schedule", () => {
 });
 
 describe("request validation", () => {
+  it("accepts engine + xaiVoiceId", () => {
+    const result = validateSrtVoiceover({
+      srt: "1\n00:00:01,000 --> 00:00:02,000\nSelam\n",
+      engine: "xai",
+      xaiVoiceId: "leo",
+      autoFit: false,
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects unknown engine", () => {
+    expect(
+      validateSrtVoiceover({ srt: "x", engine: "other" }).valid
+    ).toBe(false);
+  });
+
   it("accepts a minimal body with defaults", () => {
     const result = validateSrtVoiceover({ srt: "1\n00:00:01,000 --> 00:00:02,000\nSelam\n" });
     expect(result.valid).toBe(true);
