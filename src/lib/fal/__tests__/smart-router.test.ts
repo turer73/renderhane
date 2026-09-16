@@ -194,6 +194,30 @@ describe('routeRequest', () => {
     expect(input.prompt).toBe('bir vazo');
   });
 
+  it('routes lab modelKeys with pinned cost-control params', () => {
+    const h3 = routeRequest({ tool: 'video', modelKey: 'minimax-h3-max', imageUrl: 'http://img/1.jpg', prompt: 'orbit' });
+    expect(h3.input.image_url).toBe('http://img/1.jpg');
+    expect(h3.input.duration).toBe(5);
+    expect(h3.input.resolution).toBe('768P');
+    expect(h3.input.prompt_expansion_mode).toBe('balanced');
+
+    const seed = routeRequest({ tool: 'video', modelKey: 'seedance-25', prompt: 'orbit' });
+    expect(seed.input.duration).toBe('5');
+    expect(seed.input.resolution).toBe('720p');
+
+    const tripo = routeRequest({ tool: '3d-model', modelKey: 'tripo-h31', imageUrl: 'http://img/1.jpg' });
+    expect(tripo.input.image_url).toBe('http://img/1.jpg');
+
+    const eleven = routeRequest({ tool: 'srt-voiceover', modelKey: 'eleven-v3', prompt: 'Selam' });
+    expect(eleven.input.text).toBe('Selam');
+    expect(eleven.input.voice).toBe('Rachel');
+    expect(eleven.input.language_code).toBe('tr');
+
+    const heygen = routeRequest({ tool: 'talking-avatar', modelKey: 'heygen-lipsync', imageUrl: 'http://vid/1.mp4', prompt: 'http://audio/1.mp3' });
+    expect(heygen.input.video_url).toBe('http://vid/1.mp4');
+    expect(heygen.input.audio_url).toBe('http://audio/1.mp3');
+  });
+
   it('routes new premium modelKeys with correct input keys', () => {
     const wan = routeRequest({ tool: 'video', modelKey: 'wan-3', imageUrl: 'http://img/1.jpg', prompt: 'dön' });
     expect(wan.modelKey).toBe('wan-3');

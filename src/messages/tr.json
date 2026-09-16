@@ -670,7 +670,19 @@
     "info": "Bilgi",
     "responseTime": "Yanıt Süresi",
     "category": "Kategori",
-    "endpoint": "Endpoint"
+    "endpoint": "Endpoint",
+    "lab": "Model Lab",
+    "labDesc": "Yayınlanmamış modelleri gerçek çağrıyla dene (yalnızca admin)",
+    "labSpendNote": "Her deneme gerçek fal.ai harcaması yapar. Kredi düşmez, DB'ye yazılmaz, sonuç ekranda kalır.",
+    "labModel": "Model",
+    "labPrompt": "Prompt",
+    "labText": "Metin",
+    "labImage": "Görsel URL",
+    "labAudio": "Ses URL",
+    "labRun": "Dene",
+    "labRunning": "Çalışıyor...",
+    "labSuccess": "Deneme tamamlandı",
+    "labError": "Deneme başarısız"
   },
   "processingModal": {
     "processingTitle": "İşleminiz Hazırlanıyor",
