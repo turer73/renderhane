@@ -6,7 +6,7 @@ import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { composeSmartPrompt } from "@/lib/prompts/compose";
 import type { PromptContext } from "@/lib/prompts/presets";
-import { MAX_AVATAR_SCRIPT_CHARS, MODELS, type ToolType, type ModelTier } from "@/lib/fal/models";
+import { MAX_AVATAR_SCRIPT_CHARS, MODELS, isModelBlockedForUser, type ToolType, type ModelTier } from "@/lib/fal/models";
 import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 
 /** Tools whose final prompt is composed server-side from structured context. */
@@ -159,13 +159,22 @@ export async function submitJob(input: SubmitJobInput) {
   let creditCost = model.creditCost + enhanceCost;
 
   // Admin (ADMIN_EMAILS allowlist) → sınırsız kullanım: krediyi sıfırla, rezervasyonu atla.
+  let adminBypass = false;
   try {
     // Use the caller-provided email when available (web path already has it)
     // to avoid a redundant admin.getUserById round-trip on every submit.
     const email =
       input.userEmail ?? (await supabase.auth.admin.getUserById(userId)).data?.user?.email;
-    if (isAdmin(email)) creditCost = 0;
+    if (isAdmin(email)) {
+      creditCost = 0;
+      adminBypass = true;
+    }
   } catch { /* email çözülemezse normal kredi akışı sürer */ }
+
+  // Admin-lab models are blocked for non-admins in public paths.
+  if (isModelBlockedForUser(model, adminBypass)) {
+    throw new Error("This model is in admin testing and not publicly available");
+  }
 
   if (tool === "bg-remove") {
     const { data: isFree, error: freeCheckError } = await supabase.rpc(

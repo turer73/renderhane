@@ -4,7 +4,7 @@ import { reserveCredits, confirmSpend, refundCredits } from "@/lib/credits/engin
 import { isAdmin } from "@/lib/auth/admin-check";
 import { routeRequest } from "@/lib/fal/smart-router";
 import { uploadToR2 } from "@/lib/r2/upload";
-import { MAX_AVATAR_SCRIPT_CHARS, MODELS, type ToolType, type ModelTier } from "@/lib/fal/models";
+import { MAX_AVATAR_SCRIPT_CHARS, MODELS, isModelBlockedForUser, type ToolType, type ModelTier } from "@/lib/fal/models";
 import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 
 /**
@@ -65,10 +65,19 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
   let creditCost = model.creditCost;
 
   // Admin (ADMIN_EMAILS allowlist) → sınırsız kullanım: krediyi sıfırla, rezervasyonu atla.
+  let adminBypass = false;
   try {
     const { data: au } = await supabase.auth.admin.getUserById(userId);
-    if (isAdmin(au?.user?.email)) creditCost = 0;
+    if (isAdmin(au?.user?.email)) {
+      creditCost = 0;
+      adminBypass = true;
+    }
   } catch { /* email çözülemezse normal kredi akışı sürer */ }
+
+  // Admin-lab models are blocked for non-admins in public paths.
+  if (isModelBlockedForUser(model, adminBypass)) {
+    throw new Error("This model is in admin testing and not publicly available");
+  }
 
   if (tool === "bg-remove") {
     const { data: isFree } = await supabase.rpc("check_free_bg_remove", { p_user_id: userId });
