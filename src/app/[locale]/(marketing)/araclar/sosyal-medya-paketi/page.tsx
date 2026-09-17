@@ -15,6 +15,13 @@ import {
   Ratio,
   type LucideIcon,
 } from "lucide-react";
+import {
+  SOCIAL_KIT_SCENE_COUNT,
+  SOCIAL_KIT_VIDEO_SECONDS,
+  TOOL_CREDITS,
+} from "@/lib/fal/models";
+
+const SOCIAL_KIT_CREDITS = TOOL_CREDITS["social-kit"];
 
 /* ── Data ─────────────────────────────────────────── */
 
@@ -31,37 +38,37 @@ interface Feature {
 const features: Feature[] = [
   {
     icon: LayoutGrid,
-    titleTr: "Tek Tikla 6 Format",
-    titleEn: "6 Formats in One Click",
-    descTr: "Instagram, Facebook, Twitter, LinkedIn, Pinterest, YouTube",
-    descEn: "Instagram, Facebook, Twitter, LinkedIn, Pinterest, YouTube",
+    titleTr: "4 Farkli Urun Sahnesi",
+    titleEn: "4 Product Scenes",
+    descTr: "Studyo, yasam tarzi, flat lay ve mevsimsel sahne",
+    descEn: "Studio, lifestyle, flat lay, and seasonal scenes",
     color: "text-indigo-500",
     bg: "bg-indigo-50 dark:bg-indigo-500/10",
   },
   {
     icon: Ratio,
-    titleTr: "Otomatik Boyutlandirma",
-    titleEn: "Auto Resizing",
-    descTr: "Her platform icin dogru boyut ve oran",
-    descEn: "Correct size and ratio for each platform",
+    titleTr: "Kisa Urun Videosu",
+    titleEn: "Short Product Video",
+    descTr: `${SOCIAL_KIT_VIDEO_SECONDS} saniyelik 720p urun tanitim videosu`,
+    descEn: `${SOCIAL_KIT_VIDEO_SECONDS}-second 720p product showcase video`,
     color: "text-fuchsia-500",
     bg: "bg-fuchsia-50 dark:bg-fuchsia-500/10",
   },
   {
     icon: Sparkles,
-    titleTr: "AI Metin Onerisi",
-    titleEn: "AI Text Suggestions",
-    descTr: "Platform bazli caption ve hashtag onerisi",
-    descEn: "Platform-specific caption and hashtag suggestions",
+    titleTr: "Tek Gorselden Uretim",
+    titleEn: "One-Image Workflow",
+    descTr: "Bir urun fotografiyla tum uretim islerini baslatin",
+    descEn: "Start every generation job from one product photo",
     color: "text-violet-500",
     bg: "bg-violet-50 dark:bg-violet-500/10",
   },
   {
     icon: ImageIcon,
-    titleTr: "Marka Tutarliligi",
-    titleEn: "Brand Consistency",
-    descTr: "Logo, renk ve font otomatik uygulanir",
-    descEn: "Logo, color and font applied automatically",
+    titleTr: "Farkli Yaratici Yaklasimlar",
+    titleEn: "Distinct Creative Directions",
+    descTr: "Ayni urun icin dort ayri sahne yaklasimi",
+    descEn: "Four different scene directions for the same product",
     color: "text-blue-500",
     bg: "bg-blue-50 dark:bg-blue-500/10",
   },
@@ -69,17 +76,17 @@ const features: Feature[] = [
     icon: Zap,
     titleTr: "Hizli Uretim",
     titleEn: "Fast Generation",
-    descTr: "30 saniyede tum paket hazir",
-    descEn: "Full pack ready in 30 seconds",
+    descTr: "Isler paralel baslar; tahmini sure yaklasik 3 dakika",
+    descEn: "Jobs start in parallel; estimated time is about 3 minutes",
     color: "text-amber-500",
     bg: "bg-amber-50 dark:bg-amber-500/10",
   },
   {
     icon: Share2,
-    titleTr: "Toplu Indirme",
-    titleEn: "Bulk Download",
-    descTr: "Tum gorselleri tek ZIP ile indir",
-    descEn: "Download all images in a single ZIP",
+    titleTr: "Proje Ciktilari",
+    titleEn: "Project Outputs",
+    descTr: "Tamamlanan gorsel ve videolari projenizden indirin",
+    descEn: "Download completed images and video from your project",
     color: "text-emerald-500",
     bg: "bg-emerald-50 dark:bg-emerald-500/10",
   },
@@ -87,8 +94,8 @@ const features: Feature[] = [
 
 const steps = [
   { num: "1", titleTr: "Urun Gorselini Yukle", titleEn: "Upload Product Image", descTr: "Urun veya marka gorselinizi yukleyin.", descEn: "Upload your product or brand image." },
-  { num: "2", titleTr: "Platformlari Sec", titleEn: "Select Platforms", descTr: "Instagram, Facebook, Twitter vb. secin.", descEn: "Choose Instagram, Facebook, Twitter etc." },
-  { num: "3", titleTr: "Paketi Indir", titleEn: "Download Pack", descTr: "Tum gorselleri ZIP olarak indirin.", descEn: "Download all images as ZIP." },
+  { num: "2", titleTr: "Paketi Olustur", titleEn: "Create the Kit", descTr: `${SOCIAL_KIT_SCENE_COUNT} sahne ve 1 video isini birlikte baslatin.`, descEn: `Start ${SOCIAL_KIT_SCENE_COUNT} scene jobs and 1 video job together.` },
+  { num: "3", titleTr: "Ciktilari Indir", titleEn: "Download Outputs", descTr: "Tamamlanan gorsel ve videoyu projenizden indirin.", descEn: "Download the completed images and video from your project." },
 ];
 
 const useCases = [
@@ -113,7 +120,7 @@ export default function PublicSocialKitPage() {
       <section className="mb-12 text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 px-4 py-1.5 text-sm font-medium text-indigo-700 dark:from-indigo-500/20 dark:to-violet-500/20 dark:text-indigo-300">
           <Share2 className="size-4" />
-          {tr ? "40 Kredi / Paket" : "40 Credits / Pack"}
+          {tr ? `${SOCIAL_KIT_CREDITS} Kredi / Paket` : `${SOCIAL_KIT_CREDITS} Credits / Pack`}
         </div>
 
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
@@ -125,8 +132,8 @@ export default function PublicSocialKitPage() {
 
         <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
           {tr
-            ? "Tek bir gorsel yukleyin, 6 farkli platformda kullanima hazir icerik paketi alin. Instagram, Facebook, Twitter, LinkedIn, Pinterest ve YouTube."
-            : "Upload a single image and get a content pack ready for 6 different platforms. Instagram, Facebook, Twitter, LinkedIn, Pinterest and YouTube."}
+            ? `Tek bir urun gorselinden ${SOCIAL_KIT_SCENE_COUNT} farkli sahne gorseli ve ${SOCIAL_KIT_VIDEO_SECONDS} saniyelik bir urun videosu olusturun.`
+            : `Create ${SOCIAL_KIT_SCENE_COUNT} distinct scene images and one ${SOCIAL_KIT_VIDEO_SECONDS}-second product video from a single product image.`}
         </p>
       </section>
 
@@ -186,12 +193,12 @@ export default function PublicSocialKitPage() {
       <section className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 text-center sm:p-8">
         <Sparkles className="mx-auto mb-3 size-8 text-indigo-500" />
         <h2 className="text-xl font-bold">
-          {tr ? "Paket Basi 40 Kredi" : "40 Credits per Pack"}
+          {tr ? `Paket Basi ${SOCIAL_KIT_CREDITS} Kredi` : `${SOCIAL_KIT_CREDITS} Credits per Pack`}
         </h2>
         <p className="mt-2 text-muted-foreground">
           {tr
-            ? "Kayit oldugunuzda 50 ucretsiz kredi ile baslayin. Ilk paketinizi hemen olusturun!"
-            : "Start with 50 free credits when you sign up. Create your first pack right away!"}
+            ? `Kayit oldugunuzda 50 ucretsiz kredi ile baslayin. Social Kit paketinin toplam maliyeti ${SOCIAL_KIT_CREDITS} kredidir.`
+            : `Start with 50 free credits when you sign up. A complete Social Kit costs ${SOCIAL_KIT_CREDITS} credits.`}
         </p>
       </section>
 

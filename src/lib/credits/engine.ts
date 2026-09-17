@@ -46,6 +46,61 @@ export async function reserveCredits(
   return data as string;
 }
 
+export interface CreditReservationItem {
+  amount: number;
+  description: string;
+}
+
+/**
+ * Reserve every item in a multi-job bundle under one database row lock.
+ * Either all reservations are created or none are, preventing a concurrent
+ * request from consuming the balance between child-job reservations.
+ */
+export async function reserveCreditBundle(
+  userId: string,
+  items: CreditReservationItem[]
+): Promise<string[]> {
+  if (items.length === 0) {
+    throw new Error("Credit bundle must contain at least one item");
+  }
+
+  for (const item of items) {
+    if (
+      item.amount <= 0 ||
+      !Number.isFinite(item.amount) ||
+      !Number.isInteger(item.amount)
+    ) {
+      throw new Error("Credit amount must be a positive integer");
+    }
+    if (!item.description.trim()) {
+      throw new Error("Credit reservation description is required");
+    }
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("reserve_credit_bundle", {
+    p_user_id: userId,
+    p_amounts: items.map((item) => item.amount),
+    p_descriptions: items.map((item) => item.description),
+  });
+
+  if (error) {
+    if (error.message.includes("user_not_found")) {
+      throw new CreditError("User not found", "NOT_FOUND");
+    }
+    if (error.message.includes("insufficient_credits")) {
+      throw new CreditError("Insufficient credits", "INSUFFICIENT");
+    }
+    throw new Error(`Failed to reserve credit bundle: ${error.message}`);
+  }
+
+  if (!Array.isArray(data) || data.length !== items.length) {
+    throw new Error("Failed to reserve credit bundle: invalid transaction list");
+  }
+
+  return data as string[];
+}
+
 /**
  * Confirm the spend after job succeeds.
  * Uses atomic RPC to mark transaction as completed and link to job.
