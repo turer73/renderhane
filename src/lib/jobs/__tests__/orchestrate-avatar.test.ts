@@ -8,6 +8,38 @@ vi.mock("@/lib/jobs/submit", () => ({
   submitJob: mocks.submitJob,
 }));
 
+vi.mock("@/lib/jobs/social-kit-idempotency", () => ({
+  reserveSocialKitRequestBundle: vi.fn(),
+}));
+
+vi.mock("@/lib/jobs/api-helpers", () => ({
+  autoCreateProject: vi.fn(),
+  validateImageUrl: vi.fn(() => null),
+}));
+
+vi.mock("@/lib/credits/engine", () => ({
+  reserveCredits: vi.fn(),
+  refundCredits: vi.fn(),
+  confirmSpend: vi.fn(),
+  CreditError: class CreditError extends Error {},
+}));
+
+vi.mock("@/lib/ai", () => ({
+  getAIProvider: () => ({ subscribe: vi.fn(), submit: vi.fn() }),
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/admin-check", () => ({
+  isAdmin: () => false,
+}));
+
+vi.mock("@/lib/prompts/compose", () => ({
+  composeSmartPrompt: vi.fn(),
+}));
+
 vi.mock("@/lib/credits/engine", () => ({
   reserveCredits: vi.fn(),
   refundCredits: vi.fn(),

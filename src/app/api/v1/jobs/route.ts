@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { authenticateApiRequest } from "@/lib/api-keys/middleware";
 import { submitJob } from "@/lib/jobs/submit";
 import { submitJobSync } from "@/lib/jobs/submit-sync";
@@ -10,17 +11,48 @@ import {
   orchestrateTalkingAvatar,
   orchestrateSocialKit,
 } from "@/lib/jobs/orchestrate";
+import {
+  claimSocialKitRequest,
+  completeSocialKitRequest,
+  hashSocialKitRequest,
+  isValidIdempotencyKey,
+  SocialKitSchemaUnavailableError,
+} from "@/lib/jobs/social-kit-idempotency";
 
 const VALID_TOOLS = Object.keys(TOOL_CREDITS);
 
 /** Orchestration tools that spawn multiple jobs or have multi-step pipelines */
 const ORCHESTRATION_TOOLS: ToolType[] = ["aplus", "social-kit", "talking-avatar"];
 
+function hasPendingProviderReconciliation(result: {
+  submissionState?: string;
+  submissionStates?: Record<string, string>;
+  reconciliationPending?: boolean;
+}) {
+  return (
+    result.reconciliationPending === true ||
+    (result.submissionState !== undefined &&
+      result.submissionState !== "accepted") ||
+    Object.values(result.submissionStates ?? {}).some(
+      (state) => state !== "accepted"
+    )
+  );
+}
+
+function submissionResponse<T extends object>(result: T, successStatus = 201) {
+  const pending = hasPendingProviderReconciliation(result);
+  return NextResponse.json(result, {
+    status: pending ? 202 : successStatus,
+    ...(pending ? { headers: { "Retry-After": "30" } } : {}),
+  });
+}
+
 /**
  * POST /api/v1/jobs — Submit a new job via public API.
  *
  * Headers:
  *   Authorization: Bearer rh_xxxxxxxxxxxx
+ *   Idempotency-Key: client-generated-key      // required for social-kit
  *
  * Body (JSON):
  *   {
@@ -64,6 +96,7 @@ export async function POST(request: NextRequest) {
         script,
         audioUrl,
         locale,
+        idempotencyKey: request.headers.get("idempotency-key"),
         voiceId: typeof voiceId === "string" ? voiceId : undefined,
         modelKey: typeof modelKey === "string" ? modelKey : undefined,
       });
@@ -81,8 +114,15 @@ export async function POST(request: NextRequest) {
         prompt,
         extraParams: extraParams as Record<string, unknown> | undefined,
       });
-      const status = result.status === "completed" ? 201 : 500;
-      return NextResponse.json(result, { status });
+      if (result.status === "processing") {
+        return NextResponse.json(result, {
+          status: 202,
+          headers: { "Retry-After": "30" },
+        });
+      }
+      return NextResponse.json(result, {
+        status: result.status === "completed" ? 201 : 500,
+      });
     }
 
     const result = await submitJob({
@@ -96,7 +136,7 @@ export async function POST(request: NextRequest) {
       extraParams: extraParams as Record<string, unknown> | undefined,
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return submissionResponse(result);
   } catch (error) {
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
@@ -121,11 +161,12 @@ async function handleOrchestration(
     script?: string;
     audioUrl?: string;
     locale?: string;
+    idempotencyKey?: string | null;
     voiceId?: string;
     modelKey?: string;
   }
 ): Promise<NextResponse> {
-  const { imageUrl, script, audioUrl, locale, voiceId, modelKey } = opts;
+  const { imageUrl, script, audioUrl, locale, idempotencyKey, voiceId, modelKey } = opts;
 
   // All orchestration tools require an image
   if (!imageUrl || typeof imageUrl !== "string") {
@@ -143,7 +184,7 @@ async function handleOrchestration(
           imageUrl,
           locale,
         });
-        return NextResponse.json(result, { status: 201 });
+        return submissionResponse(result);
       }
 
       case "talking-avatar": {
@@ -161,16 +202,149 @@ async function handleOrchestration(
           voiceId,
           modelKey,
         });
-        return NextResponse.json(result, { status: 201 });
+        return submissionResponse(result);
       }
 
       case "social-kit": {
-        const result = await orchestrateSocialKit({
-          userId,
-          imageUrl,
-          locale,
+        if (process.env.SOCIAL_KIT_SUBMISSIONS_DISABLED === "true") {
+          return NextResponse.json(
+            { error: "social_kit_temporarily_unavailable" },
+            { status: 503, headers: { "Retry-After": "300" } }
+          );
+        }
+
+        const socialKitKey = idempotencyKey ?? null;
+        if (!isValidIdempotencyKey(socialKitKey)) {
+          return NextResponse.json(
+            { error: "invalid_idempotency_key" },
+            { status: 400 }
+          );
+        }
+
+        const normalizedLocale = locale === "en" ? "en" : "tr";
+        const sourceFingerprint = crypto
+          .createHash("sha256")
+          .update(imageUrl)
+          .digest("hex");
+        const requestHash = hashSocialKitRequest({
+          sourceFingerprint,
+          locale: normalizedLocale,
         });
-        return NextResponse.json(result, { status: 201 });
+
+        let claim;
+        try {
+          claim = await claimSocialKitRequest({
+            userId,
+            idempotencyKey: socialKitKey,
+            requestHash,
+          });
+        } catch (error) {
+          const retryAfter =
+            error instanceof SocialKitSchemaUnavailableError ? "300" : "30";
+          console.error("[api/v1/jobs] social-kit claim failed:", error);
+          return NextResponse.json(
+            { error: "social_kit_temporarily_unavailable" },
+            {
+              status: 503,
+              headers: { "Retry-After": retryAfter },
+            }
+          );
+        }
+
+        if (claim.disposition === "conflict") {
+          return NextResponse.json(
+            { error: "idempotency_conflict" },
+            { status: 409 }
+          );
+        }
+        if (claim.disposition === "in_progress") {
+          return NextResponse.json(
+            {
+              error: "request_in_progress",
+              requestId: claim.requestId,
+              idempotency: { outcome: "processing", keyAction: "retain" },
+            },
+            { status: 202, headers: { "Retry-After": "2" } }
+          );
+        }
+        if (claim.disposition === "replay") {
+          return NextResponse.json(claim.responseBody, {
+            status: claim.responseStatus,
+            headers: {
+              ...claim.responseHeaders,
+              "Idempotency-Replayed": "true",
+            },
+          });
+        }
+
+        const completeAndRespond = async (
+          responseStatus: number,
+          responseBody: Record<string, unknown>
+        ) => {
+          const durableBody = {
+            ...responseBody,
+            requestId: claim.requestId,
+            idempotency: { outcome: "final", keyAction: "rotate" },
+          };
+          try {
+            await completeSocialKitRequest({
+              requestId: claim.requestId,
+              userId,
+              responseStatus,
+              responseBody: durableBody,
+            });
+          } catch (error) {
+            console.error(
+              `[api/v1/jobs] social-kit response persistence failed for ${claim.requestId}:`,
+              error
+            );
+            return NextResponse.json(
+              {
+                error: "social_kit_response_persistence_failed",
+                requestId: claim.requestId,
+                idempotency: { outcome: "indeterminate", keyAction: "retain" },
+              },
+              { status: 503, headers: { "Retry-After": "30" } }
+            );
+          }
+          return NextResponse.json(durableBody, { status: responseStatus });
+        };
+
+        try {
+          const result = await orchestrateSocialKit({
+            userId,
+            requestId: claim.requestId,
+            imageUrl,
+            locale: normalizedLocale,
+          });
+          if (hasPendingProviderReconciliation(result)) {
+            return NextResponse.json(
+              {
+                ...result,
+                requestId: claim.requestId,
+                idempotency: {
+                  outcome: "reconciliation_pending",
+                  keyAction: "retain",
+                },
+              },
+              { status: 202, headers: { "Retry-After": "30" } }
+            );
+          }
+          return completeAndRespond(201, { ...result });
+        } catch (error) {
+          if (error instanceof CreditError && error.code === "INSUFFICIENT") {
+            return completeAndRespond(402, { error: "insufficient_credits" });
+          }
+          console.error("[api/v1/jobs] social-kit orchestration indeterminate:", error);
+          return NextResponse.json(
+            {
+              error: "social_kit_request_indeterminate",
+              requestId: claim.requestId,
+              idempotency: { outcome: "indeterminate", keyAction: "retain" },
+            },
+            { status: 503, headers: { "Retry-After": "30" } }
+          );
+        }
       }
 
       default:
