@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { MODELS, TOOL_MODELS, MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
+import { MODELS, TOOL_MODELS, MAX_AVATAR_SCRIPT_CHARS, isModelBlockedForUser } from "@/lib/fal/models";
 import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
 import { isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
+import { isAdmin } from "@/lib/auth/admin-check";
 
 // TTS (~5s) + video submission — needs extended timeout
 export const maxDuration = 60;
@@ -47,6 +48,12 @@ export async function POST(request: NextRequest) {
     typeof modelKey === "string" && (TOOL_MODELS["talking-avatar"] as string[]).includes(modelKey)
       ? modelKey
       : DEFAULT_AVATAR_MODEL;
+  if (isModelBlockedForUser(MODELS[avatarModel], isAdmin(user.email))) {
+    return NextResponse.json(
+      { error: "This model is in admin testing and not publicly available" },
+      { status: 403 }
+    );
+  }
   const avatarCredits = MODELS[avatarModel].creditCost;
 
   // Validate avatar image

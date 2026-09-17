@@ -670,7 +670,19 @@
     "info": "Info",
     "responseTime": "Response Time",
     "category": "Category",
-    "endpoint": "Endpoint"
+    "endpoint": "Endpoint",
+    "lab": "Model Lab",
+    "labDesc": "Probe unreleased models with real calls (admin only)",
+    "labSpendNote": "Each probe spends real fal.ai budget. No credits deducted, nothing written to DB, result stays on screen.",
+    "labModel": "Model",
+    "labPrompt": "Prompt",
+    "labText": "Text",
+    "labImage": "Image URL",
+    "labAudio": "Audio URL",
+    "labRun": "Run",
+    "labRunning": "Running...",
+    "labSuccess": "Probe completed",
+    "labError": "Probe failed"
   },
   "processingModal": {
     "processingTitle": "Processing Your Request",

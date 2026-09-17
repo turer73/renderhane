@@ -15,6 +15,12 @@ export interface ModelConfig {
   multiImage?: boolean;
   /** When set, multi-image input maps array positions to these named params instead of a single array key */
   namedImageParams?: string[];
+  /**
+   * Admin-lab only: hidden from workspace pickers, blocked in public submit
+   * paths for non-admins. Used to trial new fal endpoints before pricing
+   * them into the product. Scanner still covers them via TOOL_MODELS.
+   */
+  adminOnly?: boolean;
   defaultParams: Record<string, unknown>;
 }
 
@@ -197,6 +203,22 @@ export const MODELS: Record<string, ModelConfig> = {
       should_texture: true,
       topology: "triangle",
       target_polycount: 30000,
+    },
+  },
+
+  /* ── 3D Model — Tripo H3.1 LAB (2026-09 doğrulandı) ──
+     Detay amirali (500K poly). Çıktı model_mesh (mevcut hat destekler).
+     Fiyat sayfası opak → 45kr geçici, teyit edilecek. */
+  "tripo-h31": {
+    id: "tripo3d/h3.1/image-to-3d",
+    displayName: { tr: "Tripo H3.1 (LAB)", en: "Tripo H3.1 (LAB)" },
+    tier: "premium",
+    creditCost: 45,
+    estimatedTime: "~3min",
+    imageParamKey: "image_url",
+    adminOnly: true,
+    defaultParams: {
+      texture: "standard",
     },
   },
 
@@ -398,6 +420,60 @@ export const MODELS: Record<string, ModelConfig> = {
       aspect_ratio: "adaptive",
     },
   },
+  /* ── Video — MiniMax H3 Max LAB (2026-09 doğrulandı) ──
+     Hız × maliyet lideri (5sn ~2.5sn üretim). 768P pinli:
+     $0.08/sn × 5sn = $0.40 → 30kr. prompt_expansion_mode ZORUNLU (şema). */
+  "minimax-h3-max": {
+    id: "minimax/h3-max/image-to-video",
+    displayName: { tr: "MiniMax H3 Max (LAB)", en: "MiniMax H3 Max (LAB)" },
+    tier: "premium",
+    creditCost: 30,
+    estimatedTime: "~1min",
+    imageParamKey: "image_url",
+    promptParamKey: "prompt",
+    adminOnly: true,
+    defaultParams: {
+      duration: 5,
+      resolution: "768P",
+      prompt_expansion_mode: "balanced",
+    },
+  },
+
+  /* ── Video — Seedance 2.5 LAB (2026-09 doğrulandı) ──
+     30sn + referans yığını, ama pahalı: 5sn 720p ≈ $2.31 → 150kr.
+     duration STRING enum ("5"), auto bırakılırsa model seçer (maliyet riski). */
+  "seedance-25": {
+    id: "bytedance/seedance-2.5/text-to-video",
+    displayName: { tr: "Seedance 2.5 (LAB)", en: "Seedance 2.5 (LAB)" },
+    tier: "premium",
+    creditCost: 150,
+    estimatedTime: "~3min",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    adminOnly: true,
+    defaultParams: {
+      duration: "5",
+      resolution: "720p",
+    },
+  },
+
+  /* ── Video — Happy Horse v1.1 LAB (2026-09 doğrulandı) ──
+     Metinden konuşan video, TR lip-sync iddialı. 5sn 720p $0.70 → 45kr.
+     resolution default 1080p idi — 720p pinli. */
+  "happy-horse-v11": {
+    id: "alibaba/happy-horse/v1.1/text-to-video",
+    displayName: { tr: "Happy Horse (LAB)", en: "Happy Horse (LAB)" },
+    tier: "standard",
+    creditCost: 45,
+    estimatedTime: "~2min",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    adminOnly: true,
+    defaultParams: {
+      duration: 5,
+      resolution: "720p",
+    },
+  },
   /* Kling v3 girişleri TOOL_MODELS'te değil (O3 halefleri listede) ama API v1
      modelKey ile hâlâ seçilebilir — kredi/ses ayarı gerçek maliyete göre:
      fal $0.112/sn sessiz (sesli $0.168/sn → 5sn $0.84, 25kr zararına satıyordu). */
@@ -588,6 +664,46 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── TTS LAB — MiniMax Speech-2.8 Turbo (2026-09 doğrulandı) ──
+     2.8 HD ile aynı şema (prompt). $0.06/1K → 2kr. SRT motor adayı. */
+  "minimax-28-turbo": {
+    id: "fal-ai/minimax/speech-2.8-turbo",
+    displayName: { tr: "MiniMax 2.8 Turbo (LAB)", en: "MiniMax 2.8 Turbo (LAB)" },
+    tier: "fast",
+    creditCost: 2,
+    estimatedTime: "~15s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    adminOnly: true,
+    defaultParams: {
+      output_format: "url",
+      language_boost: "Turkish",
+      audio_setting: {
+        format: "mp3",
+        sample_rate: 44100,
+        channel: 1,
+      },
+    },
+  },
+
+  /* ── TTS LAB — ElevenLabs v3 (2026-09 doğrulandı) ──
+     Doğallık lideri adayı ($0.10/1K → 4kr). voice serbest metin
+     (Rachel varsayılan), language_code ISO ("tr" pinli, TR teyitsiz).
+     Çıktı {audio} (duration YOK). */
+  "eleven-v3": {
+    id: "fal-ai/elevenlabs/tts/eleven-v3",
+    displayName: { tr: "ElevenLabs v3 (LAB)", en: "ElevenLabs v3 (LAB)" },
+    tier: "standard",
+    creditCost: 4,
+    estimatedTime: "~30s",
+    imageParamKey: "_unused",
+    promptParamKey: "text",
+    adminOnly: true,
+    defaultParams: {
+      voice: "Rachel",
+      language_code: "tr",
+    },
+  },
   /* ── TTS ekonomi motoru — xAI TTS (2026-09 doğrulandı) ──
      fal $0.015/1K (~₺0.0075/500krktr) → 1kr taban. language:"tr" pinli.
      Çıktı {audio} (duration_ms YOK → hız sığdırma çalışmaz).
@@ -725,6 +841,41 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── Text-to-Image — GPT-Image 2.5 Sunburst LAB (2026-09 doğrulandı) ──
+     Flare'in hassasiyet varyantı (yavaş, ince detay). Token faturalı →
+     quality/image_size pinli. ~$0.12 → 12kr. */
+  "gpt-image-25-sunburst": {
+    id: "openai/gpt-image-2.5/sunburst/text-to-image",
+    displayName: { tr: "GPT-Image 2.5 Sunburst (LAB)", en: "GPT-Image 2.5 Sunburst (LAB)" },
+    tier: "premium",
+    creditCost: 12,
+    estimatedTime: "~30s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    adminOnly: true,
+    defaultParams: {
+      num_images: 1,
+      quality: "medium",
+      image_size: "square_hd",
+    },
+  },
+
+  /* ── Text-to-Image — Seedream 5 Pro LAB (2026-09 doğrulandı) ──
+     Lite'ın amiral gemisi ($0.0675+) → 8kr. Katman ayrıştırmalı poster. */
+  "seedream-v5-pro": {
+    id: "bytedance/seedream/v5/pro/text-to-image",
+    displayName: { tr: "Seedream 5 Pro (LAB)", en: "Seedream 5 Pro (LAB)" },
+    tier: "premium",
+    creditCost: 8,
+    estimatedTime: "~15s",
+    imageParamKey: "_unused",
+    promptParamKey: "prompt",
+    adminOnly: true,
+    defaultParams: {
+      num_images: 1,
+    },
+  },
+
   /* ── Görsel Düzenleme — Nano Banana 2 Edit ── */
   "nano-banana-2-edit": {
     id: "fal-ai/nano-banana-2/edit",
@@ -848,6 +999,21 @@ export const MODELS: Record<string, ModelConfig> = {
     estimatedTime: "~2min",
     imageParamKey: "image_url",
     promptParamKey: "_unused",
+    defaultParams: {},
+  },
+
+  /* ── Konuşan Avatar — HeyGen Lip-Sync LAB (2026-09 doğrulandı) ──
+     MEVCUT video + ses dublajı (görselden üretmez!). Girdi video_url +
+     audio_url → imageParamKey "video_url". $0.10/sn → ~10sn 65kr.
+     Çıktı {video}. */
+  "heygen-lipsync": {
+    id: "fal-ai/heygen/v3/lipsync/precision",
+    displayName: { tr: "HeyGen Lip-Sync (LAB)", en: "HeyGen Lip-Sync (LAB)" },
+    tier: "standard",
+    creditCost: 65,
+    estimatedTime: "~2min",
+    imageParamKey: "video_url",
+    adminOnly: true,
     defaultParams: {},
   },
 
@@ -980,26 +1146,38 @@ export const MODELS: Record<string, ModelConfig> = {
   },
 };
 
+/**
+ * Admin-lab gate: adminOnly models (unpriced trials) are blocked for
+ * non-admin callers in every public submit path. The admin Model Lab
+ * uses its own probe endpoint instead.
+ */
+export function isModelBlockedForUser(
+  model: ModelConfig | undefined,
+  isAdminUser: boolean
+): boolean {
+  return !!model?.adminOnly && !isAdminUser;
+}
+
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-v7", "meshy-6-text", "tripo-v25-mv", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-v7", "meshy-6-text", "tripo-v25-mv", "tripo-h31", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["recraft-crisp-upscale", "aura-sr"],
   "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],
   // 2026-07: Kling v3 Pro girişleri O3 Pro haleflerine yerini bıraktı
   // (MODELS'te duruyorlar — eski job kayıtları anahtar çözebilsin diye).
   // Seedance 2.0 fiyat nedeniyle listede değil (110kr) — MODELS'te duruyor.
-  "video": ["wan-i2v", "wan-3", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
+  "video": ["wan-i2v", "wan-3", "minimax-h3-max", "seedance-25", "happy-horse-v11", "kling-o3-t2v", "kling-o3-i2v", "veo31-i2v"],
   "aplus": ["bria-product-shot-hd"],
   "image-edit": ["flux-kontext", "flux-kontext-max", "flux-2-pro-edit", "nano-banana-pro-edit", "nano-banana-2-edit", "seedream-v5-lite-edit"],
   "inpainting": ["flux-fill"],
   "object-removal": ["object-removal"],
-  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite", "qwen-image-3", "gpt-image-25-flare"],
+  "text-to-image": ["flux-pro", "flux-dev", "flux-schnell", "nano-banana-pro", "nano-banana-2", "ideogram-v4", "seedream-v5-lite", "seedream-v5-pro", "qwen-image-3", "gpt-image-25-flare", "gpt-image-25-sunburst"],
   "qr-code": ["qr-code-ai"],
-  "talking-avatar": ["omnihuman", "kling-avatar-v2-std", "kling-avatar-v2-pro", "sync-lipsync-v3"],
+  "talking-avatar": ["omnihuman", "kling-avatar-v2-std", "kling-avatar-v2-pro", "sync-lipsync-v3", "heygen-lipsync"],
   "logo": ["recraft-v4", "recraft-v4-svg"],
   "social-kit": [], // Orchestration tool — uses scene + video internally
   "virtual-tryon": ["fashn-tryon"],
-  "srt-voiceover": ["minimax-speech-28-hd", "minimax-speech-02-hd"],
+  "srt-voiceover": ["minimax-speech-28-hd", "minimax-speech-02-hd", "minimax-28-turbo", "eleven-v3"],
 };
 
 export const TOOL_KEYS: Record<ToolType, string> = {

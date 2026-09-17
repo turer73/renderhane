@@ -196,8 +196,17 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "fal-ai/sync-lipsync/v3/image-to-video": "Sync v3",
   "alibaba/qwen-image-3/text-to-image": "Qwen Image 3",
   "openai/gpt-image-2.5/flare/text-to-image": "GPT-Image 2.5",
+  "openai/gpt-image-2.5/sunburst/text-to-image": "GPT-Image 2.5 Sunburst",
+  "bytedance/seedream/v5/pro/text-to-image": "Seedream 5 Pro",
   "alibaba/wan-3.0/image-to-video": "Wan 3.0",
+  "minimax/h3-max/image-to-video": "MiniMax H3 Max",
+  "bytedance/seedance-2.5/text-to-video": "Seedance 2.5",
+  "alibaba/happy-horse/v1.1/text-to-video": "Happy Horse",
   "meshy/v7/image-to-3d": "Meshy 7",
+  "tripo3d/h3.1/image-to-3d": "Tripo H3.1",
+  "fal-ai/minimax/speech-2.8-turbo": "MiniMax 2.8 Turbo",
+  "fal-ai/elevenlabs/tts/eleven-v3": "ElevenLabs v3",
+  "fal-ai/heygen/v3/lipsync/precision": "HeyGen Lip-Sync",
 };
 
 function getModelDisplayName(modelId: string | undefined, tool: string): string {

@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { FalScannerPanel } from "./fal-scanner-panel";
 import { HealthCheckPanel } from "./health-check-panel";
+import { ModelLabPanel } from "./model-lab-panel";
 
 interface UserRow {
   id: string;
@@ -306,6 +307,9 @@ export function AdminDashboard() {
 
       {/* fal.ai Scanner */}
       <FalScannerPanel />
+
+      {/* Model Lab (admin-only trials) */}
+      <ModelLabPanel />
 
       {/* Edit Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>

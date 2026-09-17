@@ -464,4 +464,17 @@ describe("submitJob credit ordering", () => {
     expect(mocks.reserveCredits).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
   });
+
+  it("blocks adminOnly lab models for non-admins before reserving", async () => {
+    await expect(
+      submitJob({
+        userId: "user-1",
+        tool: "text-to-image",
+        modelKey: "gpt-image-25-sunburst",
+        prompt: "bir vazo",
+      })
+    ).rejects.toThrow("admin testing");
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
 });

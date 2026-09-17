@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   MODELS, TOOL_MODELS, TOOL_CREDITS, TOOLS_WITH_PROMPT, TOOLS_MULTI_IMAGE,
-  TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES, type ToolType,
+  TOOLS_TEXT_ONLY, MAX_MULTI_IMAGES, isModelBlockedForUser, type ToolType,
 } from '../models';
 
 /** All 16 tools in the platform */
@@ -86,6 +86,30 @@ describe('MODELS', () => {
   it('f5-tts stays registered (legacy job records) at 0 credits', () => {
     expect(MODELS['f5-tts'].creditCost).toBe(0);
     expect(MODELS['f5-tts'].id).toBe('fal-ai/f5-tts');
+  });
+
+  it('lab models are adminOnly and appended (defaults unchanged)', () => {
+    const lab = [
+      'gpt-image-25-sunburst', 'seedream-v5-pro', 'minimax-h3-max',
+      'seedance-25', 'happy-horse-v11', 'tripo-h31', 'eleven-v3',
+      'heygen-lipsync', 'minimax-28-turbo',
+    ];
+    for (const key of lab) {
+      expect(MODELS[key]?.adminOnly, `${key} adminOnly`).toBe(true);
+      expect(MODELS[key].creditCost, `${key} priced`).toBeGreaterThan(0);
+    }
+    expect(TOOL_MODELS['text-to-image'][0]).toBe('flux-pro');
+    expect(TOOL_MODELS['video'][0]).toBe('wan-i2v');
+    expect(TOOL_MODELS['3d-model'][0]).toBe('triposr');
+    expect(TOOL_MODELS['talking-avatar'][0]).toBe('omnihuman');
+    expect(TOOL_MODELS['srt-voiceover'][0]).toBe('minimax-speech-28-hd');
+  });
+
+  it('isModelBlockedForUser gates lab models for non-admins', () => {
+    expect(isModelBlockedForUser(MODELS['seedance-25'], false)).toBe(true);
+    expect(isModelBlockedForUser(MODELS['seedance-25'], true)).toBe(false);
+    expect(isModelBlockedForUser(MODELS['flux-pro'], false)).toBe(false);
+    expect(isModelBlockedForUser(undefined, false)).toBe(false);
   });
 
   it('omnihuman costs 100 credits (fal $0.16/sn, ~10sn script sınırıyla)', () => {
