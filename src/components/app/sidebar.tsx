@@ -155,9 +155,9 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         title={locale === "tr" ? "Siteye dön" : "Back to site"}
       >
         <Image
-          src="/logo/icon-app.svg"
+          src="/logo/rhl-mark.svg"
           width={32}
-          height={32}
+          height={29}
           alt="Renderhane"
           unoptimized
           className="size-8 rounded-lg"
