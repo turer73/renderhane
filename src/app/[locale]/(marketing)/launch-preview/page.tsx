@@ -6,8 +6,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
-  // Not an access-control boundary. Disabled by default outside a local review.
-  if (process.env.RENDERHANE_LAUNCH_PREVIEW !== '1') notFound();
   const { locale } = await params;
   if (locale !== 'tr' && locale !== 'en') notFound();
   return <LaunchPreview locale={locale}/>;
