@@ -1,7 +1,13 @@
 import { FalProvider } from "./fal-provider";
 import type { AIProvider } from "./types";
 
-export type { AIProvider, QueueSubmitResult, QueueStatusInfo, SubscribeResult } from "./types";
+export type {
+  AIProvider,
+  QueueSubmitResult,
+  QueueStatusInfo,
+  SubscribeOptions,
+  SubscribeResult,
+} from "./types";
 
 let _provider: AIProvider | null = null;
 
