@@ -32,7 +32,12 @@ export interface MountOptions {
   /** Disable the preview banner only after integrating the actual production services. */
   preview?: boolean;
 }
-interface QRModel { addData(v: string): void; make(): void; getModuleCount(): number; isDark(r: number, c: number): boolean }
+interface QRModel { addData(v: string): void; addUtf8Eci(): void; make(): void; getModuleCount(): number; isDark(r: number, c: number): boolean }
+interface QrRsBlock { totalCount: number; dataCount: number }
+interface QrTools {
+  rsBlocks(v: number, l: number): QrRsBlock[];
+  functionGrid(v: number, l: number, m: number): (boolean | null)[][];
+}
 interface NFCRecord { recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array }
 interface NFCEvent { message: { records: Array<{ recordType: string; data: DataView; encoding?: string }> } }
 interface NFCReaderInstance {
@@ -45,6 +50,7 @@ interface NFCReaderInstance {
 // the host project's existing NFC/QR typings when the preview is installed.
 type ToolWindow = Window & {
   LocalQR: new (version: number, level: number) => QRModel;
+  LocalQRTools: QrTools;
   NDEFReader?: new () => NFCReaderInstance;
 };
 const MAX_FILE = 5 * 1024 * 1024;
@@ -151,17 +157,282 @@ export function buildArtisticBrief(fields: Fields): string {
   ].join('\n');
 }
 
-export function generateQrSvg(payload: string, color = '#0b0f2d', pixels = 1024): string {
-  if (!/^#[0-9a-f]{6}$/i.test(color)) throw Error('Geçersiz renk.');
-  const bytes = new TextEncoder().encode(payload);
-  if (bytes.length > 1200) throw Error('Bu arayüz en fazla 1200 UTF-8 bayt destekliyor. Metni kısaltın.');
-  const qr = new (window as unknown as ToolWindow).LocalQR(-1, 0); qr.addData(Array.from(bytes, x => String.fromCharCode(x)).join('')); qr.make();
-  const n = qr.getModuleCount(), margin = 4;
-  let path = '';
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.isDark(y, x)) path += `M${x + margin},${y + margin}h1v1h-1z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Oluşturulan QR kod" width="${pixels}" height="${pixels}" viewBox="0 0 ${n + 8} ${n + 8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${path}" fill="${color}"/></svg>`;
+export type QrStyle = 'square' | 'rounded' | 'dots' | 'diamond' | 'star';
+
+export interface QrArtifact {
+  svg: string;
+  size: number;
+  modules: number;
+  version: number;
+  style: QrStyle;
+  matrix: boolean[][];
+  functional: boolean[][];
+  payload: string;
 }
-function darkEnough(color: string): boolean { const rgb = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); const lum = .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]; return 1.05 / (lum + .05) >= 4.5; }
+
+export interface QrVerifyReport {
+  revision: string;
+  svgPixels: number;
+  reducedPixels: number;
+  passed: number;
+  total: number;
+  tests: string[];
+  scope: string;
+  timeMs: number;
+}
+
+export interface QrValidated {
+  artifact: QrArtifact;
+  png: Blob;
+  report: QrVerifyReport;
+}
+
+export interface QrDecodeResult {
+  text: string;
+  bytes: Uint8Array;
+  version: number;
+  mask: number;
+  correctionLevel: number;
+  eci: number | null;
+}
+
+/**
+ * Preset QR renderer + strict ALIGNED raster verifier.
+ * Not a general camera detector, ISO certification, or physical scan guarantee.
+ * The verifier reads format bits, unmasks pixels, deinterleaves codewords,
+ * verifies Reed–Solomon parity WITHOUT correction and decodes UTF-8 bytes.
+ * Only the final decoded bytes are compared to the requested payload.
+ */
+export const QR_PRESETS: { id: QrStyle; label: string; hint: string }[] = [
+  { id: 'square', label: 'Klasik', hint: 'Tam kare' },
+  { id: 'rounded', label: 'Yumuşak', hint: 'Yuvarlak köşe' },
+  { id: 'dots', label: 'Nokta', hint: 'Dolu daire' },
+  { id: 'diamond', label: 'Elmas', hint: 'Dolu baklava' },
+  { id: 'star', label: 'Yıldız', hint: 'Kalın merkez' },
+];
+const QR_CHECK_REVISION = 'aligned-utf8-eci-no-correction-2';
+export function isQrStyle(v: unknown): v is QrStyle { return QR_PRESETS.some(p => p.id === v); }
+function qrWin(): ToolWindow { return window as unknown as ToolWindow; }
+export function qrContrast(color: string): number {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) throw Error('Geçersiz QR rengi.');
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
+  return 1.05 / (.2126 * r + .7152 * g + .0722 * b + .05);
+}
+/** UI policy (not an ISO contrast threshold): dark ink on opaque white. */
+export function validateQrOptions(payload: string, color: string, pixels: number, style: string): void {
+  if (!isQrStyle(style)) throw Error('Bilinmeyen QR şekli.');
+  if (!payload || new TextEncoder().encode(payload).length > 1200) throw Error('İçerik boş olamaz; en fazla 1200 UTF-8 bayt kullanın.');
+  if (!Number.isInteger(pixels) || pixels < 256 || pixels > 2048) throw Error('Çıktı boyutu 256–2048 piksel olmalı.');
+  if (qrContrast(color) < 7) throw Error('Daha koyu bir renk seçin. Bu sürümün renk kuralı beyaz zeminde en az 7:1 kontrasttır.');
+}
+function fmt(v: number): string { return Number(v.toFixed(4)).toString(); }
+export function presetPath(style: QrStyle, x = 0, y = 0): string {
+  const X = (v: number): string => fmt(x + v), Y = (v: number): string => fmt(y + v);
+  if (style === 'square') return `M${X(0)} ${Y(0)}h1v1h-1z`;
+  if (style === 'rounded') return `M${X(.18)} ${Y(0)}h.64q.18 0 .18.18v.64q0 .18-.18.18h-.64q-.18 0-.18-.18v-.64q0-.18 .18-.18z`;
+  if (style === 'dots') return `M${X(.99)} ${Y(.5)}a.49 .49 0 1 0-.98 0a.49 .49 0 1 0 .98 0z`;
+  if (style === 'diamond') return `M${X(.5)} ${Y(0)}L${X(1)} ${Y(.5)}L${X(.5)} ${Y(1)}L${X(0)} ${Y(.5)}Z`;
+  let out = '';
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .365 : .5;
+    out += `${i ? 'L' : 'M'}${X(.5 + Math.cos(a) * r)} ${Y(.5 + Math.sin(a) * r)}`;
+  }
+  return out + 'Z';
+}
+function presetIcon(style: QrStyle): string { return `<svg viewBox="-.08 -.08 1.16 1.16" aria-hidden="true"><path d="${presetPath(style)}" fill="currentColor"/></svg>`; }
+export function buildQrArtifact(payload: string, color = '#0b0f2d', pixels = 1024, style: QrStyle = 'square'): QrArtifact {
+  validateQrOptions(payload, color, pixels, style);
+  const qr = new (qrWin().LocalQR)(-1, 2); // LocalQR 2 = error correction H.
+  qr.addUtf8Eci();
+  qr.addData(Array.from(new TextEncoder().encode(payload), v => String.fromCharCode(v)).join(''));
+  qr.make();
+  const n = qr.getModuleCount(), version = (n - 17) / 4, span = n + 8, minimum = style === 'square' ? 4 : 6;
+  if (pixels / span < minimum) throw Error(`Bu içerik için ${pixels}px küçük kalıyor. ${style === 'square' ? 'En az 4' : 'Stilli QR için en az 6'} piksel/modül gerekiyor; daha büyük çıktı seçin.`);
+  const functional = qrWin().LocalQRTools.functionGrid(version, 2, 0).map(row => row.map(v => v !== null));
+  const matrix = Array.from({ length: n }, (_, y) => Array.from({ length: n }, (_, x) => qr.isDark(y, x)));
+  let fixed = '', shapes = '';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (matrix[y][x]) {
+    if (functional[y][x]) fixed += presetPath('square', x + 4, y + 4);
+    else shapes += presetPath(style, x + 4, y + 4);
+  }
+  const label = (QR_PRESETS.find(p => p.id === style) ?? QR_PRESETS[0]).label;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label} biçimli QR kod" width="${pixels}" height="${pixels}" viewBox="0 0 ${span} ${span}" data-qr-style="${style}" data-qr-version="${version}" data-qr-margin="4" data-qr-ecc="H"><title>Renderhane · ${label} QR</title><desc>Statik QR. Boş kenarı koruyun; hedef baskı ve telefonda deneyin.</desc><rect width="${span}" height="${span}" fill="#ffffff"/><path data-qr-functional="true" d="${fixed}" fill="${color}"/><path data-qr-data="true" d="${shapes}" fill="${color}"/></svg>`;
+  return { svg, size: pixels, modules: n, version, style, matrix, functional, payload };
+}
+function bch(value: number, polynomial: number, shift: number, xor = 0): number {
+  let r = value << shift;
+  const degree = (v: number): number => 31 - Math.clz32(v);
+  while (r && degree(r) >= degree(polynomial)) r ^= polynomial << (degree(r) - degree(polynomial));
+  return ((value << shift) | r) ^ xor;
+}
+function maskBit(m: number, y: number, x: number): boolean {
+  switch (m) {
+    case 0: return (y + x) % 2 === 0;
+    case 1: return y % 2 === 0;
+    case 2: return x % 3 === 0;
+    case 3: return (y + x) % 3 === 0;
+    case 4: return (Math.floor(y / 2) + Math.floor(x / 3)) % 2 === 0;
+    case 5: return (y * x) % 2 + (y * x) % 3 === 0;
+    case 6: return ((y * x) % 2 + (y * x) % 3) % 2 === 0;
+    case 7: return ((y * x) % 3 + (y + x) % 2) % 2 === 0;
+    default: throw Error('Maske geçersiz.');
+  }
+}
+const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+{
+  let x = 1;
+  for (let i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+}
+const gfMul = (a: number, b: number): number => (a && b ? EXP[LOG[a] + LOG[b]] : 0);
+/** No error correction is attempted: even a single failed syndrome rejects. */
+function verifyRsBlock(block: number[], parityCount: number): boolean {
+  for (let i = 0; i < parityCount; i++) {
+    let s = 0;
+    for (const b of block) s = gfMul(s, EXP[i]) ^ b;
+    if (s !== 0) return false;
+  }
+  return true;
+}
+/** Decodes actual sampled pixels; does not compare against encoder modules. */
+export function decodeAlignedGrid(grid: boolean[][]): QrDecodeResult {
+  const n = grid.length, version = (n - 17) / 4;
+  if (!Number.isInteger(version) || version < 1 || version > 40 || grid.some(r => r.length !== n)) throw Error('QR ızgarası geçersiz.');
+  let vertical = 0, horizontal = 0;
+  for (let i = 0; i < 15; i++) {
+    const y = i < 6 ? i : i < 8 ? i + 1 : n - 15 + i;
+    const x = i < 8 ? n - i - 1 : i < 9 ? 15 - i : 14 - i;
+    vertical |= Number(grid[y][8]) << i;
+    horizontal |= Number(grid[8][x]) << i;
+  }
+  if (vertical !== horizontal) throw Error('Biçim bilgisi kopyaları uyuşmuyor.');
+  let format = -1;
+  for (let d = 0; d < 32; d++) if (bch(d, 0x537, 10, 0x5412) === vertical) { format = d; break; }
+  if (format < 0) throw Error('Biçim bilgisinin hata kontrolü başarısız.');
+  const level = format >> 3, mask = format & 7;
+  const template = qrWin().LocalQRTools.functionGrid(version, level, mask);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+    if (template[y][x] !== null && template[y][x] !== grid[y][x]) throw Error('QR yönlendirme veya sürüm alanı bozulmuş.');
+  const bits: number[] = [];
+  let up = true;
+  for (let right = n - 1; right >= 1; right -= 2) {
+    if (right === 6) right--;
+    for (let vert = 0; vert < n; vert++) {
+      const y = up ? n - 1 - vert : vert;
+      for (let j = 0; j < 2; j++) {
+        const x = right - j;
+        if (template[y][x] === null) bits.push(Number(grid[y][x] !== maskBit(mask, y, x)));
+      }
+    }
+    up = !up;
+  }
+  const blocks = qrWin().LocalQRTools.rsBlocks(version, level), total = blocks.reduce((s, b) => s + b.totalCount, 0);
+  if (bits.length < total * 8) throw Error('Veri alanı eksik.');
+  if (bits.slice(total * 8).some(v => v !== 0)) throw Error('QR artık bitleri bozulmuş.');
+  const words = Array.from({ length: total }, (_, i) => bits.slice(i * 8, i * 8 + 8).reduce((v, b) => (v << 1) | b, 0));
+  const separated: number[][] = blocks.map(b => new Array(b.totalCount).fill(0));
+  let cursor = 0;
+  for (let i = 0; i < Math.max(...blocks.map(b => b.dataCount)); i++) blocks.forEach((b, j) => { if (i < b.dataCount) separated[j][i] = words[cursor++]; });
+  for (let i = 0; i < Math.max(...blocks.map(b => b.totalCount - b.dataCount)); i++) blocks.forEach((b, j) => { if (i < b.totalCount - b.dataCount) separated[j][b.dataCount + i] = words[cursor++]; });
+  if (cursor !== total || blocks.some((b, j) => !verifyRsBlock(separated[j], b.totalCount - b.dataCount))) throw Error('Veri hata kontrolü başarısız.');
+  const data = separated.flatMap((b, j) => b.slice(0, blocks[j].dataCount));
+  let pos = 0;
+  const read = (count: number): number => {
+    if (pos + count > data.length * 8) throw Error('Eksik veri.');
+    let v = 0;
+    for (let i = 0; i < count; i++, pos++) v = v * 2 + ((data[pos >> 3] >> (7 - (pos & 7))) & 1);
+    return v;
+  };
+  const output: number[] = [];
+  let eci: number | null = null;
+  while (pos + 4 <= data.length * 8) {
+    const mode = read(4);
+    if (mode === 0) break;
+    if (mode === 7) {
+      eci = read(8);
+      if (eci !== 26) throw Error('UTF-8 ECI bekleniyor.');
+      continue;
+    }
+    if (mode !== 4) throw Error('Bu doğrulayıcı yalnız UTF-8 bayt modunu kabul eder.');
+    const len = read(version < 10 ? 8 : 16);
+    for (let i = 0; i < len; i++) output.push(read(8));
+  }
+  const bytes = Uint8Array.from(output);
+  const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  return { text, bytes, version, mask, correctionLevel: level, eci };
+}
+export interface QrPixels { width: number; height: number; data: Uint8ClampedArray }
+export function sampleAlignedPixels(image: QrPixels, n: number, jitterX = 0, jitterY = 0): boolean[][] {
+  const pitch = image.width / (n + 8);
+  if (image.width !== image.height) throw Error('Çıktı kare değil.');
+  const lum = (x: number, y: number): number => { const i = (y * image.width + x) * 4; return .2126 * image.data[i] + .7152 * image.data[i + 1] + .0722 * image.data[i + 2]; };
+  // Conservative opaque-white margin check; do not crop away quiet-zone damage.
+  const edge = Math.floor(4 * pitch) - 1;
+  for (let y = 0; y < image.height; y++) for (let x = 0; x < image.width; x++)
+    if (x < edge || y < edge || x >= image.width - edge || y >= image.height - edge) {
+      const i = (y * image.width + x) * 4;
+      if (lum(x, y) < 250 || image.data[i + 3] !== 255) throw Error('QR boş kenarı veya beyaz zemin değişmiş.');
+    }
+  return Array.from({ length: n }, (_, y) => Array.from({ length: n }, (_, x) => {
+    const ix = Math.min(image.width - 1, Math.max(0, Math.floor((x + 4.5 + jitterX) * pitch)));
+    const iy = Math.min(image.height - 1, Math.max(0, Math.floor((y + 4.5 + jitterY) * pitch)));
+    return lum(ix, iy) < 150;
+  }));
+}
+const tick = (): Promise<void> => new Promise(r => setTimeout(r, 0));
+function abortIf(signal: AbortSignal | undefined): void { if (signal?.aborted) throw new DOMException('İşlem iptal edildi.', 'AbortError'); }
+function loadSvgImage(svg: string, signal: AbortSignal | undefined): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })), img = new Image();
+    const finish = (): void => { clearTimeout(timer); URL.revokeObjectURL(url); signal?.removeEventListener('abort', cancel); };
+    const cancel = (): void => { finish(); img.src = ''; reject(new DOMException('İşlem iptal edildi.', 'AbortError')); };
+    const timer = setTimeout(() => { finish(); reject(Error('SVG görüntülenemedi; doğrulama zaman aşımı.')); }, 8000);
+    img.onload = () => { finish(); resolve(img); };
+    img.onerror = () => { finish(); reject(Error('SVG görüntülenemedi.')); };
+    signal?.addEventListener('abort', cancel, { once: true });
+    img.src = url;
+  });
+}
+function canvasPng(c: HTMLCanvasElement): Promise<Blob> { return new Promise((resolve, reject) => c.toBlob(b => b ? resolve(b) : reject(Error('PNG oluşturulamadı.')), 'image/png')); }
+export async function validateQrRaster(artifact: QrArtifact, signal?: AbortSignal): Promise<QrValidated> {
+  const start = performance.now();
+  abortIf(signal);
+  const img = await loadSvgImage(artifact.svg, signal);
+  abortIf(signal);
+  const n = artifact.modules, reduced = (n + 8) * 6, tests: string[] = [];
+  const full = document.createElement('canvas');
+  full.width = full.height = artifact.size;
+  const fc = full.getContext('2d', { willReadFrequently: true });
+  if (!fc) throw Error('Canvas kullanılamıyor.');
+  fc.drawImage(img, 0, 0, full.width, full.height);
+  const configurations: [string, number, string][] = [['Nihai çıktı', artifact.size, 'none'], ['6 px/modül', reduced, 'none'], ['Hafif bulanıklık', reduced, 'blur(0.35px)']];
+  const expected = new TextEncoder().encode(artifact.payload);
+  for (const [name, size, filter] of configurations) {
+    abortIf(signal);
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    if (!ctx) throw Error('Canvas kullanılamıyor.');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.filter = filter;
+    ctx.drawImage(full, 0, 0, size, size);
+    ctx.filter = 'none';
+    const pixels = ctx.getImageData(0, 0, size, size);
+    for (const [jx, jy] of [[0, 0], [-.12, .12], [.12, -.12]]) {
+      abortIf(signal);
+      const result = decodeAlignedGrid(sampleAlignedPixels(pixels, n, jx, jy));
+      if (result.eci !== 26 || result.correctionLevel !== 2 || result.bytes.length !== expected.length || result.bytes.some((v, i) => v !== expected[i])) throw Error('QR içeriği girilen veriyle eşleşmedi.');
+      tests.push(`${name} · örnekleme ${jx},${jy}`);
+      await tick();
+    }
+  }
+  abortIf(signal);
+  const png = await canvasPng(full);
+  abortIf(signal);
+  // The PNG is made from the same raster whose actual pixels were verified.
+  return { artifact, png, report: { revision: QR_CHECK_REVISION, svgPixels: artifact.size, reducedPixels: reduced, passed: tests.length, total: 9, tests, scope: 'Konumu bilinen QR ızgarasında bayt ve Reed–Solomon doğrulaması. Kamera algılama testi değildir.', timeMs: Math.round(performance.now() - start) } };
+}
 function imageLoaded(src: string): Promise<HTMLImageElement> { return new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(Error('Görsel açılamadı.')); i.src = src; }); }
 function downloadBlob(blob: Blob, name: string): void { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> { return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(Error('Görsel dışa aktarılamadı.')), 'image/png')); }
@@ -170,6 +441,12 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   const doc = root.ownerDocument; const win = doc.defaultView! as unknown as ToolWindow;
   let viewCleanup: (() => void) | undefined;
   let disposed = false; let toastTimer = 0; let qrTimer = 0; let nfcTimer = 0; let uploadTicket = 0;
+  let qrRevision = 0; let qrController: AbortController | null = null;
+  let qrValidated: QrValidated | null = null; let qrValidatedKey = '';
+  // Last key a validation was scheduled/run for. Guards against redundant
+  // revalidations (e.g. blur-change carrying the value input already queued):
+  // re-running would disable the buttons mid-click and swallow the click.
+  let lastQrKey = '';
   let request: AbortController | null = null; let nfcAbort: AbortController | null = null;
   let currentObjectUrl: string | null = null;
   const historyEnabled = !options.onNavigate;
@@ -182,7 +459,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     scenePreset: 0, prompt: scenePrompts[0], scenes: null as SceneResult[] | null,
     qrType: 'url' as ContentType, nfcType: 'url' as ContentType,
     qr: { url: 'https://renderhane.com' } as Fields, nfc: { url: 'https://renderhane.com' } as Fields,
-    qrSvg: '', qrPayload: '', qrColor: '#0b0f2d', qrSize: 1024, qrError: '', nfcOverwrite: false,
+    qrSvg: '', qrPayload: '', qrColor: '#0b0f2d', qrSize: 1024, qrStyle: 'square' as QrStyle, qrError: '', nfcOverwrite: false,
     nfcMessage: '', nfcBusy: false,
     brief: {brand:'',url:'',usage:'Ürün ambalajı',size:'',style:'Çiçek & Ornament',notes:''} as Fields,
   };
@@ -281,7 +558,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       case 'app': return input('package', 'Android paket adı *', 'com.firma.uygulama') + `<p class="rh-helper">Google Play bağlantısı ve Android uygulama kaydı yazılır.</p>`;
     }
   }
-  function qrView(): string { return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bağlantını <span class="rh-highlight">QR’a dönüştür.</span>', 'Web adresini, kişi kartını veya WiFi bilgilerini paylaş. QR kodunu PNG ve SVG olarak indir.', ['Sınırsız ücretsiz', 'Kayıt gerektirmez', 'Tarayıcıda gerçek üretim'])}<div class="rh-workspace rh-qr-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('qr')}<div class="rh-section-label">2. Bilgilerini gir</div><div id="rh-qr-fields">${fields('qr')}</div><div class="rh-section-label">3. Çıktını düzenle</div><div class="rh-two-fields"><div class="rh-field"><label for="rh-qr-color">QR rengi</label><div class="rh-color-input"><input type="color" id="rh-qr-color" value="${s.qrColor}"/><span class="rh-helper" id="rh-qr-hex">${s.qrColor}</span></div></div><div class="rh-field"><label for="rh-qr-size">PNG boyutu</label><select class="rh-select" id="rh-qr-size">${[512, 1024, 2048].map(v => `<option value="${v}" ${s.qrSize === v ? 'selected' : ''}>${v} × ${v}</option>`).join('')}</select></div></div><div class="rh-notice error" id="rh-qr-error" role="alert" hidden></div><div class="rh-notice">Statik QR kod oluşturulur. Kodun ortasına logo yerleştirilmez; boş kenar ve yüksek kontrast korunur. Baskı öncesinde gerçek telefonla test et.</div></section><section class="rh-panel"><div class="rh-panel-top"><h2 class="rh-panel-title">${icon('qr')}Canlı QR önizlemesi</h2><span class="rh-pill green">Yerel üretim</span></div><div class="rh-qr-result" id="rh-qr-stage"><div class="rh-qr-paper" id="rh-qr-svg"></div></div><div class="rh-qr-result-footer"><div class="rh-toolbar">${btn('PNG indir', 'qr-png', true, 'download')}${btn('SVG indir', 'qr-svg', false, 'download')}</div><p>Bir telefonla tarayarak içeriğini kontrol et.</p></div><div class="rh-payload" id="rh-qr-payload" aria-label="QR içeriği"></div></section></div>${benefits([['infinity', 'Kullanım sınırı yok', 'Bu araç statik QR kodunu doğrudan tarayıcıda üretir.'], ['download', 'PNG + SVG', 'Ekran veya baskı için uygun çıktı biçimini seç.'], ['shield', 'Veri tarayıcıda kalır', 'QR oluşturmak için sunucuya veri gönderilmez.'], ['scan', 'Tarayarak kontrol et', 'Son boyutta ve hedef cihazda okunabilirliği dene.']])}${premiumBlock(true)}</main>`; }
+  function qrView(): string { return `<main id="rh-main" class="rh-page rh-wrap rh-qr-styled" tabindex="-1">${heading('Senin stilin.<br><span class="rh-highlight">Önce okunabilirlik.</span>', 'İçeriğini gir, hazır şeklini seç. QR yapısı korunur; her değişiklikte dijital veri kontrolü yeniden çalışır.', ['Ücretsiz · Kayıt yok', 'Hazır vektörel şekiller', 'Kontrollü PNG + SVG'])}<div class="rh-workspace rh-qr-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçeriğini seç</div>${typeTabs('qr')}<div id="rh-qr-fields">${fields('qr')}</div><div class="rh-number-title rh-qr-step"><span>2</span>Hazır şeklini seç</div><div class="rh-qr-presets" role="group" aria-label="QR modül şekli">${QR_PRESETS.map(pr => `<button type="button" class="rh-qr-preset" data-qr-style="${pr.id}" aria-pressed="${s.qrStyle === pr.id}"><span class="rh-qr-preset-icon">${presetIcon(pr.id)}</span><strong>${pr.label}</strong><small>${pr.hint}</small></button>`).join('')}</div><p class="rh-helper rh-qr-shape-note">Şekil yalnız veri alanına uygulanır. İşaret köşe, hizalama, zamanlama ve bilgi alanları kare olarak korunur.</p><div class="rh-number-title rh-qr-step"><span>3</span>Renk ve çıktı boyutu</div><div class="rh-two-fields"><div class="rh-field"><label for="rh-qr-color">Koyu QR rengi</label><div class="rh-color-input"><input type="color" id="rh-qr-color" value="${s.qrColor}"/><span class="rh-helper" id="rh-qr-hex">${s.qrColor}</span></div></div><div class="rh-field"><label for="rh-qr-size">Çıktı boyutu</label><select class="rh-select" id="rh-qr-size">${[512, 1024, 2048].map(v => `<option value="${v}" ${s.qrSize === v ? 'selected' : ''}>${v} × ${v} px</option>`).join('')}</select></div></div><div class="rh-qr-lock-note">${icon('shield')}<span><strong>Yapısal alanlar kilitli.</strong> Beyaz zemin, dört modüllük boş kenar ve H hata düzeltmesi korunur. Logo örtüşmesi, şeffaf zemin ve serbest çizim bu sürümde yok.</span></div><div class="rh-notice error" id="rh-qr-error" role="alert" hidden></div></section><section class="rh-panel rh-qr-preview-panel"><div class="rh-panel-top"><h2 class="rh-panel-title">${icon('qr')}QR önizlemesi</h2><span class="rh-pill" id="rh-qr-style-label">${(QR_PRESETS.find(pr => pr.id === s.qrStyle) ?? QR_PRESETS[0]).label}</span></div><div class="rh-qr-result" id="rh-qr-stage" data-invalid="true"><div class="rh-qr-paper" id="rh-qr-svg"></div></div><div class="rh-qr-meta" id="rh-qr-meta">Çıktı hazırlanıyor.</div><div class="rh-qr-check" id="rh-qr-check" role="status" aria-live="polite" data-state="pending"><span class="rh-qr-check-icon">${icon('shield')}</span><div><strong id="rh-qr-check-title">Kontrol bekleniyor</strong><p id="rh-qr-check-detail">Geçerli içerik ve okunabilir bir çıktı hazırlanmalı.</p></div></div><div class="rh-qr-result-footer"><div class="rh-toolbar">${btn('PNG indir', 'qr-png', true, 'download', 'disabled')}${btn('SVG indir', 'qr-svg', false, 'download', 'disabled')}</div><p>Test geçmeden indirme açılmaz. Baskıdan önce son boyutta telefonla tara.</p></div><details class="rh-qr-check-scope"><summary>Dijital kontrol neyi doğruluyor?</summary><p>SVG görüntüsünün ve indirilecek PNG&apos;nin bilinen ızgarasından veri okunur; biçim, yönlendirme alanları, hata kontrolü ve içerik eşleşmesi sınanır. Nihai boyut, 6 piksel/modül ve hafif bulanıklıkta toplam 9 kontrol yapılır.</p><p>Bu işlem, kamerayla QR bulma testi veya her telefonda okuma garantisi değildir. Hazır stil örnekleri geliştirme testlerinde OpenCV ve ZBar ile ayrıca okunur. Üretim baskısını gerçek cihazda kontrol et.</p></details><div class="rh-payload" id="rh-qr-payload" aria-label="QR içeriği"></div></section></div>${benefits([['shield', 'Okunabilirlik önce gelir', 'Yapısal alanlar değişmez; hatalı sonuç indirmeye açılmaz.'], ['download', 'Gerçek vektörel çıktı', 'Şekiller SVG yollarıdır; PNG aynı görüntüden üretilir.'], ['infinity', 'AI kredisi harcamaz', 'Hazır şekiller ve kontroller tarayıcıda çalışır.'], ['scan', 'Son baskıyı test et', 'Malzeme, boyut ve telefon sonucu etkileyebilir.']])}${premiumBlock(true)}</main>`; }
   function supportedNfc(): boolean { return !!win.NDEFReader && win.isSecureContext; }
   function nfcView(): string { const ready = supportedNfc(); return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div><label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!ready || s.nfcBusy || s.nfcType === 'wifi' ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!ready || s.nfcBusy ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${esc(s.nfcMessage || (ready ? 'Tarayıcı Web NFC sunuyor. Gerçek donanım ve etiket uygunluğu işlem sırasında doğrulanır.' : 'Bu tarayıcıda NFC yazma kullanılamıyor. İçeriği hazırlayabilirsin; yazmak için HTTPS üzerinden NFC destekli Android telefonda Chrome ile aç.'))}</div><p class="rh-helper">Bu sürümde kalıcı kilitleme ve toplu yazım yoktur. WiFi/WSC yazımı için mevcut projedeki NDEF modülü kullanılmalıdır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><img src="${asset('logo.svg')}" alt=""/><h3>Dokun, bağlantı kur.</h3><p id="rh-nfc-preview">İçeriğini hazırlamaya başla.</p><div class="rh-wave">Temsili telefon önizlemesi</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${ready ? 'Tarayıcı desteği var' : 'Önce cihaz uyumluluğu'}</strong><p>${ready ? 'Yazmak için etiketi telefona yaklaştır.' : 'NFC donanımı, Chrome ve HTTPS gerekir.'}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'İzin senin kontrolünde', 'Üzerine yazma seçeneği varsayılan olarak kapalıdır.'], ['phone', 'Cihazı önce kontrol et', 'Tarayıcı desteği, fiziksel donanım garantisi değildir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Yazma başarı mesajı ancak cihaz onayından sonra gelir.']])}</main>`; }
   function render(focus = false): void {
@@ -300,7 +577,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     doc.title = `${pageNames[s.page]} · Renderhane`;
     root.dataset.currentPage = s.page;
     $$<HTMLAnchorElement>('[data-page]').forEach(a => { if(a.dataset.page === s.page) a.setAttribute('aria-current','page'); });
-    if (s.page === 'qr') updateQr(); if (s.page === 'nfc') updateNfcPreview();
+    if (s.page === 'qr') void updateQr(); if (s.page === 'nfc') updateNfcPreview();
     viewCleanup = options.onRender?.(s.page) || undefined;
     if (focus) $(approvedHome ? '#rhl-main' : '#rh-main')?.focus({ preventScroll: true });
   }
@@ -323,24 +600,82 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       catch (error) { URL.revokeObjectURL(url); throw error; }
     } catch (error) { toast(error instanceof Error ? error.message : 'Dosya açılamadı.'); }
   }
-  function updateQr(): void {
+  function qrKey(): string { return JSON.stringify([s.qrType, s.qr, s.qrColor, s.qrSize, s.qrStyle]); }
+  function qrStatus(state: string, title: string, detail: string): void {
+    // Text first, state attribute LAST: observers (tests, users) acting on
+    // the state change must see settled layout, or clicks can split across
+    // a mid-click layout shift and get lost.
+    const a = $('#rh-qr-check-title'), b = $('#rh-qr-check-detail');
+    if (a) a.textContent = title;
+    if (b) b.textContent = detail;
+    const el = $('#rh-qr-check');
+    if (el) el.dataset.state = state;
+  }
+  function invalidateQr(): void {
+    qrRevision++;
+    qrController?.abort();
+    qrController = null;
+    qrValidated = null;
+    qrValidatedKey = '';
+    $$<HTMLButtonElement>('[data-action="qr-png"],[data-action="qr-svg"]').forEach(b => b.disabled = true);
+    qrStatus('pending', 'Yeniden kontrol ediliyor', 'Girdi değişti. Önceki onay artık geçerli değil.');
+  }
+  function scheduleQr(): void {
+    // Same key already scheduled or validated: skip. Revalidating identical
+    // input only disables the buttons and can eat an in-flight click.
+    if (qrKey() === lastQrKey) return;
+    invalidateQr(); win.clearTimeout(qrTimer); qrTimer = win.setTimeout(() => void updateQr(), 200);
+  }
+  async function updateQr(): Promise<void> {
     if (disposed || s.page !== 'qr') return;
+    invalidateQr();
+    const revision = qrRevision, controller = new AbortController();
+    qrController = controller;
+    const key = qrKey();
+    lastQrKey = key;
+    const current = (): boolean => !disposed && s.page === 'qr' && !controller.signal.aborted && revision === qrRevision && key === qrKey();
     const errorEl = $('#rh-qr-error');
     try {
-      if (!darkEnough(s.qrColor)) throw Error('Daha koyu bir QR rengi seçin. Beyaz zeminle en az 4,5:1 kontrast korunuyor.');
-      const payload = buildPayload(s.qrType, s.qr); const svg = generateQrSvg(payload, s.qrColor, s.qrSize);
-      s.qrSvg = svg; s.qrPayload = payload; s.qrError = '';
-      const svgEl = $('#rh-qr-svg'); if (svgEl) svgEl.innerHTML = svg;
-      const text = $('#rh-qr-payload'); if (text) text.textContent = s.qrType === 'wifi' ? 'WiFi QR kodu ağ adını ve şifresini içerir. Şifre bu önizlemede gizlendi.' : payload;
+      const payload = buildPayload(s.qrType, s.qr);
+      const artifact = buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle);
+      s.qrSvg = artifact.svg;
+      s.qrPayload = payload;
+      s.qrError = '';
+      const svgEl = $('#rh-qr-svg');
+      if (svgEl) svgEl.innerHTML = artifact.svg;
+      const text = $('#rh-qr-payload');
+      if (text) text.textContent = s.qrType === 'wifi' ? 'WiFi QR kodu ağ adını ve şifresini içerir. Şifre bu önizlemede gizlendi.' : payload;
+      const label = $('#rh-qr-style-label');
+      if (label) label.textContent = (QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label;
+      const meta = $('#rh-qr-meta');
+      if (meta) meta.textContent = `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modül · H · 4 modül kenar`;
       if (errorEl) errorEl.hidden = true;
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'false');
+      qrStatus('pending', 'Dijital veri kontrolü sürüyor', 'SVG görüntüleniyor; QR verisi ve hata kontrolü sınanıyor.');
+      // Verify the same-payload classic baseline, then the selected visual style.
+      if (s.qrStyle !== 'square') await validateQrRaster(buildQrArtifact(payload, s.qrColor, s.qrSize, 'square'), controller.signal);
+      const validated = await validateQrRaster(artifact, controller.signal);
+      if (!current()) return;
+      qrValidated = validated;
+      qrValidatedKey = key;
+      qrStatus('passed', 'Dijital veri kontrolü geçti', `${validated.report.passed}/${validated.report.total} kontrol · İçerik birebir eşleşti · ${s.qrStyle === 'square' ? 'Klasik QR' : 'Klasik karşılaştırma da geçti'}`);
       $$<HTMLButtonElement>('[data-action="qr-png"],[data-action="qr-svg"]').forEach(b => b.disabled = false);
     } catch (err) {
-      s.qrSvg = ''; s.qrPayload = ''; s.qrError = err instanceof Error ? err.message : 'QR oluşturulamadı.';
+      if (!current()) return;
+      qrValidated = null;
+      qrValidatedKey = '';
+      s.qrSvg = '';
+      s.qrPayload = '';
+      s.qrError = err instanceof Error ? err.message : 'QR doğrulanamadı.';
       if (errorEl) { errorEl.textContent = s.qrError; errorEl.hidden = false; }
-      const svgEl = $('#rh-qr-svg'); if (svgEl) svgEl.innerHTML = `<div class="rh-empty" style="min-height:180px">${icon('qr')}<p>Bilgilerini tamamla.</p></div>`;
-      const payloadEl = $('#rh-qr-payload'); if (payloadEl) payloadEl.textContent = 'Geçerli içerik bekleniyor.';
+      qrStatus('failed', 'İndirme kapalı', s.qrError);
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'true');
+      const svgEl = $('#rh-qr-svg');
+      if (svgEl) svgEl.innerHTML = `<div class="rh-empty" style="min-height:220px">${icon('shield')}<p>Bu ayarla çıktı onaylanmadı.</p><small>İçeriği, rengi veya boyutu değiştir.</small></div>`;
+      const payloadEl = $('#rh-qr-payload');
+      if (payloadEl) payloadEl.textContent = 'Doğrulanmış çıktı bekleniyor.';
+      const meta = $('#rh-qr-meta');
+      if (meta) meta.textContent = 'Kontrol başarısız. Otomatik olarak başka şekle geçilmedi.';
       $$<HTMLButtonElement>('[data-action="qr-png"],[data-action="qr-svg"]').forEach(b => b.disabled = true);
     }
   }
@@ -373,10 +708,14 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     } catch (error) { toast(error instanceof Error ? error.message : 'İndirme başarısız.'); }
   }
   async function exportQr(kind: 'svg' | 'png'): Promise<void> {
-    updateQr(); if (!s.qrSvg) return;
-    if (kind === 'svg') { downloadBlob(new Blob([s.qrSvg], { type: 'image/svg+xml;charset=utf-8' }), `renderhane-qr-${s.qrType}.svg`); return; }
-    const url = URL.createObjectURL(new Blob([s.qrSvg], { type: 'image/svg+xml' }));
-    try { await exportImage(url, `renderhane-qr-${s.qrType}.png`); } finally { URL.revokeObjectURL(url); }
+    if (!qrValidated || qrValidatedKey !== qrKey() || disposed || s.page !== 'qr') {
+      toast('Güncel çıktının kontrolleri tamamlanmadan indirme yapılamaz.');
+      return;
+    }
+    const artifact = qrValidated.artifact;
+    // Export EXACTLY the validated immutable bytes/raster; do not regenerate here.
+    const blob = kind === 'svg' ? new Blob([artifact.svg], { type: 'image/svg+xml;charset=utf-8' }) : qrValidated.png;
+    downloadBlob(blob, `renderhane-qr-${s.qrType}-${artifact.style}.${kind}`);
   }
   async function nfcAction(mode: 'write' | 'scan'): Promise<void> {
     if (!supportedNfc() || !win.NDEFReader) { toast('NFC destekli Android, Chrome ve HTTPS gerekir.'); return; }
@@ -409,7 +748,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     catch (error) { toast(error instanceof Error ? error.message : 'Kopyalama için HTTPS veya localhost gerekir.'); }
   }
   function onClick(event: Event): void {
-    const target = (event.target as Element).closest<HTMLElement>('[data-page],[data-action],[data-anchor],[data-hero],[data-view],[data-bg],[data-preset],[data-qr-type],[data-nfc-type],[data-download-scene]');
+    const target = (event.target as Element).closest<HTMLElement>('[data-page],[data-action],[data-anchor],[data-hero],[data-view],[data-bg],[data-preset],[data-qr-type],[data-nfc-type],[data-qr-style],[data-download-scene]');
     if (!target || target === root || !root.contains(target)) return;
     if (target instanceof HTMLButtonElement && target.disabled) return;
     if (event instanceof MouseEvent && target instanceof HTMLAnchorElement && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
@@ -433,6 +772,13 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (target.dataset.bg) { s.bgColor = target.dataset.bg; const el = $('#rh-canvas'); if (el) el.innerHTML = compareCanvas(); $$('[data-bg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bg === s.bgColor))); return; }
     if (target.dataset.preset !== undefined) { s.scenePreset = Number(target.dataset.preset); s.prompt = scenePrompts[s.scenePreset]; const prompt = $<HTMLTextAreaElement>('#rh-prompt'); if (prompt) prompt.value = s.prompt; $$('[data-preset]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.preset) === s.scenePreset))); $$('.rh-scene').forEach((e, i) => e.setAttribute('data-active', String(i === s.scenePreset))); return; }
     if (target.dataset.qrType || target.dataset.nfcType) { const kind = target.dataset.qrType ? 'qr' : 'nfc'; const type = (target.dataset.qrType || target.dataset.nfcType) as ContentType; if (!Object.hasOwn(contentLabels, type)) return; if (kind === 'nfc') stopNfc(); s[`${kind}Type`] = type; render(); $(`#rh-${kind}-fields input, #rh-${kind}-fields textarea`)?.focus({ preventScroll: true }); return; }
+    if (target.dataset.qrStyle) {
+      if (!isQrStyle(target.dataset.qrStyle)) return;
+      s.qrStyle = target.dataset.qrStyle;
+      $$('button[data-qr-style]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-qr-style') === s.qrStyle)));
+      scheduleQr();
+      return;
+    }
     if (target.dataset.downloadScene !== undefined) { const i = Number(target.dataset.downloadScene); const scene = s.scenes?.[i]; void exportImage(scene?.url || asset(`scene-${i}.jpg`), `renderhane-sahne-${i + 1}.png`); return; }
     switch (target.dataset.action) {
       case 'brief-focus': $('#rh-brief-brand')?.focus(); $('#rh-brief-form')?.scrollIntoView({behavior:'smooth',block:'start'}); break;
@@ -455,10 +801,10 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const el = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     if (el.dataset.brief) { s.brief[el.dataset.brief]=el.value; return; }
     if (el.dataset.compare) { const parent = el.closest<HTMLElement>('.rh-compare'); parent?.style.setProperty('--split', `${el.value}%`); return; }
-    if (el.dataset.field && (el.dataset.kind === 'qr' || el.dataset.kind === 'nfc')) { const kind = el.dataset.kind; s[kind][el.dataset.field] = el.value; if (kind === 'qr') { win.clearTimeout(qrTimer); qrTimer = win.setTimeout(updateQr, 100); } else updateNfcPreview(); return; }
+    if (el.dataset.field && (el.dataset.kind === 'qr' || el.dataset.kind === 'nfc')) { const kind = el.dataset.kind; s[kind][el.dataset.field] = el.value; if (kind === 'qr') { scheduleQr(); } else updateNfcPreview(); return; }
     if (el.dataset.prompt) s.prompt = el.value;
-    if (el.id === 'rh-qr-color') { s.qrColor = el.value; const text = $('#rh-qr-hex'); if (text) text.textContent = el.value; updateQr(); }
-    if (el.id === 'rh-qr-size') { s.qrSize = Number(el.value); updateQr(); }
+    if (el.id === 'rh-qr-color') { s.qrColor = el.value; const text = $('#rh-qr-hex'); if (text) text.textContent = el.value; scheduleQr(); return; }
+    if (el.id === 'rh-qr-size') { s.qrSize = Number(el.value); scheduleQr(); return; }
     if (el.id === 'rh-nfc-overwrite') s.nfcOverwrite = (el as HTMLInputElement).checked;
   }
   function onSubmit(event: SubmitEvent): void {

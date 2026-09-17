@@ -1074,6 +1074,12 @@ function QRCode(typeNumber, errorCorrectLevel) {
 
 QRCode.prototype = {
 	
+    // Renderhane extension: explicit UTF-8 ECI. No character count follows ECI.
+    addUtf8Eci : function() {
+        this.dataList.push({ mode: 7, write: function(buffer) { buffer.put(26, 8); } });
+        this.dataCache = null;
+    },
+
 	addData : function(data) {
 		var newData = new QR8bitByte(data);
 		this.dataList.push(newData);
@@ -1107,7 +1113,7 @@ QRCode.prototype = {
 				for (var x = 0; x < this.dataList.length; x++) {
 					var data = this.dataList[x];
 					buffer.put(data.mode, 4);
-					buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+					if (data.mode !== 7) buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
 					data.write(buffer);
 				}
 				if (buffer.getLengthInBits() <= totalDataCount * 8)
@@ -1390,7 +1396,7 @@ QRCode.createData = function(typeNumber, errorCorrectLevel, dataList) {
 	for (var i = 0; i < dataList.length; i++) {
 		var data = dataList[i];
 		buffer.put(data.mode, 4);
-		buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+		if (data.mode !== 7) buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
 		data.write(buffer);
 	}
 
@@ -1502,4 +1508,15 @@ QRCode.createBytes = function(buffer, rsBlocks) {
 
 module.exports = QRCode;
 
-}},cache={};function req(name){if(cache[name])return cache[name].exports;var m={exports:{}};cache[name]=m;modules[name](m,m.exports,req);return m.exports;}window.LocalQR=req('./index');})();
+}},cache={};function req(name){if(cache[name])return cache[name].exports;var m={exports:{}};cache[name]=m;modules[name](m,m.exports,req);return m.exports;}window.LocalQR=req('./index');
+window.LocalQRTools={
+  rsBlocks:function(v,l){return req('./QRRSBlock').getRSBlocks(v,l).map(function(b){return {totalCount:b.totalCount,dataCount:b.dataCount};});},
+  functionGrid:function(v,l,m){
+    var q=new window.LocalQR(v,l);q.moduleCount=v*4+17;
+    q.modules=Array.from({length:q.moduleCount},function(){return Array(q.moduleCount).fill(null);});
+    q.setupPositionProbePattern(0,0);q.setupPositionProbePattern(q.moduleCount-7,0);q.setupPositionProbePattern(0,q.moduleCount-7);
+    q.setupPositionAdjustPattern();q.setupTimingPattern();q.setupTypeInfo(false,m);
+    if(v>=7)q.setupTypeNumber(false);
+    return q.modules;
+  }
+};})();
