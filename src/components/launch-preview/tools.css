@@ -1,0 +1,22 @@
+/* Integration only: keep the approved homepage and V3 tool layouts intact. */
+.rhl.rhl-chrome{min-height:0}.rh-app{--purple:#6743e8;--purple-dark:#5431cc;color-scheme:light}
+.rh-app .rhl-chrome{background:#fff}.rhl .rhl-header-free{position:relative}
+.rhl .rhl-header-free summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;white-space:nowrap}
+.rhl .rhl-header-free summary::-webkit-details-marker{display:none}.rhl .rhl-header-free summary:after{content:'⌄';font-size:13px;color:var(--muted)}
+.rhl .rhl-free-menu{position:absolute;top:31px;right:0;width:266px;z-index:80;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 15px 45px #14122616}
+.rhl .rhl-free-menu a{display:block;padding:12px;border-radius:7px;font-size:13px;line-height:1.4}.rhl .rhl-free-menu small{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:4px}.rhl .rhl-free-menu a:hover{background:var(--soft)}
+.rhl .rhl-mobile-nav .rhl-mobile-group{font-size:10px;color:var(--muted);padding:12px 9px 0;letter-spacing:.12em;text-transform:uppercase}
+.rhl .rhl-paid-tag{display:inline-flex;font-size:9px;letter-spacing:.03em;color:#6743e8;border:1px solid #ddd2fa;border-radius:4px;padding:2px 5px;margin-left:5px;vertical-align:middle}
+.rhl .rhl-secondary-note{font-size:12px;line-height:1.7;color:var(--muted);margin-top:18px}
+.rhl .rhl-secondary-note a{color:var(--accent);font-weight:600}
+.rh-unified-tabs{border-bottom:1px solid #e7e7ee;background:#faf9fd}
+.rh-unified-tabs>nav{max-width:1304px;margin:auto;padding:13px 40px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.rh-unified-tabs a{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid transparent;border-radius:8px;font-size:12px;font-weight:600;color:#626577;background:transparent;text-decoration:none;min-height:39px}
+.rh-unified-tabs a:hover{background:#f0ecff;color:#5431cc}.rh-unified-tabs a[aria-current=page]{background:#fff;border-color:#ddd2fa;color:#6743e8;box-shadow:0 2px 5px #6743e806}
+.rh-unified-tabs .rh-paid-link{margin-left:auto}.rh-unified-tabs .rh-paid-link small{color:#795797;font-size:9px;border:1px solid #e0d2eb;padding:1px 5px;border-radius:4px}
+.rh-app .rh-page{min-height:55vh}.rh-app .rh-wrap{width:min(1224px,calc(100% - 80px))}.rh-app .rh-page-heading h1{max-width:900px}
+.rhl-tools-loading{padding:70px 24px;text-align:center;color:#626577}.rhl-tools-error{padding:24px;background:#fff5f5;color:#873838;max-width:800px;margin:40px auto}
+.rh-app .rhl-chrome .rhl-footer{margin-top:36px}.rhl .rhl-native-footer-links{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+@media(max-width:840px){.rh-unified-tabs>nav{padding:12px 30px}.rh-unified-tabs .rh-paid-link{margin-left:0}.rh-app .rh-wrap{width:calc(100% - 60px)}}
+@media(max-width:560px){.rh-unified-tabs>nav{padding:12px 20px;gap:5px}.rh-unified-tabs a{font-size:11px;padding:8px 9px;min-height:40px}.rh-app .rh-wrap{width:calc(100% - 40px)}.rh-app .rh-page-heading h1{font-size:32px}.rhl .rhl-native-footer-links{gap:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
