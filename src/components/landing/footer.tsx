@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Globe, Mail } from "lucide-react";
+import { Globe, Mail, ArrowUp } from "lucide-react";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 export function Footer() {
@@ -27,6 +27,10 @@ export function Footer() {
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     }
+  }
+
+  function scrollTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const productLinks = [
@@ -58,134 +62,109 @@ export function Footer() {
     { label: t("footer.cookiePolicy"), href: `/${locale}/cookie-policy` },
   ];
 
+  const columns = [
+    { title: t("footer.product"), links: productLinks, actions: true },
+    { title: t("footer.tools"), links: toolLinks, actions: false },
+    { title: t("footer.company"), links: companyLinks, actions: false },
+    { title: t("footer.legal"), links: legalLinks, actions: false },
+  ];
+
   return (
-    <footer className="border-t border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950 dark:from-slate-950 dark:to-black">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8 lg:grid-cols-6">
+    <footer className="bg-white text-[#111328] dark:bg-[#141126] dark:text-slate-200">
+      <div
+        aria-hidden="true"
+        className="h-1 bg-gradient-to-r from-[#9875ff] via-[#6743e8] to-[#17133e]"
+      />
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+        <div className="grid grid-cols-2 gap-8 sm:gap-8 lg:grid-cols-6">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-2">
             <Link
               href={`/${locale}`}
-              className="flex items-center gap-2 font-bold text-lg tracking-tight text-white"
+              className="inline-flex items-center gap-2.5 font-bold text-lg tracking-tight"
+              aria-label="Renderhane"
             >
               <Image
-                src="/logo/icon-dark.svg"
-                width={20}
-                height={20}
+                src="/logo/rhl-mark.svg"
+                width={26}
+                height={24}
                 alt="Renderhane"
                 unoptimized
-                className="size-5"
+                className="size-6"
               />
               <span>{tc("appName")}</span>
             </Link>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-[#626577] dark:text-slate-400">
               {t("footer.description")}
             </p>
             <a
               href="mailto:info@renderhane.com"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-400 transition-colors hover:text-indigo-300"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[#e7e7ee] bg-[#f6f5ff] px-3 py-1.5 text-sm text-[#6743e8] transition-colors hover:bg-[#efeaff] dark:border-white/10 dark:bg-white/5 dark:text-[#a78fff] dark:hover:bg-white/10"
             >
               <Mail className="size-3.5" />
               info@renderhane.com
             </a>
           </div>
 
-          {/* Product */}
-          <div>
-            <h4 className="text-sm font-semibold text-white">
-              {t("footer.product")}
-            </h4>
-            <ul className="mt-4 space-y-3">
-              {productLinks.map((link) => (
-                <li key={link.label}>
-                  <button
-                    onClick={link.action}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
-                  >
-                    {link.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Tools & Integrations */}
-          <div>
-            <h4 className="text-sm font-semibold text-white">
-              {t("footer.tools")}
-            </h4>
-            <ul className="mt-4 space-y-3">
-              {toolLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
-                    {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="text-sm font-semibold text-white">
-              {t("footer.company")}
-            </h4>
-            <ul className="mt-4 space-y-3">
-              {companyLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="text-sm font-semibold text-white">
-              {t("footer.legal")}
-            </h4>
-            <ul className="mt-4 space-y-3">
-              {legalLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-slate-400 transition-colors hover:text-white"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {columns.map((col) => (
+            <div key={col.title}>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#626577] dark:text-slate-400">
+                {col.title}
+              </h4>
+              <ul className="mt-4 space-y-2.5">
+                {col.links.map((link) =>
+                  "action" in link ? (
+                    <li key={link.label}>
+                      <button
+                        onClick={link.action}
+                        className="rounded px-1 py-0.5 text-sm text-[#111328] transition-colors hover:bg-[#f1efff] hover:text-[#6743e8] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+                      >
+                        {link.label}
+                      </button>
+                    </li>
+                  ) : (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="rounded px-1 py-0.5 text-sm text-[#111328] transition-colors hover:bg-[#f1efff] hover:text-[#6743e8] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+                        {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        <div className="my-8 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+        <div className="my-8 h-px bg-[#e7e7ee] dark:bg-white/10" />
 
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-[#626577] dark:text-slate-400">
             &copy; {new Date().getFullYear()} {tc("appName")}. {t("footer.allRights")}
           </p>
 
-          {/* Language switcher */}
-          <button
-            onClick={switchLanguage}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-400 transition-colors hover:text-white"
-          >
-            <Globe className="size-4" />
-            <span>
-              {t("footer.language")}: <span className="font-medium uppercase">{otherLocale}</span>
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={switchLanguage}
+              className="flex items-center gap-1.5 rounded-full border border-[#e7e7ee] px-3 py-1.5 text-sm text-[#626577] transition-colors hover:border-[#6743e8] hover:text-[#6743e8] dark:border-white/10 dark:text-slate-300 dark:hover:border-white/30 dark:hover:text-white"
+            >
+              <Globe className="size-4" />
+              <span>
+                {t("footer.language")}: <span className="font-medium uppercase">{otherLocale}</span>
+              </span>
+            </button>
+            <button
+              onClick={scrollTop}
+              aria-label="Yukarı dön"
+              className="flex size-9 items-center justify-center rounded-full bg-[#6743e8] text-white transition-colors hover:bg-[#5636cf]"
+            >
+              <ArrowUp className="size-4" />
+            </button>
+          </div>
         </div>
       </div>
     </footer>

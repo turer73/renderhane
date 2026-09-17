@@ -11,6 +11,7 @@ import "@/app/globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || "";
+const GSC_VERIFICATION = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,9 @@ export async function generateMetadata({
     title,
     description,
     metadataBase: new URL(BASE_URL),
+    ...(GSC_VERIFICATION
+      ? { verification: { google: GSC_VERIFICATION } }
+      : {}),
     ...(ADSENSE_ID
       ? { other: { "google-adsense-account": ADSENSE_ID } }
       : {}),
@@ -107,7 +111,7 @@ export default async function LocaleLayout({
         "@type": "Organization",
         name: "Renderhane",
         url: BASE_URL,
-        logo: `${BASE_URL}/icon.png`,
+        logo: `${BASE_URL}/icon.svg`,
         description:
           locale === "tr"
             ? "E-ticaret, oyun ve 3D baskı için AI destekli 3D model ve görsel üretim platformu"
