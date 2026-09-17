@@ -20,6 +20,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored third-party code (QR engine) — lint upstream, not here.
+    "src/**/vendor/**",
   ]),
 ]);
 

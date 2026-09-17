@@ -63,22 +63,13 @@ export function LandingHeader() {
           className="flex items-center gap-2 font-bold text-lg tracking-tight text-foreground"
         >
           <Image
-            src="/logo/icon-light.svg"
+            src="/logo/rhl-mark.svg"
             width={24}
-            height={24}
+            height={22}
             alt="Renderhane"
             priority
             unoptimized
-            className="size-6 dark:hidden"
-          />
-          <Image
-            src="/logo/icon-dark.svg"
-            width={24}
-            height={24}
-            alt="Renderhane"
-            priority
-            unoptimized
-            className="hidden size-6 dark:block"
+            className="size-6"
           />
           <span>{tc("appName")}</span>
         </Link>
