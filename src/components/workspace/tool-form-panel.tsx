@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,22 @@ import {
 import { showToast } from "./workspace-toast";
 import type { PromptContext } from "@/lib/prompts/presets";
 import { smartDefaultsFor, primaryToolTarget } from "@/lib/analysis/product-intel";
+import { parseSRT, estimateSrtCredits } from "@/lib/voiceover/srt";
+import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
+import {
+  SRT_VOICES,
+  SRT_EMOTIONS,
+  SRT_ENGINES,
+  SRT_MODES,
+  XAI_VOICES,
+  DEFAULT_SRT_VOICE,
+  DEFAULT_XAI_VOICE,
+  DEFAULT_SRT_EMOTION,
+  DEFAULT_SRT_SPEED,
+  MAX_SYNC_CHARS,
+  MAX_SYNC_CUES,
+} from "@/lib/voiceover/voices";
+import { SrtVoiceoverResult, type SrtVoiceoverTrack } from "./srt-voiceover-result";
 
 /* ═══════════════════════════════════════════════
    AI Model & Tab configs
@@ -49,6 +65,7 @@ const AI_MODELS_3D = [
   { id: "trellis-v1", name: "TRELLIS v1", credits: 5, time: "~15 sn", tier: "fast" },
   { id: "tripo-2.5", name: "Tripo 2.5", credits: 30, time: "~30 sn", tier: "fast" },
   { id: "meshy-6", name: "Meshy 6", credits: 55, time: "~2 dk", tier: "standard" },
+  { id: "meshy-v7", name: "Meshy 7 — Premium", credits: 80, time: "~3 dk", tier: "premium" },
   { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 28, time: "~3 dk", tier: "standard" },
   { id: "rodin", name: "Rodin Premium", credits: 35, time: "~2 dk", tier: "premium" },
 ];
@@ -72,6 +89,8 @@ const EDIT_MODELS: PickerModel[] = [
 
 const TEXT_MODELS: PickerModel[] = [
   { id: "flux-2-pro", name: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
+  { id: "qwen-image-3", name: "Qwen Image 3 — Tipografi", credits: 5, time: "~12 sn", modelKey: "qwen-image-3", tier: "standard" },
+  { id: "gpt-image-25-flare", name: "GPT-Image 2.5 — En İyi Yazı", credits: 8, time: "~15 sn", modelKey: "gpt-image-25-flare", tier: "premium" },
   { id: "nano-banana-pro", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~12 sn", modelKey: "nano-banana-pro", tier: "premium" },
 ];
 
@@ -82,25 +101,35 @@ const SCENE_MODELS: PickerModel[] = [
 
 const VIDEO_MODELS = [
   { id: "wan-v2.6", name: "Wan 2.7", credits: 35, time: "~2 dk", tier: "fast" },
+  { id: "wan-3", name: "Wan 3.0 — Sesli", credits: 40, time: "~2 dk", tier: "premium" },
   { id: "kling-o3", name: "Kling O3 Pro", credits: 40, time: "~2 dk", tier: "premium" },
+];
+
+const AVATAR_MODELS: PickerModel[] = [
+  { id: "omnihuman", name: "OmniHuman v1.5", credits: 100, time: "~2 dk", modelKey: "omnihuman", tier: "standard" },
+  { id: "kling-avatar-v2-std", name: "Kling Avatar v2 — Ekonomik", credits: 35, time: "~2 dk", modelKey: "kling-avatar-v2-std", tier: "standard" },
+  { id: "kling-avatar-v2-pro", name: "Kling Avatar v2 Pro", credits: 75, time: "~2 dk", modelKey: "kling-avatar-v2-pro", tier: "standard" },
+  { id: "sync-lipsync-v3", name: "Sync v3 Lip-Sync", credits: 85, time: "~2 dk", modelKey: "sync-lipsync-v3", tier: "standard" },
 ];
 
 const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
   "image-to-video": { model: "Wan 2.7", credits: 35, time: "~2 dk" },
   "text-to-video": { model: "Kling O3 Pro", credits: 40, time: "~2 dk" },
   "talking-avatar": { model: "OmniHuman v1.5", credits: 100, time: "~2 dk" },
+  "srt-voiceover": { model: "MiniMax HD", credits: 4, time: "~1 dk" },
 };
 
 const TABS_VIDEO = [
   { id: "image-to-video", label: "Görsel", icon: Film },
   { id: "text-to-video", label: "Metin", icon: Type },
   { id: "talking-avatar", label: "Avatar", icon: User },
+  { id: "srt-voiceover", label: "Seslendir", icon: Mic },
 ];
 
 const ECOMMERCE_TOOL_INFO: Record<string, { model: string; credits: number; time: string }> = {
   "scene": { model: "Bria Product Shot", credits: 8, time: "~15 sn" },
   "aplus": { model: "Bria Product Shot HD", credits: 8, time: "~20 sn" },
-  "virtual-tryon": { model: "IDM-VTON", credits: 10, time: "~25 sn" },
+  "virtual-tryon": { model: "FASHN v1.6", credits: 10, time: "~15 sn" },
 };
 
 const TABS_ECOMMERCE = [
@@ -220,6 +249,7 @@ const TAB_TO_API_TOOL: Record<string, string> = {
   "image-to-video": "video",
   "text-to-video": "video",
   "talking-avatar": "talking-avatar",
+  "srt-voiceover": "srt-voiceover",
   // E-commerce
   "scene": "scene",
   "aplus": "aplus",
@@ -234,6 +264,7 @@ const MODEL_TO_TIER: Record<string, string> = {
   "trellis-v1": "fast",
   "tripo-2.5": "fast",
   "meshy-6": "standard",
+  "meshy-v7": "premium",
   "hunyuan3d-v3": "standard",
   "rodin": "premium",
 };
@@ -245,6 +276,7 @@ const MODEL_TO_KEY: Record<string, string> = {
   "trellis-v1": "trellis-v1",
   "tripo-2.5": "tripo-v25-mv",
   "meshy-6": "meshy-6-image",
+  "meshy-v7": "meshy-v7",
   "hunyuan3d-v3": "hunyuan3d-v3",
   "rodin": "hyper3d-rodin",
 };
@@ -252,12 +284,14 @@ const MODEL_TO_KEY: Record<string, string> = {
 /** Map video model select IDs to API tier */
 const VIDEO_MODEL_TO_TIER: Record<string, string> = {
   "wan-v2.6": "fast",
+  "wan-3": "premium",
   "kling-o3": "premium",
 };
 
 /** Map video model select IDs (image-to-video tab) to MODELS keys. */
 const VIDEO_MODEL_TO_KEY: Record<string, string> = {
   "wan-v2.6": "wan-i2v",
+  "wan-3": "wan-3",
   "kling-o3": "kling-o3-i2v",
 };
 
@@ -387,6 +421,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [editStyleStrength, setEditStyleStrength] = useState("medium");
   const [editAspect, setEditAspect] = useState("1:1");
   const [selectedVideoModel, setSelectedVideoModel] = useState("wan-v2.6");
+  const [selectedAvatarModel, setSelectedAvatarModel] = useState("omnihuman");
+  const [avatarScript, setAvatarScript] = useState("");
+  const [avatarVoice, setAvatarVoice] = useState(DEFAULT_SRT_VOICE);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [selectedEditModel, setSelectedEditModel] = useState("flux-kontext");
   const [selectedTextModel, setSelectedTextModel] = useState("flux-2-pro");
   const [selectedSceneModel, setSelectedSceneModel] = useState("bria-product-shot");
@@ -422,6 +460,31 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [modelPhotoUploading, setModelPhotoUploading] = useState(false);
   const modelPhotoInputRef = useRef<HTMLInputElement>(null);
 
+  // SRT voiceover (dedicated sync endpoint — generic job akışını kullanmaz)
+  const [srtText, setSrtText] = useState("");
+  const [srtFileName, setSrtFileName] = useState<string | null>(null);
+  const [srtVoice, setSrtVoice] = useState(DEFAULT_SRT_VOICE);
+  const [srtXaiVoice, setSrtXaiVoice] = useState(DEFAULT_XAI_VOICE);
+  const [srtEngine, setSrtEngine] = useState<"minimax" | "xai">("minimax");
+  const [srtMode, setSrtMode] = useState<"single" | "cues">("single");
+  const [srtEmotion, setSrtEmotion] = useState<string>(DEFAULT_SRT_EMOTION);
+  const [srtSpeed, setSrtSpeed] = useState(DEFAULT_SRT_SPEED);
+  const [srtAutoFit, setSrtAutoFit] = useState(true);
+  const [srtBusy, setSrtBusy] = useState(false);
+  const [srtResult, setSrtResult] = useState<{
+    jobId: string;
+    creditCost: number;
+    tracks: SrtVoiceoverTrack[];
+    totalMs: number;
+    overflowCount: number;
+    refitCount: number;
+    mode: "single" | "cues";
+    audioUrl: string;
+    audioDurationMs: number;
+    fitPasses: number;
+  } | null>(null);
+  const srtFileInputRef = useRef<HTMLInputElement>(null);
+
   // Reset active tab when tool category changes
   useEffect(() => {
     // On first mount with deep-linked tab, skip reset
@@ -455,6 +518,15 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     setModelPhotoPreview(null);
     setModelPhotoUrl(null);
     setModelPhotoUploading(false);
+    // Clear SRT voiceover state
+    setSrtText("");
+    setSrtFileName(null);
+    setSrtResult(null);
+    setSrtBusy(false);
+    setSrtAutoFit(true);
+    // Clear talking-avatar state
+    setAvatarScript("");
+    setAvatarBusy(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool]);
 
@@ -469,10 +541,35 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
 
   const currentModel3D = AI_MODELS_3D.find((m) => m.id === selectedModel) ?? AI_MODELS_3D[0];
   const currentVideoModel = VIDEO_MODELS.find((m) => m.id === selectedVideoModel) ?? VIDEO_MODELS[0];
+  const currentAvatarModel = AVATAR_MODELS.find((m) => m.id === selectedAvatarModel) ?? AVATAR_MODELS[0];
   const currentEditModel = EDIT_MODELS.find((m) => m.id === selectedEditModel) ?? EDIT_MODELS[0];
   const currentTextModel = TEXT_MODELS.find((m) => m.id === selectedTextModel) ?? TEXT_MODELS[0];
   const currentSceneModel = SCENE_MODELS.find((m) => m.id === selectedSceneModel) ?? SCENE_MODELS[0];
   const tabs = DEFAULT_TABS[activeTool];
+
+  // SRT önizleme — istemcide parse edilir, ücretlendirme öncesi gösterilir
+  const srtPreview = useMemo(() => {
+    if (activeTab !== "srt-voiceover" || !srtText.trim()) return null;
+    try {
+      const cues = parseSRT(srtText);
+      const chars = cues.reduce((sum, c) => sum + c.text.length, 0);
+      return {
+        cues: cues.length,
+        chars,
+        credits: estimateSrtCredits(chars, srtEngine),
+        overCap: cues.length > MAX_SYNC_CUES || chars > MAX_SYNC_CHARS,
+        error: null as string | null,
+      };
+    } catch (error) {
+      return {
+        cues: 0,
+        chars: 0,
+        credits: 0,
+        overCap: false,
+        error: error instanceof Error ? error.message : "Geçersiz SRT",
+      };
+    }
+  }, [activeTab, srtText, srtEngine]);
 
   // Footer info based on tool + tab
   const footerInfo = (() => {
@@ -486,14 +583,21 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       const enhanceExtra = (autoEnhance && activeTab === "img-to-3d") ? 4 : 0;
       const map: Record<string, { time: string; credits: number }> = {
         "img-to-3d": { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra },
-        "text-to-3d": { time: "~2 dk", credits: 22 },
-        "texture": { time: "~1 dk", credits: 8 },
+        // text-to-3d her zaman meshy-6-text (55kr) — backend rezervasyonu bu.
+        "text-to-3d": { time: "~2 dk", credits: 55 },
+        "texture": { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra },
       };
       return map[activeTab] ?? { time: currentModel3D.time, credits: currentModel3D.credits + enhanceExtra };
     }
     if (activeTool === "video") {
       if (activeTab === "image-to-video") {
         return { time: currentVideoModel.time, credits: currentVideoModel.credits };
+      }
+      if (activeTab === "talking-avatar") {
+        return { time: currentAvatarModel.time, credits: currentAvatarModel.credits };
+      }
+      if (activeTab === "srt-voiceover") {
+        return { time: "~1 dk", credits: srtPreview?.credits ?? 4 };
       }
       const info = VIDEO_TOOL_INFO[activeTab];
       return info ? { time: info.time, credits: info.credits } : { time: "~30 sn", credits: 20 };
@@ -627,12 +731,169 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     });
   }, [uploadToSupabase]);
 
+  /** .srt dosyasını oku → textarea'ya koy (en fazla ~20KB ham metin) */
+  const handleSrtFile = useCallback((f: File) => {
+    if (f.size > 64 * 1024) {
+      showToast("SRT dosyası çok büyük (en fazla 64KB)", "error");
+      return;
+    }
+    f.text().then((text) => {
+      setSrtText(text);
+      setSrtFileName(f.name);
+      setSrtResult(null);
+    }).catch(() => showToast("Dosya okunamadı", "error"));
+  }, []);
+
+  const handleSrtGenerate = async () => {
+    if (srtBusy) return;
+    if (!srtText.trim()) {
+      showToast("Önce SRT yapıştır veya dosya yükle", "error");
+      return;
+    }
+    if (srtPreview?.error) {
+      showToast(`SRT hatası: ${srtPreview.error}`, "error");
+      return;
+    }
+    if (srtPreview?.overCap) {
+      showToast(`Çok uzun (en fazla ${MAX_SYNC_CUES} replik / ${MAX_SYNC_CHARS} karakter) — dosyayı böl`, "error");
+      return;
+    }
+    setSrtBusy(true);
+    try {
+      const res = await fetch("/api/jobs/submit-srt-voiceover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          srt: srtText,
+          voiceId: srtVoice,
+          emotion: srtEmotion,
+          speed: srtSpeed,
+          autoFit: srtAutoFit && srtEngine === "minimax",
+          engine: srtEngine,
+          xaiVoiceId: srtXaiVoice,
+          mode: srtMode,
+        }),
+      });
+      if (res.status === 402) {
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
+        showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
+        return;
+      }
+      if (res.status === 429) {
+        showToast("Çok hızlı! Lütfen biraz bekle.", "error");
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        showToast(
+          typeof data?.errorTr === "string" && data.errorTr
+            ? data.errorTr
+            : typeof data?.error === "string" && data.error
+              ? data.error
+              : "Seslendirme başlatılamadı. Tekrar dene.",
+          "error"
+        );
+        return;
+      }
+      setSrtResult({
+        jobId: data.jobId,
+        creditCost: data.creditCost,
+        tracks: data.tracks,
+        totalMs: data.totalMs,
+        overflowCount: data.overflowCount,
+        refitCount: typeof data.refitCount === "number" ? data.refitCount : 0,
+        mode: data.mode === "cues" ? "cues" : "single",
+        audioUrl: typeof data.audioUrl === "string" ? data.audioUrl : "",
+        audioDurationMs: typeof data.audioDurationMs === "number" ? data.audioDurationMs : 0,
+        fitPasses: typeof data.fitPasses === "number" ? data.fitPasses : 1,
+      });
+      window.dispatchEvent(new Event("job-submitted"));
+      showToast(`Seslendirme hazır (${data.creditCost} kredi)`, "success");
+    } catch {
+      showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
+    } finally {
+      setSrtBusy(false);
+    }
+  };
+
+  const handleAvatarGenerate = async () => {
+    if (avatarBusy) return;
+    if (!uploadedImageUrl) {
+      showToast("Lütfen önce bir avatar görseli yükle", "error");
+      return;
+    }
+    const script = avatarScript.trim();
+    if (!script) {
+      showToast("Lütfen konuşma metni yaz", "error");
+      return;
+    }
+    if (script.length > MAX_AVATAR_SCRIPT_CHARS) {
+      showToast(`Metin çok uzun (en fazla ${MAX_AVATAR_SCRIPT_CHARS} karakter)`, "error");
+      return;
+    }
+    if (uploading) {
+      showToast("Yükleme devam ediyor, lütfen bekle", "error");
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      const res = await fetch("/api/jobs/submit-talking-avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: uploadedImageUrl,
+          script,
+          voiceId: avatarVoice,
+          modelKey: currentAvatarModel.modelKey,
+        }),
+      });
+      if (res.status === 402) {
+        window.dispatchEvent(new CustomEvent("show-upgrade"));
+        showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
+        return;
+      }
+      if (res.status === 429) {
+        showToast("Çok hızlı! Lütfen biraz bekle.", "error");
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        showToast(
+          typeof data?.errorTr === "string" && data.errorTr
+            ? data.errorTr
+            : typeof data?.error === "string" && data.error
+              ? data.error
+              : "Avatar üretimi başlatılamadı. Tekrar dene.",
+          "error"
+        );
+        return;
+      }
+      window.dispatchEvent(new Event("job-submitted"));
+      showToast("Avatar üretimi başlatıldı!", "success");
+    } catch {
+      showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   const handleGenerate = () => {
+    // SRT voiceover uses its dedicated sync endpoint (per-cue TTS + R2),
+    // not the generic /api/jobs/submit queue.
+    if (activeTab === "srt-voiceover") {
+      void handleSrtGenerate();
+      return;
+    }
+    // Talking avatar uses its dedicated TTS -> video endpoint.
+    if (activeTab === "talking-avatar") {
+      void handleAvatarGenerate();
+      return;
+    }
     const name = projectName.trim() || "Yeni Proje";
     const apiTool = TAB_TO_API_TOOL[activeTab] ?? activeTool;
 
     // --- Validation ---
-    const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code"];
+    const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code", "srt-voiceover"];
     const needsImage = !textOnlyTabs.includes(activeTab);
     const needsPrompt = ["text-to-3d", "text-to-image", "text-to-video", "object-removal"].includes(activeTab);
 
@@ -785,9 +1046,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         payload.credits = info?.credits ?? 6;
       }
     } else if (activeTab === "text-to-3d") {
-      // text-to-3d always uses meshy-6-text (standard tier)
+      // text-to-3d always uses meshy-6-text (standard tier, 55kr backend)
       payload.model = "Meshy 6";
-      payload.credits = 22;
+      payload.credits = 55;
       payload.tier = "standard";
     } else {
       // 3D model (img-to-3d, texture)
@@ -1121,7 +1382,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 defaultValue="meshy-6"
                 className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50"
               >
-                <option value="meshy-6">Meshy 6 — 22 kr</option>
+                <option value="meshy-6">Meshy 6 — 55 kr</option>
               </select>
             </div>
 
@@ -1683,20 +1944,239 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
 
         {/* Konuşan Avatar */}
         {activeTab === "talking-avatar" && (
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Mic className="h-7 w-7 text-primary/60" />
-            </div>
-            <div className="space-y-1.5 px-4">
-              <div className="flex items-center justify-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground">Konuşan Avatar</h3>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">Yakında</Badge>
+          <>
+            {renderImageUpload("Avatar fotoğrafını yükle", "Yüz net görünsün • PNG, JPG, WebP")}
+
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">Konuşma Metni</Label>
+                <span className="text-[10px] text-muted-foreground">{avatarScript.trim().length}/{MAX_AVATAR_SCRIPT_CHARS}</span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Metin-ses dönüşümü (TTS) pipeline&apos;ı hazırlanıyor. Fotoğraftan konuşan avatar videosu oluşturma özelliği yakında aktif olacak.
+              <Textarea
+                value={avatarScript}
+                onChange={(e) => setAvatarScript(e.target.value)}
+                placeholder="Avatarın söylemesini istediğin metin...&#10;&#10;ör: Merhaba! Yeni koleksiyonumuz mağazada."
+                className="mt-1.5 min-h-[100px] text-sm bg-background/50 resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Ses</Label>
+                <select
+                  value={avatarVoice}
+                  onChange={(e) => setAvatarVoice(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {SRT_VOICES.map((v) => (
+                    <option key={v.id} value={v.id}>{v.labelTr}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Model</Label>
+                <select
+                  value={selectedAvatarModel}
+                  onChange={(e) => setSelectedAvatarModel(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {AVATAR_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.credits} kr</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Mic className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">{currentAvatarModel.name}</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">{currentAvatarModel.credits} kredi</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Metin MiniMax ile doğal sese çevrilir, fotoğrafın konuşur. Sonuç galeride video olarak belirir.
               </p>
             </div>
-          </div>
+          </>
+        )}
+
+        {/* SRT Seslendirme */}
+        {activeTab === "srt-voiceover" && (
+          <>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium text-muted-foreground">SRT Altyazı</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => srtFileInputRef.current?.click()}
+                >
+                  <FolderUp className="h-3 w-3 mr-1" />
+                  {srtFileName ?? "Dosya yükle"}
+                </Button>
+                <input
+                  ref={srtFileInputRef}
+                  type="file"
+                  accept=".srt,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleSrtFile(f);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+              <Textarea
+                value={srtText}
+                onChange={(e) => {
+                  setSrtText(e.target.value);
+                  setSrtFileName(null);
+                  setSrtResult(null);
+                }}
+                placeholder={"1\n00:00:01,000 --> 00:00:03,500\nMerhaba, hoş geldiniz.\n\n2\n00:00:04,000 --> 00:00:06,000\nBugün harika bir gün."}
+                className="mt-1.5 min-h-[140px] text-xs font-mono bg-background/50 resize-y"
+              />
+              {srtPreview && !srtPreview.error && (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {srtPreview.cues} replik • {srtPreview.chars} karakter • ~{srtPreview.credits} kredi
+                  {srtPreview.overCap && (
+                    <span className="text-amber-600"> — anlık işlem için çok uzun, dosyayı böl</span>
+                  )}
+                </p>
+              )}
+              {srtPreview?.error && (
+                <p className="mt-1 text-[10px] text-destructive">SRT hatası: {srtPreview.error}</p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Çıktı</Label>
+              <select
+                value={srtMode}
+                onChange={(e) => setSrtMode(e.target.value as "single" | "cues")}
+                className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+              >
+                {SRT_MODES.map((m) => (
+                  <option key={m.id} value={m.id}>{m.labelTr}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-muted-foreground/70">
+                {srtMode === "single"
+                  ? "Tek çağrı, tek dosya — galeride doğrudan çalar."
+                  : "Her replik ayrı seslendirilir, zaman çizelgesine dizilir."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Motor</Label>
+                <select
+                  value={srtEngine}
+                  onChange={(e) => setSrtEngine(e.target.value as "minimax" | "xai")}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {SRT_ENGINES.map((m) => (
+                    <option key={m.id} value={m.id}>{m.labelTr}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Ses</Label>
+                <select
+                  value={srtEngine === "xai" ? srtXaiVoice : srtVoice}
+                  onChange={(e) => (srtEngine === "xai" ? setSrtXaiVoice(e.target.value) : setSrtVoice(e.target.value))}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {(srtEngine === "xai" ? XAI_VOICES : SRT_VOICES).map((v) => (
+                    <option key={v.id} value={v.id}>{v.labelTr}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {srtEngine === "minimax" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Duygu</Label>
+                <select
+                  value={srtEmotion}
+                  onChange={(e) => setSrtEmotion(e.target.value)}
+                  className="mt-1.5 h-8 w-full rounded-md border border-input bg-background/50 px-2 text-xs text-foreground outline-none focus:border-ring"
+                >
+                  {SRT_EMOTIONS.map((e) => (
+                    <option key={e} value={e}>{e}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Hız</Label>
+                  <span className="text-[10px] text-muted-foreground">{srtSpeed.toFixed(1)}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.8}
+                  max={1.2}
+                  step={0.1}
+                  value={srtSpeed}
+                  onChange={(e) => setSrtSpeed(Number(e.target.value))}
+                  className="mt-1.5 w-full accent-primary"
+                />
+              </div>
+            </div>
+            )}
+
+            {srtEngine === "xai" && (
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Ekonomi modu: duygu/hız ve otomatik sığdırma yok, süre ölçümü yapılmaz.
+              </p>
+            )}
+
+            {srtMode === "cues" && (
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Zamana otomatik oturt</Label>
+                <p className="text-[10px] text-muted-foreground/70">
+                  {srtEngine === "xai" ? "Yalnızca MiniMax motorunda" : "Taşan replik en fazla 1.3x hızlanır"}
+                </p>
+              </div>
+              <Switch checked={srtAutoFit && srtEngine === "minimax"} onCheckedChange={setSrtAutoFit} disabled={srtEngine === "xai"} />
+            </div>
+            )}
+
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Mic className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-foreground">{srtEngine === "xai" ? "xAI • Ekonomi" : "MiniMax 2.8 • Türkçe"}</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">{srtEngine === "xai" ? "ekonomi" : "doğal ses"}</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                {srtMode === "single"
+                  ? "Tek çağrı, tek dosya — galeride doğrudan çalar. Süre SRT'ye oturtulur."
+                  : "Her replik ayrı seslendirilir, SRT zamanlarına dizilir. Ses asla kesilmez; slota sığmayan replik işaretlenir."}
+              </p>
+            </div>
+
+            {srtResult && (
+              <SrtVoiceoverResult
+                tracks={srtResult.tracks}
+                totalMs={srtResult.totalMs}
+                overflowCount={srtResult.overflowCount}
+                refitCount={srtResult.refitCount}
+                jobId={srtResult.jobId}
+                mode={srtResult.mode}
+                audioUrl={srtResult.audioUrl}
+                audioDurationMs={srtResult.audioDurationMs}
+                fitPasses={srtResult.fitPasses}
+              />
+            )}
+          </>
         )}
 
         {/* ═══════════════════════════════════════
@@ -2141,14 +2621,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           className="w-full h-9 font-semibold"
           size="sm"
           onClick={handleGenerate}
-          disabled={uploading || modelPhotoUploading || activeTab === "talking-avatar" || activeTab.startsWith("batch-")}
+          disabled={uploading || modelPhotoUploading || srtBusy || avatarBusy || activeTab.startsWith("batch-")}
         >
-          {uploading || modelPhotoUploading ? (
+          {uploading || modelPhotoUploading || srtBusy || avatarBusy ? (
             <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-1.5" />
           )}
-          {activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
+          {activeTab === "srt-voiceover" ? (srtBusy ? "Seslendiriliyor..." : "Seslendir") : activeTab === "talking-avatar" ? (avatarBusy ? "Üretiliyor..." : "Avatar Üret") : activeTool === "image" ? "İşle" : activeTool === "video" ? "Video Üret" : activeTool === "ecommerce" ? "Oluştur" : activeTool === "design" ? "Tasarla" : activeTool === "batch" ? "Toplu İşle" : "Üret"}
         </Button>
       </div>
     </div>

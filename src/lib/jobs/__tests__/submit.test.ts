@@ -131,7 +131,7 @@ describe("submitJob credit ordering", () => {
     });
     mocks.subscribe.mockImplementation(async (modelId, input, options) => {
       mocks.events.push(`subscribe:${modelId}`);
-      const requestId = modelId === "fal-ai/f5-tts" ? "fal-tts-1" : "fal-preprocess-1";
+      const requestId = modelId === "fal-ai/minimax/speech-2.8-hd" ? "fal-tts-1" : "fal-preprocess-1";
       await options?.onEnqueue?.(requestId);
       return {
         requestId,
@@ -181,7 +181,7 @@ describe("submitJob credit ordering", () => {
     expect(mocks.events).toEqual([
       "job-insert",
       `reserve:${MODELS.omnihuman.creditCost}`,
-      "subscribe:fal-ai/f5-tts",
+      "subscribe:fal-ai/minimax/speech-2.8-hd",
       "atomic-fail",
     ]);
     expect(mocks.failJobAndRefund).toHaveBeenCalledWith({
@@ -239,7 +239,7 @@ describe("submitJob credit ordering", () => {
         await options?.onEnqueue?.("fal-tts-cancel-race");
         return {
           requestId: "fal-tts-cancel-race",
-          data: { audio_url: { url: "https://fal.media/voice.wav" } },
+          data: { audio: { url: "https://fal.media/voice.mp3" } },
         };
       }
     );
@@ -291,12 +291,12 @@ describe("submitJob credit ordering", () => {
           args: [
             "original_request",
             {
-              providerReconciliation: {
-                stage: "tts",
-                endpointId: "fal-ai/f5-tts",
-                state: "accepted",
-                requestId: "fal-tts-cancel-race",
-              },
+            providerReconciliation: {
+              stage: "tts",
+              endpointId: "fal-ai/minimax/speech-2.8-hd",
+              state: "accepted",
+              requestId: "fal-tts-cancel-race",
+            },
             },
           ],
         },

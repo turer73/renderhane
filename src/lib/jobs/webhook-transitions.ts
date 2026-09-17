@@ -13,7 +13,7 @@ export interface WebhookCompletion {
   outputId: string | null;
   userId: string;
   projectId: string | null;
-  outputType: "glb" | "image" | "video" | null;
+  outputType: "glb" | "image" | "video" | "audio" | null;
   r2Url: string | null;
 }
 
@@ -22,7 +22,7 @@ interface CompletionRow {
   output_id: string | null;
   result_user_id: string;
   result_project_id: string | null;
-  result_output_type: "glb" | "image" | "video" | null;
+  result_output_type: "glb" | "image" | "video" | "audio" | null;
   result_r2_url: string | null;
 }
 

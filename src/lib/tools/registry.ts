@@ -15,12 +15,15 @@ export type ToolId =
   | "enhance"
   | "video"
   | "image-edit"
+  | "inpainting"
+  | "object-removal"
   | "social-kit"
   | "text-to-image"
   | "talking-avatar"
   | "logo"
   | "qr-code"
-  | "virtual-tryon";
+  | "virtual-tryon"
+  | "srt-voiceover";
 
 export type InputType =
   | "single-image"       // 1 image upload
@@ -102,7 +105,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "📦",
     gradient: "from-blue-500/10 to-blue-500/5",
     border: "border-blue-200 hover:border-blue-400 dark:border-blue-800 dark:hover:border-blue-600",
-    creditCost: "2-40",
+    creditCost: "4-40",
     inputType: "multi-image",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/workspace?tool=3d-model",
@@ -115,7 +118,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "✨",
     gradient: "from-cyan-500/10 to-cyan-500/5",
     border: "border-cyan-200 hover:border-cyan-400 dark:border-cyan-800 dark:hover:border-cyan-600",
-    creditCost: 4,
+    creditCost: 3,
     inputType: "single-image",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/workspace?tool=enhance",
@@ -128,7 +131,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "🎬",
     gradient: "from-pink-500/10 to-pink-500/5",
     border: "border-pink-200 hover:border-pink-400 dark:border-pink-800 dark:hover:border-pink-600",
-    creditCost: "20-25",
+    creditCost: 35,
     inputType: "image-text",
     segments: ["ecommerce"],
     href: "/app/workspace?tool=video",
@@ -151,6 +154,34 @@ export const TOOLS: ToolDefinition[] = [
     descriptionKey: "imageEditDesc",
   },
   {
+    // Backend hazır (flux-fill), workspace sekmesi henüz yok.
+    id: "inpainting",
+    i18nKey: "inpainting",
+    icon: "🩹",
+    gradient: "from-lime-500/10 to-lime-500/5",
+    border: "border-lime-200 hover:border-lime-400 dark:border-lime-800 dark:hover:border-lime-600",
+    creditCost: 6,
+    inputType: "image-text",
+    segments: ["ecommerce", "gaming", "3dprint"],
+    href: "/app/workspace?tool=inpainting",
+    ready: false,
+    descriptionKey: "inpaintingDesc",
+  },
+  {
+    // Backend hazır (object-removal), workspace sekmesi henüz yok.
+    id: "object-removal",
+    i18nKey: "objectRemoval",
+    icon: "🧽",
+    gradient: "from-stone-500/10 to-stone-500/5",
+    border: "border-stone-200 hover:border-stone-400 dark:border-stone-800 dark:hover:border-stone-600",
+    creditCost: 3,
+    inputType: "image-text",
+    segments: ["ecommerce", "gaming", "3dprint"],
+    href: "/app/workspace?tool=object-removal",
+    ready: false,
+    descriptionKey: "objectRemovalDesc",
+  },
+  {
     id: "social-kit",
     i18nKey: "socialKit",
     icon: "📱",
@@ -169,7 +200,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "🖼️",
     gradient: "from-emerald-500/10 to-emerald-500/5",
     border: "border-emerald-200 hover:border-emerald-400 dark:border-emerald-800 dark:hover:border-emerald-600",
-    creditCost: "2-4",
+    creditCost: "2-18",
     inputType: "text-only",
     segments: ["ecommerce", "gaming", "3dprint"],
     href: "/app/workspace?tool=text-to-image",
@@ -182,7 +213,7 @@ export const TOOLS: ToolDefinition[] = [
     icon: "🗣️",
     gradient: "from-purple-500/10 to-purple-500/5",
     border: "border-purple-200 hover:border-purple-400 dark:border-purple-800 dark:hover:border-purple-600",
-    creditCost: 25,
+    creditCost: 100,
     inputType: "image-text-audio",
     segments: ["ecommerce"],
     href: "/app/workspace?tool=talking-avatar",
@@ -221,12 +252,26 @@ export const TOOLS: ToolDefinition[] = [
     icon: "📷",
     gradient: "from-slate-500/10 to-slate-500/5",
     border: "border-slate-200 hover:border-slate-400 dark:border-slate-800 dark:hover:border-slate-600",
-    creditCost: "0-6",
+    creditCost: 6,
     inputType: "text-only",
     segments: ["ecommerce"],
     href: "/app/workspace?tool=qr-code",
     ready: true,
     descriptionKey: "qrCodeDesc",
+  },
+  {
+    // Workspace "Seslendir" sekmesi (video grubu) + /api/jobs/submit-srt-voiceover.
+    id: "srt-voiceover",
+    i18nKey: "srtVoiceover",
+    icon: "🎙️",
+    gradient: "from-sky-500/10 to-sky-500/5",
+    border: "border-sky-200 hover:border-sky-400 dark:border-sky-800 dark:hover:border-sky-600",
+    creditCost: 4,
+    inputType: "text-only",
+    segments: ["ecommerce"],
+    href: "/app/workspace?tool=srt-voiceover",
+    ready: true,
+    descriptionKey: "srtVoiceoverDesc",
   },
 ];
 

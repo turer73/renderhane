@@ -9,6 +9,14 @@ import type { ToolType } from "@/lib/fal/models";
 export const maxDuration = 60;
 
 /**
+ * jobs.model_id stores the fal endpoint ID (e.g. "fal-ai/triposr"), while
+ * MODELS is keyed by short key ("triposr"). Reverse map once for lookups.
+ */
+const MODEL_KEY_BY_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(MODELS).map(([key, model]) => [model.id, key])
+);
+
+/**
  * POST /api/jobs/:id/regenerate
  * Re-submits a job using the stored original_request (pre-processing params).
  * Falls back to extracting from input_params for legacy jobs without original_request.
@@ -52,6 +60,14 @@ export async function POST(
   }
 
   const tool = job.tool as ToolType;
+  // srt-voiceover orijinal isteği (SRT + ses) bu hattın prompt/image kalıbına
+  // uymaz — sessiz fal 422 yerine açık hata dön, kullanıcı Seslendir sekmesine gitsin.
+  if (tool === "srt-voiceover") {
+    return NextResponse.json(
+      { error: "Regenerate is not supported for SRT voiceover — use the Seslendir tab." },
+      { status: 400 }
+    );
+  }
   const originalReq = (job.original_request ?? {}) as Record<string, unknown>;
   const hasOriginal = Object.keys(originalReq).length > 0;
 
@@ -78,7 +94,7 @@ export async function POST(
     // ── Fallback: extract from input_params (legacy jobs without original_request) ──
     const modelId = job.model_id as string;
     const inputParams = (job.input_params ?? {}) as Record<string, unknown>;
-    const model = MODELS[modelId];
+    const model = MODELS[MODEL_KEY_BY_ID[modelId] ?? modelId];
 
     if (model) {
       const imgKey = model.imageParamKey;
@@ -152,11 +168,10 @@ export async function POST(
   }
 }
 
-/** Best-effort reverse lookup for legacy jobs: model_id → tier */
+/** Best-effort reverse lookup for legacy jobs: fal endpoint ID → tier */
 function reverseLookupTier(modelId: string): "fast" | "standard" | "premium" {
-  const FAST = ["triposr", "tripo-v25-mv", "flux-schnell"];
-  const PREMIUM = ["hunyuan3d-v31-pro", "hyper3d-rodin", "flux-pro", "flux-kontext-max"];
-  if (FAST.includes(modelId)) return "fast";
-  if (PREMIUM.includes(modelId)) return "premium";
+  const modelKey = MODEL_KEY_BY_ID[modelId];
+  const model = modelKey ? MODELS[modelKey] : undefined;
+  if (model) return model.tier;
   return "standard";
 }

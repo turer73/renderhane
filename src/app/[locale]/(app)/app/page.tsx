@@ -14,8 +14,13 @@ import {
 /** Map tool/tab IDs from registry to workspace category */
 const TOOL_TO_CATEGORY: Record<string, string> = {
   "3d-model": "3d-model",
+  "img-to-3d": "3d-model",
+  "text-to-3d": "3d-model",
+  texture: "3d-model",
   image: "image",
   video: "video",
+  "image-to-video": "video",
+  "text-to-video": "video",
   ecommerce: "ecommerce",
   design: "design",
   batch: "batch",
@@ -23,18 +28,25 @@ const TOOL_TO_CATEGORY: Record<string, string> = {
   enhance: "image",
   "text-to-image": "image",
   "image-edit": "image",
+  "object-removal": "image",
+  "inpainting": "image",
   scene: "ecommerce",
   aplus: "ecommerce",
   "virtual-tryon": "ecommerce",
   "social-kit": "ecommerce",
   "talking-avatar": "video",
+  "srt-voiceover": "video",
   logo: "design",
   "qr-code": "design",
 };
 
 const VALID_TABS = new Set([
+  "img-to-3d", "text-to-3d", "texture",
   "bg-remove", "enhance", "text-to-image", "image-edit",
+  "object-removal", "inpainting",
+  "image-to-video", "text-to-video",
   "scene", "aplus", "virtual-tryon", "talking-avatar",
+  "srt-voiceover",
   "logo", "qr-code",
 ]);
 

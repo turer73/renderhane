@@ -42,6 +42,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
+  // social-kit is an orchestration pipeline, not a single fal call —
+  // the generic path would 500 in smart-router. Use the dedicated endpoint.
+  if (parsed.data.tool === "social-kit") {
+    return NextResponse.json(
+      { error: "social-kit requires the dedicated /api/jobs/submit-social-kit endpoint" },
+      { status: 400 }
+    );
+  }
+
   const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, skipBgRemove, extraParams } = parsed.data;
 
   // Resolve or auto-create a project for this job

@@ -13,8 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { proxyUrl } from "@/lib/proxy-url";
 
-type OutputType = "glb" | "image" | "video";
+type OutputType = "glb" | "image" | "video" | "audio";
 
 interface DownloadMenuProps {
   url: string;
@@ -48,6 +49,11 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
   const t = useTranslations("dashboard");
   const [downloading, setDownloading] = useState<string | null>(null);
 
+  // R2 CORS vermez: indirme + dönüştürme (GLTFLoader/fetch) aynı-origin
+  // proxy üzerinden yapılır. Önizleme (ModelViewer) zaten proxy kullanıyor;
+  // menü kullanmıyordu — STL/OBJ/GLTF dönüşümleri bu yüzden patlıyordu.
+  const fetchUrl = proxyUrl(url);
+
   const formats = outputType === "glb" ? MODEL_FORMATS
     : outputType === "image" ? IMAGE_FORMATS
     : null;
@@ -57,7 +63,7 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
     if (compact) {
       return (
         <Button type="button" variant="ghost" size="icon-xs" asChild>
-          <a href={url} download target="_blank" rel="noopener noreferrer" title={t("viewResult")}>
+          <a href={fetchUrl} download target="_blank" rel="noopener noreferrer" title={t("viewResult")}>
             <DownloadIcon className="h-3 w-3" />
           </a>
         </Button>
@@ -65,7 +71,7 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
     }
     return (
       <Button type="button" variant="outline" size="sm" asChild>
-        <a href={url} download target="_blank" rel="noopener noreferrer">
+        <a href={fetchUrl} download target="_blank" rel="noopener noreferrer">
           <DownloadIcon />
           {t("viewResult")}
         </a>
@@ -77,13 +83,13 @@ export function DownloadMenu({ url, outputType, fileName = "renderhane", compact
     setDownloading(format.ext);
     try {
       if (outputType === "image") {
-        await downloadImageAs(url, format, fileName);
+        await downloadImageAs(fetchUrl, format, fileName);
       } else if (outputType === "glb") {
         if (format.ext === "glb") {
           // Direct download — no conversion needed
-          await downloadDirect(url, `${fileName}.glb`);
+          await downloadDirect(fetchUrl, `${fileName}.glb`);
         } else {
-          await downloadModelAs(url, format, fileName);
+          await downloadModelAs(fetchUrl, format, fileName);
         }
       }
     } catch (err) {
@@ -196,15 +202,30 @@ async function downloadImageAs(url: string, format: FormatOption, baseName: stri
 
 // ─── 3D model conversion via Three.js exporters ───────────
 
+// DRACO decoder CDN — ModelViewer (drei) ile birebir aynı kurulum.
+// Önizlemede açılan modelin indirmede de açılması için şart (üretilen
+// GLB'ler draco/meshopt sıkıştırmalı olabiliyor).
+const DRACO_DECODER_PATH =
+  "https://www.gstatic.com/draco/versioned/decoders/1.5.5/";
+
 async function downloadModelAs(url: string, format: FormatOption, baseName: string) {
   // Dynamic imports to avoid bundling Three.js exporters eagerly
   await import("three");
   const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+  const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
+  const { MeshoptDecoder } = await import("three/examples/jsm/libs/meshopt_decoder.module.js");
 
-  // Load the GLB
-  const gltf = await new Promise<{ scene: Group }>((resolve, reject) => {
-    new GLTFLoader().load(url, resolve, undefined, reject);
-  });
+  const loader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath(DRACO_DECODER_PATH);
+  loader.setDRACOLoader(dracoLoader);
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  try {
+    // Load the GLB
+    const gltf = await new Promise<{ scene: Group }>((resolve, reject) => {
+      loader.load(url, resolve, undefined, reject);
+    });
 
   const scene = gltf.scene;
 
@@ -239,16 +260,19 @@ async function downloadModelAs(url: string, format: FormatOption, baseName: stri
 
   triggerDownload(outputBlob, `${baseName}.${format.ext}`);
 
-  // Clean up Three.js resources
-  scene.traverse((obj) => {
-    const mesh = obj as Mesh;
-    if (mesh.isMesh) {
-      mesh.geometry?.dispose();
-      const mat = mesh.material;
-      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-      else if (mat) (mat as Material).dispose();
-    }
-  });
+    // Clean up Three.js resources
+    scene.traverse((obj) => {
+      const mesh = obj as Mesh;
+      if (mesh.isMesh) {
+        mesh.geometry?.dispose();
+        const mat = mesh.material;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else if (mat) (mat as Material).dispose();
+      }
+    });
+  } finally {
+    dracoLoader.dispose();
+  }
 }
 
 // ─── Direct download (no conversion) ──────────────────────

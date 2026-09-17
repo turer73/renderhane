@@ -68,7 +68,7 @@ export function createBoundedDownloadStream(
 export async function uploadToR2(
   falUrl: string,
   userId: string,
-  type: "glb" | "image" | "video"
+  type: "glb" | "image" | "video" | "audio"
 ): Promise<{ r2Url: string; fileSize: number }> {
   const download = await openPublicDownload(falUrl, {
     maxBytes: MAX_FILE_SIZE,
@@ -110,7 +110,7 @@ export async function uploadToR2(
 
 function getFileInfo(
   url: string,
-  type: "glb" | "image" | "video",
+  type: "glb" | "image" | "video" | "audio",
   responseContentType: string = ""
 ): { ext: string; contentType: string } {
   // Try to extract from URL
@@ -123,6 +123,14 @@ function getFileInfo(
   switch (type) {
     case "glb":
       return { ext: "glb", contentType: "model/gltf-binary" };
+    case "audio":
+      if (rct === "audio/wav" || rct === "audio/x-wav" || urlExt === "wav") {
+        return { ext: "wav", contentType: "audio/wav" };
+      }
+      if (rct === "audio/flac" || urlExt === "flac") {
+        return { ext: "flac", contentType: "audio/flac" };
+      }
+      return { ext: "mp3", contentType: "audio/mpeg" };
     case "video":
       if (rct === "video/webm" || urlExt === "webm") {
         return { ext: "webm", contentType: "video/webm" };

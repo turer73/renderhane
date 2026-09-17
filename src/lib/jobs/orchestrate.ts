@@ -108,6 +108,10 @@ interface TalkingAvatarInput extends OrchestrationInput {
   script?: string;
   /** Pre-made audio URL — skip TTS if provided */
   audioUrl?: string;
+  /** TTS voice ID (MiniMax allowlist) */
+  voiceId?: string;
+  /** Explicit avatar model key (omnihuman default) */
+  modelKey?: string;
 }
 
 export async function orchestrateTalkingAvatar(
@@ -138,8 +142,10 @@ export async function orchestrateTalkingAvatar(
   const result = await submitJob({
     userId,
     tool: "talking-avatar",
+    modelKey: input.modelKey,
     imageUrl,
     script,
+    voiceId: input.voiceId,
     audioUrl,
   });
 

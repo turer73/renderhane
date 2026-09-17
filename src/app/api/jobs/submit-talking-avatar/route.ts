@@ -2,15 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { MODELS, MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
+import { MODELS, TOOL_MODELS, MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
 import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
+import { isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 
 // TTS (~5s) + video submission — needs extended timeout
 export const maxDuration = 60;
 
-// Hardcoded 25 MODELS ile senkron kopmuştu — tek kaynak MODELS.
-const AVATAR_CREDITS = MODELS["omnihuman"].creditCost;
+// Tek kaynak MODELS — modelKey'e göre dinamik (omnihuman 100 varsayılan).
+const DEFAULT_AVATAR_MODEL = "omnihuman";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -38,9 +39,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { imageUrl, script, audioUrl } = body;
+  const { imageUrl, script, audioUrl, voiceId, modelKey } = body;
   const scriptText = typeof script === "string" && script.trim() ? script : undefined;
   const audioUrlText = typeof audioUrl === "string" && audioUrl.trim() ? audioUrl : undefined;
+  const voice = typeof voiceId === "string" && isAllowedVoice(voiceId) ? voiceId : DEFAULT_SRT_VOICE;
+  const avatarModel =
+    typeof modelKey === "string" && (TOOL_MODELS["talking-avatar"] as string[]).includes(modelKey)
+      ? modelKey
+      : DEFAULT_AVATAR_MODEL;
+  const avatarCredits = MODELS[avatarModel].creditCost;
 
   // Validate avatar image
   const urlError = validateImageUrl(imageUrl);
@@ -73,7 +80,7 @@ export async function POST(request: NextRequest) {
     p_user_id: user.id,
   });
 
-  if (typeof balance === "number" && balance < AVATAR_CREDITS) {
+  if (typeof balance === "number" && balance < avatarCredits) {
     return NextResponse.json(
       { error: "insufficient_credits" },
       { status: 402 }
@@ -93,8 +100,10 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       projectId: resolvedProjectId,
       tool: "talking-avatar",
+      modelKey: avatarModel,
       imageUrl: imageUrl as string,
       script: scriptText,
+      voiceId: voice,
       audioUrl: audioUrlText,
       userEmail: user.email,
     });

@@ -62,9 +62,12 @@ function submissionResponse<T extends object>(result: T, successStatus = 201) {
  *     "tier": "standard",                   // optional: fast|standard|premium
  *     "prompt": "...",                       // optional, for scene/video/text tools
  *     "sync": true,                          // optional: wait for result (default: false)
- *     "script": "Hello world",               // optional: TTS text for talking-avatar
- *     "audioUrl": "https://...",              // optional: pre-made audio for talking-avatar
- *     "locale": "tr"                          // optional: tr|en for orchestration tools
+  *     "script": "Hello world",               // optional: TTS text for talking-avatar
+  *     "audioUrl": "https://...",              // optional: pre-made audio for talking-avatar
+  *     "voiceId": "Turkish_CalmWoman",         // optional: TTS voice for talking-avatar
+  *     "modelKey": "kling-o3-i2v",             // optional: exact MODELS key (e.g. nano-banana-pro, recraft-v4-svg)
+  *     "extraParams": {...},                   // optional: logo params only (outputFormat/style/colors)
+  *     "locale": "tr"                          // optional: tr|en for orchestration tools
  *   }
  *
  * Returns (simple async):  { "jobId": "uuid", "creditCost": 1, "estimatedTime": "~3s" }
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { tool, imageUrl, imageUrls, tier, prompt, sync, script, audioUrl, locale } = body;
+    const { tool, imageUrl, imageUrls, tier, prompt, sync, script, audioUrl, locale, modelKey, extraParams, voiceId } = body;
 
     if (!tool || !VALID_TOOLS.includes(tool)) {
       return NextResponse.json(
@@ -94,6 +97,8 @@ export async function POST(request: NextRequest) {
         audioUrl,
         locale,
         idempotencyKey: request.headers.get("idempotency-key"),
+        voiceId: typeof voiceId === "string" ? voiceId : undefined,
+        modelKey: typeof modelKey === "string" ? modelKey : undefined,
       });
     }
 
@@ -103,9 +108,11 @@ export async function POST(request: NextRequest) {
         userId: auth.userId,
         tool: tool as ToolType,
         tier: tier as ModelTier | undefined,
+        modelKey: typeof modelKey === "string" ? modelKey : undefined,
         imageUrl,
         imageUrls,
         prompt,
+        extraParams: extraParams as Record<string, unknown> | undefined,
       });
       if (result.status === "processing") {
         return NextResponse.json(result, {
@@ -122,9 +129,11 @@ export async function POST(request: NextRequest) {
       userId: auth.userId,
       tool: tool as ToolType,
       tier: tier as ModelTier | undefined,
+      modelKey: typeof modelKey === "string" ? modelKey : undefined,
       imageUrl,
       imageUrls,
       prompt,
+      extraParams: extraParams as Record<string, unknown> | undefined,
     });
 
     return submissionResponse(result);
@@ -153,9 +162,11 @@ async function handleOrchestration(
     audioUrl?: string;
     locale?: string;
     idempotencyKey?: string | null;
+    voiceId?: string;
+    modelKey?: string;
   }
 ): Promise<NextResponse> {
-  const { imageUrl, script, audioUrl, locale, idempotencyKey } = opts;
+  const { imageUrl, script, audioUrl, locale, idempotencyKey, voiceId, modelKey } = opts;
 
   // All orchestration tools require an image
   if (!imageUrl || typeof imageUrl !== "string") {
@@ -188,6 +199,8 @@ async function handleOrchestration(
           imageUrl,
           script,
           audioUrl,
+          voiceId,
+          modelKey,
         });
         return submissionResponse(result);
       }

@@ -833,6 +833,7 @@ BEGIN
   v_output_type := CASE
     WHEN v_job.tool = '3d-model' THEN 'glb'
     WHEN v_job.tool IN ('video', 'talking-avatar') THEN 'video'
+    WHEN v_job.tool = 'srt-voiceover' THEN 'audio'
     ELSE 'image'
   END;
 
@@ -1018,6 +1019,7 @@ BEGIN
   v_output_type := CASE
     WHEN v_job.tool = '3d-model' THEN 'glb'
     WHEN v_job.tool IN ('video', 'talking-avatar') THEN 'video'
+    WHEN v_job.tool = 'srt-voiceover' THEN 'audio'
     ELSE 'image'
   END;
 

@@ -17,6 +17,7 @@ const TOOL_DISPLAY_NAMES: Record<ToolType, string> = {
   logo: "Logo Üret",
   "social-kit": "Sosyal Medya Paketi",
   "virtual-tryon": "Kıyafet Giydirme",
+  "srt-voiceover": "SRT Seslendirme",
 };
 
 const ALLOWED_IMAGE_HOSTS = ["assets.renderhane.com"];

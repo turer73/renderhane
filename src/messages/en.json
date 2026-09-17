@@ -24,12 +24,15 @@
     "aplus": "Generate A+ Content",
     "doAll": "Do Everything",
     "imageEdit": "Edit Image",
+    "inpainting": "Inpainting",
+    "objectRemoval": "Object Removal",
     "socialKit": "Social Media Kit",
     "textToImage": "AI Image Generator",
     "talkingAvatar": "Talking Avatar",
     "logo": "Generate Logo",
     "virtualTryon": "Virtual Try-On",
-    "qrCode": "Generate QR Code"
+    "qrCode": "Generate QR Code",
+    "srtVoiceover": "SRT Voiceover"
   },
   "toolDescriptions": {
     "bgRemoveDesc": "Remove background from product photos",
@@ -39,12 +42,15 @@
     "enhanceDesc": "Upscale image to high resolution",
     "videoDesc": "Create product showcase video",
     "imageEditDesc": "Edit and modify images with AI",
+    "inpaintingDesc": "Fill selected areas with AI",
+    "objectRemovalDesc": "Remove unwanted objects seamlessly",
     "socialKitDesc": "One-click social media content package",
     "textToImageDesc": "Generate images from text descriptions",
     "talkingAvatarDesc": "Talking video presenting your product",
     "logoDesc": "Design professional brand logos",
     "qrCodeDesc": "Standard or AI artistic QR codes",
-    "virtualTryonDesc": "See clothing on a model with AI"
+    "virtualTryonDesc": "See clothing on a model with AI",
+    "srtVoiceoverDesc": "Voice SRT subtitles with a natural voice"
   },
   "credits": {
     "balance": "Balance",
@@ -407,7 +413,8 @@
     "outputTypes": {
       "glb": "3D Model",
       "image": "Image",
-      "video": "Video"
+      "video": "Video",
+      "audio": "Audio"
     },
     "filterAll": "All",
     "filter3d": "3D Model",
@@ -440,7 +447,8 @@
     "fileSize": "Size: {size}",
     "creditCost": "{count} credits",
     "original": "Original",
-    "result": "Result"
+    "result": "Result",
+    "audioNote": "First cue audio. The full timeline lives in the Voiceover tab."
   },
   "blog": {
     "title": "Blog",

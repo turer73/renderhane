@@ -133,7 +133,7 @@ describe("submitJobSync atomic terminal transitions", () => {
     process.env.FAL_WEBHOOK_SECRET = "test-secret";
     process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
     mocks.subscribe.mockImplementation(async (endpointId, _input, options) => {
-      const requestId = endpointId === "fal-ai/f5-tts" ? "fal-tts-1" : "fal-main-1";
+      const requestId = endpointId === "fal-ai/minimax/speech-2.8-hd" ? "fal-tts-1" : "fal-main-1";
       await options?.onEnqueue?.(requestId);
       return {
         requestId,
@@ -328,7 +328,7 @@ describe("submitJobSync atomic terminal transitions", () => {
         await options?.onEnqueue?.("fal-tts-cancel-race");
         return {
           requestId: "fal-tts-cancel-race",
-          data: { audio_url: { url: "https://fal.media/voice.wav" } },
+          data: { audio: { url: "https://fal.media/voice.mp3" } },
         };
       }
     );
@@ -369,12 +369,12 @@ describe("submitJobSync atomic terminal transitions", () => {
           args: [
             "original_request",
             {
-              providerReconciliation: {
-                stage: "tts",
-                endpointId: "fal-ai/f5-tts",
-                state: "accepted",
-                requestId: "fal-tts-cancel-race",
-              },
+            providerReconciliation: {
+              stage: "tts",
+              endpointId: "fal-ai/minimax/speech-2.8-hd",
+              state: "accepted",
+              requestId: "fal-tts-cancel-race",
+            },
             },
           ],
         },

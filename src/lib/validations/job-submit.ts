@@ -4,6 +4,7 @@ const TOOL_TYPES = [
   "3d-model", "bg-remove", "enhance", "scene", "video", "aplus",
   "image-edit", "inpainting", "object-removal", "text-to-image",
   "qr-code", "talking-avatar", "logo", "social-kit", "virtual-tryon",
+  "srt-voiceover",
 ] as const;
 
 const MODEL_TIERS = ["fast", "standard", "premium"] as const;
@@ -79,7 +80,7 @@ export const jobSubmitSchema = z.object({
     });
   }
 
-  const isTextOnly = ["text-to-image", "qr-code", "logo"].includes(data.tool);
+  const isTextOnly = ["text-to-image", "qr-code", "logo", "srt-voiceover"].includes(data.tool);
   const isMultiImage = ["3d-model", "virtual-tryon"].includes(data.tool);
   const isHybrid = ["video", "3d-model"].includes(data.tool);
   const hasPromptOnly = !!data.prompt && !data.imageUrl && !data.imageUrls;

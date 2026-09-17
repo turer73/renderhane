@@ -12,7 +12,8 @@ import {
   ProviderReconciliationStateChangedError,
   signWebhookPayload,
 } from "@/lib/jobs/provider-webhook";
-import { MAX_AVATAR_SCRIPT_CHARS, type ToolType, type ModelTier } from "@/lib/fal/models";
+import { MAX_AVATAR_SCRIPT_CHARS, MODELS, type ToolType, type ModelTier } from "@/lib/fal/models";
+import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 
 /** Tools whose final prompt is composed server-side from structured context. */
 const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
@@ -81,6 +82,8 @@ interface SubmitJobInput {
   prompt?: string;
   /** Text script for talking-avatar TTS. Reserved as part of the avatar job cost. */
   script?: string;
+  /** Voice ID for talking-avatar TTS (MiniMax allowlist, default Turkish_CalmWoman). */
+  voiceId?: string;
   /** Pre-generated audio URL for talking-avatar. Skips TTS when provided. */
   audioUrl?: string;
   /** Auto-enhance input images via aura-sr before 3D generation */
@@ -235,6 +238,7 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
   if (prompt) originalRequest.prompt = prompt;
   if (input.script) originalRequest.script = input.script;
+  if (input.voiceId) originalRequest.voiceId = input.voiceId;
   if (input.audioUrl) originalRequest.audioUrl = input.audioUrl;
   if (autoEnhance) originalRequest.autoEnhance = true;
   if (input.extraParams) originalRequest.extraParams = input.extraParams;
@@ -421,14 +425,20 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
 
     // Talking-avatar is a bundled TTS -> video pipeline. Reserve the complete
     // avatar job cost before generating the intermediate audio.
+    // TTS: MiniMax 2.8 HD (Türkçe sesler) — eski F5 borusu emekli.
     if (tool === "talking-avatar" && input.script && !input.audioUrl) {
-      const ttsEndpointId = "fal-ai/f5-tts";
+      const avatarVoice =
+        input.voiceId && isAllowedVoice(input.voiceId)
+          ? input.voiceId
+          : DEFAULT_SRT_VOICE;
+      const ttsEndpointId = "fal-ai/minimax/speech-2.8-hd";
       const ttsInput = {
-        gen_text: input.script,
-        model_type: "F5-TTS",
-        ref_audio_url:
-          "https://github.com/SWivid/F5-TTS/raw/main/tests/ref_audio/test_en_1_ref_short.wav",
-        ref_text: "",
+        ...MODELS["minimax-speech-28-hd"].defaultParams,
+        ...buildMinimaxInput(input.script, {
+          voiceId: avatarVoice,
+          emotion: "neutral",
+          speed: 1,
+        }),
       };
       await persistProviderReconciliation({
         stage: "tts",
@@ -480,8 +490,8 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
         }
         throw error;
       }
-      const ttsOutput = ttsResult.data as { audio_url?: { url?: string } };
-      if (!ttsOutput.audio_url?.url) {
+      const ttsOutput = ttsResult.data as { audio?: { url?: string } };
+      if (!ttsOutput.audio?.url) {
         throw new Error("TTS provider completed without an audio output");
       }
       if (!acceptedTtsRequestId) {
@@ -500,7 +510,7 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
         state: "accepted",
         requestId: acceptedTtsRequestId,
       };
-      effectivePrompt = ttsOutput.audio_url.url;
+      effectivePrompt = ttsOutput.audio.url;
     }
 
     if (tool === "talking-avatar" && !effectivePrompt) {

@@ -24,12 +24,15 @@
     "aplus": "A+ İçerik Üret",
     "doAll": "Hepsini Yap",
     "imageEdit": "Görsel Düzenle",
+    "inpainting": "Alan Doldur",
+    "objectRemoval": "Nesne Sil",
     "socialKit": "Sosyal Medya Paketi",
     "textToImage": "AI Görsel Üret",
     "talkingAvatar": "Konuşan Avatar",
     "logo": "Logo Üret",
     "virtualTryon": "Kıyafet Giydirme",
-    "qrCode": "QR Kod Üret"
+    "qrCode": "QR Kod Üret",
+    "srtVoiceover": "SRT Seslendirme"
   },
   "toolDescriptions": {
     "bgRemoveDesc": "Ürün fotoğrafından arka planı temizle",
@@ -39,12 +42,15 @@
     "enhanceDesc": "Görseli yüksek çözünürlüğe taşı",
     "videoDesc": "Ürün tanıtım videosu oluştur",
     "imageEditDesc": "AI ile görseli düzenle ve değiştir",
+    "inpaintingDesc": "Seçili alanı AI ile doldur",
+    "objectRemovalDesc": "İstenmeyen nesneyi iz bırakmadan sil",
     "socialKitDesc": "Tek tıkla sosyal medya içerik paketi",
     "textToImageDesc": "Metin açıklamasından görsel üret",
     "talkingAvatarDesc": "Ürününü tanıtan konuşan video",
     "logoDesc": "Marka için profesyonel logo tasarla",
     "qrCodeDesc": "Standart veya AI sanatsal QR kod",
-    "virtualTryonDesc": "Kıyafet fotoğrafını model üzerinde gör"
+    "virtualTryonDesc": "Kıyafet fotoğrafını model üzerinde gör",
+    "srtVoiceoverDesc": "SRT altyazısını doğal sesle seslendir"
   },
   "credits": {
     "balance": "Bakiye",
@@ -407,7 +413,8 @@
     "outputTypes": {
       "glb": "3D Model",
       "image": "Görsel",
-      "video": "Video"
+      "video": "Video",
+      "audio": "Ses"
     },
     "filterAll": "Tümü",
     "filter3d": "3D Model",
@@ -440,7 +447,8 @@
     "fileSize": "Boyut: {size}",
     "creditCost": "{count} kredi",
     "original": "Orijinal",
-    "result": "Sonuç"
+    "result": "Sonuç",
+    "audioNote": "İlk repliğin sesi. Tam zaman çizelgesi Seslendir sekmesinde."
   },
   "blog": {
     "title": "Blog",
