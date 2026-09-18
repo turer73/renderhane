@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { LandingHeader } from "@/components/landing/landing-header";
-import { HeroSection } from "@/components/landing/hero";
-import { SegmentsSection } from "@/components/landing/segments";
 import { FeaturesSection } from "@/components/landing/features";
 import { PricingSection } from "@/components/landing/pricing";
 import { Footer } from "@/components/landing/footer";
 import { DemoSectionLazy } from "@/components/landing/demo-lazy";
 import { AdSenseScript } from "@/components/ads/adsense-script";
+import { LaunchPreviewSections } from "@/components/launch-preview/launch-preview";
 
 export async function generateMetadata({
   params,
@@ -45,16 +44,19 @@ export async function generateMetadata({
   };
 }
 
-export default function MarketingPage() {
+export default async function MarketingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const previewLocale = locale === "en" ? "en" : "tr";
   return (
     <div className="flex min-h-screen flex-col">
       <AdSenseScript />
       <LandingHeader />
       <main className="flex-1">
-        <HeroSection />
-        <SegmentsSection />
-        {/* id="demo" SERVER-render'lı sarmalayıcıda: DemoSectionLazy ssr:false olduğundan
-            anchor ilk-HTML'de olmalı ki /#demo hard-nav'ı doğru kaydırsın (Codex P2). */}
+        <LaunchPreviewSections locale={previewLocale} production />
         <div id="demo" className="scroll-mt-20">
           <DemoSectionLazy />
         </div>
