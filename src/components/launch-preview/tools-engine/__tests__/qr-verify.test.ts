@@ -72,16 +72,16 @@ describe("qr artifact + decode round-trip", () => {
   const styles = ["square", "rounded", "dots", "diamond", "star"] as const;
 
   for (const style of styles) {
-    it(`round-trips Turkish payload through ${style} modules`, () => {
+    it(`round-trips Turkish payload through ${style} modules`, async () => {
       const payload = "Merhaba İstanbul https://ornek.com/çay-42";
-      const artifact = QR.buildQrArtifact(payload, "#0b0f2d", 1024, style);
+      const artifact = await QR.buildQrArtifact(payload, "#0b0f2d", 1024, style);
       expect(artifact.modules).toBeGreaterThan(20);
       expect(artifact.svg).toContain(`data-qr-style="${style}"`);
       expect(artifact.svg).toContain('data-qr-ecc="H"');
 
       const pixels = rasterize(artifact.matrix, 6);
       const grid = QR.sampleAlignedPixels(pixels, artifact.modules);
-      const decoded = QR.decodeAlignedGrid(grid);
+      const decoded = await QR.decodeAlignedGrid(grid);
 
       expect(decoded.eci).toBe(26);
       expect(decoded.correctionLevel).toBe(2);
@@ -89,8 +89,8 @@ describe("qr artifact + decode round-trip", () => {
     });
   }
 
-  it("rejects a single flipped data module (no correction attempted)", () => {
-    const artifact = QR.buildQrArtifact("https://renderhane.com", "#0b0f2d", 1024, "square");
+  it("rejects a single flipped data module (no correction attempted)", async () => {
+    const artifact = await QR.buildQrArtifact("https://renderhane.com", "#0b0f2d", 1024, "square");
     const n = artifact.modules;
     // Find a dark DATA module (not functional) and flip it in the raster.
     let target: [number, number] | null = null;
@@ -114,11 +114,11 @@ describe("qr artifact + decode round-trip", () => {
     pixels.data[i + 2] = 255;
 
     const grid = QR.sampleAlignedPixels(pixels, n);
-    expect(() => QR.decodeAlignedGrid(grid)).toThrow();
+    await expect(QR.decodeAlignedGrid(grid)).rejects.toThrow();
   });
 
-  it("rejects a damaged quiet zone", () => {
-    const artifact = QR.buildQrArtifact("https://renderhane.com", "#0b0f2d", 1024, "square");
+  it("rejects a damaged quiet zone", async () => {
+    const artifact = await QR.buildQrArtifact("https://renderhane.com", "#0b0f2d", 1024, "square");
     const pixels = rasterize(artifact.matrix, 6);
     pixels.data[0] = 0;
     pixels.data[1] = 0;

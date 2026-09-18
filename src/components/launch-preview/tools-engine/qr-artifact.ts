@@ -1,9 +1,18 @@
 /**
  * QR uretim + dogrulama cekirdegi (saf moduller, DOM bagimsiz).
  * core.ts motor gorunumu + pazarlama sayfalari tarafindan ortak kullanilir.
- * Tarayici disi bagimlilik yok; LocalQR vendor'u yan etkiyle yuklenir.
+ * SSR guvenligi: LocalQR vendor'u import aninda DEGIL, ilk kullanimda
+ * tembel yuklenir (saf yardimcilar sunucuda da calisir).
  */
-import './vendor/qr-core.js';
+type QrVendor = Pick<ToolWindow, 'LocalQR' | 'LocalQRTools'>;
+let vendorPromise: Promise<QrVendor> | null = null;
+function vendor(): Promise<QrVendor> {
+  if (typeof window === 'undefined') throw Error('QR uretimi yalnizca tarayicida calisir.');
+  const w = window as unknown as ToolWindow;
+  if (w.LocalQR && w.LocalQRTools) return Promise.resolve(w);
+  vendorPromise ??= import('./vendor/qr-core.js').then(() => window as unknown as ToolWindow);
+  return vendorPromise;
+}
 
 interface QRModel { addData(v: string): void; addUtf8Eci(): void; make(): void; getModuleCount(): number; isDark(r: number, c: number): boolean }
 interface QrRsBlock { totalCount: number; dataCount: number }
@@ -74,7 +83,6 @@ export const QR_PRESETS: { id: QrStyle; label: string; hint: string }[] = [
 ];
 const QR_CHECK_REVISION = 'aligned-utf8-eci-no-correction-2';
 export function isQrStyle(v: unknown): v is QrStyle { return QR_PRESETS.some(p => p.id === v); }
-function qrWin(): ToolWindow { return window as unknown as ToolWindow; }
 export function qrContrast(color: string): number {
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw Error('Geçersiz QR rengi.');
   const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
@@ -102,15 +110,16 @@ export function presetPath(style: QrStyle, x = 0, y = 0): string {
   return out + 'Z';
 }
 export function presetIcon(style: QrStyle): string { return `<svg viewBox="-.08 -.08 1.16 1.16" aria-hidden="true"><path d="${presetPath(style)}" fill="currentColor"/></svg>`; }
-export function buildQrArtifact(payload: string, color = '#0b0f2d', pixels = 1024, style: QrStyle = 'square'): QrArtifact {
+export async function buildQrArtifact(payload: string, color = '#0b0f2d', pixels = 1024, style: QrStyle = 'square'): Promise<QrArtifact> {
   validateQrOptions(payload, color, pixels, style);
-  const qr = new (qrWin().LocalQR)(-1, 2); // LocalQR 2 = error correction H.
+  const v = await vendor();
+  const qr = new (v.LocalQR)(-1, 2); // LocalQR 2 = error correction H.
   qr.addUtf8Eci();
   qr.addData(Array.from(new TextEncoder().encode(payload), v => String.fromCharCode(v)).join(''));
   qr.make();
   const n = qr.getModuleCount(), version = (n - 17) / 4, span = n + 8, minimum = style === 'square' ? 4 : 6;
   if (pixels / span < minimum) throw Error(`Bu içerik için ${pixels}px küçük kalıyor. ${style === 'square' ? 'En az 4' : 'Stilli QR için en az 6'} piksel/modül gerekiyor; daha büyük çıktı seçin.`);
-  const functional = qrWin().LocalQRTools.functionGrid(version, 2, 0).map(row => row.map(v => v !== null));
+  const functional = v.LocalQRTools.functionGrid(version, 2, 0).map(row => row.map(v => v !== null));
   const matrix = Array.from({ length: n }, (_, y) => Array.from({ length: n }, (_, x) => qr.isDark(y, x)));
   let fixed = '', shapes = '';
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (matrix[y][x]) {
@@ -157,7 +166,7 @@ function verifyRsBlock(block: number[], parityCount: number): boolean {
   return true;
 }
 /** Decodes actual sampled pixels; does not compare against encoder modules. */
-export function decodeAlignedGrid(grid: boolean[][]): QrDecodeResult {
+export async function decodeAlignedGrid(grid: boolean[][]): Promise<QrDecodeResult> {
   const n = grid.length, version = (n - 17) / 4;
   if (!Number.isInteger(version) || version < 1 || version > 40 || grid.some(r => r.length !== n)) throw Error('QR ızgarası geçersiz.');
   let vertical = 0, horizontal = 0;
@@ -172,7 +181,7 @@ export function decodeAlignedGrid(grid: boolean[][]): QrDecodeResult {
   for (let d = 0; d < 32; d++) if (bch(d, 0x537, 10, 0x5412) === vertical) { format = d; break; }
   if (format < 0) throw Error('Biçim bilgisinin hata kontrolü başarısız.');
   const level = format >> 3, mask = format & 7;
-  const template = qrWin().LocalQRTools.functionGrid(version, level, mask);
+  const template = (await vendor()).LocalQRTools.functionGrid(version, level, mask);
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
     if (template[y][x] !== null && template[y][x] !== grid[y][x]) throw Error('QR yönlendirme veya sürüm alanı bozulmuş.');
   const bits: number[] = [];
@@ -188,7 +197,7 @@ export function decodeAlignedGrid(grid: boolean[][]): QrDecodeResult {
     }
     up = !up;
   }
-  const blocks = qrWin().LocalQRTools.rsBlocks(version, level), total = blocks.reduce((s, b) => s + b.totalCount, 0);
+  const blocks = (await vendor()).LocalQRTools.rsBlocks(version, level), total = blocks.reduce((s, b) => s + b.totalCount, 0);
   if (bits.length < total * 8) throw Error('Veri alanı eksik.');
   if (bits.slice(total * 8).some(v => v !== 0)) throw Error('QR artık bitleri bozulmuş.');
   const words = Array.from({ length: total }, (_, i) => bits.slice(i * 8, i * 8 + 8).reduce((v, b) => (v << 1) | b, 0));
@@ -283,7 +292,7 @@ export async function validateQrRaster(artifact: QrArtifact, signal?: AbortSigna
     const pixels = ctx.getImageData(0, 0, size, size);
     for (const [jx, jy] of [[0, 0], [-.12, .12], [.12, -.12]]) {
       abortIf(signal);
-      const result = decodeAlignedGrid(sampleAlignedPixels(pixels, n, jx, jy));
+      const result = await decodeAlignedGrid(sampleAlignedPixels(pixels, n, jx, jy));
       if (result.eci !== 26 || result.correctionLevel !== 2 || result.bytes.length !== expected.length || result.bytes.some((v, i) => v !== expected[i])) throw Error('QR içeriği girilen veriyle eşleşmedi.');
       tests.push(`${name} · örnekleme ${jx},${jy}`);
       await tick();
