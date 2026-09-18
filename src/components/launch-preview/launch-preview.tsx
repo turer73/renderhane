@@ -103,7 +103,10 @@ export function LaunchPreviewSections({locale, production = false}:{locale:Local
     {production ? <div id="rhl-main">{body}</div> : <main id="rhl-main">{body}</main>}
     <MobileDock locale={locale}/>
   </>;
-  return production ? <div className="rhl" style={{colorScheme:'light'}}>{inner}</div> : inner;
+  // Uretimde govde kendi kabugunu getirir (sayfada .rhl-shell yok);
+  // onizlemede kabuk + gezinme + altbilgi disarida kurulur.
+  if (production) return <div className="rhl" style={{colorScheme:'light'}}><div className="rhl-shell">{inner}</div></div>;
+  return inner;
 }
 export function LaunchPreview({locale}:{locale:Locale}) {
   const tr = locale === 'tr';

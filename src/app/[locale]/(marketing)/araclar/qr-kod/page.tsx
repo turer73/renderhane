@@ -147,7 +147,7 @@ export default function PublicQRCodePage() {
     try {
       // Sekilli QR + Reed-Solomon pariteli 9'lu okuma kontrolu.
       // Dogrulama gecmeden indirme acilmaz (yanlis baski uretilmesin).
-      const artifact = buildQrArtifact(data, "#000000", qrSize, qrStyle);
+      const artifact = await buildQrArtifact(data, "#000000", qrSize, qrStyle);
       const validated = await validateQrRaster(artifact);
       if (qrPngUrl) URL.revokeObjectURL(qrPngUrl);
       setQrSvg(artifact.svg);

@@ -384,7 +384,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const errorEl = $('#rh-qr-error');
     try {
       const payload = buildPayload(s.qrType, s.qr);
-      const artifact = buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle);
+      const artifact = await buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle);
       s.qrSvg = artifact.svg;
       s.qrPayload = payload;
       s.qrError = '';
@@ -400,7 +400,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'false');
       qrStatus('pending', 'Dijital veri kontrolü sürüyor', 'SVG görüntüleniyor; QR verisi ve hata kontrolü sınanıyor.');
       // Verify the same-payload classic baseline, then the selected visual style.
-      if (s.qrStyle !== 'square') await validateQrRaster(buildQrArtifact(payload, s.qrColor, s.qrSize, 'square'), controller.signal);
+      if (s.qrStyle !== 'square') await validateQrRaster(await buildQrArtifact(payload, s.qrColor, s.qrSize, 'square'), controller.signal);
       const validated = await validateQrRaster(artifact, controller.signal);
       if (!current()) return;
       qrValidated = validated;
