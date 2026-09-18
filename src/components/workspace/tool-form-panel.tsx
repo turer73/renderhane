@@ -116,7 +116,7 @@ const VIDEO_TOOL_INFO: Record<string, { model: string; credits: number; time: st
   "image-to-video": { model: "Wan 2.7", credits: 35, time: "~2 dk" },
   "text-to-video": { model: "Kling O3 Pro", credits: 40, time: "~2 dk" },
   "talking-avatar": { model: "OmniHuman v1.5", credits: 100, time: "~2 dk" },
-  "srt-voiceover": { model: "MiniMax HD", credits: 4, time: "~1 dk" },
+  "srt-voiceover": { model: "MiniMax 2.8", credits: 4, time: "~1 dk" },
 };
 
 const TABS_VIDEO = [
