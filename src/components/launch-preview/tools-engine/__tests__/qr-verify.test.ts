@@ -7,12 +7,12 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
  * covered by the demo's own browser matrix, not here.
  */
 
-let QR: typeof import("../core");
+let QR: typeof import("../qr-artifact");
 
 beforeAll(async () => {
   vi.stubGlobal("window", {});
   await import("../vendor/qr-core.js");
-  QR = await import("../core");
+  QR = await import("../qr-artifact");
 });
 
 function rasterize(matrix: boolean[][], scale: number) {

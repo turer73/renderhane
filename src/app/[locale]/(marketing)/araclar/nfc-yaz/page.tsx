@@ -46,6 +46,7 @@ import {
 } from "@/lib/nfc/ndef";
 import { buildShareUrl, readShareHash } from "@/lib/nfc/share";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { InspirationSection } from "@/components/launch-preview/inspiration-section";
 
 /* ── Content Types ─────────────────────────────── */
 
@@ -194,6 +195,14 @@ export default function PublicNfcWriterPage() {
     setFields((prev) => ({ ...prev, [key]: value }));
     setStatus(null);
   };
+
+  // İlham bölümü aktarımı: hazır bağlantıyı URL alanına yaz
+  const applyIdeaLink = useCallback((url: string) => {
+    setContentType("url");
+    setFields({ url });
+    setStatus(null);
+    document.getElementById("nfc-content-form")?.scrollIntoView({ block: "center" });
+  }, []);
 
   const records = buildNdefRecords(contentType, fields, { lang: locale });
   const bytes = ndefMessageBytes(records);
@@ -685,7 +694,7 @@ export default function PublicNfcWriterPage() {
 
       <div className="mx-auto max-w-5xl px-4">
         {/* Main Tool Card */}
-        <div className="-mt-8 mb-8">
+        <div className="-mt-8 mb-8" id="nfc-content-form">
           <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-2xl shadow-violet-200/30 dark:shadow-violet-900/20 sm:p-8">
             {renderSupportNotice()}
 
@@ -990,6 +999,11 @@ export default function PublicNfcWriterPage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* İlham ve kullanım fikirleri */}
+        <div className="mb-8 sm:mb-12">
+          <InspirationSection channel="nfc" onApplyLink={applyIdeaLink} />
         </div>
 
         {/* Feature Cards */}

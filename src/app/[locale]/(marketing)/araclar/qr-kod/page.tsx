@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,16 @@ import {
   Box,
   type LucideIcon,
 } from "lucide-react";
-import QRCode from "qrcode";
 import { buildVCard } from "@/lib/vcard";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { InspirationSection } from "@/components/launch-preview/inspiration-section";
+import {
+  QR_PRESETS,
+  buildQrArtifact,
+  presetIcon,
+  validateQrRaster,
+  type QrStyle,
+} from "@/components/launch-preview/tools-engine/qr-artifact";
 
 /* ── Content Types ─────────────────────────────── */
 
@@ -100,12 +107,31 @@ export default function PublicQRCodePage() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [qrPngUrl, setQrPngUrl] = useState<string | null>(null);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
+  const [qrStyle, setQrStyle] = useState<QrStyle>("square");
+  const [qrSize, setQrSize] = useState<number>(1024);
+  const [qrCheck, setQrCheck] = useState<{ passed: number; total: number } | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState<{ type: "error"; text: string } | null>(null);
 
   const setField = (key: string, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
-  const resetPreview = () => { setQrPngUrl(null); setQrSvg(null); setMessage(null); };
+  // İlham bölümü aktarımı: hazır bağlantıyı URL alanına yaz
+  const applyIdeaLink = useCallback((url: string) => {
+    setContentType("url");
+    setFields({ url });
+    if (qrPngUrl) URL.revokeObjectURL(qrPngUrl);
+    setQrPngUrl(null); setQrSvg(null); setQrCheck(null); setMessage(null);
+    document.getElementById("qr-content-form")?.scrollIntoView({ block: "center" });
+  }, [qrPngUrl]);
+
+  const resetPreview = () => {
+    if (qrPngUrl) URL.revokeObjectURL(qrPngUrl);
+    setQrPngUrl(null); setQrSvg(null); setQrCheck(null); setMessage(null);
+  };
+
+  // Bilesen kalkarken nesne URL'sini birak
+  useEffect(() => () => { if (qrPngUrl) URL.revokeObjectURL(qrPngUrl); }, [qrPngUrl]);
 
   const payload = buildPayload(contentType, fields);
   const isValid = payload.trim().length > 0;
@@ -117,15 +143,24 @@ export default function PublicQRCodePage() {
       return;
     }
     setMessage(null);
+    setGenerating(true);
     try {
-      const [pngUrl, svgStr] = await Promise.all([
-        QRCode.toDataURL(data, { width: 1024, margin: 2, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H" }),
-        QRCode.toString(data, { type: "svg", width: 1024, margin: 2, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H" }),
-      ]);
-      setQrPngUrl(pngUrl);
-      setQrSvg(svgStr);
-    } catch {
-      setMessage({ type: "error", text: tr ? "QR oluşturulamadı." : "Failed to generate QR." });
+      // Sekilli QR + Reed-Solomon pariteli 9'lu okuma kontrolu.
+      // Dogrulama gecmeden indirme acilmaz (yanlis baski uretilmesin).
+      const artifact = buildQrArtifact(data, "#000000", qrSize, qrStyle);
+      const validated = await validateQrRaster(artifact);
+      if (qrPngUrl) URL.revokeObjectURL(qrPngUrl);
+      setQrSvg(artifact.svg);
+      setQrPngUrl(URL.createObjectURL(validated.png));
+      setQrCheck({ passed: validated.report.passed, total: validated.report.total });
+    } catch (error) {
+      resetPreview();
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : (tr ? "QR oluşturulamadı." : "Failed to generate QR."),
+      });
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -306,16 +341,63 @@ export default function PublicQRCodePage() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* Form */}
-              <div className="space-y-4">
+              <div className="space-y-4" id="qr-content-form">
                 {renderFields()}
+
+                {/* Sekil secici — yalniz veri alani bicimlenir, isaret koseler korunur */}
+                <div>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">
+                    {tr ? "Modül Şekli:" : "Module Shape:"}
+                  </p>
+                  <div className="grid grid-cols-5 gap-2" role="group" aria-label={tr ? "QR modül şekli" : "QR module shape"}>
+                    {QR_PRESETS.map((pr) => (
+                      <button
+                        key={pr.id}
+                        type="button"
+                        onClick={() => { setQrStyle(pr.id); resetPreview(); }}
+                        aria-pressed={qrStyle === pr.id}
+                        title={pr.hint}
+                        className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition-all ${
+                          qrStyle === pr.id
+                            ? "border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-500/10"
+                            : "border-border/40 hover:border-emerald-300 hover:bg-muted/50"
+                        }`}
+                      >
+                        {/* Sabit ikon yollari — kullanici verisi icermez */}
+                        <span
+                          className="size-6 [&>svg]:h-full [&>svg]:w-full"
+                          aria-hidden="true"
+                          dangerouslySetInnerHTML={{ __html: presetIcon(pr.id) }}
+                        />
+                        <span className="text-[10px] font-medium leading-none">{pr.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground" htmlFor="qr-size">
+                    {tr ? "Çıktı Boyutu:" : "Output Size:"}
+                  </label>
+                  <select
+                    id="qr-size"
+                    value={qrSize}
+                    onChange={(e) => { setQrSize(Number(e.target.value)); resetPreview(); }}
+                    className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {[512, 1024, 2048].map((v) => (
+                      <option key={v} value={v}>{v} × {v} px</option>
+                    ))}
+                  </select>
+                </div>
 
                 <Button
                   onClick={generateQR}
-                  disabled={!isValid}
+                  disabled={!isValid || generating}
                   className="w-full h-12 gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-base font-semibold shadow-lg shadow-emerald-200/40 hover:from-emerald-700 hover:to-teal-700 dark:shadow-emerald-900/30"
                 >
                   <QrCode className="size-5" />
-                  {tr ? "QR Kod Oluştur" : "Generate QR Code"}
+                  {generating ? (tr ? "Kontrol ediliyor..." : "Verifying...") : (tr ? "QR Kod Oluştur" : "Generate QR Code")}
                 </Button>
 
                 {message && (
@@ -331,6 +413,11 @@ export default function PublicQRCodePage() {
                   <div className="space-y-4 text-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={qrPngUrl} alt="QR Code" className="mx-auto size-56 rounded-2xl border shadow-lg" />
+                    {qrCheck && (
+                      <p className="mx-auto w-fit rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        {tr ? `${qrCheck.passed}/${qrCheck.total} okuma kontrolü geçti` : `${qrCheck.passed}/${qrCheck.total} read checks passed`}
+                      </p>
+                    )}
                     <div className="mx-auto max-w-xs rounded-lg bg-muted/50 px-3 py-2">
                       <p className="text-xs text-muted-foreground break-all line-clamp-2">{payload}</p>
                     </div>
@@ -356,6 +443,11 @@ export default function PublicQRCodePage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* İlham ve kullanım fikirleri */}
+        <div className="mb-8 sm:mb-12">
+          <InspirationSection channel="qr" onApplyLink={applyIdeaLink} />
         </div>
 
         {/* Feature Cards */}
