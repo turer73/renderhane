@@ -19,12 +19,14 @@ export interface SrtCue {
 export const MAX_SRT_CUES = 200;
 export const MAX_SRT_CHARS = 5000;
 export const MAX_SRT_CUE_CHARS = 500;
+/** Kare-paylı mikro çakışma toleransı: altı kırpılır, üstü hata verir. */
+export const MICRO_OVERLAP_MS = 80;
 
 /** Base credit cost for the tool card (<=500 chars). Dynamic per-length pricing is slice 2. */
 export const SRT_BASE_CREDITS = 4;
 
 const TIMESTAMP_RE =
-  /^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$/;
+  /^(\d{1,3}):(\d{2}):(\d{2})[,.](\d{3})$/;
 
 export function parseSrtTimestamp(raw: string): number {
   const m = raw.trim().match(TIMESTAMP_RE);
@@ -131,8 +133,15 @@ export function parseSRT(content: string): SrtCue[] {
   // Time-order (lenient on numbering), then check overlaps + total length.
   cues.sort((a, b) => a.startMs - b.startMs);
   for (let i = 1; i < cues.length; i++) {
-    if (cues[i].startMs < cues[i - 1].endMs) {
-      throw new Error(`Overlapping SRT cues at cue ${i + 1}`);
+    const overlapMs = cues[i - 1].endMs - cues[i].startMs;
+    if (overlapMs > 0) {
+      // Gerçek dünya SRT'leri kare payı kadar çakışır — 80ms altı kırpılır,
+      // üstü kullanıcıya hata olarak döner (zaman çizelgesi bozulmasın).
+      if (overlapMs <= MICRO_OVERLAP_MS) {
+        cues[i - 1].endMs = cues[i].startMs;
+      } else {
+        throw new Error(`Overlapping SRT cues at cue ${i + 1}`);
+      }
     }
   }
 

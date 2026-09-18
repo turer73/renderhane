@@ -70,6 +70,27 @@ describe("parseSRT", () => {
     expect(() => parseSRT(raw)).toThrow("Overlapping");
   });
 
+  it("accepts single-digit hours", () => {
+    const raw = "1\n0:00:01,000 --> 0:00:02,000\nSelam\n";
+    expect(parseSRT(raw)[0]).toMatchObject({ startMs: 1000, endMs: 2000 });
+  });
+
+  it("clamps micro-overlaps instead of throwing", () => {
+    const raw = [
+      "1",
+      "00:00:01,000 --> 00:00:03,050",
+      "Bir",
+      "",
+      "2",
+      "00:00:03,000 --> 00:00:04,000",
+      "İki",
+      "",
+    ].join("\n");
+    const cues = parseSRT(raw);
+    expect(cues[0].endMs).toBe(3000);
+    expect(cues[1].startMs).toBe(3000);
+  });
+
   it("rejects over-limit total chars", () => {
     const longText = "a".repeat(MAX_SRT_CHARS + 1);
     const raw = `1\n00:00:01,000 --> 00:00:05,000\n${longText}\n`;

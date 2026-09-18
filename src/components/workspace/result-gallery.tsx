@@ -603,7 +603,7 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
             {/* Native audio element — no proxy needed for playback */}
             <audio src={url} controls autoPlay className="w-72 max-w-[80vw]" />
             <p className="max-w-xs text-xs text-white/60 leading-relaxed">
-              İlk repliğin sesi. Tam zaman çizelgesi (tüm replikler + mix) Seslendir sekmesinde.
+              Kayıtlı ses dosyası. Eski replik-bazlı kayıtlarda yalnızca ilk replik bulunur.
             </p>
           </div>
         ) : isGlb ? (
