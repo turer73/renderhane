@@ -37,8 +37,14 @@ export function formatSrtMs(ms: number): string {
   return `${m}:${String(s % 60).padStart(2, "0")}.${String(ms % 1000).padStart(3, "0")}`;
 }
 
-function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {
-  const total = buffers.reduce((n, b) => n + b.length, 0);
+/** İndirme uzantısı: R2/fal URL'sindeki gerçek uzantı, yoksa mp3. */
+function audioExt(url: string): string {
+  const m = url.split("?")[0].match(/\.([a-z0-9]{2,4})$/i);
+  const ext = (m?.[1] ?? "mp3").toLowerCase();
+  return ["mp3", "wav", "m4a", "ogg", "flac", "webm"].includes(ext) ? ext : "mp3";
+}
+
+function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {  const total = buffers.reduce((n, b) => n + b.length, 0);
   const data = new Float32Array(total);
   let offset = 0;
   for (const b of buffers) {
@@ -73,6 +79,7 @@ function encodeWavMono16(buffers: Float32Array[], sampleRate: number): Blob {
 export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount, jobId, mode, audioUrl, audioDurationMs, fitPasses }: SrtVoiceoverResultProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timersRef = useRef<number[]>([]);
+  const liveRef = useRef<Set<HTMLAudioElement>>(new Set());
   const stopRef = useRef(false);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [mixing, setMixing] = useState(false);
@@ -81,33 +88,44 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     stopRef.current = true;
     timersRef.current.forEach((id) => window.clearTimeout(id));
     timersRef.current = [];
-    audioRef.current?.pause();
+    liveRef.current.forEach((el) => {
+      try { el.pause(); } catch { /* zaten durmuş olabilir */ }
+    });
+    liveRef.current.clear();
     audioRef.current = null;
     setPlayingIndex(null);
   };
 
-  // Unmount'ta zamanlayıcı + sesi temizle
+  // Unmount'ta zamanlayıcı + tüm sesleri temizle
   useEffect(() => {
+    const live = liveRef.current;
     return () => {
       timersRef.current.forEach((id) => window.clearTimeout(id));
-      audioRef.current?.pause();
+      live.forEach((el) => {
+        try { el.pause(); } catch { /* yoksay */ }
+      });
+      live.clear();
     };
   }, []);
 
   const playSingle = (i: number) => {
     stopRef.current = false;
     const el = new Audio(tracks[i].url);
+    liveRef.current.add(el);
     audioRef.current = el;
     setPlayingIndex(tracks[i].index);
     el.onended = () => {
+      liveRef.current.delete(el);
       if (stopRef.current) return;
       setPlayingIndex(null);
     };
     el.onerror = () => {
+      liveRef.current.delete(el);
       showToast(`${tracks[i].index}. replik çalınamadı`, "error");
       setPlayingIndex(null);
     };
     void el.play().catch(() => {
+      liveRef.current.delete(el);
       showToast("Ses çalınamadı", "error");
       setPlayingIndex(null);
     });
@@ -238,7 +256,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
         )}
         <div className="flex gap-1.5">
           <Button size="sm" className="h-7 flex-1 text-[11px]" asChild>
-            <a href={proxyUrl(audioUrl)} download={`seslendirme-${jobId.slice(0, 8)}.mp3`}>
+            <a href={proxyUrl(audioUrl)} download={`seslendirme-${jobId.slice(0, 8)}.${audioExt(audioUrl)}`}>
               <Download className="h-3 w-3 mr-1" /> Ses dosyasını indir
             </a>
           </Button>
@@ -321,7 +339,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
             {t.overflow && <TriangleAlert className="h-3 w-3 shrink-0 text-amber-500" />}
             <a
               href={proxyUrl(t.url)}
-              download={`cue-${t.index}.mp3`}
+              download={`cue-${t.index}.${audioExt(t.url)}`}
               className="shrink-0 text-muted-foreground hover:text-foreground"
               title="Repliği indir"
             >

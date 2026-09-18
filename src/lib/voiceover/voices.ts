@@ -204,7 +204,18 @@ export function planDurationFit(
   // Ses uzun: hızlandır (en fazla 1.3x) + boşlukları tabana çek.
   const faster = Math.min(AUTO_FIT_MAX_SPEED, (baseSpeed * durMs) / targetMs);
   if (faster > baseSpeed * 1.001) {
-    return { gapsMs, speed: Math.round(faster * 100) / 100 };
+    const rounded = Math.round(faster * 100) / 100;
+    // Hız tavana vurup yine uzun kalıyorsa boşlukları da orantılı kısalt.
+    const atSpeed = (durMs * baseSpeed) / faster;
+    const totalGaps = gapsMs.reduce((s, g) => s + g, 0);
+    if (atSpeed - targetMs > tolerance && totalGaps > 0) {
+      const scale = Math.max(0, (totalGaps - (atSpeed - targetMs)) / totalGaps);
+      return {
+        gapsMs: gapsMs.map((g, i) => (i === 0 ? 0 : Math.max(50, Math.round(g * scale)))),
+        speed: rounded,
+      };
+    }
+    return { gapsMs, speed: rounded };
   }
   return { gapsMs: gapsMs.map(() => 50), speed: faster };
 }

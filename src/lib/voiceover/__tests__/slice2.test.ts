@@ -119,6 +119,12 @@ describe("voices", () => {
     expect(planDurationFit([0, 500], 50000, 47000, 1)?.speed).toBeCloseTo(1.06, 1);
   });
 
+  it("planDurationFit shrinks gaps when speed cap is not enough", () => {
+    const plan = planDurationFit([0, 500], 70000, 47000, 1);
+    expect(plan?.speed).toBe(1.3);
+    expect(plan?.gapsMs).toEqual([0, 50]);
+  });
+
   it("planDurationFit returns null inside tolerance or without data", () => {
     expect(planDurationFit([0, 500], 46500, 47000, 1)).toBe(null);
     expect(planDurationFit([0, 500], 0, 47000, 1)).toBe(null);
