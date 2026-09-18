@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -18,10 +18,16 @@ import {
   Star,
   Image as ImageIcon,
   Box,
+  Layers,
 } from "lucide-react";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { createClient } from "@/lib/supabase/client";
+import type { ManualComposer } from "@/components/launch-preview/tools-engine/composer";
+import "@/components/launch-preview/tools.css";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+/** Hazır dekupe örneği (composer varsayılan ürünü). */
+const SAMPLE_PRODUCT = "/launch-preview/tools/cutout.png";
 
 export default function PublicBgRemovePage() {
   const params = useParams<{ locale: string }>();
@@ -38,6 +44,47 @@ export default function PublicBgRemovePage() {
     text: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerHost = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<ManualComposer | null>(null);
+
+  // Manuel sahne yerleştirici — tamamen tarayıcıda, sunucuya gönderim yok.
+  // İndirme üyelik kapısının arkasında (giriş = supabase oturumu).
+  const openComposer = useCallback(
+    async (source?: string, label?: string) => {
+      const { createManualComposer } = await import(
+        "@/components/launch-preview/tools-engine/composer"
+      );
+      if (!composerRef.current && composerHost.current) {
+        const supabase = createClient();
+        composerRef.current = createManualComposer(composerHost.current, {
+          sampleProduct: SAMPLE_PRODUCT,
+          loginUrl: `/${locale}/login`,
+          verifyMember: async () => {
+            try {
+              const { data } = await supabase.auth.getSession();
+              return data.session !== null;
+            } catch {
+              return false;
+            }
+          },
+        });
+      }
+      const src = source ?? resultUrl ?? SAMPLE_PRODUCT;
+      composerRef.current?.open(
+        src,
+        label ?? (src !== SAMPLE_PRODUCT ? (tr ? "Dekupe sonucun" : "Your cutout") : undefined)
+      );
+    },
+    [locale, tr, resultUrl]
+  );
+
+  useEffect(
+    () => () => {
+      composerRef.current?.dispose();
+      composerRef.current = null;
+    },
+    []
+  );
 
   const reset = () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -315,6 +362,16 @@ export default function PublicBgRemovePage() {
                   </Button>
                   {resultUrl && (
                     <Button
+                      onClick={() => void openComposer()}
+                      variant="outline"
+                      className="flex-1 gap-2 h-12"
+                    >
+                      <Layers className="size-4" />
+                      {tr ? "Sahneye yerleştir" : "Place in scene"}
+                    </Button>
+                  )}
+                  {resultUrl && (
+                    <Button
                       onClick={downloadResult}
                       className="flex-1 gap-2 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-200/40 hover:from-emerald-700 hover:to-teal-700 dark:shadow-emerald-900/30"
                     >
@@ -339,6 +396,29 @@ export default function PublicBgRemovePage() {
             )}
           </div>
         </div>
+
+        {/* Manuel sahne yerleştirme girişi */}
+        <section className="mc-entry mb-8">
+          <div>
+            <span className="mc-kicker">
+              {tr ? "SONRAKİ ADIM · ÜCRETSİZ + ÜYELİKLİ" : "NEXT STEP · FREE + MEMBERSHIP"}
+            </span>
+            <h2>{tr ? "Kendi sahneni kur." : "Compose your own scene."}</h2>
+            <p>
+              {tr
+                ? "Kendi arka planını yükle; ürününü sürükle, boyutlandır ve döndür. Manuel yerleştirme ücretsizdir; indirmek için üyelik gerekir."
+                : "Upload your own background; drag, resize and rotate your product. Manual placement is free; download needs membership."}
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => void openComposer()}
+            className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
+          >
+            <Layers className="size-4" />
+            {tr ? "Sahneye yerleştir" : "Place in scene"}
+          </Button>
+        </section>
 
         {/* Feature Cards */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:mb-12 sm:grid-cols-4 sm:gap-4">
@@ -453,6 +533,8 @@ export default function PublicBgRemovePage() {
           </p>
         </div>
       </footer>
+      {/* Manuel sahne yerleştirici diyaloğu buraya eklenir */}
+      <div ref={composerHost} />
     </div>
   );
 }
