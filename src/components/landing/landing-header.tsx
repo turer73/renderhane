@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Globe, Menu, X, ArrowRight, ChevronDown } from "lucide-react";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 import { useAuthStatus } from "@/hooks/use-auth-status";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function LandingHeader() {
   const t = useTranslations("landing");
@@ -21,8 +21,85 @@ export function LandingHeader() {
   const locale = params.locale as string;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const savedOverflow = useRef<{ html: string; body: string } | null>(null);
   // Signed-in visitors get one button to the app instead of login + sign-up.
   const signedIn = useAuthStatus();
+
+  const closeMobile = useCallback(() => {
+    if (dialog.current?.open) dialog.current.close();
+    setMobileOpen(false);
+  }, []);
+
+  // Dialog acilis/kapanis + kaydirma kilidi. Sitede kaydirici body oldugundan
+  // (html/body height:100%) kilit her ikisine de uygulanir.
+  useEffect(() => {
+    const d = dialog.current;
+    if (!d) return;
+    if (mobileOpen && !d.open && typeof d.showModal === "function") {
+      savedOverflow.current = {
+        html: document.documentElement.style.overflow,
+        body: document.body.style.overflow,
+      };
+      d.showModal();
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+      d.querySelector<HTMLElement>("[data-menu-close]")?.focus({ preventScroll: true });
+    } else if (!mobileOpen && d.open) {
+      d.close();
+    }
+  }, [mobileOpen]);
+  useEffect(() => {
+    const d = dialog.current;
+    if (!d) return;
+    const restore = () => {
+      if (savedOverflow.current) {
+        document.documentElement.style.overflow = savedOverflow.current.html;
+        document.body.style.overflow = savedOverflow.current.body;
+        savedOverflow.current = null;
+      }
+      setMobileOpen(false);
+    };
+    d.addEventListener("close", restore);
+    return () => d.removeEventListener("close", restore);
+  }, []);
+  // Masaustune gecince cekmeceyi kapat.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => {
+      if (mq.matches) closeMobile();
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [closeMobile]);
+  useEffect(
+    () => () => {
+      if (savedOverflow.current) {
+        document.documentElement.style.overflow = savedOverflow.current.html;
+        document.body.style.overflow = savedOverflow.current.body;
+      }
+    },
+    []
+  );
+  // Sekme tuzagi: odak diyalog icinde kalir.
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab") return;
+    const d = dialog.current;
+    if (!d) return;
+    const items = [...d.querySelectorAll<HTMLElement>("a[href],button:not([disabled])")].filter(
+      (el) => el.getClientRects().length > 0
+    );
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (!first || !last) return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   const otherLocale = locale === "tr" ? "en" : "tr";
 
@@ -173,70 +250,91 @@ export function LandingHeader() {
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-md p-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Menu"
+            aria-expanded={mobileOpen}
+            aria-controls="landing-mobile-menu"
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t border-border/40 bg-background px-4 pb-4 pt-2 md:hidden">
-          <nav className="flex flex-col gap-1">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => scrollTo(item.id)}
-                className="rounded-md px-3 py-2.5 text-left text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                {item.label}
-              </button>
-            ))}
-            {/* Free Tools — mobile */}
-            <div className="mt-1 border-t border-border/40 pt-1">
-              <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {t("nav.tools")}
-              </p>
-              {freeTools.map((tool) => (
-                <Link
-                  key={tool.href}
-                  href={tool.href}
-                  className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <tool.icon className="size-4 text-indigo-500" />
-                  {tool.label}
-                </Link>
-              ))}
-            </div>
-            <Link
-              href={`/${locale}/blog`}
-              className="rounded-md px-3 py-2.5 text-left text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              {t("footer.blog")}
-            </Link>
-          </nav>
-          <div className="mt-3 flex flex-col gap-2 border-t border-border/40 pt-3">
-            {!signedIn && (
-              <Button variant="outline" size="sm" asChild className="w-full">
-                <Link href={`/${locale}/login`}>{tc("login")}</Link>
-              </Button>
-            )}
-            <Button
-              size="sm"
-              asChild
-              className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
-            >
-              <Link href={signedIn ? `/${locale}/app` : `/${locale}/login`}>
-                {signedIn ? tc("goToApp") : tc("tryIt")}
-              </Link>
-            </Button>
-          </div>
+      {/* Mobile menu — diyalog cekmece (odak tuzagi + kaydirma kilidi) */}
+      <dialog
+        ref={dialog}
+        id="landing-mobile-menu"
+        aria-label={t("nav.tools")}
+        className="m-0 ml-auto h-full max-h-none w-[min(420px,100%)] border-0 border-l border-border/40 bg-background p-0 text-foreground backdrop:bg-black/40 backdrop:backdrop-blur-[3px] open:flex open:flex-col"
+        onClick={(e) => {
+          if (e.target === dialog.current) closeMobile();
+        }}
+        onKeyDown={trapTab}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border/40 px-5 py-4">
+          <span className="text-sm font-bold tracking-tight">{tc("appName")}</span>
+          <button
+            type="button"
+            data-menu-close
+            onClick={closeMobile}
+            aria-label="Close"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="size-5" />
+          </button>
         </div>
-      )}
+        <nav
+          aria-label="Mobile"
+          className="flex flex-col gap-1 overflow-y-auto px-5 py-4"
+          onClick={(e) => {
+            if ((e.target as Element).closest("a,button")) closeMobile();
+          }}
+        >
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="rounded-lg bg-muted/50 px-4 py-3 text-left text-[15px] font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              {item.label}
+            </button>
+          ))}
+          <p className="px-4 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60">
+            {t("nav.tools")}
+          </p>
+          {freeTools.map((tool) => (
+            <Link
+              key={tool.href}
+              href={tool.href}
+              className="flex items-center gap-3 rounded-lg bg-muted/50 px-4 py-3 text-left text-[15px] font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              <tool.icon className="size-4 shrink-0 text-indigo-500" />
+              {tool.label}
+            </Link>
+          ))}
+          <Link
+            href={`/${locale}/blog`}
+            className="rounded-lg bg-muted/50 px-4 py-3 text-left text-[15px] font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            {t("footer.blog")}
+          </Link>
+        </nav>
+        <div
+          className="mt-auto flex flex-col gap-2 border-t border-border/40 px-5 pt-4"
+          style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+        >
+          {!signedIn && (
+            <Button variant="outline" size="sm" asChild className="w-full min-h-[48px]">
+              <Link href={`/${locale}/login`}>{tc("login")}</Link>
+            </Button>
+          )}
+          <Button size="sm" asChild className="w-full min-h-[48px] bg-indigo-600 text-white hover:bg-indigo-700">
+            <Link href={signedIn ? `/${locale}/app` : `/${locale}/login`}>
+              {signedIn ? tc("goToApp") : tc("tryIt")}
+            </Link>
+          </Button>
+        </div>
+      </dialog>
     </header>
   );
 }
