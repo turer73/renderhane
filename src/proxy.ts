@@ -74,7 +74,7 @@ export async function proxy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.fal.media https://assets.renderhane.com https://*.supabase.co https://*.r2.dev https://*.googlesyndication.com https://*.doubleclick.net https://www.google.com",
     "font-src 'self' data:",
-    "connect-src 'self' blob: https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://analytics.panola.app https://*.r2.dev https://*.r2.cloudflarestorage.com https://raw.githack.com https://raw.githubusercontent.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
+    "connect-src 'self' blob: https://*.supabase.co https://*.fal.media https://www.google-analytics.com https://analytics.panola.app https://*.r2.dev https://*.r2.cloudflarestorage.com https://raw.githack.com https://raw.githubusercontent.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.gstatic.com",
     "media-src 'self' blob: https://assets.renderhane.com https://*.fal.media",
     "worker-src 'self' blob:",
     "frame-src 'self' blob: https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com",

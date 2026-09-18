@@ -184,6 +184,11 @@ async function downloadImageAs(url: string, format: FormatOption, baseName: stri
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
+  // JPEG alfasızdır: saydam pikseller beyaza gömülür (siyah leke olmasın).
+  if (format.ext === "jpg") {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+  }
   ctx.drawImage(img ?? bitmap!, 0, 0, width, height);
 
   const quality = format.ext === "png" ? undefined : 0.92;
@@ -202,9 +207,10 @@ async function downloadImageAs(url: string, format: FormatOption, baseName: stri
 
 // ─── 3D model conversion via Three.js exporters ───────────
 
-// DRACO decoder CDN — ModelViewer (drei) ile birebir aynı kurulum.
-// Önizlemede açılan modelin indirmede de açılması için şart (üretilen
-// GLB'ler draco/meshopt sıkıştırmalı olabiliyor).
+// DRACO decoder CDN — yalnızca draco sıkıştırmalı GLB'de ilk draco
+// öbeğinde tembel yüklenir (üretim GLB'leri genelde draco'suzdur;
+// sıkıştırmasız dosyada ağ isteği olmaz). CSP connect-src gstatic'e
+// açıktır, yoksa prod'da decoder engellenirdi.
 const DRACO_DECODER_PATH =
   "https://www.gstatic.com/draco/versioned/decoders/1.5.5/";
 
@@ -294,7 +300,8 @@ function triggerDownload(blob: Blob, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(downloadUrl);
+  // Anında iptal büyük dosyayı Firefox'ta yarım bırakır — gecikmeli temizle.
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
 }
 
 // ─── Icons ─────────────────────────────────────────────────
