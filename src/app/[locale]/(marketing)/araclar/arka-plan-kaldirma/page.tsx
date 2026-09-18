@@ -1,182 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
   ArrowRight,
-  Upload,
-  Loader2,
-  Download,
-  RotateCcw,
   Sparkles,
   Shield,
   Zap,
   Clock,
   CheckCircle2,
   Star,
-  Image as ImageIcon,
   Box,
-  Layers,
 } from "lucide-react";
-import { AuthCta } from "@/components/auth/auth-cta";
-import { createClient } from "@/lib/supabase/client";
-import type { ManualComposer } from "@/components/launch-preview/tools-engine/composer";
-import "@/components/launch-preview/tools.css";
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-/** Hazır dekupe örneği (composer varsayılan ürünü). */
-const SAMPLE_PRODUCT = "/launch-preview/tools/cutout.png";
+import { LandingHeader } from "@/components/landing/landing-header";
+import { EngineToolView } from "@/components/tools/engine-tool-view";
 
 export default function PublicBgRemovePage() {
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const tr = locale === "tr";
-
-  const [preview, setPreview] = useState<string | null>(null);
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "error" | "info";
-    text: string;
-  } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const composerHost = useRef<HTMLDivElement>(null);
-  const composerRef = useRef<ManualComposer | null>(null);
-
-  // Manuel sahne yerleştirici — tamamen tarayıcıda, sunucuya gönderim yok.
-  // İndirme üyelik kapısının arkasında (giriş = supabase oturumu).
-  const openComposer = useCallback(
-    async (source?: string, label?: string) => {
-      const { createManualComposer } = await import(
-        "@/components/launch-preview/tools-engine/composer"
-      );
-      if (!composerRef.current && composerHost.current) {
-        const supabase = createClient();
-        composerRef.current = createManualComposer(composerHost.current, {
-          sampleProduct: SAMPLE_PRODUCT,
-          loginUrl: `/${locale}/login`,
-          verifyMember: async () => {
-            try {
-              const { data } = await supabase.auth.getSession();
-              return data.session !== null;
-            } catch {
-              return false;
-            }
-          },
-        });
-      }
-      const src = source ?? resultUrl ?? SAMPLE_PRODUCT;
-      composerRef.current?.open(
-        src,
-        label ?? (src !== SAMPLE_PRODUCT ? (tr ? "Dekupe sonucun" : "Your cutout") : undefined)
-      );
-    },
-    [locale, tr, resultUrl]
-  );
-
-  useEffect(
-    () => () => {
-      composerRef.current?.dispose();
-      composerRef.current = null;
-    },
-    []
-  );
-
-  const reset = () => {
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null);
-    setResultUrl(null);
-    setMessage(null);
-  };
-
-  const fileToDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  const handleFile = useCallback(
-    async (f: File) => {
-      if (!f.type.startsWith("image/")) {
-        setMessage({
-          type: "error",
-          text: tr ? "Lütfen bir resim dosyası yükleyin." : "Please upload an image file.",
-        });
-        return;
-      }
-      if (f.size > MAX_FILE_SIZE) {
-        setMessage({
-          type: "error",
-          text: tr ? "Dosya çok büyük (maks. 5MB)" : "File too large (max 5MB)",
-        });
-        return;
-      }
-      reset();
-      setPreview(URL.createObjectURL(f));
-      setProcessing(true);
-      setMessage(null);
-
-      try {
-        const dataUrl = await fileToDataUrl(f);
-        const res = await fetch("/api/demo/bg-remove", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageDataUrl: dataUrl }),
-        });
-
-        if (res.status === 429) {
-          const err = await res.json();
-          setMessage({ type: "error", text: tr ? err.errorTr : err.error });
-          setProcessing(false);
-          return;
-        }
-
-        if (!res.ok) {
-          setMessage({
-            type: "error",
-            text: tr ? "İşlem başarısız oldu." : "Processing failed.",
-          });
-          setProcessing(false);
-          return;
-        }
-
-        const data = await res.json();
-        setResultUrl(data.resultUrl);
-        if (typeof data.remaining === "number") setRemaining(data.remaining);
-      } catch {
-        setMessage({
-          type: "error",
-          text: tr ? "Bir hata oluştu." : "An error occurred.",
-        });
-      } finally {
-        setProcessing(false);
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tr]
-  );
-
-  async function downloadResult() {
-    if (!resultUrl) return;
-    try {
-      const response = await fetch(resultUrl);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = `bg-removed-${Date.now()}.png`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      window.open(resultUrl, "_blank");
-    }
-  }
+  const engineLocale = locale === "en" ? "en" : "tr";
 
   const features = [
     {
@@ -220,206 +64,14 @@ export default function PublicBgRemovePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Compact Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 pb-12 pt-4 text-white sm:pb-14 sm:pt-6">
-        <div className="absolute inset-0">
-          <div className="absolute left-1/4 top-0 h-[300px] w-[300px] rounded-full bg-white/5 blur-[100px]" />
-        </div>
-
-        {/* Top bar */}
-        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 pb-4 sm:pb-6">
-          <Link
-            href={`/${locale}`}
-            className="flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white transition-colors"
-          >
-            <Box className="size-5" />
-            Renderhane
-          </Link>
-          <AuthCta locale={locale} />
-        </div>
-
-        <div className="relative mx-auto max-w-3xl px-4 text-center">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm sm:text-sm">
-            <Sparkles className="size-3.5" />
-            {tr ? "AI Destekli • Ücretsiz" : "AI-Powered • Free"}
-          </div>
-
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
-            {tr ? "Arka Planı " : "Remove "}
-            <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
-              {tr ? "Anında Kaldır" : "Backgrounds Instantly"}
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-2 max-w-lg text-sm text-white/75 sm:text-base">
-            {tr
-              ? "Fotoğraflardan arka planı saniyeler içinde kaldırın. Kayıt gerektirmez, günde 3 hak."
-              : "Remove backgrounds from photos in seconds. No signup required, 3 free per day."}
-          </p>
-
-          {remaining !== null && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs backdrop-blur-sm sm:text-sm">
-              <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
-              {tr ? `Kalan hak: ${remaining}/3` : `Remaining: ${remaining}/3`}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-5xl px-4">
-        {/* Main Tool Card — pulled up over hero */}
-        <div className="-mt-8 mb-8">
-          <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-2xl shadow-indigo-200/30 dark:shadow-indigo-900/20 sm:p-8">
-            {!preview ? (
-              <div
-                className={`flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 sm:min-h-[280px] ${
-                  dragOver
-                    ? "border-indigo-500 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/10 scale-[1.01]"
-                    : "border-muted-foreground/20 hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/50 dark:hover:from-indigo-500/5 dark:hover:to-purple-500/5"
-                }`}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-              >
-                <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-500/20 dark:to-purple-500/20">
-                  <Upload className="size-7 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <p className="text-lg font-semibold">
-                  {tr ? "Fotoğrafı sürükleyin veya tıklayın" : "Drag & drop your photo or click"}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  JPG, PNG — {tr ? "maks." : "max"} 5MB
-                </p>
-                <Button
-                  className="mt-4 gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
-                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                >
-                  <ImageIcon className="size-4" />
-                  {tr ? "Fotoğraf Seç" : "Choose Photo"}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                />
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {/* Original */}
-                  <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-bold">1</span>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {tr ? "Orijinal" : "Original"}
-                      </span>
-                    </div>
-                    <div className="overflow-hidden rounded-2xl border shadow-sm">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={preview} alt="Original" className="h-auto w-full object-contain" />
-                    </div>
-                  </div>
-
-                  {/* Result */}
-                  <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="flex size-6 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-xs font-bold text-white">2</span>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {tr ? "Sonuç" : "Result"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-center overflow-hidden rounded-2xl border bg-[url('/checkerboard.svg')] bg-repeat shadow-sm min-h-[200px]">
-                      {processing ? (
-                        <div className="flex flex-col items-center gap-3 py-16">
-                          <div className="relative">
-                            <Loader2 className="size-10 animate-spin text-indigo-500" />
-                            <Sparkles className="absolute -right-1 -top-1 size-4 text-amber-400 animate-pulse" />
-                          </div>
-                          <p className="text-sm font-medium text-muted-foreground">
-                            {tr ? "AI işliyor..." : "AI processing..."}
-                          </p>
-                        </div>
-                      ) : resultUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={resultUrl} alt="Result" className="h-auto w-full object-contain" />
-                      ) : (
-                        <p className="text-sm text-muted-foreground py-16">
-                          {tr ? "Hata oluştu" : "Error occurred"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={reset} className="flex-1 gap-2 h-12">
-                    <RotateCcw className="size-4" />
-                    {tr ? "Yeni Fotoğraf" : "New Photo"}
-                  </Button>
-                  {resultUrl && (
-                    <Button
-                      onClick={() => void openComposer()}
-                      variant="outline"
-                      className="flex-1 gap-2 h-12"
-                    >
-                      <Layers className="size-4" />
-                      {tr ? "Sahneye yerleştir" : "Place in scene"}
-                    </Button>
-                  )}
-                  {resultUrl && (
-                    <Button
-                      onClick={downloadResult}
-                      className="flex-1 gap-2 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-200/40 hover:from-emerald-700 hover:to-teal-700 dark:shadow-emerald-900/30"
-                    >
-                      <Download className="size-4" />
-                      {tr ? "İndir (PNG)" : "Download (PNG)"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {message && (
-              <div
-                className={`mt-4 rounded-xl px-4 py-3 text-sm font-medium ${
-                  message.type === "error"
-                    ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                    : "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                }`}
-              >
-                {message.text}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Manuel sahne yerleştirme girişi */}
-        <section className="mc-entry mb-8">
-          <div>
-            <span className="mc-kicker">
-              {tr ? "SONRAKİ ADIM · ÜCRETSİZ + ÜYELİKLİ" : "NEXT STEP · FREE + MEMBERSHIP"}
-            </span>
-            <h2>{tr ? "Kendi sahneni kur." : "Compose your own scene."}</h2>
-            <p>
-              {tr
-                ? "Kendi arka planını yükle; ürününü sürükle, boyutlandır ve döndür. Manuel yerleştirme ücretsizdir; indirmek için üyelik gerekir."
-                : "Upload your own background; drag, resize and rotate your product. Manual placement is free; download needs membership."}
-            </p>
-          </div>
-          <Button
-            type="button"
-            onClick={() => void openComposer()}
-            className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
-          >
-            <Layers className="size-4" />
-            {tr ? "Sahneye yerleştir" : "Place in scene"}
-          </Button>
-        </section>
-
+      <LandingHeader />
+      <div className="mx-auto max-w-5xl px-4 pt-6">
+        <EngineToolView
+          locale={engineLocale}
+          page="background"
+          enableBackgroundApi
+          label={tr ? "Arka plan kaldırma çalışma alanı" : "Background removal workspace"}
+        />
         {/* Feature Cards */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:mb-12 sm:grid-cols-4 sm:gap-4">
           {features.map((f, i) => (
@@ -515,7 +167,6 @@ export default function PublicBgRemovePage() {
           </div>
         </div>
       </div>
-
       {/* Footer */}
       <footer className="border-t bg-muted/30 py-8">
         <div className="mx-auto max-w-5xl px-4 text-center">
@@ -533,8 +184,6 @@ export default function PublicBgRemovePage() {
           </p>
         </div>
       </footer>
-      {/* Manuel sahne yerleştirici diyaloğu buraya eklenir */}
-      <div ref={composerHost} />
     </div>
   );
 }
