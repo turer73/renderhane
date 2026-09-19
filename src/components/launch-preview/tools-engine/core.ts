@@ -6,8 +6,10 @@
 import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
+import {englishInspiration, localizeToolMarkup, localizeToolText} from './english-copy';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
+export type ToolLocale = 'tr' | 'en';
 export type ContentType = 'url' | 'vcard' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
 export type Fields = Record<string, string>;
 export interface ImageResult { url: string; remaining?: number }
@@ -18,6 +20,7 @@ export interface RenderhaneAdapters {
 }
 export interface MountOptions {
   initialPage?: Page;
+  locale?: ToolLocale;
   /** Optional host chrome. Omitted values preserve V3's original behavior. */
   chrome?: boolean;
   homeMarkup?: string;
@@ -62,8 +65,14 @@ type ToolWindow = Window & {
 const MAX_FILE = 5 * 1024 * 1024;
 const MAX_PIXELS = 24_000_000;
 const pages: Page[] = ['home', 'background', 'scenes', 'qr', 'nfc', 'artistic', 'tools'];
-const pageNames: Record<Page, string> = { home: 'Ana sayfa', background: 'Arka plan kaldır', scenes: 'Sahne oluştur', qr: 'QR kod oluştur', nfc: 'NFC etiket yaz', artistic: 'Sanatsal QR', tools: 'Tüm araçlar' };
-const contentLabels: Record<ContentType, string> = { url: 'URL', vcard: 'Kişi kartı', wifi: 'WiFi', phone: 'Telefon', email: 'E-posta', sms: 'SMS', location: 'Konum', text: 'Metin', app: 'Uygulama' };
+const PAGE_NAMES: Record<ToolLocale, Record<Page, string>> = {
+  tr: { home: 'Ana sayfa', background: 'Arka plan kaldır', scenes: 'Sahne oluştur', qr: 'QR kod oluştur', nfc: 'NFC etiket yaz', artistic: 'Sanatsal QR', tools: 'Tüm araçlar' },
+  en: { home: 'Home', background: 'Remove background', scenes: 'Create a scene', qr: 'Create QR code', nfc: 'Write NFC tag', artistic: 'Artistic QR', tools: 'All tools' },
+};
+const CONTENT_LABELS: Record<ToolLocale, Record<ContentType, string>> = {
+  tr: { url: 'URL', vcard: 'Kişi kartı', wifi: 'WiFi', phone: 'Telefon', email: 'E-posta', sms: 'SMS', location: 'Konum', text: 'Metin', app: 'Uygulama' },
+  en: { url: 'URL', vcard: 'Contact card', wifi: 'WiFi', phone: 'Phone', email: 'Email', sms: 'SMS', location: 'Location', text: 'Text', app: 'App' },
+};
 const contentIcons: Record<ContentType, string> = { url: 'link', vcard: 'user', wifi: 'wifi', phone: 'phone', email: 'mail', sms: 'message', location: 'pin', text: 'text', app: 'grid' };
 const sceneNames = ['Doğal ışık', 'Minimal stüdyo', 'Banyo', 'Pazaryeri'];
 const scenePrompts = [
@@ -171,6 +180,11 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> { return new Promi
 
 export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): () => void {
   const doc = root.ownerDocument; const win = doc.defaultView! as unknown as ToolWindow;
+  const locale = options.locale ?? 'tr';
+  const en = locale === 'en';
+  const l = (tr: string, english: string): string => en ? english : tr;
+  const pageNames = PAGE_NAMES[locale];
+  const contentLabels = CONTENT_LABELS[locale];
   let viewCleanup: (() => void) | undefined;
   let disposed = false; let toastTimer = 0; let qrTimer = 0; let nfcTimer = 0; let uploadTicket = 0;
   let qrRevision = 0; let qrController: AbortController | null = null;
@@ -197,7 +211,9 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     brief: {brand:'',url:'',usage:'Ürün ambalajı',size:'',style:'Çiçek & Ornament',notes:''} as Fields,
     ideas: {qr: {category:'all',expanded:false,selected:null}, nfc: {category:'all',expanded:false,selected:null}} as Record<IdeaChannel, InspirationState>,
   };
-  function ideaSection(channel: IdeaChannel): string { return renderInspiration(channel, s.ideas[channel]); }
+  function ideaSection(channel: IdeaChannel): string {
+    return en ? englishInspiration(channel) : renderInspiration(channel, s.ideas[channel]);
+  }
   function refreshIdeas(focusSelector?: string, scroll = false): void {
     if (s.page !== 'qr' && s.page !== 'nfc') return;
     const section = $('#rh-inspiration');
@@ -314,10 +330,11 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const approvedHome = s.page === 'home' && options.homeMarkup !== undefined;
     root.classList.toggle('rh-app', !approvedHome);
     const content = s.page === 'home' ? home() : s.page === 'background' ? background() : s.page === 'scenes' ? scenesView() : s.page === 'qr' ? qrView() : s.page === 'artistic' ? artisticView() : s.page === 'tools' ? toolsView() : nfcView();
-    root.innerHTML = approvedHome ? options.homeMarkup! :
+    const markup = approvedHome ? options.homeMarkup! :
       (options.chrome === false ? '' : options.headerMarkup ?? header()) + content +
       (options.chrome === false ? '' : options.footerMarkup ?? footer()) +
       '<div class="rh-toast" role="status" aria-live="polite" id="rh-toast"></div>';
+    root.innerHTML = en ? localizeToolMarkup(markup) : markup;
     if (options.pageHref) $$<HTMLAnchorElement>('a[data-page]').forEach(a => {
       a.href = options.pageHref!(a.dataset.page as Page);
     });
@@ -328,7 +345,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     viewCleanup = options.onRender?.(s.page) || undefined;
     if (focus) $(approvedHome ? '#rhl-main' : '#rh-main')?.focus({ preventScroll: true });
   }
-  function toast(message: string): void { const el = $('#rh-toast'); if (!el) return; win.clearTimeout(toastTimer); el.textContent = message; el.classList.add('show'); toastTimer = win.setTimeout(() => el.classList.remove('show'), 4200); }
+  function toast(message: string): void { const el = $('#rh-toast'); if (!el) return; win.clearTimeout(toastTimer); el.textContent = en ? localizeToolText(message) : message; el.classList.add('show'); toastTimer = win.setTimeout(() => el.classList.remove('show'), 4200); }
   function stopNfc(): void { nfcAbort?.abort(); nfcAbort = null; win.clearTimeout(nfcTimer); s.nfcBusy = false; }
   function navigate(page: Page): void {
     if (!pages.includes(page)) return;
@@ -353,8 +370,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     // the state change must see settled layout, or clicks can split across
     // a mid-click layout shift and get lost.
     const a = $('#rh-qr-check-title'), b = $('#rh-qr-check-detail');
-    if (a) a.textContent = title;
-    if (b) b.textContent = detail;
+    if (a) a.textContent = en ? localizeToolText(title) : title;
+    if (b) b.textContent = en ? localizeToolText(detail) : detail;
     const el = $('#rh-qr-check');
     if (el) el.dataset.state = state;
   }
@@ -391,11 +408,13 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       const svgEl = $('#rh-qr-svg');
       if (svgEl) svgEl.innerHTML = artifact.svg;
       const text = $('#rh-qr-payload');
-      if (text) text.textContent = s.qrType === 'wifi' ? 'WiFi QR kodu ağ adını ve şifresini içerir. Şifre bu önizlemede gizlendi.' : payload;
+      if (text) text.textContent = s.qrType === 'wifi' ? l('WiFi QR kodu ağ adını ve şifresini içerir. Şifre bu önizlemede gizlendi.', 'The WiFi QR code contains the network name and password. The password is hidden in this preview.') : payload;
       const label = $('#rh-qr-style-label');
-      if (label) label.textContent = (QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label;
+      if (label) label.textContent = en ? localizeToolText((QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label) : (QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label;
       const meta = $('#rh-qr-meta');
-      if (meta) meta.textContent = `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modül · H · 4 modül kenar`;
+      if (meta) meta.textContent = en
+        ? `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modules · H · 4-module quiet zone`
+        : `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modül · H · 4 modül kenar`;
       if (errorEl) errorEl.hidden = true;
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'false');
       qrStatus('pending', 'Dijital veri kontrolü sürüyor', 'SVG görüntüleniyor; QR verisi ve hata kontrolü sınanıyor.');
@@ -413,20 +432,20 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       qrValidatedKey = '';
       s.qrSvg = '';
       s.qrPayload = '';
-      s.qrError = err instanceof Error ? err.message : 'QR doğrulanamadı.';
+      s.qrError = err instanceof Error ? (en ? localizeToolText(err.message) : err.message) : l('QR doğrulanamadı.', 'QR verification failed.');
       if (errorEl) { errorEl.textContent = s.qrError; errorEl.hidden = false; }
       qrStatus('failed', 'İndirme kapalı', s.qrError);
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'true');
       const svgEl = $('#rh-qr-svg');
-      if (svgEl) svgEl.innerHTML = `<div class="rh-empty" style="min-height:220px">${icon('shield')}<p>Bu ayarla çıktı onaylanmadı.</p><small>İçeriği, rengi veya boyutu değiştir.</small></div>`;
+      if (svgEl) svgEl.innerHTML = `<div class="rh-empty" style="min-height:220px">${icon('shield')}<p>${l('Bu ayarla çıktı onaylanmadı.', 'The output was not approved with these settings.')}</p><small>${l('İçeriği, rengi veya boyutu değiştir.', 'Change the content, color, or size.')}</small></div>`;
       const payloadEl = $('#rh-qr-payload');
-      if (payloadEl) payloadEl.textContent = 'Doğrulanmış çıktı bekleniyor.';
+      if (payloadEl) payloadEl.textContent = l('Doğrulanmış çıktı bekleniyor.', 'Waiting for verified output.');
       const meta = $('#rh-qr-meta');
-      if (meta) meta.textContent = 'Kontrol başarısız. Otomatik olarak başka şekle geçilmedi.';
+      if (meta) meta.textContent = l('Kontrol başarısız. Otomatik olarak başka şekle geçilmedi.', 'Verification failed. The tool did not switch shapes automatically.');
       $$<HTMLButtonElement>('[data-action="qr-png"],[data-action="qr-svg"]').forEach(b => b.disabled = true);
     }
   }
-  function updateNfcPreview(): void { const el = $('#rh-nfc-preview'); if (!el) return; try { el.textContent = s.nfcType === 'wifi' ? 'WiFi içeriği · yazım bu sürümde kapalı' : buildPayload(s.nfcType, s.nfc); } catch { el.textContent = 'İçeriğini tamamla.'; } }
+  function updateNfcPreview(): void { const el = $('#rh-nfc-preview'); if (!el) return; try { el.textContent = s.nfcType === 'wifi' ? l('WiFi içeriği · yazım bu sürümde kapalı', 'WiFi content · writing is disabled in this version') : buildPayload(s.nfcType, s.nfc); } catch { el.textContent = l('İçeriğini tamamla.', 'Complete your content.'); } }
   async function removeBackground(): Promise<void> {
     if (!s.file) { s.tab = 'result'; render(); toast('Hazır örnek çıktı gösteriliyor. Bu işlem AI çağrısı değildir.'); return; }
     const adapter = options.adapters?.removeBackground;
@@ -476,7 +495,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       if (mode === 'write') {
         let records: NFCRecord[];
         if (s.nfcType === 'vcard') records = [{ recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload) }];
-        else if (s.nfcType === 'text') records = [{ recordType: 'text', lang: 'tr', data: payload }];
+        else if (s.nfcType === 'text') records = [{ recordType: 'text', lang: locale, data: payload }];
         else if (s.nfcType === 'app') records = [{ recordType: 'url', data: payload }, { recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package) }];
         else records = [{ recordType: 'url', data: payload }];
         await reader.write({ records }, { signal: controller.signal, overwrite: s.nfcOverwrite });
