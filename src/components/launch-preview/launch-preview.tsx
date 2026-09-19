@@ -35,8 +35,9 @@ function MobileDock({ locale }: { locale: Locale }) {
       const active = document.activeElement;
       const editing = active instanceof Element && !!active.closest('input,textarea,select,[contenteditable="true"]');
       const modal = !!document.querySelector("dialog[open]");
+      const consentDialog = !!document.querySelector("[data-cookie-consent-dialog]");
       const keyboard = window.visualViewport ? window.innerHeight - window.visualViewport.height > 150 : false;
-      setVisible(mq.matches && !heroVisible && !editing && !modal && !keyboard);
+      setVisible(mq.matches && !heroVisible && !editing && !modal && !consentDialog && !keyboard);
     };
     const observer = new IntersectionObserver(
       (entries) => {
@@ -50,11 +51,13 @@ function MobileDock({ locale }: { locale: Locale }) {
     mutations.observe(document.body, {
       attributes: true,
       attributeFilter: ["open"],
+      childList: true,
       subtree: true,
     });
+    const onFocusOut = () => queueMicrotask(refresh);
     mq.addEventListener("change", refresh);
     document.addEventListener("focusin", refresh);
-    document.addEventListener("focusout", () => queueMicrotask(refresh));
+    document.addEventListener("focusout", onFocusOut);
     window.visualViewport?.addEventListener("resize", refresh);
     refresh();
     return () => {
@@ -62,6 +65,7 @@ function MobileDock({ locale }: { locale: Locale }) {
       mutations.disconnect();
       mq.removeEventListener("change", refresh);
       document.removeEventListener("focusin", refresh);
+      document.removeEventListener("focusout", onFocusOut);
       window.visualViewport?.removeEventListener("resize", refresh);
     };
   }, []);
