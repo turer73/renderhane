@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useParams } from "next/navigation";
 import { Sparkles, Download, RotateCcw, Maximize2, ImageIcon, Scissors, ZoomIn, Wand2, Video, ShoppingBag, Palette, Layers, Film, User, Play, Camera, Shirt, LayoutGrid, Crown, QrCode, FolderUp, FileStack, Box, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "./workspace-toast";
@@ -20,13 +21,17 @@ const ModelViewer = dynamic(
 interface WorkspacePreviewProps {
   activeTool: string;
   activeJob?: GenerationJob | null;
+  /** Open and focus the generation form. */
+  onStart?: () => void;
   /** Re-run the last successful job with identical parameters. */
   onRetry?: () => void;
   /** Submit 3 parallel variations of the last successful job. */
   onVariation?: () => void;
 }
 
-export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }: WorkspacePreviewProps) {
+export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, onVariation }: WorkspacePreviewProps) {
+  const params = useParams<{ locale: string }>();
+  const isTr = (params?.locale || "tr") === "tr";
   // Failed state
   if (activeJob?.status === "failed") {
     return (
@@ -41,12 +46,14 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
               {activeJob.errorMessage || "Üretim başarısız oldu"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Kredin iade edildi. Tekrar deneyebilirsin.
+              {isTr
+                ? "Kredi durumu işlem sonucuna göre hesabında güncellenir."
+                : "Your credit balance is updated according to the job result."}
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info")}>
+          <Button size="sm" variant="outline" onClick={onRetry} disabled={!onRetry}>
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            Tekrar Dene
+            {isTr ? "Tekrar Dene" : "Try Again"}
           </Button>
         </div>
       </div>
@@ -82,30 +89,8 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
           {/* Animated background glow */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.08)_0%,transparent_70%)] animate-pulse" />
 
-          {/* Circular progress */}
-          <div className="relative z-10">
-            <svg width="160" height="160" viewBox="0 0 160 160" className="transform -rotate-90">
-              {/* Background ring */}
-              <circle cx="80" cy="80" r="70" fill="none" stroke="hsl(var(--border))" strokeWidth="6" opacity="0.3" />
-              {/* Progress ring */}
-              <circle
-                cx="80" cy="80" r="70" fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 70}`}
-                strokeDashoffset={`${2 * Math.PI * 70 * (1 - activeJob.progress / 100)}`}
-                className="transition-all duration-300 ease-out"
-                style={{ filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.4))" }}
-              />
-            </svg>
-            {/* Percentage text in center */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold text-primary tabular-nums">
-                {activeJob.progress}%
-              </span>
-              <span className="text-[10px] text-muted-foreground mt-0.5">{activeJob.model}</span>
-            </div>
+          <div className="relative z-10 flex h-28 w-28 items-center justify-center rounded-full border border-primary/20 bg-primary/5">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
 
           {/* Stage info */}
@@ -117,19 +102,11 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
             </div>
           </div>
 
-          {/* Linear progress bar */}
-          <div className="relative z-10 w-full max-w-xs">
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-300 ease-out"
-                style={{ width: `${activeJob.progress}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-              <span>{activeJob.credits} kredi kullanılacak</span>
-              <span>~{Math.max(1, Math.round((100 - activeJob.progress) / 8))} sn kaldı</span>
-            </div>
-          </div>
+          <p className="relative z-10 text-xs text-muted-foreground">
+            {isTr
+              ? `${activeJob.credits} kredi • Bu işlem arka planda devam eder`
+              : `${activeJob.credits} credits • This job continues in the background`}
+          </p>
         </div>
       </div>
     );
@@ -269,6 +246,7 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
   }
 
   const es = EMPTY_STATES[activeTool] ?? EMPTY_STATES["3d-model"];
+  const copy = isTr ? es : (EMPTY_COPY_EN[activeTool] ?? EMPTY_COPY_EN["3d-model"]);
 
   return (
     <div className="flex h-full flex-col rounded-2xl bg-card border border-border overflow-hidden">
@@ -280,25 +258,35 @@ export function WorkspacePreview({ activeTool, activeJob, onRetry, onVariation }
 
         <div className="relative z-10 text-center space-y-2">
           <h2 className="text-xl font-semibold text-primary">
-            {es.title}
+            {copy.title}
           </h2>
           <p className="text-sm text-muted-foreground max-w-md">
-            {es.desc}
+            {copy.desc}
           </p>
         </div>
 
         <Button
           size="lg"
           className="relative z-10 mt-2"
-          onClick={() => showToast(es.toast)}
+          onClick={onStart}
+          disabled={!onStart}
         >
           <Sparkles className="h-4 w-4 mr-2" />
-          {es.cta}
+          {copy.cta}
         </Button>
       </div>
     </div>
   );
 }
+
+const EMPTY_COPY_EN: Record<string, { title: string; desc: string; cta: string }> = {
+  "3d-model": { title: "Turn Products into 3D", desc: "Upload a photo or enter a prompt to create a production-ready 3D model.", cta: "Start Creating" },
+  image: { title: "Create and Edit Images", desc: "Remove backgrounds, enhance quality, generate images, or edit existing assets.", cta: "Open Image Tools" },
+  video: { title: "Create Product Videos", desc: "Generate videos from images or text and build talking-avatar content.", cta: "Open Video Tools" },
+  ecommerce: { title: "Create E-commerce Assets", desc: "Build product scenes, A+ content, and virtual try-on visuals.", cta: "Open Commerce Tools" },
+  design: { title: "Design with AI", desc: "Create brand-ready logos and artistic QR codes.", cta: "Open Design Tools" },
+  batch: { title: "Process Images in Bulk", desc: "Run background removal, enhancement, and resizing across multiple images.", cta: "Open Batch Tools" },
+};
 
 /* ═══ Empty state configs (static — outside component to avoid re-creation) ═══ */
 const EMPTY_STATES: Record<string, { icons: React.ReactNode; title: string; desc: string; cta: string; toast: string }> = {
