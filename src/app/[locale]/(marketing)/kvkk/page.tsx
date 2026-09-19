@@ -37,6 +37,7 @@ export default async function KvkkPage({ params }: PageProps) {
     { title: t("kvkk.section5Title"), content: t("kvkk.section5Content") },
     { title: t("kvkk.section6Title"), content: t("kvkk.section6Content") },
     { title: t("kvkk.section7Title"), content: t("kvkk.section7Content") },
+    { title: t("kvkk.section8Title"), content: t("kvkk.section8Content") },
   ];
 
   return (
@@ -57,7 +58,7 @@ export default async function KvkkPage({ params }: PageProps) {
             {t("kvkk.title")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("lastUpdated", { date: "2025-01-15" })}
+            {t("lastUpdated", { date: "2026-09-19" })}
           </p>
 
           <p className="mt-8 text-base leading-relaxed text-muted-foreground">
