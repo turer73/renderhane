@@ -69,10 +69,12 @@ function WorkspaceContent() {
   const [activeTool, setActiveTool] = useState(initialCategory);
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  useEffect(() => {
+  const [previousToolParam, setPreviousToolParam] = useState(toolParam);
+  if (previousToolParam !== toolParam) {
+    setPreviousToolParam(toolParam);
     setActiveTool(initialCategory);
     setActiveTab(initialTab);
-  }, [initialCategory, initialTab]);
+  }
 
   const updateToolUrl = useCallback((tool: string) => {
     if (searchParams.get("tool") === tool) return;
