@@ -8,6 +8,7 @@ import { ArrowRight, Box } from "lucide-react";
 import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
 import { loginPath, photoModelOptions, quoteCredits, type Locale } from "@/lib/launch-preview/core";
 import { LaunchNavigation } from "./launch-navigation";
+import { Footer } from "@/components/landing/footer";
 import { previewHome } from "@/lib/launch-preview/routes";
 import "./launch.css";
 import "./tools.css";
@@ -351,30 +352,17 @@ export function LaunchPreviewSections({ locale, production = false }: { locale: 
 export function LaunchPreview({ locale, production = false }: { locale: Locale; production?: boolean }) {
   const tr = locale === "tr";
   return (
-    <div className="rhl">
-      {!production && <div className="rhl-notice">{tr ? "TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi" : "DESIGN PREVIEW · 3D homepage + V3 tools · Production unchanged"}</div>}
-      <div className="rhl-shell">
-        <LaunchNavigation locale={locale} production={production} />
-        <LaunchPreviewSections locale={locale} production={production} />
-        <footer className="rhl-footer">
-          <div className="rhl-footer-brand">
-            <b>Renderhane</b>
-            <span>{tr ? "3D model, görsel ve video üretimi." : "3D model, image and video creation."}</span>
-          </div>
-          <nav className="rhl-footer-links" aria-label={tr ? "Alt bilgi bağlantıları" : "Footer links"}>
-            <Link href={`/${locale}/hakkimizda`}>{tr ? "Hakkımızda" : "About"}</Link>
-            <Link href={`/${locale}/blog`}>Blog</Link>
-            <Link href={`/${locale}/privacy`}>{tr ? "Gizlilik" : "Privacy"}</Link>
-            <Link href={`/${locale}/terms`}>{tr ? "Koşullar" : "Terms"}</Link>
-            <Link href={`/${locale}/kvkk`}>KVKK</Link>
-            <Link href={`/${locale}/cookie-policy`}>{tr ? "Çerez Politikası" : "Cookie Policy"}</Link>
-            <Link href={`/${locale}/iletisim`}>{tr ? "İletişim" : "Contact"}</Link>
-            <Link href={`/${tr ? "en" : "tr"}`} hrefLang={tr ? "en" : "tr"}>
-              {tr ? "English" : "Türkçe"}
-            </Link>
-          </nav>
-        </footer>
+    <>
+      <div className="rhl">
+        {!production && <div className="rhl-notice">{tr ? "TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi" : "DESIGN PREVIEW · 3D homepage + V3 tools · Production unchanged"}</div>}
+        <div className="rhl-shell">
+          <LaunchNavigation locale={locale} production={production} />
+          <LaunchPreviewSections locale={locale} production={production} />
+        </div>
       </div>
-    </div>
+      <div className="rhl-footer-clearance">
+        <Footer />
+      </div>
+    </>
   );
 }

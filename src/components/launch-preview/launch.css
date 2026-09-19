@@ -210,7 +210,6 @@
 }
 @media(max-width:767px){
  .rhl .rhl-shell{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
- .rhl:not(.rhl-chrome){padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
  .rhl .rhl-notice{padding:6px 15px;font-size:10px;line-height:1.5}
  .rhl .rhl-header{height:68px;gap:12px}
  .rhl .rhl-brand{font-size:21px;gap:8px}
@@ -314,3 +313,8 @@
 
 /* Demodan sapma: v1.5.0 alt-boslugu dock olan anasayfa icin; dock olmayan arac sayfalarinda (rhl-tools-wrapper) hayalet bosluk birakir. */
 @media(max-width:767px){.rhl.rhl-tools-wrapper{padding-bottom:0}}
+
+/* Footer is outside the scoped launch reset; leave room for the fixed mobile dock. */
+@media(max-width:767px){
+ .rhl-footer-clearance{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px));background:#081226}
+}

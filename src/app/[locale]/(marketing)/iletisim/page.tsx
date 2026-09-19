@@ -32,9 +32,9 @@ export default async function ContactPage({ params }: PageProps) {
   const tLegal = await getTranslations({ locale, namespace: "legal" });
 
   const sections = [
-    { title: t("supportTitle"), content: t("supportBody") },
-    { title: t("businessTitle"), content: t("businessBody") },
-    { title: t("hoursTitle"), content: t("hoursBody") },
+    { id: "destek", title: t("supportTitle"), content: t("supportBody") },
+    { id: "api-ve-entegrasyon", title: t("businessTitle"), content: t("businessBody") },
+    { id: "yanit-suresi", title: t("hoursTitle"), content: t("hoursBody") },
   ];
 
   return (
@@ -72,7 +72,7 @@ export default async function ContactPage({ params }: PageProps) {
 
           <div className="mt-10 space-y-10">
             {sections.map((section, i) => (
-              <section key={i}>
+              <section id={section.id} key={i} className="scroll-mt-24">
                 <h2 className="text-xl font-semibold text-foreground">
                   {section.title}
                 </h2>
