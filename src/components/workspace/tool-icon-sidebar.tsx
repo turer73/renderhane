@@ -1,12 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useParams } from "next/navigation";
 import {
   Box,
   Image,
   Video,
   ShoppingBag,
   Palette,
+  FileStack,
 } from "lucide-react";
 import {
   Tooltip,
@@ -18,33 +20,45 @@ import {
 const toolCategories = [
   {
     id: "3d-model",
-    label: "3D Modeller",
+    labelTr: "3D Modeller",
+    labelEn: "3D Models",
     icon: Box,
     tools: ["trellis-v1", "tripo-2.5", "meshy-5", "meshy-6", "hunyuan3d"],
   },
   {
     id: "image",
-    label: "Görüntü",
+    labelTr: "Görüntü",
+    labelEn: "Images",
     icon: Image,
     tools: ["bg-remove", "enhance", "text-to-image", "image-edit", "object-removal"],
   },
   {
     id: "video",
-    label: "Video",
+    labelTr: "Video",
+    labelEn: "Video",
     icon: Video,
     tools: ["video", "talking-avatar"],
   },
   {
     id: "ecommerce",
-    label: "E-ticaret",
+    labelTr: "E-ticaret",
+    labelEn: "Commerce",
     icon: ShoppingBag,
     tools: ["scene", "aplus", "virtual-tryon"],
   },
   {
     id: "design",
-    label: "Tasarım",
+    labelTr: "Tasarım",
+    labelEn: "Design",
     icon: Palette,
     tools: ["logo", "qr-code"],
+  },
+  {
+    id: "batch",
+    labelTr: "Toplu İşlem",
+    labelEn: "Batch",
+    icon: FileStack,
+    tools: ["batch"],
   },
 ];
 
@@ -59,6 +73,9 @@ export function ToolIconSidebar({
   onToolChange,
   layout = "vertical",
 }: ToolIconSidebarProps) {
+  const params = useParams<{ locale: string }>();
+  const isTr = (params?.locale || "tr") === "tr";
+
   // Find which category the active tool belongs to
   const activeCategory =
     toolCategories.find((cat) => cat.id === activeTool)?.id ??
@@ -83,6 +100,7 @@ export function ToolIconSidebar({
           {toolCategories.map((category) => {
             const Icon = category.icon;
             const isActive = activeCategory === category.id;
+            const label = isTr ? category.labelTr : category.labelEn;
 
             return (
               <Tooltip key={category.id}>
@@ -115,12 +133,12 @@ export function ToolIconSidebar({
                       isHorizontal ? "text-[11px]" : "text-[10px]",
                       isActive && "font-semibold"
                     )}>
-                      {category.label.split(" ")[0]}
+                      {label.split(" ")[0]}
                     </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side={isHorizontal ? "bottom" : "right"} sideOffset={8}>
-                  {category.label}
+                  {label}
                 </TooltipContent>
               </Tooltip>
             );

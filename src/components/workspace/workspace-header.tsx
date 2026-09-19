@@ -222,7 +222,7 @@ export function WorkspaceHeader({
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <Shield className="h-4 w-4" />
-                    {isTr ? "Yonetim" : "Admin"}
+                    {isTr ? "Yönetim" : "Admin"}
                   </Link>
                 </DropdownMenuItem>
               </>
@@ -235,7 +235,7 @@ export function WorkspaceHeader({
               className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              {isTr ? "Cikis Yap" : "Logout"}
+              {isTr ? "Çıkış Yap" : "Log out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

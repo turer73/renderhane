@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Group as PanelGroup,
   Panel,
@@ -14,6 +14,7 @@ import { useJobPolling } from "@/hooks/use-job-polling";
 import { showToast } from "./workspace-toast";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Settings2, LayoutGrid, Sparkles, X } from "lucide-react";
+import { useParams } from "next/navigation";
 
 export interface GenerationJob {
   id: string;
@@ -30,102 +31,41 @@ export interface GenerationJob {
   errorMessage: string | null;
 }
 
-const STAGES_3D = [
-  { at: 0, label: "Görüntü analiz ediliyor..." },
-  { at: 20, label: "3D nokta bulutu oluşturuluyor..." },
-  { at: 45, label: "Mesh oluşturuluyor..." },
-  { at: 65, label: "Texture oluşturuluyor..." },
-  { at: 85, label: "Model optimize ediliyor..." },
-  { at: 95, label: "Son rötuşlar..." },
-];
-
-const STAGES_VIDEO = [
-  { at: 0, label: "Görüntü analiz ediliyor..." },
-  { at: 15, label: "Hareket vektörleri hesaplanıyor..." },
-  { at: 35, label: "Çerçeveler oluşturuluyor..." },
-  { at: 55, label: "Video sentezleniyor..." },
-  { at: 75, label: "Kalite iyileştiriliyor..." },
-  { at: 90, label: "Video kodlanıyor..." },
-  { at: 97, label: "Son paketleme..." },
-];
-
-const STAGES_IMAGE = [
-  { at: 0, label: "Görsel analiz ediliyor..." },
-  { at: 20, label: "AI modeli çalışıyor..." },
-  { at: 50, label: "Piksel işleme yapılıyor..." },
-  { at: 75, label: "Kalite kontrol ediliyor..." },
-  { at: 90, label: "Çıktı hazırlanıyor..." },
-  { at: 97, label: "Son dokunuşlar..." },
-];
-
-const STAGES_ECOMMERCE = [
-  { at: 0, label: "Ürün segmentasyonu yapılıyor..." },
-  { at: 20, label: "Arkaplan kaldırılıyor..." },
-  { at: 40, label: "Sahne oluşturuluyor..." },
-  { at: 60, label: "Aydınlatma ayarlanıyor..." },
-  { at: 80, label: "Gölgeler ekleniyor..." },
-  { at: 95, label: "Son dokunuşlar..." },
-];
-
-const STAGES_DESIGN = [
-  { at: 0, label: "Konsept analiz ediliyor..." },
-  { at: 25, label: "Tasarım varyasyonları oluşturuluyor..." },
-  { at: 50, label: "Renk ve tipografi ayarlanıyor..." },
-  { at: 75, label: "Detaylar ince ayarlanıyor..." },
-  { at: 95, label: "Son dokunuşlar..." },
-];
-
-const STAGES_BATCH = [
-  { at: 0, label: "Görseller yükleniyor..." },
-  { at: 15, label: "Kuyruk hazırlanıyor..." },
-  { at: 30, label: "Görseller işleniyor... (1/N)" },
-  { at: 60, label: "Görseller işleniyor... (N/2/N)" },
-  { at: 85, label: "Sonuçlar paketleniyor..." },
-  { at: 95, label: "Tamamlanıyor..." },
-];
-
-const STAGES_BY_TOOL: Record<string, typeof STAGES_3D> = {
-  "3d-model": STAGES_3D,
-  "image": STAGES_IMAGE,
-  "video": STAGES_VIDEO,
-  "ecommerce": STAGES_ECOMMERCE,
-  "design": STAGES_DESIGN,
-  "batch": STAGES_BATCH,
-};
-
-/** Get estimated stage label based on tool type and progress percentage */
-function getStageLabel(tool: string, progress: number, status: string): string {
-  if (status === "completed") return "Tamamlandı!";
-  if (status === "failed") return "Başarısız";
-  if (status === "pending") return "Kuyrukta bekliyor...";
-  const stages = STAGES_BY_TOOL[tool] ?? STAGES_3D;
-  return [...stages].reverse().find((s) => progress >= s.at)?.label ?? stages[0].label;
+function getStageLabel(status: string, locale: string): string {
+  const isTr = locale === "tr";
+  if (status === "completed") return isTr ? "Tamamlandı" : "Completed";
+  if (status === "failed") return isTr ? "Başarısız" : "Failed";
+  if (status === "pending") return isTr ? "Kuyrukta bekliyor" : "Waiting in queue";
+  return isTr ? "Üretim devam ediyor" : "Generation in progress";
 }
-
 
 interface WorkspaceLayoutProps {
   activeTool: string;
   onToolChange: (tool: string) => void;
   /** If set, pre-select this tab on first mount (deep link from dashboard) */
   initialTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 export function WorkspaceLayout({
   activeTool,
   onToolChange,
   initialTab,
+  onTabChange,
 }: WorkspaceLayoutProps) {
+  const params = useParams<{ locale: string }>();
+  const locale = params?.locale || "tr";
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobMeta, setActiveJobMeta] = useState<{ name: string; model: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const retryInFlightRef = useRef(false);
+  const desktopFormRef = useRef<HTMLDivElement>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [mobileFormOpen, setMobileFormOpen] = useState(true);
   const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
   /** The prompt the site auto-composed (scene/aplus/image-edit) — shown for transparency. */
   const [smartPrompt, setSmartPrompt] = useState<string | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [estimatedProgress, setEstimatedProgress] = useState(0);
 
   // Access centralized job polling
   const { jobs, refetch } = useJobPolling();
@@ -140,42 +80,7 @@ export function WorkspaceLayout({
     setPrevTool(activeTool);
     setActiveJobId(null);
     setActiveJobMeta(null);
-    setEstimatedProgress(0);
   }
-
-  // Derive initial progress from job status during render
-  const [prevJobState, setPrevJobState] = useState<{ id: string | null; status: string | undefined }>({ id: null, status: undefined });
-  const currentJobId = polledJob?.id ?? null;
-  const currentJobStatus = polledJob?.status;
-  if (prevJobState.id !== currentJobId || prevJobState.status !== currentJobStatus) {
-    setPrevJobState({ id: currentJobId, status: currentJobStatus });
-    if (currentJobStatus === "processing" || currentJobStatus === "pending") {
-      setEstimatedProgress(currentJobStatus === "pending" ? 5 : 15);
-    } else if (currentJobStatus === "completed") {
-      setEstimatedProgress(100);
-    } else {
-      setEstimatedProgress(0);
-    }
-  }
-
-  // Progress animation interval + cleanup (ref access is safe inside effects)
-  useEffect(() => {
-    if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
-
-    if (polledJob?.status === "processing" || polledJob?.status === "pending") {
-      startTimeRef.current = Date.now();
-      progressIntervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - startTimeRef.current) / 1000;
-        // Asymptotic progress: approaches 95% but never reaches 100%
-        const progress = Math.min(95, Math.round(15 + (80 * (1 - Math.exp(-elapsed / 30)))));
-        setEstimatedProgress(progress);
-      }, 500);
-    }
-
-    return () => {
-      if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
-    };
-  }, [activeTool, activeJobId, polledJob?.status]);
 
   // Notify on completion
   useEffect(() => {
@@ -193,8 +98,8 @@ export function WorkspaceLayout({
     model: activeJobMeta.model,
     credits: polledJob.credit_cost,
     status: polledJob.status,
-    progress: estimatedProgress,
-    stage: getStageLabel(activeTool, estimatedProgress, polledJob.status),
+    progress: polledJob.status === "completed" ? 100 : 0,
+    stage: getStageLabel(polledJob.status, locale),
     thumbnail: polledJob.output_url,
     outputUrl: polledJob.output_url,
     outputType: polledJob.output_type,
@@ -206,7 +111,7 @@ export function WorkspaceLayout({
     model: activeJobMeta?.model ?? "",
     credits: 0,
     status: "pending",
-    progress: 2,
+    progress: 0,
     stage: "İş gönderiliyor...",
     thumbnail: null,
     outputUrl: null,
@@ -215,7 +120,16 @@ export function WorkspaceLayout({
     errorMessage: null,
   } : null;
 
-  const handleGenerate = useCallback(async (payload: GeneratePayload) => {
+  const handleGenerate = useCallback(async (
+    payload: GeneratePayload,
+    preserveActiveJobOnFailure = false
+  ) => {
+    const previousJobMeta = activeJobMeta;
+    const clearFailedSubmission = () => {
+      setSubmitting(false);
+      setActiveJobMeta(preserveActiveJobOnFailure ? previousJobMeta : null);
+    };
+
     setSubmitting(true);
     setActiveJobMeta({ name: payload.name, model: payload.model });
 
@@ -242,15 +156,13 @@ export function WorkspaceLayout({
       if (res.status === 402) {
         window.dispatchEvent(new CustomEvent("show-upgrade"));
         showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
-        setSubmitting(false);
-        setActiveJobMeta(null);
+        clearFailedSubmission();
         return;
       }
 
       if (res.status === 429) {
         showToast("Çok hızlı! Lütfen biraz bekle.", "error");
-        setSubmitting(false);
-        setActiveJobMeta(null);
+        clearFailedSubmission();
         return;
       }
 
@@ -261,8 +173,7 @@ export function WorkspaceLayout({
           if (errBody?.error) errorText = errBody.error;
         } catch { /* use generic */ }
         showToast(errorText, "error");
-        setSubmitting(false);
-        setActiveJobMeta(null);
+        clearFailedSubmission();
         return;
       }
 
@@ -272,24 +183,64 @@ export function WorkspaceLayout({
       setLastPayload(payload);
       setSmartPrompt(typeof data.composedPrompt === "string" ? data.composedPrompt : null);
 
+      if (window.matchMedia("(max-width: 767px)").matches) {
+        setMobileFormOpen(false);
+        requestAnimationFrame(() => {
+          document.querySelector("[data-mobile-preview]")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
+
       // Trigger credit refresh + polling refetch
       window.dispatchEvent(new Event("job-submitted"));
       refetch();
       showToast("Üretim başlatıldı!", "success");
     } catch {
       showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
-      setSubmitting(false);
-      setActiveJobMeta(null);
+      clearFailedSubmission();
     }
-  }, [refetch]);
+  }, [activeJobMeta, refetch]);
+
+  const handleStart = useCallback(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      const form = desktopFormRef.current;
+      form?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      requestAnimationFrame(() => {
+        form?.querySelector<HTMLElement>(
+          "input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])"
+        )?.focus({ preventScroll: true });
+      });
+      return;
+    }
+
+    setMobileFormOpen(true);
+    setMobileGalleryOpen(false);
+    requestAnimationFrame(() => {
+      document.querySelector("[data-mobile-tool-form]")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, []);
 
   /** Re-run the last successful job with the same parameters (1x). */
-  const handleRetry = useCallback(() => {
+  const handleRetry = useCallback(async () => {
     if (!lastPayload) {
       showToast("Önce bir üretim tamamla", "info");
       return;
     }
-    handleGenerate(lastPayload);
+    if (retryInFlightRef.current) return;
+
+    retryInFlightRef.current = true;
+    setRetrying(true);
+    try {
+      await handleGenerate(lastPayload, true);
+    } finally {
+      retryInFlightRef.current = false;
+      setRetrying(false);
+    }
   }, [lastPayload, handleGenerate]);
 
   /** Submit 3 parallel variations of the last successful job (different seeds). */
@@ -320,7 +271,7 @@ export function WorkspaceLayout({
         <div className="flex items-start gap-2">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-foreground">AI hazırladı</p>
+            <p className="text-[11px] font-semibold text-foreground">{locale === "tr" ? "AI hazırladı" : "Prepared by AI"}</p>
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-3">{smartPrompt}</p>
           </div>
           <button
@@ -344,28 +295,34 @@ export function WorkspaceLayout({
         layout="horizontal"
       />
 
-      {/* Preview */}
-      <div className="min-h-[280px] px-2 pt-2">
-        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onRetry={handleRetry} onVariation={handleVariation} />
-      </div>
-
       {/* Collapsible Form */}
-      <div className="px-2 pt-2">
+      <div data-mobile-tool-form className="scroll-mt-2 px-2 pt-2">
         <button
           onClick={() => { setMobileFormOpen(!mobileFormOpen); if (!mobileFormOpen) setMobileGalleryOpen(false); }}
           className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
         >
           <div className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Ayarlar</span>
+            <span className="text-sm font-medium">{locale === "tr" ? "Ayarlar" : "Settings"}</span>
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileFormOpen && "rotate-180")} />
         </button>
-        {mobileFormOpen && (
-          <div className="mt-1 overflow-hidden rounded-2xl border border-border bg-card animate-in slide-in-from-top-2 duration-200">
-            <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} />
-          </div>
-        )}
+        <div
+          aria-hidden={!mobileFormOpen}
+          className={cn(
+            "mt-1 overflow-hidden rounded-2xl border border-border bg-card",
+            mobileFormOpen
+              ? "animate-in slide-in-from-top-2 duration-200"
+              : "hidden"
+          )}
+        >
+          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+        </div>
+      </div>
+
+      {/* Preview follows the primary form on mobile. */}
+      <div data-mobile-preview className="scroll-mt-2 min-h-[240px] px-2 pt-2">
+        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} retrying={retrying} onVariation={handleVariation} />
       </div>
 
       {/* Collapsible Gallery */}
@@ -376,7 +333,7 @@ export function WorkspaceLayout({
         >
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Galeri</span>
+            <span className="text-sm font-medium">{locale === "tr" ? "Galeri" : "Gallery"}</span>
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileGalleryOpen && "rotate-180")} />
         </button>
@@ -396,13 +353,15 @@ export function WorkspaceLayout({
           activeTool={activeTool}
           onToolChange={onToolChange}
         />
-        <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} />
+        <div ref={desktopFormRef} data-desktop-tool-form className="min-w-0 flex-1">
+          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+        </div>
       </div>
 
       {/* Right: Preview + Gallery (resizable) */}
       <PanelGroup orientation="horizontal" className="flex-1 min-w-0">
         <Panel defaultSize="55%" minSize="30%">
-          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onRetry={handleRetry} onVariation={handleVariation} />
+          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} retrying={retrying} onVariation={handleVariation} />
         </Panel>
 
         <PanelResizeHandle

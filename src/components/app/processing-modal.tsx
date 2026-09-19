@@ -308,7 +308,6 @@ export function ProcessingModal() {
   const [job, setJob] = useState<ProcessingJob | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const progressRef = useRef<NodeJS.Timeout | null>(null);
   const messageRef = useRef<NodeJS.Timeout | null>(null);
   const confettiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -356,23 +355,6 @@ export function ProcessingModal() {
     window.addEventListener("job-submitted", handleJobSubmitted);
     return () => window.removeEventListener("job-submitted", handleJobSubmitted);
   }, []);
-
-  // Animate progress bar
-  useEffect(() => {
-    if (state !== "processing") return;
-
-    // Simulate progress that slows down as it approaches 90%
-    let current = 0;
-    progressRef.current = setInterval(() => {
-      current += Math.random() * 3 * (1 - current / 100);
-      if (current > 90) current = 90;
-      setProgress(current);
-    }, 300);
-
-    return () => {
-      if (progressRef.current) clearInterval(progressRef.current);
-    };
-  }, [state]);
 
   // Cycle through processing messages
   useEffect(() => {
@@ -469,7 +451,7 @@ export function ProcessingModal() {
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent
         className="sm:max-w-md overflow-hidden"
-        showCloseButton={state !== "processing"}
+        showCloseButton
       >
         <div className="relative">
           <ConfettiCanvas active={showConfetti} />
@@ -498,13 +480,18 @@ export function ProcessingModal() {
               {/* Progress bar */}
               <div className="w-full space-y-2 px-4">
                 <Progress
-                  value={progress}
+                  value={multiJobIds.length > 1 ? progress : null}
                   className="h-2 bg-muted/50"
                 />
                 <p className="text-center text-xs text-muted-foreground">
                   {multiJobIds.length > 1
                     ? `${polledJobs.filter((j) => multiJobIds.includes(j.id) && (j.status === "completed" || j.status === "failed")).length}/${multiJobIds.length} ${locale === "tr" ? "sahne hazır" : "scenes ready"}`
                     : tProc("pleaseWait")}
+                </p>
+                <p className="text-center text-[11px] text-muted-foreground/80">
+                  {locale === "tr"
+                    ? "Bu pencereyi kapatabilirsin; üretim arka planda devam eder."
+                    : "You can close this window; generation continues in the background."}
                 </p>
               </div>
 

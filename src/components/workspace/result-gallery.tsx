@@ -225,11 +225,6 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)} gün önce`;
 }
 
-/** Estimate progress for in-flight jobs using exponential curve (plain function — not flagged by purity rule) */
-function estimateProgress(createdAt: string): number {
-  return Math.min(90, Math.round(10 + (80 * (1 - Math.exp(-(Date.now() - new Date(createdAt).getTime()) / 60000 / 0.5)))));
-}
-
 interface ResultGalleryProps {
   activeTool?: string;
   polledJobs?: PolledJobInput[];
@@ -267,9 +262,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
         createdAt: timeAgo(j.created_at),
         credits: j.credit_cost,
         model: getModelDisplayName(j.model_id, j.tool),
-        progress: (j.status === "processing" || j.status === "pending")
-          ? estimateProgress(j.created_at)
-          : undefined,
+        progress: undefined,
         outputUrl: j.output_url,
         outputType: j.output_type,
         errorMessage: j.error_message,
@@ -437,13 +430,15 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                 })}
               </div>
 
-              {job.status === "processing" && job.progress != null && (
-                <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+              {job.status === "processing" && (
+                <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground" role="status" aria-live="polite">
                   <Loader2 className="h-3 w-3 animate-spin text-primary" />
                   <span>{activeTool === "image" || activeTool === "ecommerce" ? "Görsel oluşturuluyor..." : activeTool === "video" ? "Video oluşturuluyor..." : activeTool === "design" ? "Tasarım oluşturuluyor..." : activeTool === "batch" ? "Toplu işlem devam ediyor..." : "3D model oluşturuluyor..."}</span>
-                  <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${job.progress}%` }} />
-                  </div>
+                  {job.progress != null && (
+                    <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${job.progress}%` }} />
+                    </div>
+                  )}
                 </div>
               )}
 

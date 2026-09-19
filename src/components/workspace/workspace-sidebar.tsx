@@ -153,7 +153,7 @@ export function WorkspaceSidebar({
     },
     {
       id: "admin",
-      labelTr: "Yonetim",
+      labelTr: "Yönetim",
       labelEn: "Admin",
       icon: Shield,
       href: `/${locale}/app/admin`,
@@ -274,7 +274,7 @@ export function WorkspaceSidebar({
                 ? `${balance} ${locale === "en" ? "credits" : "kredi"}`
                 : locale === "en"
                   ? "Loading..."
-                  : "Yukleniyor..."}
+                  : "Yükleniyor..."}
             </TooltipContent>
           </Tooltip>
         )}
@@ -295,7 +295,7 @@ export function WorkspaceSidebar({
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
-                {locale === "en" ? "Logout" : "Cikis"}
+                {locale === "en" ? "Log out" : "Çıkış"}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -310,7 +310,7 @@ export function WorkspaceSidebar({
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={8}>
-              {locale === "en" ? "Logout" : "Cikis"}
+              {locale === "en" ? "Log out" : "Çıkış"}
             </TooltipContent>
           </Tooltip>
         )}
@@ -353,10 +353,10 @@ export function WorkspaceSidebar({
             {collapsed
               ? locale === "en"
                 ? "Expand sidebar"
-                : "Kenar cubugunu ac"
+                : "Kenar çubuğunu aç"
               : locale === "en"
                 ? "Collapse sidebar"
-                : "Kenar cubugunu kapat"}
+                : "Kenar çubuğunu kapat"}
           </TooltipContent>
         </Tooltip>
       </div>

@@ -316,5 +316,5 @@
 
 /* Footer is outside the scoped launch reset; leave room for the fixed mobile dock. */
 @media(max-width:767px){
- .rhl-footer-clearance{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px));background:#081226}
+ .rhl-footer-clearance{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px));background:#141126}
 }
