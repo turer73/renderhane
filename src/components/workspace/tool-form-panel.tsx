@@ -394,9 +394,11 @@ interface ToolFormPanelProps {
   initialTab?: string;
   /** Switch the active tool group (used by code-only tool suggestions) */
   onToolChange?: (tool: string) => void;
+  /** Keep the selected tab in sync with the URL. */
+  onTabChange?: (tab: string) => void;
 }
 
-export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange }: ToolFormPanelProps) {
+export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange, onTabChange }: ToolFormPanelProps) {
   const initialTabRef = useRef(initialTab);
   const [activeTab, setActiveTab] = useState(() => {
     // If deep-linked to a specific tab, use it
@@ -484,6 +486,17 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     fitPasses: number;
   } | null>(null);
   const srtFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Follow browser back/forward and deep-link changes after the first render.
+  useEffect(() => {
+    if (!initialTab || initialTab === activeTab) return;
+    const tabs = DEFAULT_TABS[activeTool] ?? [];
+    if (tabs.some((tab) => tab.id === initialTab)) setActiveTab(initialTab);
+  }, [initialTab, activeTool, activeTab]);
+
+  useEffect(() => {
+    onTabChange?.(activeTab);
+  }, [activeTab, onTabChange]);
 
   // Reset active tab when tool category changes
   useEffect(() => {
