@@ -55,7 +55,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-[#081226] text-slate-200">
+    <footer className="bg-[#141126] text-slate-200">
       <div
         aria-hidden="true"
         className="h-1 bg-gradient-to-r from-[#9875ff] via-[#6743e8] to-[#17133e]"
