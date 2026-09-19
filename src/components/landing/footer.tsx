@@ -22,17 +22,10 @@ export function Footer() {
     router.replace(pathname, { locale: otherLocale });
   }
 
-  function scrollTo(id: string) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  }
-
   const productLinks = [
-    { label: t("nav.features"), action: () => scrollTo("features") },
-    { label: t("nav.pricing"), action: () => scrollTo("pricing") },
-    { label: t("nav.demo"), action: () => scrollTo("demo") },
+    { label: t("nav.features"), href: `/${locale}#features` },
+    { label: t("nav.pricing"), href: `/${locale}#pricing` },
+    { label: t("nav.demo"), href: `/${locale}#demo` },
   ];
 
   const toolLinks = [
@@ -59,10 +52,10 @@ export function Footer() {
   ];
 
   const columns = [
-    { title: t("footer.product"), links: productLinks, actions: true },
-    { title: t("footer.tools"), links: toolLinks, actions: false },
-    { title: t("footer.company"), links: companyLinks, actions: false },
-    { title: t("footer.legal"), links: legalLinks, actions: false },
+    { title: t("footer.product"), links: productLinks },
+    { title: t("footer.tools"), links: toolLinks },
+    { title: t("footer.company"), links: companyLinks },
+    { title: t("footer.legal"), links: legalLinks },
   ];
 
   return (
@@ -108,28 +101,17 @@ export function Footer() {
                 {col.title}
               </h4>
               <ul className="mt-4 space-y-2.5">
-                {col.links.map((link) =>
-                  "action" in link ? (
-                    <li key={link.label}>
-                      <button
-                        onClick={link.action}
-                        className="rounded px-1 py-0.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-                      >
-                        {link.label}
-                      </button>
-                    </li>
-                  ) : (
-                    <li key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="rounded px-1 py-0.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-                        {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  )
-                )}
+                {col.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="rounded px-1 py-0.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                      {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}
