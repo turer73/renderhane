@@ -174,6 +174,16 @@ export function WorkspaceLayout({
       setLastPayload(payload);
       setSmartPrompt(typeof data.composedPrompt === "string" ? data.composedPrompt : null);
 
+      if (window.matchMedia("(max-width: 767px)").matches) {
+        setMobileFormOpen(false);
+        requestAnimationFrame(() => {
+          document.querySelector("[data-mobile-preview]")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
+
       // Trigger credit refresh + polling refetch
       window.dispatchEvent(new Event("job-submitted"));
       refetch();
@@ -277,7 +287,7 @@ export function WorkspaceLayout({
       </div>
 
       {/* Preview follows the primary form on mobile. */}
-      <div className="min-h-[240px] px-2 pt-2">
+      <div data-mobile-preview className="scroll-mt-2 min-h-[240px] px-2 pt-2">
         <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} onVariation={handleVariation} />
       </div>
 
