@@ -233,7 +233,7 @@ export function WorkspaceLayout({
         <div className="flex items-start gap-2">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-foreground">AI hazırladı</p>
+            <p className="text-[11px] font-semibold text-foreground">{locale === "tr" ? "AI hazırladı" : "Prepared by AI"}</p>
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-3">{smartPrompt}</p>
           </div>
           <button
@@ -257,11 +257,6 @@ export function WorkspaceLayout({
         layout="horizontal"
       />
 
-      {/* Preview */}
-      <div className="min-h-[280px] px-2 pt-2">
-        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} onVariation={handleVariation} />
-      </div>
-
       {/* Collapsible Form */}
       <div data-mobile-tool-form className="scroll-mt-2 px-2 pt-2">
         <button
@@ -270,7 +265,7 @@ export function WorkspaceLayout({
         >
           <div className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Ayarlar</span>
+            <span className="text-sm font-medium">{locale === "tr" ? "Ayarlar" : "Settings"}</span>
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileFormOpen && "rotate-180")} />
         </button>
@@ -281,6 +276,11 @@ export function WorkspaceLayout({
         )}
       </div>
 
+      {/* Preview follows the primary form on mobile. */}
+      <div className="min-h-[240px] px-2 pt-2">
+        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} onVariation={handleVariation} />
+      </div>
+
       {/* Collapsible Gallery */}
       <div className="px-2 py-2">
         <button
@@ -289,7 +289,7 @@ export function WorkspaceLayout({
         >
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Galeri</span>
+            <span className="text-sm font-medium">{locale === "tr" ? "Galeri" : "Gallery"}</span>
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileGalleryOpen && "rotate-180")} />
         </button>
