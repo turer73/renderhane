@@ -59,6 +59,7 @@ export function WorkspaceLayout({
   const [activeJobMeta, setActiveJobMeta] = useState<{ name: string; model: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const retryInFlightRef = useRef(false);
+  const desktopFormRef = useRef<HTMLDivElement>(null);
   const [retrying, setRetrying] = useState(false);
   const [mobileFormOpen, setMobileFormOpen] = useState(true);
   const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
@@ -119,7 +120,16 @@ export function WorkspaceLayout({
     errorMessage: null,
   } : null;
 
-  const handleGenerate = useCallback(async (payload: GeneratePayload) => {
+  const handleGenerate = useCallback(async (
+    payload: GeneratePayload,
+    preserveActiveJobOnFailure = false
+  ) => {
+    const previousJobMeta = activeJobMeta;
+    const clearFailedSubmission = () => {
+      setSubmitting(false);
+      setActiveJobMeta(preserveActiveJobOnFailure ? previousJobMeta : null);
+    };
+
     setSubmitting(true);
     setActiveJobMeta({ name: payload.name, model: payload.model });
 
@@ -146,15 +156,13 @@ export function WorkspaceLayout({
       if (res.status === 402) {
         window.dispatchEvent(new CustomEvent("show-upgrade"));
         showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
-        setSubmitting(false);
-        setActiveJobMeta(null);
+        clearFailedSubmission();
         return;
       }
 
       if (res.status === 429) {
         showToast("Çok hızlı! Lütfen biraz bekle.", "error");
-        setSubmitting(false);
-        setActiveJobMeta(null);
+        clearFailedSubmission();
         return;
       }
 
@@ -165,8 +173,7 @@ export function WorkspaceLayout({
           if (errBody?.error) errorText = errBody.error;
         } catch { /* use generic */ }
         showToast(errorText, "error");
-        setSubmitting(false);
-        setActiveJobMeta(null);
+        clearFailedSubmission();
         return;
       }
 
@@ -192,12 +199,22 @@ export function WorkspaceLayout({
       showToast("Üretim başlatıldı!", "success");
     } catch {
       showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
-      setSubmitting(false);
-      setActiveJobMeta(null);
+      clearFailedSubmission();
     }
-  }, [refetch]);
+  }, [activeJobMeta, refetch]);
 
   const handleStart = useCallback(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      const form = desktopFormRef.current;
+      form?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      requestAnimationFrame(() => {
+        form?.querySelector<HTMLElement>(
+          "input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])"
+        )?.focus({ preventScroll: true });
+      });
+      return;
+    }
+
     setMobileFormOpen(true);
     setMobileGalleryOpen(false);
     requestAnimationFrame(() => {
@@ -219,7 +236,7 @@ export function WorkspaceLayout({
     retryInFlightRef.current = true;
     setRetrying(true);
     try {
-      await handleGenerate(lastPayload);
+      await handleGenerate(lastPayload, true);
     } finally {
       retryInFlightRef.current = false;
       setRetrying(false);
@@ -290,11 +307,17 @@ export function WorkspaceLayout({
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileFormOpen && "rotate-180")} />
         </button>
-        {mobileFormOpen && (
-          <div className="mt-1 overflow-hidden rounded-2xl border border-border bg-card animate-in slide-in-from-top-2 duration-200">
-            <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
-          </div>
-        )}
+        <div
+          aria-hidden={!mobileFormOpen}
+          className={cn(
+            "mt-1 overflow-hidden rounded-2xl border border-border bg-card",
+            mobileFormOpen
+              ? "animate-in slide-in-from-top-2 duration-200"
+              : "hidden"
+          )}
+        >
+          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+        </div>
       </div>
 
       {/* Preview follows the primary form on mobile. */}
@@ -330,7 +353,9 @@ export function WorkspaceLayout({
           activeTool={activeTool}
           onToolChange={onToolChange}
         />
-        <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+        <div ref={desktopFormRef} data-desktop-tool-form className="min-w-0 flex-1">
+          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+        </div>
       </div>
 
       {/* Right: Preview + Gallery (resizable) */}
