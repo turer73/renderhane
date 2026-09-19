@@ -9,6 +9,7 @@ import type { Page } from "@/components/launch-preview/tools-engine/core";
 import "@/components/launch-preview/tools-engine/styles.css";
 import "@/components/launch-preview/launch.css";
 import "@/components/launch-preview/tools.css";
+import "@/components/launch-preview/preview-dark.css";
 
 const REAL_PATH: Record<Page, string> = {
   home: "",

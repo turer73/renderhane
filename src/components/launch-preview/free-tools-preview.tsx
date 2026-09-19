@@ -8,6 +8,7 @@ import type {Locale} from '@/lib/launch-preview/core';
 import './tools-engine/styles.css';
 import './launch.css';
 import './tools.css';
+import './preview-dark.css';
 /** Reuses the tested V3 TypeScript tool views. Not an iframe or a new AI backend. */
 export function FreeToolsPreview({locale,page,enableBackgroundApi=false}:{locale:Locale;page:PreviewTool;enableBackgroundApi?:boolean}){
  const router=useRouter(); const host=useRef<HTMLDivElement>(null);
