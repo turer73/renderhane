@@ -46,12 +46,13 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
   return()=>{cancelled=true;dispose?.()};
  },[page,locale,enableBackgroundApi,production,router]);
  const labels=[['background','Arka plan kaldır'],['qr','Ücretsiz QR'],['nfc','NFC etiket yaz'],['artistic','Sanatsal QR']] as const;
- return <div className="rhl rhl-tools-wrapper"><a className="rhl-skip" href="#rh-main">İçeriğe geç</a>{!production&&<div className="rhl-notice">TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi</div>}<div className="rhl-shell"><LaunchNavigation locale={locale} current={page} production={production}/></div>
+ return <><div className="rhl rhl-tools-wrapper"><a className="rhl-skip" href="#rh-main">İçeriğe geç</a>{!production&&<div className="rhl-notice">TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi</div>}<div className="rhl-shell"><LaunchNavigation locale={locale} current={page} production={production}/></div>
  <div className="rh-unified-tabs"><nav aria-label="Araçlar arasında geçiş">{labels.map(([p,label])=><Link href={href(p)} key={p} aria-current={page===p?'page':undefined} className={p==='artistic'?'rh-paid-link':''}>{label}{p==='artistic'&&<small>Ücretli</small>}</Link>)}</nav></div>
  {locale==='en'&&<p className="rhl-notice">V3 tool copy is currently available in Turkish.</p>}
  {status==='loading'&&<p className="rhl-tools-loading" role="status">Araç yükleniyor…</p>}
  {status==='error'&&<p className="rhl-tools-error" role="alert">Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.</p>}
  <div ref={host} aria-label="Renderhane araç çalışma alanı"/>
+ </div>
  <Footer />
- </div>;
+ </>;
 }
