@@ -75,6 +75,7 @@ function WorkspaceContent() {
   }, [initialCategory, initialTab]);
 
   const updateToolUrl = useCallback((tool: string) => {
+    if (searchParams.get("tool") === tool) return;
     const next = new URLSearchParams(searchParams.toString());
     next.set("tool", tool);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
