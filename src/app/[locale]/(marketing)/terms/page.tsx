@@ -38,6 +38,7 @@ export default async function TermsPage({ params }: PageProps) {
     { title: t("terms.section6Title"), content: t("terms.section6Content") },
     { title: t("terms.section7Title"), content: t("terms.section7Content") },
     { title: t("terms.section8Title"), content: t("terms.section8Content") },
+    { title: t("terms.section9Title"), content: t("terms.section9Content") },
   ];
 
   return (
@@ -58,7 +59,7 @@ export default async function TermsPage({ params }: PageProps) {
             {t("terms.title")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("lastUpdated", { date: "2025-01-15" })}
+            {t("lastUpdated", { date: "2026-09-19" })}
           </p>
 
           <p className="mt-8 text-base leading-relaxed text-muted-foreground">
