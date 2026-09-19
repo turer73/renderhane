@@ -1,7 +1,14 @@
 import {IDEA_SOURCES, getInspirationIdea, getInspirationIdeas, ideaEscape} from "./inspiration";
 import type {IdeaCategory, IdeaChannel, IdeaReadiness, InspirationIdea, InspirationState} from "./inspiration";
 
-const COPY: Array<[string, string]> = [
+const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin olan sayfanın bağlantısını gir.", "Enter a link to a page you own or have permission to share."],
+  ["Daha kısa bir bağlantı kullan; en fazla 2048 karakter.", "Use a shorter link, up to 2048 characters."],
+  ["Bu hazırlama akışında yalnızca geçerli HTTPS bağlantıları kabul edilir.", "Only valid HTTPS links are accepted in this setup flow."],
+  ["Geçerli bir HTTPS bağlantısı gir.", "Enter a valid HTTPS link."],
+  ["Kullanıcı adı veya parola içermeyen bir HTTPS adresi kullan.", "Use an HTTPS address without a username or password."],
+  ["Mevcut içeriği değiştirmek için onay kutusunu işaretle.", "Select the confirmation checkbox to replace the current content."],
+  ["Bu fikir yalnızca kurulum rehberidir.", "This idea is a setup guide only."],
+  ["Bağlantıyı kontrol et.", "Check the link."],
   ["ANA SAYFA", "HOME"],
   ["ARAÇLAR", "TOOLS"],
   ["Arka plan kaldır", "Remove background"],

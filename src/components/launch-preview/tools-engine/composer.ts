@@ -1,4 +1,4 @@
-import {localizeToolElement, localizeToolText} from './english-copy';
+import {localizeToolText} from './english-copy';
 
 /* Manuel sahne yerleştirme: ürünü sürükle/boyutlandır/döndür, hazır zeminle birleştir, PNG/JPG indir.
    Tek dosyalık demoyla eşit porttur. Piksel işlemi ve indirme tamamen tarayıcıdadır;
@@ -459,7 +459,6 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
       <section><h3>04 <span>Çıktı</span></h3><label class="mc-format-label" for="mc-format">Görsel oranı</label><select id="mc-format"><option value="square">Kare · 1080 × 1080</option><option value="portrait">Dikey · 1080 × 1350</option><option value="landscape">Yatay · 1920 × 1080</option></select><div class="mc-export-row"><button type="button" data-mc-export="png" class="mc-primary">PNG indir</button><button type="button" data-mc-export="jpeg">JPG indir</button></div><small>Ücretsiz üyelik gerekir. Manuel işlemden AI kredisi düşülmez.</small></section></aside></div>
       <section id="mc-member" class="mc-member" hidden aria-labelledby="mc-member-title"><div><button type="button" data-mc-action="member-close" id="mc-member-close" class="mc-close" aria-label="Üyelik açıklamasını kapat">×</button><span class="mc-kicker">ÜCRETSİZ + ÜYELİKLİ</span><h3 id="mc-member-title">Kompozisyonun hazır.</h3><p id="mc-member-info"></p><div id="mc-member-actions"></div><small>Giriş için ayrı sekme açılır. Taslağı korumak için bu sekmeyi açık tut.</small></div></section>`;
     if (en) {
-      localizeToolElement(dialog);
       const walker = doc.createTreeWalker(dialog, doc.defaultView?.NodeFilter.SHOW_TEXT ?? 4);
       const nodes: Text[] = [];
       while (walker.nextNode()) nodes.push(walker.currentNode as Text);

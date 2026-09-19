@@ -111,6 +111,11 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('[data-idea-filter="all"]')).toBeVisible();
     await page.locator('[data-idea]').first().click();
     await expect(page.locator('#rh-idea-detail')).toBeVisible();
+    await page.locator('#rh-idea-form button[type=submit]').click();
+    await expect(page.locator('#rh-idea-form-status')).toHaveText('Enter a link to a page you own or have permission to share.');
+    await page.locator('#rh-idea-url').fill('https://example.com/ready');
+    await page.locator('#rh-idea-form button[type=submit]').click();
+    await expect(page.locator('#rh-idea-form-status')).toHaveText('Select the confirmation checkbox to replace the current content.');
     await expect(page.locator('body')).not.toContainText('Fikir kategorisi');
   });
 
@@ -122,6 +127,9 @@ test.describe('public mobile tool flows', () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('tab', {name: 'Product'})).toBeVisible();
     await expect(dialog.getByRole('tab', {name: 'Download'})).toBeVisible();
+    await expect(dialog).toContainText('Position and size');
+    await expect(dialog).toContainText('Reset position');
+    await expect(dialog).not.toContainText('Subjectm');
     await expect(dialog).not.toContainText('Ürün');
     await expect(dialog).not.toContainText('Arka plan');
     await dialog.getByRole('tab', {name: 'Download'}).click();
