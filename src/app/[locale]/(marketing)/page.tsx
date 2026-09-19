@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { AdSenseScript } from "@/components/ads/adsense-script";
 import { LaunchPreview } from "@/components/launch-preview/launch-preview";
 
 export async function generateMetadata({
@@ -48,7 +47,6 @@ export default async function MarketingPage({
   const previewLocale = locale === "en" ? "en" : "tr";
   return (
     <>
-      <AdSenseScript />
       <LaunchPreview locale={previewLocale} production />
     </>
   );
