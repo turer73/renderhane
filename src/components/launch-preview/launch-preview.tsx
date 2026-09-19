@@ -360,7 +360,9 @@ export function LaunchPreview({ locale, production = false }: { locale: Locale; 
           <LaunchPreviewSections locale={locale} production={production} />
         </div>
       </div>
-      <Footer />
+      <div className="rhl-footer-clearance">
+        <Footer />
+      </div>
     </>
   );
 }
