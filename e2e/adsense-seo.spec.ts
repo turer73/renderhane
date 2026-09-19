@@ -38,6 +38,40 @@ test("supports rejection and reopening granular preferences", async ({ page }) =
   await expect(page.locator("#renderhane-adsense")).toHaveCount(0);
 });
 
+test("keeps mobile consent settings inside the viewport and above quick actions", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/tr");
+
+  await page.getByRole("button", { name: "Tercihleri Yönet" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Çerez tercihleri" });
+  await expect(dialog).toBeVisible();
+
+  const layout = await dialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      overflowY: getComputedStyle(element).overflowY,
+    };
+  });
+
+  expect(layout.top).toBeGreaterThanOrEqual(0);
+  expect(layout.bottom).toBeLessThanOrEqual(568);
+  expect(layout.overflowY).toBe("auto");
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.locator(".rhl-mobile-dock")).toBeHidden();
+
+  const saveButton = page.getByRole("button", { name: "Tercihleri Kaydet" });
+  await saveButton.scrollIntoViewIfNeeded();
+  const buttonBox = await saveButton.boundingBox();
+  expect(buttonBox).not.toBeNull();
+  expect(buttonBox!.width).toBeGreaterThan(250);
+  expect(buttonBox!.y).toBeGreaterThanOrEqual(0);
+  expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(568);
+});
+
 test("keeps login out of Search and publishes a clean sitemap", async ({
   page,
   request,
