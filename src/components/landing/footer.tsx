@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useRouter, usePathname } from "@/i18n/navigation";
+import { Link as IntlLink, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Globe, Mail } from "lucide-react";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
@@ -12,15 +12,10 @@ export function Footer() {
   const t = useTranslations("landing");
   const tc = useTranslations("common");
   const params = useParams();
-  const router = useRouter();
   const pathname = usePathname();
   const locale = params.locale as string;
 
   const otherLocale = locale === "tr" ? "en" : "tr";
-
-  function switchLanguage() {
-    router.replace(pathname, { locale: otherLocale });
-  }
 
   const productLinks = [
     { label: t("nav.features"), href: `/${locale}#features` },
@@ -33,7 +28,7 @@ export function Footer() {
       label: t(tool.i18nKey),
       href: freeToolHref(locale, tool),
     })),
-    { label: t("footer.apiAccess"), href: `/${locale}/app/settings` },
+    { label: t("footer.apiAccess"), href: `/${locale}/app?panel=settings` },
     { label: t("footer.shopifyIntegration"), href: `/${locale}/app` },
     { label: t("footer.blenderPlugin"), href: "https://github.com/turer73/renderhane/tree/master/plugins/blender" },
   ];
@@ -126,15 +121,17 @@ export function Footer() {
           </p>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={switchLanguage}
+            <IntlLink
+              href={pathname}
+              locale={otherLocale}
+              hrefLang={otherLocale}
               className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:border-white/30 hover:text-white"
             >
               <Globe className="size-4" />
               <span>
                 {t("footer.language")}: <span className="font-medium uppercase">{otherLocale}</span>
               </span>
-            </button>
+            </IntlLink>
           </div>
         </div>
       </div>
