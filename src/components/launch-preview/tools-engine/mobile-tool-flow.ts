@@ -53,6 +53,7 @@ export function enhanceMobileToolFlow(root: HTMLElement, page: Page): () => void
       if (active && focus) button.focus({preventScroll: true});
     });
   };
+  const tabs = Array.from(nav.querySelectorAll<HTMLButtonElement>('[data-qr-mobile-step]'));
   const onClick = (event: Event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>('[data-qr-mobile-step]');
     const step = button?.dataset.qrMobileStep as QrStep | undefined;
@@ -60,7 +61,25 @@ export function enhanceMobileToolFlow(root: HTMLElement, page: Page): () => void
     activate(step, true);
     workspace.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
+  const onKeyDown = (event: KeyboardEvent) => {
+    const current = (event.target as Element).closest<HTMLButtonElement>('[data-qr-mobile-step]');
+    const index = current ? tabs.indexOf(current) : -1;
+    if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? tabs.length - 1
+        : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    const step = tabs[nextIndex].dataset.qrMobileStep as QrStep;
+    activate(step, true);
+    workspace.scrollIntoView({block: 'start', behavior: 'smooth'});
+  };
   nav.addEventListener('click', onClick);
+  nav.addEventListener('keydown', onKeyDown);
   activate('content');
-  return () => nav.removeEventListener('click', onClick);
+  return () => {
+    nav.removeEventListener('click', onClick);
+    nav.removeEventListener('keydown', onKeyDown);
+  };
 }

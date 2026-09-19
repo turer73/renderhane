@@ -39,6 +39,7 @@ export default defineConfig({
     // Main tests — depend on auth setup
     {
       name: "chromium",
+      testIgnore: /mobile-tool-flow\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: authFile,

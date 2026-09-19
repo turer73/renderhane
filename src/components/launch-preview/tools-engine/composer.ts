@@ -431,16 +431,32 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
     ].map(([panel, label], index) => `<button type="button" role="tab" data-mc-tab="${panel}" aria-controls="mc-panel-${panel}" aria-selected="${index === 0}" tabindex="${index === 0 ? 0 : -1}">${label}</button>`).join('');
     body?.insertBefore(mobileTabs, controls ?? null);
     dialog.dataset.mobilePanel = 'product';
-    mobileTabs.addEventListener('click', event => {
-      const button = (event.target as Element).closest<HTMLButtonElement>('[data-mc-tab]');
-      if (!button || !dialog) return;
+    const tabs = Array.from(mobileTabs.querySelectorAll<HTMLButtonElement>('[data-mc-tab]'));
+    const activateMobilePanel = (button: HTMLButtonElement, focus = false) => {
+      if (!dialog) return;
       dialog.dataset.mobilePanel = button.dataset.mcTab || 'product';
-      mobileTabs.querySelectorAll<HTMLButtonElement>('[data-mc-tab]').forEach(tab => {
+      tabs.forEach(tab => {
         const active = tab === button;
         tab.setAttribute('aria-selected', String(active));
         tab.tabIndex = active ? 0 : -1;
       });
-      button.focus({preventScroll: true});
+      if (focus) button.focus({preventScroll: true});
+    };
+    mobileTabs.addEventListener('click', event => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('[data-mc-tab]');
+      if (button) activateMobilePanel(button, true);
+    });
+    mobileTabs.addEventListener('keydown', event => {
+      const current = (event.target as Element).closest<HTMLButtonElement>('[data-mc-tab]');
+      const index = current ? tabs.indexOf(current) : -1;
+      if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? tabs.length - 1
+          : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      activateMobilePanel(tabs[nextIndex], true);
     });
     host.append(dialog);
     canvas = q<HTMLCanvasElement>('#mc-canvas');

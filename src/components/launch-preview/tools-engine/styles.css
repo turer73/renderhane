@@ -969,3 +969,6 @@ to{opacity:1;transform:translateY(0)}
  .rh-app .rh-mobile-upload { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; margin:0 0 16px; color:var(--muted); }
  .rh-app .rh-mobile-upload .rh-btn { min-height:42px; font-size:12px; padding:10px 14px; }
 }
+@media(max-width:767px){
+ .rh-app[data-qr-mobile-step] .rh-qr-workspace { grid-template-columns:1fr; }
+}
