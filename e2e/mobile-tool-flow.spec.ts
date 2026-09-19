@@ -30,6 +30,11 @@ test.describe('public mobile tool flows', () => {
     await expect(style).toBeHidden();
     await expect(preview).toBeHidden();
 
+    await page.locator('#rh-qr-url').fill('not-a-valid-url');
+    await expect(page.locator('#rh-qr-error')).toBeVisible();
+    await expect(page.locator('#rh-qr-error')).toHaveText(/https/i);
+    await page.locator('#rh-qr-url').fill('https://renderhane.com');
+
     await page.getByRole('tab', {name: '1 · İçerik'}).focus();
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', {name: '2 · Stil'})).toBeFocused();

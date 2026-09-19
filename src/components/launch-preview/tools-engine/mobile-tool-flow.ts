@@ -11,6 +11,7 @@ export function enhanceMobileToolFlow(root: HTMLElement, page: Page): () => void
   const workspace = root.querySelector<HTMLElement>('.rh-qr-workspace');
   const form = root.querySelector<HTMLElement>('.rh-qr-content');
   const preview = root.querySelector<HTMLElement>('.rh-qr-preview-panel');
+  const error = root.querySelector<HTMLElement>('#rh-qr-error');
   if (!workspace || !form || !preview) return () => undefined;
 
   const children = Array.from(form.children) as HTMLElement[];
@@ -28,6 +29,7 @@ export function enhanceMobileToolFlow(root: HTMLElement, page: Page): () => void
   preview.dataset.qrPane = 'preview';
   children.slice(0, styleStart).forEach(child => contentPane.append(child));
   children.slice(styleStart).forEach(child => stylePane.append(child));
+  if (error) contentPane.append(error);
   form.append(contentPane, stylePane);
 
   const nav = doc.createElement('div');
