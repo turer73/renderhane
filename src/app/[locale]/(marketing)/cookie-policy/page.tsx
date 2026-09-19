@@ -56,7 +56,7 @@ export default async function CookiePolicyPage({ params }: PageProps) {
             {t("cookiePolicy.title")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("lastUpdated", { date: "2026-03-16" })}
+            {t("lastUpdated", { date: "2026-09-19" })}
           </p>
 
           <p className="mt-8 text-base leading-relaxed text-muted-foreground">
