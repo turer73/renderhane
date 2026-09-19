@@ -10,6 +10,7 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rhl-notice')).toHaveCount(0);
     await expect(page.locator('[href^="/tr/launch-preview"]')).toHaveCount(0);
     await expect(page.locator('[href="/tr/araclar/qr-kod"]')).not.toHaveCount(0);
+    await expect(page.getByRole('button', {name: /mode/i})).toBeVisible();
   });
   test('legacy demo routes preserve their destinations', async ({page}) => {
     await page.goto('/tr/launch-preview/araclar/sahne-olustur');
@@ -50,6 +51,11 @@ test.describe('public mobile tool flows', () => {
       getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
     );
     expect(columns).toBe(1);
+  });
+
+  test('production tool pages retain locale switching', async ({page}) => {
+    await page.goto('/tr/araclar/qr-kod');
+    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText('English');
   });
 
   test('manual composer exposes four focused inspector tabs', async ({page}) => {

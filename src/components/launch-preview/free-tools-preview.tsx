@@ -27,6 +27,8 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
  const [status,setStatus]=useState<'loading'|'ready'|'error'>('loading');
  const home=production?`/${locale}`:previewHome(locale);
  const href=(target:PreviewTool)=>production?productionPath(locale,target):previewPath(locale,target);
+ const alternateLocale:Locale=locale==='tr'?'en':'tr';
+ const alternateHref=production?productionPath(alternateLocale,page):previewPath(alternateLocale,page);
  useEffect(()=>{
   let cancelled=false;let dispose:(()=>void)|undefined;
   setStatus('loading');
@@ -52,6 +54,6 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
  {status==='loading'&&<p className="rhl-tools-loading" role="status">Araç yükleniyor…</p>}
  {status==='error'&&<p className="rhl-tools-error" role="alert">Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.</p>}
  <div ref={host} aria-label="Renderhane araç çalışma alanı"/>
- <div className="rhl-shell"><footer className="rhl-footer"><Link href={home}><b>Renderhane</b></Link><span>3D model, görsel ve video üretimi.</span><div className="rhl-native-footer-links"><Link href={home}>Ana sayfaya dön</Link><Link href={production?`${home}#rhl-free`:href('tools')}>Araç kataloğu</Link><Link href={`${home}#rhl-scope`}>{production?'Araç durumu':'Demo kapsamı'}</Link></div></footer></div>
+ <div className="rhl-shell"><footer className="rhl-footer"><Link href={home}><b>Renderhane</b></Link><span>3D model, görsel ve video üretimi.</span><div className="rhl-native-footer-links"><Link href={home}>Ana sayfaya dön</Link><Link href={production?`${home}#rhl-free`:href('tools')}>Araç kataloğu</Link><Link href={`${home}#rhl-scope`}>{production?'Araç durumu':'Demo kapsamı'}</Link><Link href={alternateHref} hrefLang={alternateLocale}>{locale==='tr'?'English':'Türkçe'}</Link></div></footer></div>
  </div>;
 }

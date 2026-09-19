@@ -5,6 +5,7 @@ import Image from 'next/image';
 import {Menu,X,ArrowRight} from 'lucide-react';
 import {loginPath,type Locale} from '@/lib/launch-preview/core';
 import {previewHome,previewPath,type PreviewTool} from '@/lib/launch-preview/routes';
+import {ThemeToggle} from '@/components/ui/theme-toggle';
 import './launch.css';
 import './tools.css';
 export function LaunchNavigation({locale,current='home',production=false}:{locale:Locale;current?:PreviewTool|'home';production?:boolean}){
@@ -81,7 +82,7 @@ export function LaunchNavigation({locale,current='home',production=false}:{local
  return <div ref={container}>
  <div className="rhl-nav-wrap"><header className="rhl-header"><Link href={home} className="rhl-brand"><Image src="/logo/rhl-mark.svg" alt="" width={34} height={34} unoptimized/>Renderhane</Link>
  <nav className="rhl-nav" aria-label={tr?'Ana menü':'Main menu'}>{links}<details className="rhl-header-free"><summary>{tr?'Ücretsiz araçlar':'Free tools'}</summary><div className="rhl-free-menu">{free.map(([page,label,note])=><Link key={page} href={toolPath(page)} aria-current={current===page?'page':undefined}>{label}<small>{note}</small></Link>)}<a href={anchor('rhl-free')}>{tr?'Tüm yardımcıları gör':'All helpers'} →</a></div></details></nav>
- <div className="rhl-actions"><Link className="rhl-login" href={loginPath(locale,null)}>{tr?'Giriş yap':'Sign in'}</Link><Link className="rhl-btn small" href={loginPath(locale,'img-to-3d')}>{tr?'Üretmeye başla':'Start creating'} <ArrowRight size={14}/></Link><button ref={toggle} className="rhl-menu-toggle" type="button" aria-expanded="false" aria-controls="rhl-mobile-menu" aria-label={tr?'Menü':'Menu'} onClick={()=>dialog.current?.open?closeMenu():openMenu()}><Menu size={18}/><span>{tr?'Menü':'Menu'}</span></button></div></header></div>
+ <div className="rhl-actions"><ThemeToggle/><Link className="rhl-login" href={loginPath(locale,null)}>{tr?'Giriş yap':'Sign in'}</Link><Link className="rhl-btn small" href={loginPath(locale,'img-to-3d')}>{tr?'Üretmeye başla':'Start creating'} <ArrowRight size={14}/></Link><button ref={toggle} className="rhl-menu-toggle" type="button" aria-expanded="false" aria-controls="rhl-mobile-menu" aria-label={tr?'Menü':'Menu'} onClick={()=>dialog.current?.open?closeMenu():openMenu()}><Menu size={18}/><span>{tr?'Menü':'Menu'}</span></button></div></header></div>
  <dialog ref={dialog} className="rhl-mobile-drawer" id="rhl-mobile-menu" aria-labelledby="rhl-menu-title" onClick={e=>{if(e.target===dialog.current)closeMenu();}} onKeyDown={trapTab}>
  <div className="rhl-drawer-head"><div><span className="rhl-label">RENDERHANE</span><h2 id="rhl-menu-title">{tr?'Nereden başlayalım?':'Where to start?'}</h2></div><button type="button" className="rhl-drawer-close" data-menu-close aria-label={tr?'Menüyü kapat':'Close menu'} onClick={closeMenu}><X size={22}/></button></div>
  <nav className="rhl-drawer-links" aria-label={tr?'Mobil menü':'Mobile menu'} onClick={onDrawerNav}>
