@@ -352,13 +352,15 @@ export function LaunchPreviewSections({ locale, production = false }: { locale: 
 export function LaunchPreview({ locale, production = false }: { locale: Locale; production?: boolean }) {
   const tr = locale === "tr";
   return (
-    <div className="rhl">
-      {!production && <div className="rhl-notice">{tr ? "TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi" : "DESIGN PREVIEW · 3D homepage + V3 tools · Production unchanged"}</div>}
-      <div className="rhl-shell">
-        <LaunchNavigation locale={locale} production={production} />
-        <LaunchPreviewSections locale={locale} production={production} />
+    <>
+      <div className="rhl">
+        {!production && <div className="rhl-notice">{tr ? "TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi" : "DESIGN PREVIEW · 3D homepage + V3 tools · Production unchanged"}</div>}
+        <div className="rhl-shell">
+          <LaunchNavigation locale={locale} production={production} />
+          <LaunchPreviewSections locale={locale} production={production} />
+        </div>
       </div>
       <Footer />
-    </div>
+    </>
   );
 }
