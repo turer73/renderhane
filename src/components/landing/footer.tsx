@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Link as IntlLink, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Globe, Mail } from "lucide-react";
+import { Globe, Mail, SlidersHorizontal } from "lucide-react";
+import { OPEN_COOKIE_SETTINGS_EVENT } from "@/components/cookie-banner";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 export function Footer() {
@@ -120,7 +121,15 @@ export function Footer() {
             &copy; {new Date().getFullYear()} {tc("appName")}. {t("footer.allRights")}
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS_EVENT))}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:border-white/30 hover:text-white"
+            >
+              <SlidersHorizontal className="size-4" />
+              <span>{t("footer.cookieSettings")}</span>
+            </button>
             <IntlLink
               href={pathname}
               locale={otherLocale}
