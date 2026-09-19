@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
-import { useSearchParams, useParams } from "next/navigation";
+import { useState, Suspense, useEffect, useCallback } from "react";
+import { useSearchParams, useParams, usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   WorkspaceLayout,
@@ -52,6 +52,8 @@ const VALID_TABS = new Set([
 
 function WorkspaceContent() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "tr";
 
@@ -65,6 +67,28 @@ function WorkspaceContent() {
     toolParam && VALID_TABS.has(toolParam) ? toolParam : undefined;
 
   const [activeTool, setActiveTool] = useState(initialCategory);
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    setActiveTool(initialCategory);
+    setActiveTab(initialTab);
+  }, [initialCategory, initialTab]);
+
+  const updateToolUrl = useCallback((tool: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("tool", tool);
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const handleToolChange = useCallback((tool: string) => {
+    setActiveTool(tool);
+    updateToolUrl(tool);
+  }, [updateToolUrl]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    updateToolUrl(tab);
+  }, [updateToolUrl]);
 
   // Sheet states
   const [creditsOpen, setCreditsOpen] = useState(false);
@@ -74,10 +98,10 @@ function WorkspaceContent() {
   // Handle payment callback toast (from iyzico redirect)
   useEffect(() => {
     if (paymentStatus === "success") {
-      toast.success(locale === "tr" ? "Odeme basarili! Kredileriniz yuklendi." : "Payment successful! Credits loaded.");
+      toast.success(locale === "tr" ? "Ödeme başarılı! Kredileriniz yüklendi." : "Payment successful! Credits loaded.");
       window.dispatchEvent(new Event("job-submitted")); // triggers balance refresh
     } else if (paymentStatus === "error") {
-      toast.error(locale === "tr" ? "Odeme basarisiz. Lutfen tekrar deneyin." : "Payment failed. Please try again.");
+      toast.error(locale === "tr" ? "Ödeme başarısız. Lütfen tekrar deneyin." : "Payment failed. Please try again.");
     }
     // Clean URL
     if (paymentStatus) {
@@ -88,7 +112,7 @@ function WorkspaceContent() {
   }, [paymentStatus, locale]);
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
+    <div className="flex h-dvh min-h-dvh w-full flex-col overflow-hidden bg-background">
       <WorkspaceHeader
         onCredits={() => setCreditsOpen(true)}
         onReferral={() => setReferralOpen(true)}
@@ -98,8 +122,9 @@ function WorkspaceContent() {
       <div className="flex-1 overflow-hidden">
         <WorkspaceLayout
           activeTool={activeTool}
-          onToolChange={setActiveTool}
-          initialTab={initialTab}
+          onToolChange={handleToolChange}
+          initialTab={activeTab}
+          onTabChange={handleTabChange}
         />
       </div>
 
