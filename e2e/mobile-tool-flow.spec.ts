@@ -60,7 +60,7 @@ test.describe('public mobile tool flows', () => {
 
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
-    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText('English');
+    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText('Dil: EN');
   });
 
   test('manual composer exposes four focused inspector tabs', async ({page}) => {
