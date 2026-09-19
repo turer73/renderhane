@@ -28,6 +28,14 @@ export default defineConfig({
       name: "setup",
       testMatch: /auth\.setup\.ts/,
     },
+    // Public responsive tool flows do not require an authenticated fixture.
+    {
+      name: "public-mobile",
+      testMatch: /mobile-tool-flow\.spec\.ts/,
+      use: {
+        ...devices["Pixel 7"],
+      },
+    },
     // Main tests — depend on auth setup
     {
       name: "chromium",
