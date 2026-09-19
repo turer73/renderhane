@@ -309,13 +309,13 @@ export function WorkspaceLayout({
           activeTool={activeTool}
           onToolChange={onToolChange}
         />
-        <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} />
+        <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
       </div>
 
       {/* Right: Preview + Gallery (resizable) */}
       <PanelGroup orientation="horizontal" className="flex-1 min-w-0">
         <Panel defaultSize="55%" minSize="30%">
-          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onRetry={handleRetry} onVariation={handleVariation} />
+          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} onVariation={handleVariation} />
         </Panel>
 
         <PanelResizeHandle
