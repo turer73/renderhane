@@ -135,6 +135,7 @@ export function CookieBanner() {
   const [analytics, setAnalytics] = useState(false);
   const [advertising, setAdvertising] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const consent = getCookieConsent();
     if (consent) {
@@ -156,6 +157,7 @@ export function CookieBanner() {
     window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
     return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function save(consent: CookieConsent) {
     localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
