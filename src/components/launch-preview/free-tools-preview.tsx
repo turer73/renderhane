@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {LaunchNavigation} from './launch-navigation';
+import {Footer} from '@/components/landing/footer';
 import {previewHome,previewPath,type PreviewTool} from '@/lib/launch-preview/routes';
 import type {Locale} from '@/lib/launch-preview/core';
 import {enhanceMobileToolFlow} from './tools-engine/mobile-tool-flow';
@@ -25,10 +26,7 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
  const router=useRouter();
  const host=useRef<HTMLDivElement>(null);
  const [status,setStatus]=useState<'loading'|'ready'|'error'>('loading');
- const home=production?`/${locale}`:previewHome(locale);
  const href=(target:PreviewTool)=>production?productionPath(locale,target):previewPath(locale,target);
- const alternateLocale:Locale=locale==='tr'?'en':'tr';
- const alternateHref=production?productionPath(alternateLocale,page):previewPath(alternateLocale,page);
  useEffect(()=>{
   let cancelled=false;let dispose:(()=>void)|undefined;
   setStatus('loading');
@@ -48,12 +46,13 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
   return()=>{cancelled=true;dispose?.()};
  },[page,locale,enableBackgroundApi,production,router]);
  const labels=[['background','Arka plan kaldır'],['qr','Ücretsiz QR'],['nfc','NFC etiket yaz'],['artistic','Sanatsal QR']] as const;
- return <div className="rhl rhl-tools-wrapper"><a className="rhl-skip" href="#rh-main">İçeriğe geç</a>{!production&&<div className="rhl-notice">TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi</div>}<div className="rhl-shell"><LaunchNavigation locale={locale} current={page} production={production}/></div>
+ return <><div className="rhl rhl-tools-wrapper"><a className="rhl-skip" href="#rh-main">İçeriğe geç</a>{!production&&<div className="rhl-notice">TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi</div>}<div className="rhl-shell"><LaunchNavigation locale={locale} current={page} production={production}/></div>
  <div className="rh-unified-tabs"><nav aria-label="Araçlar arasında geçiş">{labels.map(([p,label])=><Link href={href(p)} key={p} aria-current={page===p?'page':undefined} className={p==='artistic'?'rh-paid-link':''}>{label}{p==='artistic'&&<small>Ücretli</small>}</Link>)}</nav></div>
  {locale==='en'&&<p className="rhl-notice">V3 tool copy is currently available in Turkish.</p>}
  {status==='loading'&&<p className="rhl-tools-loading" role="status">Araç yükleniyor…</p>}
  {status==='error'&&<p className="rhl-tools-error" role="alert">Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.</p>}
  <div ref={host} aria-label="Renderhane araç çalışma alanı"/>
- <div className="rhl-shell"><footer className="rhl-footer"><Link href={home}><b>Renderhane</b></Link><span>3D model, görsel ve video üretimi.</span><div className="rhl-native-footer-links"><Link href={home}>Ana sayfaya dön</Link><Link href={production?`${home}#rhl-free`:href('tools')}>Araç kataloğu</Link><Link href={`${home}#rhl-scope`}>{production?'Araç durumu':'Demo kapsamı'}</Link><Link href={alternateHref} hrefLang={alternateLocale}>{locale==='tr'?'English':'Türkçe'}</Link></div></footer></div>
- </div>;
+ </div>
+ <Footer />
+ </>;
 }

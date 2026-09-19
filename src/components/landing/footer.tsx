@@ -3,40 +3,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useRouter, usePathname } from "@/i18n/navigation";
+import { Link as IntlLink, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { Globe, Mail, ArrowUp } from "lucide-react";
+import { Globe, Mail } from "lucide-react";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
 
 export function Footer() {
   const t = useTranslations("landing");
   const tc = useTranslations("common");
   const params = useParams();
-  const router = useRouter();
   const pathname = usePathname();
   const locale = params.locale as string;
 
   const otherLocale = locale === "tr" ? "en" : "tr";
 
-  function switchLanguage() {
-    router.replace(pathname, { locale: otherLocale });
-  }
-
-  function scrollTo(id: string) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  }
-
-  function scrollTop() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
   const productLinks = [
-    { label: t("nav.features"), action: () => scrollTo("features") },
-    { label: t("nav.pricing"), action: () => scrollTo("pricing") },
-    { label: t("nav.demo"), action: () => scrollTo("demo") },
+    { label: t("nav.features"), href: `/${locale}#features` },
+    { label: t("nav.pricing"), href: `/${locale}#pricing` },
+    { label: t("nav.demo"), href: `/${locale}#demo` },
   ];
 
   const toolLinks = [
@@ -44,7 +28,7 @@ export function Footer() {
       label: t(tool.i18nKey),
       href: freeToolHref(locale, tool),
     })),
-    { label: t("footer.apiAccess"), href: `/${locale}/app/settings` },
+    { label: t("footer.apiAccess"), href: `/${locale}/iletisim#api-ve-entegrasyon` },
     { label: t("footer.shopifyIntegration"), href: `/${locale}/app` },
     { label: t("footer.blenderPlugin"), href: "https://github.com/turer73/renderhane/tree/master/plugins/blender" },
   ];
@@ -63,14 +47,14 @@ export function Footer() {
   ];
 
   const columns = [
-    { title: t("footer.product"), links: productLinks, actions: true },
-    { title: t("footer.tools"), links: toolLinks, actions: false },
-    { title: t("footer.company"), links: companyLinks, actions: false },
-    { title: t("footer.legal"), links: legalLinks, actions: false },
+    { title: t("footer.product"), links: productLinks },
+    { title: t("footer.tools"), links: toolLinks },
+    { title: t("footer.company"), links: companyLinks },
+    { title: t("footer.legal"), links: legalLinks },
   ];
 
   return (
-    <footer className="bg-white text-[#111328] dark:bg-[#141126] dark:text-slate-200">
+    <footer className="bg-[#081226] text-slate-200">
       <div
         aria-hidden="true"
         className="h-1 bg-gradient-to-r from-[#9875ff] via-[#6743e8] to-[#17133e]"
@@ -94,12 +78,12 @@ export function Footer() {
               />
               <span>{tc("appName")}</span>
             </Link>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-[#626577] dark:text-slate-400">
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
               {t("footer.description")}
             </p>
             <a
               href="mailto:info@renderhane.com"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[#e7e7ee] bg-[#f6f5ff] px-3 py-1.5 text-sm text-[#6743e8] transition-colors hover:bg-[#efeaff] dark:border-white/10 dark:bg-white/5 dark:text-[#a78fff] dark:hover:bg-white/10"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-[#a78fff] transition-colors hover:bg-white/10"
             >
               <Mail className="size-3.5" />
               info@renderhane.com
@@ -108,62 +92,46 @@ export function Footer() {
 
           {columns.map((col) => (
             <div key={col.title}>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#626577] dark:text-slate-400">
+              <h4 className="text-sm font-semibold text-slate-100">
                 {col.title}
               </h4>
               <ul className="mt-4 space-y-2.5">
-                {col.links.map((link) =>
-                  "action" in link ? (
-                    <li key={link.label}>
-                      <button
-                        onClick={link.action}
-                        className="rounded px-1 py-0.5 text-sm text-[#111328] transition-colors hover:bg-[#f1efff] hover:text-[#6743e8] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-                      >
-                        {link.label}
-                      </button>
-                    </li>
-                  ) : (
-                    <li key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="rounded px-1 py-0.5 text-sm text-[#111328] transition-colors hover:bg-[#f1efff] hover:text-[#6743e8] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-                        {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  )
-                )}
+                {col.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="rounded px-1 py-0.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                      {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}
         </div>
 
-        <div className="my-8 h-px bg-[#e7e7ee] dark:bg-white/10" />
+        <div className="my-8 h-px bg-white/10" />
 
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-[#626577] dark:text-slate-400">
+          <p className="text-sm text-slate-400">
             &copy; {new Date().getFullYear()} {tc("appName")}. {t("footer.allRights")}
           </p>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={switchLanguage}
-              className="flex items-center gap-1.5 rounded-full border border-[#e7e7ee] px-3 py-1.5 text-sm text-[#626577] transition-colors hover:border-[#6743e8] hover:text-[#6743e8] dark:border-white/10 dark:text-slate-300 dark:hover:border-white/30 dark:hover:text-white"
+            <IntlLink
+              href={pathname}
+              locale={otherLocale}
+              hrefLang={otherLocale}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:border-white/30 hover:text-white"
             >
               <Globe className="size-4" />
               <span>
                 {t("footer.language")}: <span className="font-medium uppercase">{otherLocale}</span>
               </span>
-            </button>
-            <button
-              onClick={scrollTop}
-              aria-label="Yukarı dön"
-              className="flex size-9 items-center justify-center rounded-full bg-[#6743e8] text-white transition-colors hover:bg-[#5636cf]"
-            >
-              <ArrowUp className="size-4" />
-            </button>
+            </IntlLink>
           </div>
         </div>
       </div>
