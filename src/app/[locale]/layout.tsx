@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CookieBanner } from "@/components/cookie-banner";
 import "@/app/globals.css";
 
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || "";
 const GSC_VERIFICATION = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "";
 
 const geistSans = Geist({
