@@ -57,6 +57,7 @@ function WorkspaceContent() {
 
   const toolParam = searchParams.get("tool");
   const paymentStatus = searchParams.get("payment");
+  const panelParam = searchParams.get("panel");
 
   const initialCategory = toolParam
     ? (TOOL_TO_CATEGORY[toolParam] ?? "3d-model")
@@ -69,7 +70,7 @@ function WorkspaceContent() {
   // Sheet states
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(panelParam === "settings");
 
   // Handle payment callback toast (from iyzico redirect)
   useEffect(() => {
