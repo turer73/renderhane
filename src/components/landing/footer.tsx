@@ -29,7 +29,7 @@ export function Footer() {
       href: freeToolHref(locale, tool),
     })),
     { label: t("footer.apiAccess"), href: `/${locale}/iletisim#api-ve-entegrasyon` },
-    { label: t("footer.shopifyIntegration"), href: `/${locale}/app` },
+    { label: t("footer.shopifyIntegration"), href: `/${locale}/iletisim#api-ve-entegrasyon` },
     { label: t("footer.blenderPlugin"), href: "https://github.com/turer73/renderhane/tree/master/plugins/blender" },
   ];
 
