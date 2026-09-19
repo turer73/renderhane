@@ -19,6 +19,7 @@ export function AdSenseScript() {
   const scriptUrl = getAdSenseScriptUrl(ADSENSE_ID);
   const [allowed, setAllowed] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setAllowed(getCookieConsent()?.advertising === true);
 
@@ -30,6 +31,7 @@ export function AdSenseScript() {
     window.addEventListener(COOKIE_CONSENT_EVENT, onConsent);
     return () => window.removeEventListener(COOKIE_CONSENT_EVENT, onConsent);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!allowed || !scriptUrl) {
