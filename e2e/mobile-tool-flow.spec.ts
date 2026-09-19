@@ -116,7 +116,17 @@ test.describe('public mobile tool flows', () => {
     await page.locator('#rh-idea-url').fill('https://example.com/ready');
     await page.locator('#rh-idea-form button[type=submit]').click();
     await expect(page.locator('#rh-idea-form-status')).toHaveText('Select the confirmation checkbox to replace the current content.');
+    await expect(page.locator('.rh-qr-check-scope')).toContainText('Data is read from the known grid of the SVG and downloadable PNG.');
+    await expect(page.locator('.rh-qr-check-scope')).not.toContainText('SVG görüntüsünün');
     await expect(page.locator('body')).not.toContainText('Fikir kategorisi');
+  });
+
+
+  test('English NFC opens with a localized safe fallback', async ({page}) => {
+    await page.goto('/en/araclar/nfc-yaz');
+    await expect(page.locator('main#rh-main')).toBeVisible();
+    await expect(page.locator('#rh-nfc-status')).toContainText('NFC');
+    await expect(page.locator('body')).not.toContainText('Maximum call stack size exceeded');
   });
 
   test('English manual composer is localized and uses the English login route', async ({page}) => {

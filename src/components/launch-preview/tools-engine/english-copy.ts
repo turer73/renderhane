@@ -100,7 +100,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["SVG indir", "Download SVG"],
   ["Test geçmeden indirme açılmaz. Baskıdan önce son boyutta telefonla tara.", "Downloads remain disabled until verification passes. Scan at final print size with a phone before production."],
   ["Dijital kontrol neyi doğruluyor?", "What does the digital check verify?"],
-  ["SVG görüntüsünün ve indirilecek PNG&apos;nin bilinen ızgarasından veri okunur; biçim, yönlendirme alanları, hata kontrolü ve içerik eşleşmesi sınanır. Nihai boyut, 6 piksel/modül ve hafif bulanıklıkta toplam 9 kontrol yapılır.", "Data is read from the known grid of the SVG and downloadable PNG. Format, finder areas, error correction, and payload matching are checked across 9 tests at final size, 6 pixels per module, and slight blur."],
+  ["SVG görüntüsünün ve indirilecek PNG'nin bilinen ızgarasından veri okunur; biçim, yönlendirme alanları, hata kontrolü ve içerik eşleşmesi sınanır. Nihai boyut, 6 piksel/modül ve hafif bulanıklıkta toplam 9 kontrol yapılır.", "Data is read from the known grid of the SVG and downloadable PNG. Format, finder areas, error correction, and payload matching are checked across 9 tests at final size, 6 pixels per module, and slight blur."],
   ["Bu işlem, kamerayla QR bulma testi veya her telefonda okuma garantisi değildir. Hazır stil örnekleri geliştirme testlerinde OpenCV ve ZBar ile ayrıca okunur. Üretim baskısını gerçek cihazda kontrol et.", "This is not a camera-detection test or a guarantee for every phone. Preset styles are also checked with OpenCV and ZBar during development. Test the production print on real devices."],
   ["QR içeriği", "QR content"],
   ["Okunabilirlik önce gelir", "Readability comes first"],
