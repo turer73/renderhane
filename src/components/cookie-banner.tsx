@@ -173,12 +173,13 @@ export function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 p-4 sm:p-6">
+    <div className="pointer-events-none fixed inset-0 z-[70] flex items-end p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6">
       <section
         role="dialog"
         aria-modal="false"
         aria-label={t("title")}
-        className="mx-auto max-w-3xl rounded-xl border border-border/50 bg-background/95 px-5 py-4 shadow-lg backdrop-blur-sm"
+        data-cookie-consent-dialog
+        className="pointer-events-auto mx-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-xl border border-border/50 bg-background/95 px-4 py-4 shadow-lg backdrop-blur-sm sm:max-h-[calc(100dvh-3rem)] sm:px-5"
       >
         <div className="flex flex-col gap-4">
           <div>
@@ -230,12 +231,13 @@ export function CookieBanner() {
             </div>
           )}
 
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => save(ESSENTIAL_ONLY)}>
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => save(ESSENTIAL_ONLY)}>
               {t("essentialOnly")}
             </Button>
             {customizing ? (
               <Button
+                className="w-full sm:w-auto"
                 variant="outline"
                 size="sm"
                 onClick={() =>
@@ -245,11 +247,11 @@ export function CookieBanner() {
                 {t("savePreferences")}
               </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setCustomizing(true)}>
+              <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => setCustomizing(true)}>
                 {t("manage")}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => save(ACCEPT_ALL)}>
+            <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => save(ACCEPT_ALL)}>
               {t("acceptAll")}
             </Button>
           </div>
