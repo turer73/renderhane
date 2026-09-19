@@ -1,12 +1,6 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { LaunchPreview } from '@/components/launch-preview/launch-preview';
-export const metadata: Metadata = {
-  title: 'Renderhane — 3D odaklı ana sayfa önizlemesi',
-  robots: { index: false, follow: false },
-};
-export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  if (locale !== 'tr' && locale !== 'en') notFound();
-  return <LaunchPreview locale={locale}/>;
+import {notFound,redirect} from 'next/navigation';
+export default async function Page({params}:{params:Promise<{locale:string}>}){
+ const {locale}=await params;
+ if(locale!=='tr'&&locale!=='en')notFound();
+ redirect(`/${locale}`);
 }

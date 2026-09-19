@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import { LandingHeader } from "@/components/landing/landing-header";
-import { FeaturesSection } from "@/components/landing/features";
-import { PricingSection } from "@/components/landing/pricing";
-import { Footer } from "@/components/landing/footer";
-import { DemoSectionLazy } from "@/components/landing/demo-lazy";
+import { LaunchPreview } from "@/components/launch-preview/launch-preview";
 import { AdSenseScript } from "@/components/ads/adsense-script";
-import { LaunchPreviewSections } from "@/components/launch-preview/launch-preview";
 
 export async function generateMetadata({
   params,
@@ -52,18 +47,9 @@ export default async function MarketingPage({
   const { locale } = await params;
   const previewLocale = locale === "en" ? "en" : "tr";
   return (
-    <div className="flex min-h-screen flex-col">
+    <>
       <AdSenseScript />
-      <LandingHeader />
-      <main className="flex-1">
-        <LaunchPreviewSections locale={previewLocale} production />
-        <div id="demo" className="scroll-mt-20">
-          <DemoSectionLazy />
-        </div>
-        <FeaturesSection />
-        <PricingSection />
-      </main>
-      <Footer />
-    </div>
+      <LaunchPreview locale={previewLocale} production />
+    </>
   );
 }

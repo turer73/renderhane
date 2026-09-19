@@ -414,6 +414,50 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
       <section><h3>03 <span>Konum ve boyut</span></h3>${([['x', 'Yatay konum', 0, 100], ['y', 'Dikey konum', 0, 100], ['scale', 'Ürün boyutu', 8, 165], ['rotation', 'Döndürme', -180, 180]] as Array<[string, string, number, number]>).map(([k, v, min, max]) => `<label class="mc-range-label" for="mc-${k}">${v}<output id="mc-${k}-value"></output></label><input id="mc-${k}" data-mc-place="${k}" type="range" min="${min}" max="${max}" step="1">`).join('')}<label class="mc-check"><input id="mc-shadow" type="checkbox" ${shadow ? 'checked' : ''}>Basit temas gölgesi (AI değil)</label></section>
       <section><h3>04 <span>Çıktı</span></h3><label class="mc-format-label" for="mc-format">Görsel oranı</label><select id="mc-format"><option value="square">Kare · 1080 × 1080</option><option value="portrait">Dikey · 1080 × 1350</option><option value="landscape">Yatay · 1920 × 1080</option></select><div class="mc-export-row"><button type="button" data-mc-export="png" class="mc-primary">PNG indir</button><button type="button" data-mc-export="jpeg">JPG indir</button></div><small>Ücretsiz üyelik gerekir. Manuel işlemden AI kredisi düşülmez.</small></section></aside></div>
       <section id="mc-member" class="mc-member" hidden aria-labelledby="mc-member-title"><div><button type="button" data-mc-action="member-close" id="mc-member-close" class="mc-close" aria-label="Üyelik açıklamasını kapat">×</button><span class="mc-kicker">ÜCRETSİZ + ÜYELİKLİ</span><h3 id="mc-member-title">Kompozisyonun hazır.</h3><p id="mc-member-info"></p><div id="mc-member-actions"></div><small>Giriş için ayrı sekme açılır. Taslağı korumak için bu sekmeyi açık tut.</small></div></section>`;
+    const controls = q<HTMLElement>('.mc-controls');
+    const body = q<HTMLElement>('.mc-body');
+    const panels = Array.from(controls?.children ?? []) as HTMLElement[];
+    const panelNames = ['product', 'background', 'position', 'export'] as const;
+    panels.forEach((panel, index) => {
+      panel.dataset.mcPanel = panelNames[index];
+      panel.id = `mc-panel-${panelNames[index]}`;
+    });
+    const mobileTabs = doc.createElement('div');
+    mobileTabs.className = 'mc-mobile-tabs';
+    mobileTabs.setAttribute('role', 'tablist');
+    mobileTabs.setAttribute('aria-label', 'Sahne düzenleme adımları');
+    mobileTabs.innerHTML = [
+      ['product', 'Ürün'], ['background', 'Arka plan'], ['position', 'Konum'], ['export', 'İndir'],
+    ].map(([panel, label], index) => `<button type="button" role="tab" data-mc-tab="${panel}" aria-controls="mc-panel-${panel}" aria-selected="${index === 0}" tabindex="${index === 0 ? 0 : -1}">${label}</button>`).join('');
+    body?.insertBefore(mobileTabs, controls ?? null);
+    dialog.dataset.mobilePanel = 'product';
+    const tabs = Array.from(mobileTabs.querySelectorAll<HTMLButtonElement>('[data-mc-tab]'));
+    const activateMobilePanel = (button: HTMLButtonElement, focus = false) => {
+      if (!dialog) return;
+      dialog.dataset.mobilePanel = button.dataset.mcTab || 'product';
+      tabs.forEach(tab => {
+        const active = tab === button;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      if (focus) button.focus({preventScroll: true});
+    };
+    mobileTabs.addEventListener('click', event => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('[data-mc-tab]');
+      if (button) activateMobilePanel(button, true);
+    });
+    mobileTabs.addEventListener('keydown', event => {
+      const current = (event.target as Element).closest<HTMLButtonElement>('[data-mc-tab]');
+      const index = current ? tabs.indexOf(current) : -1;
+      if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? tabs.length - 1
+          : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      activateMobilePanel(tabs[nextIndex], true);
+    });
     host.append(dialog);
     canvas = q<HTMLCanvasElement>('#mc-canvas');
     const actions = q('#mc-member-actions');

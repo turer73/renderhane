@@ -47,6 +47,9 @@
 .dark .rhl .rhl-drawer-links .rhl-mobile-group{color:#8f88ad}
 .dark .rhl .rhl-drawer-bottom p{color:var(--muted)}
 .dark .rhl .rhl-mobile-dock{background:#191335f5;border-top-color:#352a63}
+.dark .rh-app .rh-qr-mobile-steps{background:#191335;border-color:#352a63}
+.dark .rh-app .rh-qr-mobile-steps button{color:var(--muted)}
+.dark .rh-app .rh-qr-mobile-steps button[aria-selected="true"]{background:var(--accent);color:#fff}
 .dark .rhl .rhl-mobile-dock>a{color:#b9a8ff}
 .dark .rhl .rhl-footer{border-color:#2e2752}
 
@@ -87,6 +90,9 @@
 .dark .rh-idea-count{color:var(--muted)}
 .dark .rh-idea-intro{background:#191335;border-color:#352a63;color:var(--muted)}
 .dark .rh-idea-intro strong{color:var(--ink)}
+.dark .mc-mobile-tabs{background:#191335;border-color:#352a63}
+.dark .mc-dialog .mc-mobile-tabs button{color:var(--muted)}
+.dark .mc-dialog .mc-mobile-tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
 .dark .rh-idea-detail{background:#191335}
 .dark .rh-idea-detail-grid p,.dark .rh-idea-detail-grid li{color:var(--muted)}
 .dark .rh-idea-need,.dark .rh-idea-caution{background:#221a4a}
