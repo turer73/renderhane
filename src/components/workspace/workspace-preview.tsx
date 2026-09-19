@@ -25,11 +25,13 @@ interface WorkspacePreviewProps {
   onStart?: () => void;
   /** Re-run the last successful job with identical parameters. */
   onRetry?: () => void;
+  /** Prevent duplicate retry submissions while the request is in flight. */
+  retrying?: boolean;
   /** Submit 3 parallel variations of the last successful job. */
   onVariation?: () => void;
 }
 
-export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, onVariation }: WorkspacePreviewProps) {
+export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retrying = false, onVariation }: WorkspacePreviewProps) {
   const params = useParams<{ locale: string }>();
   const isTr = (params?.locale || "tr") === "tr";
   // Failed state
@@ -51,9 +53,11 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, onVa
                 : "Your credit balance is updated according to the job result."}
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={onRetry} disabled={!onRetry}>
-            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            {isTr ? "Tekrar Dene" : "Try Again"}
+          <Button size="sm" variant="outline" onClick={onRetry} disabled={!onRetry || retrying} aria-busy={retrying}>
+            {retrying
+              ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+            {retrying ? (isTr ? "Gönderiliyor..." : "Submitting...") : (isTr ? "Tekrar Dene" : "Try Again")}
           </Button>
         </div>
       </div>
@@ -161,8 +165,10 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, onVa
                 <Sparkles className="h-3.5 w-3.5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Aynı ayarlarla tekrar üret" onClick={onRetry ?? (() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info"))}>
-              <RotateCcw className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Aynı ayarlarla tekrar üret" onClick={onRetry ?? (() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info"))} disabled={retrying} aria-busy={retrying}>
+              {retrying
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <RotateCcw className="h-3.5 w-3.5" />}
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" title="İndir" onClick={handleDownload}>
               <Download className="h-3.5 w-3.5" />
@@ -280,7 +286,7 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, onVa
 }
 
 const EMPTY_COPY_EN: Record<string, { title: string; desc: string; cta: string }> = {
-  "3d-model": { title: "Turn Products into 3D", desc: "Upload a photo or enter a prompt to create a production-ready 3D model.", cta: "Start Creating" },
+  "3d-model": { title: "Turn Products into 3D", desc: "Upload a photo or enter a prompt to create an AI-generated 3D model.", cta: "Start Creating" },
   image: { title: "Create and Edit Images", desc: "Remove backgrounds, enhance quality, generate images, or edit existing assets.", cta: "Open Image Tools" },
   video: { title: "Create Product Videos", desc: "Generate videos from images or text and build talking-avatar content.", cta: "Open Video Tools" },
   ecommerce: { title: "Create E-commerce Assets", desc: "Build product scenes, A+ content, and virtual try-on visuals.", cta: "Open Commerce Tools" },

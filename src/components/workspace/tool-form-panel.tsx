@@ -399,14 +399,9 @@ interface ToolFormPanelProps {
 }
 
 export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange, onTabChange }: ToolFormPanelProps) {
-  const initialTabRef = useRef(initialTab);
   const [activeTab, setActiveTab] = useState(() => {
-    // If deep-linked to a specific tab, use it
-    if (initialTab) {
-      const allTabs = Object.values(DEFAULT_TABS).flat();
-      if (allTabs.some((t) => t.id === initialTab)) return initialTab;
-    }
     const tabs = DEFAULT_TABS[activeTool];
+    if (initialTab && tabs?.some((tab) => tab.id === initialTab)) return initialTab;
     return tabs ? tabs[0].id : "img-to-3d";
   });
   const [selectedModel, setSelectedModel] = useState("trellis-v1");
@@ -487,28 +482,26 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   } | null>(null);
   const srtFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Follow browser back/forward and deep-link changes after the first render.
+  // The URL/parent state is authoritative for external navigation. Keep this
+  // one-way so a stale local tab cannot immediately overwrite browser history.
   useEffect(() => {
-    if (!initialTab || initialTab === activeTab) return;
     const tabs = DEFAULT_TABS[activeTool] ?? [];
-    if (tabs.some((tab) => tab.id === initialTab)) setActiveTab(initialTab);
-  }, [initialTab, activeTool, activeTab]);
+    const nextTab = initialTab && tabs.some((tab) => tab.id === initialTab)
+      ? initialTab
+      : tabs[0]?.id;
 
-  useEffect(() => {
-    onTabChange?.(activeTab);
-  }, [activeTab, onTabChange]);
+    if (nextTab) {
+      setActiveTab((current) => current === nextTab ? current : nextTab);
+    }
+  }, [initialTab, activeTool]);
 
-  // Reset active tab when tool category changes
+  const selectTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  }, [onTabChange]);
+
+  // Reset form state when tool category changes.
   useEffect(() => {
-    // On first mount with deep-linked tab, skip reset
-    if (initialTabRef.current) {
-      initialTabRef.current = undefined;
-      return;
-    }
-    const tabs = DEFAULT_TABS[activeTool];
-    if (tabs) {
-      setActiveTab(tabs[0].id);
-    }
     // Clear preview and edit action when switching tools
     if (preview) {
       URL.revokeObjectURL(preview);
@@ -1123,10 +1116,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     onGenerate?.(payload);
   };
 
-  /** Navigate to a code-suggested tool: same group → switch tab; else switch group
-   *  (the group's reset effect lands on its default tab). */
+  /** Navigate to a code-suggested tool: same group → switch tab; else switch group. */
   const goToTool = (target: { group: string; tab: string }) => {
-    if (target.group === activeTool) setActiveTab(target.tab);
+    if (target.group === activeTool) selectTab(target.tab);
     else onToolChange?.(target.group);
   };
 
@@ -1287,7 +1279,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
               key={tab.id}
               type="button"
               onClick={() => {
-                setActiveTab(tab.id);
+                selectTab(tab.id);
                 setPromptText("");
                 // Clear upload state on intra-tool tab switch
                 if (preview) URL.revokeObjectURL(preview);

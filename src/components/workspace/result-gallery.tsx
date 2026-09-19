@@ -430,13 +430,15 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                 })}
               </div>
 
-              {job.status === "processing" && job.progress != null && (
-                <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+              {job.status === "processing" && (
+                <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground" role="status" aria-live="polite">
                   <Loader2 className="h-3 w-3 animate-spin text-primary" />
                   <span>{activeTool === "image" || activeTool === "ecommerce" ? "Görsel oluşturuluyor..." : activeTool === "video" ? "Video oluşturuluyor..." : activeTool === "design" ? "Tasarım oluşturuluyor..." : activeTool === "batch" ? "Toplu işlem devam ediyor..." : "3D model oluşturuluyor..."}</span>
-                  <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${job.progress}%` }} />
-                  </div>
+                  {job.progress != null && (
+                    <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${job.progress}%` }} />
+                    </div>
+                  )}
                 </div>
               )}
 

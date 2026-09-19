@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Group as PanelGroup,
   Panel,
@@ -58,6 +58,8 @@ export function WorkspaceLayout({
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobMeta, setActiveJobMeta] = useState<{ name: string; model: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const retryInFlightRef = useRef(false);
+  const [retrying, setRetrying] = useState(false);
   const [mobileFormOpen, setMobileFormOpen] = useState(true);
   const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
@@ -207,12 +209,21 @@ export function WorkspaceLayout({
   }, []);
 
   /** Re-run the last successful job with the same parameters (1x). */
-  const handleRetry = useCallback(() => {
+  const handleRetry = useCallback(async () => {
     if (!lastPayload) {
       showToast("Önce bir üretim tamamla", "info");
       return;
     }
-    handleGenerate(lastPayload);
+    if (retryInFlightRef.current) return;
+
+    retryInFlightRef.current = true;
+    setRetrying(true);
+    try {
+      await handleGenerate(lastPayload);
+    } finally {
+      retryInFlightRef.current = false;
+      setRetrying(false);
+    }
   }, [lastPayload, handleGenerate]);
 
   /** Submit 3 parallel variations of the last successful job (different seeds). */
@@ -288,7 +299,7 @@ export function WorkspaceLayout({
 
       {/* Preview follows the primary form on mobile. */}
       <div data-mobile-preview className="scroll-mt-2 min-h-[240px] px-2 pt-2">
-        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} onVariation={handleVariation} />
+        <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} retrying={retrying} onVariation={handleVariation} />
       </div>
 
       {/* Collapsible Gallery */}
@@ -325,7 +336,7 @@ export function WorkspaceLayout({
       {/* Right: Preview + Gallery (resizable) */}
       <PanelGroup orientation="horizontal" className="flex-1 min-w-0">
         <Panel defaultSize="55%" minSize="30%">
-          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} onVariation={handleVariation} />
+          <WorkspacePreview activeTool={activeTool} activeJob={activeJob} onStart={handleStart} onRetry={handleRetry} retrying={retrying} onVariation={handleVariation} />
         </Panel>
 
         <PanelResizeHandle
