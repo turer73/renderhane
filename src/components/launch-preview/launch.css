@@ -210,7 +210,6 @@
 }
 @media(max-width:767px){
  .rhl .rhl-shell{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
- .rhl:not(.rhl-chrome){padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
  .rhl .rhl-notice{padding:6px 15px;font-size:10px;line-height:1.5}
  .rhl .rhl-header{height:68px;gap:12px}
  .rhl .rhl-brand{font-size:21px;gap:8px}
