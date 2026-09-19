@@ -12,6 +12,7 @@ import {
   type InspirationState,
 } from "./tools-engine/inspiration";
 import "./tools.css";
+import "./preview-dark.css";
 
 const freshState = (): InspirationState => ({ category: "all", expanded: false, selected: null });
 

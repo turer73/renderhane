@@ -1,0 +1,122 @@
+/* Onizleme karanlik modu v1 — next-themes .dark sinifi.
+   QR/canvas/dama tahtasi/beyaz zeminler bilerek aydinlik tutulur
+   (okunabilirlik + seffaflik onizlemesi bozulmasin). */
+.dark .rhl{color-scheme:dark;--ink:#eceaf6;--muted:#a7a3c0;--accent:#a690fa;--line:#2e2752;--paper:#141126;--soft:#1e1840}
+.dark .rh-app{color-scheme:dark;background:#141126;--ink:#eceaf6;--muted:#a7a3c0;--purple:#a690fa;--purple-dark:#8a6df0;--line:#2e2752;--surface:#171231;--soft:#1e1840;--success:#4ade9e}
+
+/* — Anasayfa kartlari — */
+.dark .rhl .rhl-route-visual{background:linear-gradient(155deg,#1e1840 60%,#191335);box-shadow:0 10px 30px -26px #00000090;border-color:#2e2752}
+.dark .rhl .rhl-route-visual.featured{background:linear-gradient(145deg,#241c4e,#1a1440);border-color:#4a3d85}
+.dark .rhl .rhl-route-visual:hover,.dark .rhl .rhl-route-visual:focus-within{border-color:#7a63d8;box-shadow:0 16px 34px -23px #00000090}
+.dark .rhl .rhl-route-art:before{background:radial-gradient(ellipse,#3d2f7a70,transparent 68%)}
+.dark .rhl .rhl-route-body p{color:var(--muted)}
+.dark .rhl .rhl-tool-visual{background:linear-gradient(145deg,#1e1840,#191335);box-shadow:0 8px 24px -24px #000}
+.dark .rhl .rhl-tool-visual:hover,.dark .rhl .rhl-tool-visual:focus-visible{background:#221a4a;border-color:#5a4a9e}
+.dark .rhl .rhl-tool-visual .rhl-tool-art{background:#fff;border-radius:12px}
+.dark .rhl .rhl-tool-copy small{color:var(--muted)}
+.dark .rhl .rhl-tool-badge{background:#3a2d6e;color:#cfc2ff}
+.dark .rhl .rhl-tool-arrow{background:#2c2358;color:var(--accent)}
+.dark .rhl .rhl-artistic-strip{background:linear-gradient(110deg,#1e1840,#191335);border-color:#352a63;color:var(--muted)}
+.dark .rhl .rhl-artistic-strip:after{background:#3d2f7a55;box-shadow:-110px 29px 0 0 #3d2f7a44}
+.dark .rhl .rhl-strip-icon{background:#2c2358;color:#cfc2ff}
+.dark .rhl .rhl-paid-tag{background:#ffffff14;border-color:#5a4a9e;color:#cfc2ff}
+.dark .rhl .rhl-estimator{background:#191335;border-color:#352a63}
+.dark .rhl .rhl-estimator p{color:var(--muted)}
+.dark .rhl .rhl-fields label{color:var(--ink)}
+.dark .rhl select,.dark .rhl input[type=number]{background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .rhl .rhl-total output{color:var(--ink)}
+.dark .rhl .rhl-notice{background:#1e1840;color:#a7a3c0}
+.dark .rhl .rhl-audit-note{background:#191335;border-color:#352a63;color:var(--muted)}
+.dark .rhl .rhl-section-head p{color:var(--muted)}
+.dark .rhl .rhl-step p{color:var(--muted)}
+.dark .rhl .rhl-step-num{background:#2c2358;color:#b9a8ff}
+.dark .rhl .rhl-lead,.dark .rhl .rhl-under{color:var(--muted)}
+.dark .rhl .rhl-work-note{color:var(--muted)}
+.dark .rhl .rhl-kicker{color:var(--accent)}
+
+/* — Gezinti: cekmece + dock + baslik — */
+.dark .rhl .rhl-nav-wrap{background:#141126f2}
+.dark .rhl .rhl-free-menu{background:#1e1840;border-color:#352a63}
+.dark .rhl .rhl-free-menu small{color:var(--muted)}
+.dark .rhl .rhl-menu-toggle{background:#221a4a;border-color:#3d2f7a;color:#cfc2ff}
+.dark .rhl .rhl-mobile-drawer{background:#191335;color:var(--ink);border-left-color:#352a63}
+.dark .rhl .rhl-drawer-close{background:#221a4a;border-color:#3d2f7a;color:#cfc2ff}
+.dark .rhl .rhl-drawer-links a{background:#221a4a}
+.dark .rhl .rhl-drawer-links a:hover,.dark .rhl .rhl-drawer-links a:focus-visible{background:#2c2358}
+.dark .rhl .rhl-drawer-links small{color:var(--muted)}
+.dark .rhl .rhl-drawer-links .rhl-mobile-group{color:#8f88ad}
+.dark .rhl .rhl-drawer-bottom p{color:var(--muted)}
+.dark .rhl .rhl-mobile-dock{background:#191335f5;border-top-color:#352a63}
+.dark .rhl .rhl-mobile-dock>a{color:#b9a8ff}
+.dark .rhl .rhl-footer{border-color:#2e2752}
+
+/* — Motor: paneller + girdiler — */
+.dark .rh-app .rh-panel{background:#191335}
+.dark .rh-app .rh-input,.dark .rh-app .rh-select,.dark .rh-app .rh-textarea{background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .rh-app .rh-input::placeholder,.dark .rh-app .rh-textarea::placeholder{color:#7c76a0}
+.dark .rh-app .rh-helper{color:var(--muted)}
+.dark .rh-app .rh-notice{background:#221a4a;color:var(--muted)}
+.dark .rh-app .rh-pill{background:#2c2358;color:#cfc2ff}
+.dark .rh-app .rh-segmented button{color:var(--muted)}
+.dark .rh-app .rh-segmented button[aria-pressed="true"]{background:#2c2358;color:var(--ink)}
+.dark .rh-app .rh-tag{background:#221a4a;border-color:#3d2f7a;color:var(--muted)}
+.dark .rh-app .rh-tag[aria-pressed="true"]{background:#2c2358;color:var(--ink);border-color:#5a4a9e}
+.dark .rh-app .rh-type-btn{background:#221a4a;border-color:#3d2f7a;color:var(--muted)}
+.dark .rh-app .rh-type-btn[aria-pressed="true"]{background:#2c2358;color:var(--ink);border-color:#5a4a9e}
+.dark .rh-app .rh-qr-preset{background:#221a4a;border-color:#3d2f7a;color:var(--muted)}
+.dark .rh-app .rh-qr-preset[aria-pressed="true"]{background:#2c2358;color:var(--ink);border-color:#5a4a9e}
+.dark .rh-app .rh-color-button{border-color:#3d2f7a}
+.dark .rh-app .rh-upload{background:#221a4a;border-color:#5a4a9e}
+.dark .rh-app .rh-upload strong{color:var(--ink)}
+.dark .rh-app .rh-compare-label{background:#191335ee;border-color:#3d2f7a;color:var(--muted)}
+.dark .rh-app .rh-benefit h3{color:var(--ink)}
+.dark .rh-app .rh-benefit p{color:var(--muted)}
+.dark .rh-app .rh-faq-v3 summary,.dark .rh-app details summary{color:var(--ink)}
+
+/* Beyaz kalmasi gerekenler: QR ciktisi, dama tahtasi, onizleme zeminleri */
+.dark .rh-app .rh-checker{background-color:#fff}
+.dark .rh-app .rh-qr-result,.dark .rh-app .rh-qr-svg-wrap{background:#fff;color:#111328}
+.dark .rh-app .rh-device-preview{background:#221a4a}
+
+/* — Ilham bolumu — */
+.dark .rh-idea-card{background:#191335;border-color:#352a63}
+.dark .rh-idea-card>p{color:var(--muted)}
+.dark .rh-idea-badge{background:#2c2358;color:#cfc2ff}
+.dark .rh-idea-filters button{background:#191335;border-color:#3d2f7a;color:var(--muted)}
+.dark .rh-idea-filters button[aria-pressed="true"]{background:#cfc2ff;color:#221a4a;border-color:#cfc2ff}
+.dark .rh-idea-count{color:var(--muted)}
+.dark .rh-idea-intro{background:#191335;border-color:#352a63;color:var(--muted)}
+.dark .rh-idea-intro strong{color:var(--ink)}
+.dark .rh-idea-detail{background:#191335}
+.dark .rh-idea-detail-grid p,.dark .rh-idea-detail-grid li{color:var(--muted)}
+.dark .rh-idea-need,.dark .rh-idea-caution{background:#221a4a}
+.dark .rh-idea-link-form input[type="url"]{background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .rh-idea-endnote{color:var(--muted)}
+
+/* — Composer — */
+.dark .mc-dialog{background:#191335;color:var(--ink);border-color:#352a63}
+.dark .mc-dialog .mc-head{background:#191335;border-bottom-color:#352a63}
+.dark .mc-dialog .mc-head h2{color:var(--ink)}
+.dark .mc-dialog .mc-controls{background:#191335;border-color:#352a63}
+.dark .mc-dialog .mc-controls h3{color:#8f86c9}
+.dark .mc-dialog .mc-controls h3 span{color:var(--ink)}
+.dark .mc-dialog .mc-controls section+section{border-top-color:#352a63}
+.dark .mc-dialog .mc-head p,.dark .mc-dialog small{color:var(--muted)}
+.dark .mc-dialog .mc-close{background:#221a4a;border-color:#3d2f7a;color:#cfc2ff}
+.dark .mc-dialog .mc-stage{background:#0f0c22}
+.dark .mc-dialog .mc-controls section h3{color:var(--ink)}
+.dark .mc-dialog .mc-upload{background:#221a4a;border-color:#3d2f7a}
+.dark .mc-dialog .mc-file-name{color:var(--muted)}
+.dark .mc-dialog .mc-presets button{background:#221a4a;border-color:#3d2f7a;color:var(--muted)}
+.dark .mc-dialog .mc-presets button[aria-pressed="true"]{background:#2c2358;color:var(--ink);border-color:#5a4a9e}
+.dark .mc-dialog .mc-field-row label{color:var(--muted)}
+.dark .mc-dialog #mc-color{border-color:#3d2f7a}
+.dark .mc-dialog select{background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .mc-dialog .mc-text-button{color:var(--accent)}
+.dark .mc-dialog .mc-range-label{color:var(--muted)}
+.dark .mc-dialog input[type="range"]{accent-color:var(--accent)}
+.dark .mc-dialog .mc-check{color:var(--muted)}
+.dark .mc-dialog .mc-export-row .mc-primary,.dark .mc-dialog .mc-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.dark .mc-dialog .mc-member{background:#141126f2}
+.dark .mc-dialog #mc-status{color:var(--muted)}
+.dark .mc-dialog .mc-disclaimer{color:var(--muted)}

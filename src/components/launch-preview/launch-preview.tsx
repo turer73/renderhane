@@ -11,6 +11,7 @@ import {LaunchNavigation} from './launch-navigation';
 import {previewHome} from '@/lib/launch-preview/routes';
 import './launch.css';
 import './tools.css';
+import './preview-dark.css';
 
 const Viewer = dynamic(() => import('./product-model-viewer'), {
   ssr:false,
@@ -105,12 +106,12 @@ export function LaunchPreviewSections({locale, production = false}:{locale:Local
   </>;
   // Uretimde govde kendi kabugunu getirir (sayfada .rhl-shell yok);
   // onizlemede kabuk + gezinme + altbilgi disarida kurulur.
-  if (production) return <div className="rhl" style={{colorScheme:'light'}}><div className="rhl-shell">{inner}</div></div>;
+  if (production) return <div className="rhl"><div className="rhl-shell">{inner}</div></div>;
   return inner;
 }
 export function LaunchPreview({locale}:{locale:Locale}) {
   const tr = locale === 'tr';
-  return <div className="rhl" style={{colorScheme:'light'}}>
+  return <div className="rhl">
     <div className="rhl-notice">{tr?'TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi':'DESIGN PREVIEW · 3D homepage + V3 tools · Production unchanged'}</div>
     <div className="rhl-shell">
       <LaunchNavigation locale={locale}/>
