@@ -27,12 +27,19 @@ describe("English free-tool copy", () => {
       .toBe("Tag written. Read it with the intended device to test it.");
   });
 
-  it("provides English-only inspiration summaries", () => {
-    const qr = englishInspiration("qr");
+  it("keeps the full English inspiration experience interactive", () => {
+    const qr = englishInspiration("qr", {
+      category: "all",
+      expanded: true,
+      selected: "product-360",
+    });
     const nfc = englishInspiration("nfc");
 
-    expect(qr).toContain("Practical QR ideas");
-    expect(nfc).toContain("Practical NFC ideas");
+    expect(qr).toContain('data-idea-filter="all"');
+    expect(qr).toContain('data-idea="product-360"');
+    expect(qr).toContain('id="rh-idea-form"');
+    expect(qr).toContain('data-idea-more');
+    expect(nfc).toContain('data-idea=');
     expect(qr + nfc).not.toMatch(/[ÇĞİÖŞÜçğıöşü]/);
   });
 });

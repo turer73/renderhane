@@ -35,7 +35,7 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
    const {createRenderhaneAdapter}=await import('./tools-engine/api-adapter');
    if(cancelled||!host.current)return;
    dispose=mountRenderhane(host.current,{initialPage:page,locale,chrome:false,preview:!production,assetBase:'/launch-preview/tools',
-    onRender:p=>enhanceMobileToolFlow(host.current!,p),
+    onRender:p=>enhanceMobileToolFlow(host.current!,p,locale),
     adapters:enableBackgroundApi?createRenderhaneAdapter():undefined,
     pageHref:p=>production?productionPath(locale,p):previewPath(locale,p),
     onNavigate:p=>router.push(production?productionPath(locale,p):previewPath(locale,p)),

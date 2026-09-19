@@ -1,4 +1,4 @@
-import type {Page} from './core';
+import type {Page, ToolLocale} from './core';
 
 type QrStep = 'content' | 'style' | 'preview';
 
@@ -6,7 +6,7 @@ type QrStep = 'content' | 'style' | 'preview';
  * Turns the long QR form into a phone-sized three-step workspace without
  * changing the underlying QR state, validation, or export code.
  */
-export function enhanceMobileToolFlow(root: HTMLElement, page: Page): () => void {
+export function enhanceMobileToolFlow(root: HTMLElement, page: Page, locale: ToolLocale = 'tr'): () => void {
   if (page !== 'qr') return () => undefined;
   const workspace = root.querySelector<HTMLElement>('.rh-qr-workspace');
   const form = root.querySelector<HTMLElement>('.rh-qr-content');
@@ -35,12 +35,10 @@ export function enhanceMobileToolFlow(root: HTMLElement, page: Page): () => void
   const nav = doc.createElement('div');
   nav.className = 'rh-qr-mobile-steps';
   nav.setAttribute('role', 'tablist');
-  nav.setAttribute('aria-label', 'QR oluşturma adımları');
-  const labels: Array<[QrStep, string]> = [
-    ['content', '1 · İçerik'],
-    ['style', '2 · Stil'],
-    ['preview', '3 · Önizle ve indir'],
-  ];
+  nav.setAttribute('aria-label', locale === 'tr' ? 'QR oluşturma adımları' : 'QR creation steps');
+  const labels: Array<[QrStep, string]> = locale === 'tr'
+    ? [['content', '1 · İçerik'], ['style', '2 · Stil'], ['preview', '3 · Önizle ve indir']]
+    : [['content', '1 · Content'], ['style', '2 · Style'], ['preview', '3 · Preview & download']];
   nav.innerHTML = labels.map(([step, label]) =>
     `<button type="button" role="tab" data-qr-mobile-step="${step}" aria-controls="rh-qr-pane-${step}">${label}</button>`
   ).join('');

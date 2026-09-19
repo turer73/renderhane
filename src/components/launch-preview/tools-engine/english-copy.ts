@@ -1,4 +1,5 @@
-import type { IdeaChannel } from "./inspiration";
+import {IDEA_SOURCES, getInspirationIdea, getInspirationIdeas, ideaEscape} from "./inspiration";
+import type {IdeaCategory, IdeaChannel, IdeaReadiness, InspirationIdea, InspirationState} from "./inspiration";
 
 const COPY: Array<[string, string]> = [
   ["ANA SAYFA", "HOME"],
@@ -285,11 +286,102 @@ export function localizeToolMarkup(markup: string): string {
   return localizeToolText(markup);
 }
 
-export function englishInspiration(channel: IdeaChannel): string {
-  const isQr = channel === "qr";
-  const title = isQr ? "Practical QR ideas" : "Practical NFC ideas";
-  const description = isQr
-    ? "Link to product guides, contact cards, menus, event pages, or support content. Keep the destination under your control and test the final print on real phones."
-    : "Link tags to product guides, contact details, support pages, or digital experiences. Use short HTTPS links and test the finished tag on its final material.";
-  return '<section class="rh-ideas" id="rh-inspiration" aria-labelledby="rh-ideas-title"><header class="rh-ideas-header"><div><div class="rh-idea-eyebrow"><span></span> IDEAS & USE CASES</div><h2 id="rh-ideas-title">' + title + '</h2><p>' + description + '</p></div></header><div class="rh-idea-intro"><strong>Keep it dependable</strong><span>The code or tag stores access information; it does not host the destination, prove ownership, or guarantee compatibility. Test the complete experience before publishing or production.</span></div></section>';
+export function localizeToolElement(root: HTMLElement): void {
+  const doc = root.ownerDocument;
+  const walker = doc.createTreeWalker(root, doc.defaultView?.NodeFilter.SHOW_TEXT ?? 4);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+  for (const node of nodes) {
+    const parent = node.parentElement;
+    if (!parent || parent.closest('[translate="no"]') || parent.closest("textarea,script,style")) continue;
+    node.nodeValue = localizeToolText(node.nodeValue ?? "");
+  }
+  root.querySelectorAll<HTMLElement>("[placeholder],[aria-label],[title],[alt]").forEach(element => {
+    for (const name of ["placeholder", "aria-label", "title", "alt"]) {
+      const value = element.getAttribute(name);
+      if (value) element.setAttribute(name, localizeToolText(value));
+    }
+  });
+  root.querySelectorAll<HTMLInputElement>("input[readonly]").forEach(input => {
+    input.value = localizeToolText(input.value);
+  });
+}
+
+const EN_CATEGORIES: Record<IdeaCategory, string> = {
+  product: "Products & 3D", gift: "Gifts & memories", learning: "Culture & learning",
+  play: "Play & participation", business: "Business & daily life", automation: "Automation",
+};
+
+const EN_READINESS: Record<IdeaReadiness, string> = {
+  link: "Ready when your link is ready", service: "Requires an additional service",
+  setup: "Requires setup in an app", hardware: "Requires dedicated hardware",
+};
+
+const EN_IDEAS: Record<string, [string, string]> = {
+  "talking-souvenir": ["A souvenir that tells its story", "Turn a keepsake into a one-minute journey."],
+  "product-360": ["A 3D experience from the box", "See the product and rotate the model."],
+  "maker-story": ["A product that introduces its maker", "Put the production story on the label."],
+  "repair-guide": ["A repairable product label", "Connect the right guide and replacement parts."],
+  "tactile-learning": ["Touch, listen, and learn", "Pair tactile design with accessible narration."],
+  "memory-gift": ["A photo gift with a voice", "Add a personal recording to a printed memory."],
+  "playlist-object": ["A physical playlist", "Turn an album collection into tabletop objects."],
+  "recipe-heirloom": ["A recipe for the next generation", "Connect family recipes with familiar voices."],
+  guestbook: ["From invitation to guestbook", "Let the same card live beyond the event."],
+  "time-capsule": ["A time-capsule gift", "Give it today and reveal it on a chosen date."],
+  "plant-pot": ["A planter with care instructions", "Give every plant its own care card."],
+  scavenger: ["A story hunt through the city", "Let each stop reveal the next clue."],
+  "branching-story": ["A reader who chooses the path", "Create a book with more than one ending."],
+  "fan-collectible": ["A connected collectible", "Keep the story going after the purchase."],
+  "exhibition-vote": ["A participatory exhibition", "Invite visitors to shape what comes next."],
+  "guest-hub": ["One entry point for guests", "Put the stay guide on a single card."],
+  "workshop-guide": ["The right guide at the workstation", "Keep the current instructions beside the machine."],
+  portfolio: ["A portfolio you can tap", "Show the work before the business card."],
+  "return-tag": ["A privacy-aware return tag", "Help the finder while keeping the owner in control."],
+  feedback: ["A stand that makes feedback easier", "Ask about the real experience, not just a rating."],
+  "desk-routine": ["A desktop routine button", "Use a physical object to enter work mode."],
+  "music-dock": ["A 3D-printed music station", "Place a card and play it in the right room."],
+  loyalty: ["Loyalty that grows with the collection", "Let each physical product unlock a new chapter."],
+  "authenticated-edition": ["A verifiable limited edition", "Use a verification chain, not a decorative label."],
+};
+
+function englishIdeaCopy(idea: InspirationIdea): [string, string] {
+  return EN_IDEAS[idea.id] ?? [idea.id.replaceAll("-", " "), "Explore a connected product experience."];
+}
+
+function englishIdeaSources(ids: string[]): string {
+  return ids.map(id => {
+    const source = IDEA_SOURCES[id];
+    if (!source) return "";
+    let host = "Reference";
+    try { host = new URL(source.url).hostname.replace(/^www[.]/, ""); } catch { /* fallback */ }
+    return '<a href="' + ideaEscape(source.url) + '" target="_blank" rel="noopener noreferrer">' + ideaEscape(host) + ' · Reference <span aria-hidden="true">↗</span></a>';
+  }).join("");
+}
+
+function englishIdeaDetail(idea: InspirationIdea, channel: IdeaChannel): string {
+  const copy = englishIdeaCopy(idea);
+  const title = copy[0], hook = copy[1], word = channel === "qr" ? "QR" : "NFC";
+  const form = idea.canApply
+    ? '<form class="rh-idea-link-form" id="rh-idea-form" data-idea-id="' + ideaEscape(idea.id) + '" novalidate><div><h4>Is your link ready?</h4><p>This fills only the ' + word + ' link field. It does not create or contact the destination page.</p></div><label for="rh-idea-url">HTTPS link to use<input id="rh-idea-url" name="url" type="url" inputmode="url" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="https://example.com/my-page" aria-describedby="rh-idea-url-help rh-idea-form-status" required></label><small id="rh-idea-url-help">Use a short address under your control. Do not enter private access keys.</small><label class="rh-idea-consent"><input type="checkbox" name="confirm" required><span>I confirm replacing the current ' + word + ' content with this link.</span></label><button class="rh-btn rh-btn-primary" type="submit">Apply to ' + word + ' field <span aria-hidden="true">↑</span></button><p id="rh-idea-form-status" role="status" aria-live="polite"></p><small>' + (channel === "qr" ? "Style and size stay unchanged; readability checks rerun for the new QR code." : "This does not write to a tag automatically. Overwrite consent resets and writing still requires a device action.") + '</small></form>'
+    : '<div class="rh-idea-no-auto"><strong>This idea is not a one-click feature.</strong><p>Set up the required service, app, or hardware before production.</p></div>';
+  return '<article class="rh-idea-detail" id="rh-idea-detail" tabindex="-1" aria-labelledby="rh-idea-detail-title"><div class="rh-idea-detail-top"><div><div class="rh-idea-meta">IMPLEMENTATION GUIDE · ' + EN_CATEGORIES[idea.category] + '</div><h3 id="rh-idea-detail-title">' + ideaEscape(title) + '</h3></div><button type="button" class="rh-idea-close" data-idea-close aria-label="Close idea details">×</button></div><p class="rh-idea-what">' + ideaEscape(hook) + ' Use a short HTTPS destination that you control, then test the complete experience on the final product.</p><div class="rh-idea-detail-grid"><div><h4>How to set it up</h4><ol><li>Prepare and publish the destination content.</li><li>Connect the same controlled link to the ' + word + ' experience.</li><li>Test the finished product on representative devices.</li></ol><div class="rh-idea-need"><strong>' + EN_READINESS[idea.readiness] + '</strong><p>Plan destination ownership, maintenance, and physical placement before production.</p></div></div><div><div class="rh-idea-caution"><strong>Important limitation</strong><p>A QR code or standard NFC tag does not host content, prove ownership, guarantee compatibility, or provide authentication by itself.</p></div><div class="rh-idea-sources"><strong>References and technical foundations</strong>' + englishIdeaSources(idea.sourceIds) + '<small>These are adaptation ideas for Renderhane; the references do not guarantee sales or outcomes.</small></div></div></div>' + form + '</article>';
+}
+
+function englishIdeaReality(channel: IdeaChannel): string {
+  const title = channel === "qr" ? "Before printing: destination, trust, and readability" : "Before installation: device, material, and trust";
+  return '<details class="rh-idea-reality"><summary>' + title + '</summary><div><p><strong>Keep the destination under control:</strong> The code or tag stores access information; the linked content remains on your website or service.</p><p><strong>Test the finished object:</strong> Size, material, placement, browser, phone, and network conditions can change the result.</p><p><strong>Do not overclaim:</strong> A standard code or tag is not proof of identity, ownership, location, or authenticity.</p><p><strong>Provide a fallback:</strong> Keep a readable address or QR alternative where appropriate.</p></div></details>';
+}
+
+function englishIdeaCard(idea: InspirationIdea, index: number, selectedId: string | undefined): string {
+  const copy = englishIdeaCopy(idea), open = selectedId === idea.id;
+  return '<article class="rh-idea-card"><div class="rh-idea-card-top"><span class="rh-idea-icon" aria-hidden="true">✦</span><span class="rh-idea-number">' + String(index + 1).padStart(2, "0") + '</span></div><span class="rh-idea-badge ' + idea.readiness + '">' + EN_READINESS[idea.readiness] + '</span><h3>' + ideaEscape(copy[0]) + '</h3><p>' + ideaEscape(copy[1]) + '</p><button class="rh-idea-open" data-idea="' + idea.id + '" aria-expanded="' + open + '" aria-controls="rh-idea-details-slot" type="button">' + (open ? "Details open" : "View idea") + ' <span aria-hidden="true">↗</span><span class="rh-idea-sr"> · ' + ideaEscape(copy[0]) + '</span></button></article>';
+}
+
+export function englishInspiration(channel: IdeaChannel, state: InspirationState = {category: "all", expanded: false, selected: null}): string {
+  const all = getInspirationIdeas(channel), filtered = getInspirationIdeas(channel, state.category);
+  const visible = state.expanded ? filtered : filtered.slice(0, 6);
+  const selected = state.selected ? getInspirationIdea(channel, state.selected) : undefined;
+  const categories = (Object.entries(EN_CATEGORIES) as Array<[IdeaCategory, string]>).filter(entry => all.some(idea => idea.category === entry[0]));
+  const more = filtered.length > 6 ? '<div class="rh-idea-more-wrap"><button type="button" class="rh-btn rh-btn-outline" data-idea-more aria-expanded="' + state.expanded + '">' + (state.expanded ? "Show the first 6 ideas" : "Show " + (filtered.length - 6) + " more ideas") + ' <span aria-hidden="true">' + (state.expanded ? "−" : "+") + '</span></button></div>' : "";
+  return '<section class="rh-ideas" id="rh-inspiration" aria-labelledby="rh-ideas-title"><header class="rh-ideas-header"><div><div class="rh-idea-eyebrow"><span></span> IDEAS & USE CASES</div><h2 id="rh-ideas-title">' + (channel === "qr" ? "More than<br><em>a code.</em>" : "One tap.<br><em>A new experience.</em>") + '</h2><p>Connected products, meaningful gifts, and practical experiences. Choose an idea and review what it needs.</p></div><div class="rh-idea-hero-note"><span>' + all.length + '</span><strong>' + (channel === "qr" ? "ideas available for QR" : "ideas selected for NFC") + '</strong><p>Ideas that start with a link are separated from those that need services, setup, or hardware.</p><small>Source review · September 17, 2026</small></div></header><div class="rh-idea-intro"><strong>What does this section do?</strong><span>It provides ideas and can transfer your prepared link into the tool. It does not host content or create external services.</span></div><div class="rh-idea-filters" role="group" aria-label="Idea category"><button type="button" data-idea-filter="all" aria-pressed="' + (state.category === "all") + '">All <span>' + all.length + '</span></button>' + categories.map(entry => '<button type="button" data-idea-filter="' + entry[0] + '" aria-pressed="' + (state.category === entry[0]) + '">' + entry[1] + '</button>').join("") + '</div><div class="rh-idea-count" aria-live="polite">Showing ' + visible.length + ' of ' + filtered.length + ' ideas' + (state.category === "all" ? " · Recommended starting points" : "") + '</div><div id="rh-idea-details-slot">' + (selected ? englishIdeaDetail(selected, channel) : "") + '</div><div class="rh-idea-grid">' + visible.map((idea, index) => englishIdeaCard(idea, index, selected?.id)).join("") + '</div>' + more + englishIdeaReality(channel) + '<p class="rh-idea-endnote">Research-based suggestions · QR readability checks and NFC writing safeguards remain independent from these ideas.</p></section>';
 }

@@ -10,7 +10,7 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rhl-notice')).toHaveCount(0);
     await expect(page.locator('[href^="/tr/launch-preview"]')).toHaveCount(0);
     await expect(page.locator('[href="/tr/araclar/qr-kod"]')).not.toHaveCount(0);
-    await expect(page.getByRole('button', {name: /mode/i})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Dark mode'})).toBeVisible();
   });
   test('legacy demo routes preserve their destinations', async ({page}) => {
     await page.goto('/tr/launch-preview/araclar/sahne-olustur');
@@ -60,7 +60,7 @@ test.describe('public mobile tool flows', () => {
 
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
-    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText('Dil: EN');
+    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText(/Dil:\s*en/i);
   });
 
   test('manual composer exposes four focused inspector tabs', async ({page}) => {
@@ -97,4 +97,37 @@ test.describe('public mobile tool flows', () => {
       await expect(page.locator(`footer a[href="${href}"]`)).toHaveCount(1);
     }
   });
+
+  test('English QR keeps user data and localized mobile steps', async ({page}) => {
+    await page.goto('/en/araclar/qr-kod');
+
+    const value = 'https://example.com/Telefon/Mesaj?text=Merhaba';
+    await expect(page.getByRole('tab', {name: '1 · Content'})).toBeVisible();
+    await page.locator('#rh-qr-url').fill(value);
+    await page.getByRole('tab', {name: '2 · Style'}).click();
+    await page.getByRole('tab', {name: '1 · Content'}).click();
+    await expect(page.locator('#rh-qr-url')).toHaveValue(value);
+
+    await expect(page.locator('[data-idea-filter="all"]')).toBeVisible();
+    await page.locator('[data-idea]').first().click();
+    await expect(page.locator('#rh-idea-detail')).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('Fikir kategorisi');
+  });
+
+  test('English manual composer is localized and uses the English login route', async ({page}) => {
+    await page.goto('/en/araclar/arka-plan-kaldirma');
+    await page.getByRole('button', {name: /Place in scene/}).click();
+
+    const dialog = page.getByRole('dialog', {name: /Place your product in a scene/});
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('tab', {name: 'Product'})).toBeVisible();
+    await expect(dialog.getByRole('tab', {name: 'Download'})).toBeVisible();
+    await expect(dialog).not.toContainText('Ürün');
+    await expect(dialog).not.toContainText('Arka plan');
+    await dialog.getByRole('tab', {name: 'Download'}).click();
+    await dialog.getByRole('button', {name: 'Download PNG'}).click();
+    await expect(dialog.locator('#mc-member')).toBeVisible();
+    await expect(dialog.locator('a[href*="/en/login"]')).toHaveCount(1);
+  });
+
 });

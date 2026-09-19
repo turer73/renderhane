@@ -6,7 +6,7 @@
 import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
-import {englishInspiration, localizeToolMarkup, localizeToolText} from './english-copy';
+import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
 export type ToolLocale = 'tr' | 'en';
@@ -183,6 +183,10 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   const locale = options.locale ?? 'tr';
   const en = locale === 'en';
   const l = (tr: string, english: string): string => en ? english : tr;
+  const setLocalizedHtml = (element: HTMLElement, markup: string): void => {
+    element.innerHTML = markup;
+    if (en) localizeToolElement(element);
+  };
   const pageNames = PAGE_NAMES[locale];
   const contentLabels = CONTENT_LABELS[locale];
   let viewCleanup: (() => void) | undefined;
@@ -212,7 +216,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     ideas: {qr: {category:'all',expanded:false,selected:null}, nfc: {category:'all',expanded:false,selected:null}} as Record<IdeaChannel, InspirationState>,
   };
   function ideaSection(channel: IdeaChannel): string {
-    return en ? englishInspiration(channel) : renderInspiration(channel, s.ideas[channel]);
+    return en ? englishInspiration(channel, s.ideas[channel]) : renderInspiration(channel, s.ideas[channel]);
   }
   function refreshIdeas(focusSelector?: string, scroll = false): void {
     if (s.page !== 'qr' && s.page !== 'nfc') return;
@@ -293,7 +297,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function background(): string {
     const hasAdapter = !!options.adapters?.removeBackground;
-    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Arka planı <span class="rh-highlight">geride bırak.</span>', 'Ürün fotoğrafını yükle. Sade bir çalışma alanında incele, arka planını düzenle ve çıktını indir.', ['Kayıt olmadan', 'Günde 3 ücretsiz kullanım', 'Şeffaf PNG'])}<div class="rh-mobile-upload"><span>Kendi fotoğrafınla başla</span>${btn("Fotoğraf seç","upload-open",true,"upload")}</div><div class="rh-workspace"><section class="rh-panel" id="rh-canvas">${compareCanvas()}</section><aside class="rh-panel rh-tool-controls"><div class="rh-panel-top"><span class="rh-panel-title">${icon('upload')}Fotoğraf ve çıktı</span><span class="rh-pill purple">${hasAdapter ? 'API bağlı' : 'Demo'}</span></div><div class="rh-panel-body">${uploadBox()}<div class="rh-control-settings"><div class="rh-field"><label for="rh-format">Çıktı biçimi</label><select class="rh-select" id="rh-format"><option>PNG</option></select></div><div class="rh-field"><label for="rh-size-info">Boyut</label><input class="rh-input" id="rh-size-info" value="Kaynak boyutu" readonly/></div><div class="rh-label-row"><span>Arka plan</span><span class="rh-helper">PNG önizlemesi</span></div><div class="rh-color-row">${['transparent', '#ffffff', '#eee9e2', '#e9e4f6', '#dce8df', '#202832'].map(c => `<button data-bg="${c}" class="rh-color-button ${c === 'transparent' ? 'rh-checker' : ''}" style="--swatch:${c}" aria-label="${c === 'transparent' ? 'Şeffaf' : c} arka plan" aria-pressed="${s.bgColor === c}"></button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="remove" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'eraser', s.busy ? 'rh-spin' : '')}${s.busy ? 'İşleniyor…' : hasAdapter && s.file ? 'Arka planı kaldır' : s.file ? 'AI bağlantısını kontrol et' : 'Örnek sonucu göster'}</button><button class="rh-btn rh-block-btn" data-action="download-bg" ${s.file && !s.result ? 'disabled' : ''}>${icon('download')}${s.result ? 'PNG indir' : 'Örnek PNG indir'}</button><div class="rh-file-card"><img src="${s.fileUrl || asset('photo.jpg')}" alt=""/><div><strong>${s.file ? esc(s.file.name) : 'aurelia-sise-ornek.jpg'}</strong><small>${s.file ? (s.file.size / 1024).toFixed(0) + ' KB · yerel dosya' : '896 × 894 · temsili şişe örneği'}</small></div></div></div><div class="rh-control-note"><div class="rh-status" id="rh-bg-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Fotoğraf yüklemek üretim işlemi başlatmaz.'}</div>${hasAdapter ? `<p class="rh-helper">İşlem düğmesine basıldığında fotoğraf mevcut API’ye gönderilir. ${s.remaining !== null ? `Kalan hak: ${s.remaining}` : ''}</p>` : `<div class="rh-notice">Demo, yalnızca hazır örneğin dekupe sonucunu içerir. Kendi fotoğrafın için mevcut AI API’sini bağlamak gerekir.</div>`}</div></div></aside></div>${composerEntry()}${benefits([['image', 'Gerçek fotoğrafla başla', 'Örnek yerine kendi ürün fotoğrafını da yükleyebilirsin.'], ['layers', 'Sonucu karşılaştır', 'Kaydırıcıyla kenarları ve detayları incele.'], ['download', 'PNG olarak indir', 'Saydam veya seçtiğin düz zeminle dışa aktar.'], ['shield', 'İşlemler görünür', 'Demo çıktısı ve gerçek API çıktısı ayrı etiketlenir.']])}</main>`;
+    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Arka planı <span class="rh-highlight">geride bırak.</span>', 'Ürün fotoğrafını yükle. Sade bir çalışma alanında incele, arka planını düzenle ve çıktını indir.', ['Kayıt olmadan', 'Günde 3 ücretsiz kullanım', 'Şeffaf PNG'])}<div class="rh-mobile-upload"><span>Kendi fotoğrafınla başla</span>${btn("Fotoğraf seç","upload-open",true,"upload")}</div><div class="rh-workspace"><section class="rh-panel" id="rh-canvas">${compareCanvas()}</section><aside class="rh-panel rh-tool-controls"><div class="rh-panel-top"><span class="rh-panel-title">${icon('upload')}Fotoğraf ve çıktı</span><span class="rh-pill purple">${hasAdapter ? 'API bağlı' : 'Demo'}</span></div><div class="rh-panel-body">${uploadBox()}<div class="rh-control-settings"><div class="rh-field"><label for="rh-format">Çıktı biçimi</label><select class="rh-select" id="rh-format"><option>PNG</option></select></div><div class="rh-field"><label for="rh-size-info">Boyut</label><input class="rh-input" id="rh-size-info" value="Kaynak boyutu" readonly/></div><div class="rh-label-row"><span>Arka plan</span><span class="rh-helper">PNG önizlemesi</span></div><div class="rh-color-row">${['transparent', '#ffffff', '#eee9e2', '#e9e4f6', '#dce8df', '#202832'].map(c => `<button data-bg="${c}" class="rh-color-button ${c === 'transparent' ? 'rh-checker' : ''}" style="--swatch:${c}" aria-label="${c === 'transparent' ? 'Şeffaf' : c} arka plan" aria-pressed="${s.bgColor === c}"></button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="remove" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'eraser', s.busy ? 'rh-spin' : '')}${s.busy ? 'İşleniyor…' : hasAdapter && s.file ? 'Arka planı kaldır' : s.file ? 'AI bağlantısını kontrol et' : 'Örnek sonucu göster'}</button><button class="rh-btn rh-block-btn" data-action="download-bg" ${s.file && !s.result ? 'disabled' : ''}>${icon('download')}${s.result ? 'PNG indir' : 'Örnek PNG indir'}</button><div class="rh-file-card"><img src="${s.fileUrl || asset('photo.jpg')}" alt=""/><div><strong translate="no">${s.file ? esc(s.file.name) : 'aurelia-sise-ornek.jpg'}</strong><small>${s.file ? (s.file.size / 1024).toFixed(0) + ' KB · yerel dosya' : '896 × 894 · temsili şişe örneği'}</small></div></div></div><div class="rh-control-note"><div class="rh-status" id="rh-bg-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Fotoğraf yüklemek üretim işlemi başlatmaz.'}</div>${hasAdapter ? `<p class="rh-helper">İşlem düğmesine basıldığında fotoğraf mevcut API’ye gönderilir. ${s.remaining !== null ? `Kalan hak: ${s.remaining}` : ''}</p>` : `<div class="rh-notice">Demo, yalnızca hazır örneğin dekupe sonucunu içerir. Kendi fotoğrafın için mevcut AI API’sini bağlamak gerekir.</div>`}</div></div></aside></div>${composerEntry()}${benefits([['image', 'Gerçek fotoğrafla başla', 'Örnek yerine kendi ürün fotoğrafını da yükleyebilirsin.'], ['layers', 'Sonucu karşılaştır', 'Kaydırıcıyla kenarları ve detayları incele.'], ['download', 'PNG olarak indir', 'Saydam veya seçtiğin düz zeminle dışa aktar.'], ['shield', 'İşlemler görünür', 'Demo çıktısı ve gerçek API çıktısı ayrı etiketlenir.']])}</main>`;
   }
   function composerEntry(): string {
     return `<section class="mc-entry"><div><span class="mc-kicker">SONRAKİ ADIM · ÜCRETSİZ + ÜYELİKLİ</span><h2>Kendi sahneni kur.</h2><p>Kendi arka planını yükle; ürününü sürükle, boyutlandır ve döndür. Manuel yerleştirme ücretsizdir; indirmek için üyelik gerekir. AI ile sahne üretimi ayrı ve kredilidir.</p></div><button type="button" class="rh-btn rh-btn-primary" data-action="open-composer">${icon('layers')}Sahneye yerleştir</button></section>`;
@@ -334,7 +338,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       (options.chrome === false ? '' : options.headerMarkup ?? header()) + content +
       (options.chrome === false ? '' : options.footerMarkup ?? footer()) +
       '<div class="rh-toast" role="status" aria-live="polite" id="rh-toast"></div>';
-    root.innerHTML = en ? localizeToolMarkup(markup) : markup;
+    root.innerHTML = markup;
+    if (en) localizeToolElement(root);
     if (options.pageHref) $$<HTMLAnchorElement>('a[data-page]').forEach(a => {
       a.href = options.pageHref!(a.dataset.page as Page);
     });
@@ -555,8 +560,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       s.menu = s.tools = false; $('.rh-nav')?.classList.remove('open'); return;
     }
     if (target.dataset.hero !== undefined) { s.hero = Number(target.dataset.hero); const img = $<HTMLImageElement>('#rh-hero-photo'); if (img) img.src = asset(s.hero < 0 ? 'photo.jpg' : `scene-${s.hero}.jpg`); const badge = $('#rh-hero-badge'); if (badge) badge.textContent = s.hero < 0 ? 'Temsili şişe görseli' : 'Hazırlanmış kompozisyon'; $$('[data-hero]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.hero) === s.hero))); return; }
-    if (target.dataset.view) { s.tab = target.dataset.view; const el = $('#rh-canvas'); if (el) el.innerHTML = compareCanvas(); return; }
-    if (target.dataset.bg) { s.bgColor = target.dataset.bg; const el = $('#rh-canvas'); if (el) el.innerHTML = compareCanvas(); $$('[data-bg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bg === s.bgColor))); return; }
+    if (target.dataset.view) { s.tab = target.dataset.view; const el = $('#rh-canvas'); if (el) setLocalizedHtml(el, compareCanvas()); return; }
+    if (target.dataset.bg) { s.bgColor = target.dataset.bg; const el = $('#rh-canvas'); if (el) setLocalizedHtml(el, compareCanvas()); $$('[data-bg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bg === s.bgColor))); return; }
     if (target.dataset.preset !== undefined) { s.scenePreset = Number(target.dataset.preset); s.prompt = scenePrompts[s.scenePreset]; const prompt = $<HTMLTextAreaElement>('#rh-prompt'); if (prompt) prompt.value = s.prompt; $$('[data-preset]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.preset) === s.scenePreset))); $$('.rh-scene').forEach((e, i) => e.setAttribute('data-active', String(i === s.scenePreset))); return; }
     if (target.dataset.qrType || target.dataset.nfcType) { const kind = target.dataset.qrType ? 'qr' : 'nfc'; const type = (target.dataset.qrType || target.dataset.nfcType) as ContentType; if (!Object.hasOwn(contentLabels, type)) return; if (kind === 'nfc') stopNfc(); s[`${kind}Type`] = type; render(); $(`#rh-${kind}-fields input, #rh-${kind}-fields textarea`)?.focus({ preventScroll: true }); return; }
     if (target.dataset.qrStyle) {
@@ -572,11 +577,12 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         if (!manualComposer)
           manualComposer = createManualComposer(root, {
             sampleProduct: asset('cutout.png'),
+            locale,
             verifyMember: options.verifyComposerMember,
-            loginUrl: options.composerLoginUrl || 'https://www.renderhane.com/tr/login',
+            loginUrl: options.composerLoginUrl || 'https://www.renderhane.com/' + locale + '/login',
             allowDemoMembership: options.demoComposerMembership === true,
           });
-        manualComposer.open(s.result || s.fileUrl || asset('cutout.png'), s.result ? 'Dekupe API sonucu' : s.file ? `${s.file.name} · arka plan otomatik silinmedi` : 'Hazır şişe · temsili dekupe');
+        manualComposer.open(s.result || s.fileUrl || asset('cutout.png'), s.result ? l('Dekupe API sonucu', 'Background removal API result') : s.file ? s.file.name + l(' · arka plan otomatik silinmedi', ' · background was not removed automatically') : l('Hazır şişe · temsili dekupe', 'Prepared bottle · illustrative cutout'));
         break;
       }
       case 'brief-focus': $('#rh-brief-brand')?.focus(); $('#rh-brief-form')?.scrollIntoView({behavior:'smooth',block:'start'}); break;
