@@ -36,7 +36,7 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
    if(cancelled||!host.current)return;
    dispose=mountRenderhane(host.current,{initialPage:page,locale,chrome:false,preview:!production,assetBase:'/launch-preview/tools',
     onRender:p=>enhanceMobileToolFlow(host.current!,p,locale),
-    adapters:enableBackgroundApi?createRenderhaneAdapter():undefined,
+    adapters:enableBackgroundApi?createRenderhaneAdapter(locale):undefined,
     pageHref:p=>production?productionPath(locale,p):previewPath(locale,p),
     onNavigate:p=>router.push(production?productionPath(locale,p):previewPath(locale,p)),
     onAnchor:anchor=>router.push(`${production?`/${locale}`:previewHome(locale)}#${({examples:'rhl-example',faq:'rhl-scope',how:'rhl-paths'} as Record<string,string>)[anchor]||anchor}`),

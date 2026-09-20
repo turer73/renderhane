@@ -118,6 +118,10 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('#rh-idea-form-status')).toHaveText('Select the confirmation checkbox to replace the current content.');
     await expect(page.locator('.rh-qr-check-scope')).toContainText('Data is read from the known grid of the SVG and downloadable PNG.');
     await expect(page.locator('.rh-qr-check-scope')).not.toContainText('SVG görüntüsünün');
+    await expect(page.locator('#rh-qr-check')).toHaveAttribute('data-state', 'passed');
+    await expect(page.locator('#rh-qr-svg svg')).toHaveAttribute('aria-label', 'Classic-style QR code');
+    await expect(page.locator('#rh-qr-svg title')).toHaveText('Renderhane · Classic QR');
+    await expect(page.locator('#rh-qr-svg desc')).toContainText('Preserve the quiet zone');
     await expect(page.locator('body')).not.toContainText('Fikir kategorisi');
   });
 
@@ -129,6 +133,32 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('body')).not.toContainText('Maximum call stack size exceeded');
   });
 
+  test('English background removal preserves filenames and selects English API errors', async ({page}) => {
+    let calls = 0;
+    await page.route('**/api/demo/bg-remove', async route => {
+      calls++;
+      if (calls === 1) {
+        await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({resultUrl: '/launch-preview/tools/cutout.png', remaining: 2})});
+        return;
+      }
+      await route.fulfill({status: 429, contentType: 'application/json', body: JSON.stringify({errorTr: 'Günlük ücretsiz kullanım sınırına ulaşıldı.', error: 'Daily free limit reached.'})});
+    });
+    await page.goto('/en/araclar/arka-plan-kaldirma');
+    await page.locator('input[data-file]').setInputFiles({
+      name: 'Telefon-Mesaj.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4ZsAAAAASUVORK5CYII=', 'base64'),
+    });
+    await expect(page.getByRole('button', {name: 'Remove background'})).toBeEnabled();
+    await page.getByRole('button', {name: 'Remove background'}).click();
+    await expect(page.locator('#rh-bg-status')).toHaveText('Processing completed. Review the result before downloading.');
+    await expect(page.locator('#rh-canvas .rh-panel-title')).toContainText('Telefon-Mesaj.png');
+    await expect(page.locator('#rh-canvas .rh-panel-title')).not.toContainText('Phone-Message.png');
+
+    await page.getByRole('button', {name: 'Remove background'}).click();
+    await expect(page.locator('#rh-bg-status')).toHaveText('Daily free limit reached.');
+    await expect(page.locator('#rh-bg-status')).not.toContainText('Günlük');
+  });
   test('English manual composer is localized and uses the English login route', async ({page}) => {
     await page.goto('/en/araclar/arka-plan-kaldirma');
     await page.getByRole('button', {name: /Place in scene/}).click();

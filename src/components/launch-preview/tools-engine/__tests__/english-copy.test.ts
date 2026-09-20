@@ -25,6 +25,12 @@ describe("English free-tool copy", () => {
     ).toBe("9/9 checks · Exact payload match · Classic baseline also passed");
     expect(localizeToolText("Etiket yazıldı. Kullanacağın cihazla okuyarak test et."))
       .toBe("Tag written. Read it with the intended device to test it.");
+    expect(localizeToolText("Bu içerik için 512px küçük kalıyor. Stilli QR için en az 6 piksel/modül gerekiyor; daha büyük çıktı seçin."))
+      .toBe("This content does not fit at 512px. At least 6 pixels per module are required for a styled QR; choose a larger output.");
+    expect(localizeToolText("QR boş kenarı veya beyaz zemin değişmiş."))
+      .toBe("The QR quiet zone or white background has changed.");
+    expect(localizeToolText("Orijinal ürün fotoğrafı"))
+      .toBe("Original product photo");
   });
 
   it("keeps the full English inspiration experience interactive", () => {

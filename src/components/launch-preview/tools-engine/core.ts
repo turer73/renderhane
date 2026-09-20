@@ -293,7 +293,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function compareCanvas(): string {
     if (s.fileUrl && !s.result) return `<div class="rh-panel-top"><span class="rh-panel-title">Yüklenen fotoğraf</span><span class="rh-pill">Yerel önizleme</span></div><div class="rh-empty"><img class="rh-custom-preview" src="${s.fileUrl}" alt="Yüklediğiniz fotoğraf"/></div><div class="rh-canvas-footer"><span>${icon('info')}Henüz AI işlemi uygulanmadı.</span><button class="rh-link-button" data-action="sample">Hazır örneğe dön</button></div>`;
     const before = s.fileUrl || asset('photo.jpg'); const after = s.result || asset('cutout.png');
-    return `<div class="rh-panel-top"><span class="rh-panel-title">${icon('image')}${s.file ? esc(s.file.name) : 'Onaylı şişe örneği'}</span><div class="rh-segmented" aria-label="Görünüm">${[['compare', 'Karşılaştır'], ['original', 'Orijinal'], ['result', 'Sonuç']].map(([key, label]) => `<button data-view="${key}" aria-pressed="${s.tab === key}">${label}</button>`).join('')}</div></div><div class="rh-compare ${s.bgColor === 'transparent' ? 'rh-checker' : ''}" style="${s.bgColor !== 'transparent' ? `background:${esc(s.bgColor)};` : ''}--split:${s.tab === 'original' ? '100' : s.tab === 'result' ? '0' : '50'}%"><img src="${esc(after)}" alt="${s.result ? 'Arka plan kaldırılmış sonuç' : 'Önceden hazırlanmış örnek dekupe'}"/><div class="rh-compare-front"><img src="${esc(before)}" alt="Orijinal ürün fotoğrafı"/></div><span class="rh-compare-label left" ${s.tab === 'result' ? 'hidden' : ''}>Orijinal</span><span class="rh-compare-label right" ${s.tab === 'original' ? 'hidden' : ''}>${s.result ? 'Sonuç' : 'Hazır örnek çıktı'}</span>${s.tab === 'compare' ? `<div class="rh-compare-line"><span class="rh-compare-handle">↔</span></div><input class="rh-compare-input" type="range" min="0" max="100" value="50" aria-label="Önce ve sonra karşılaştırması" data-compare="true"/>` : ''}</div><div class="rh-canvas-footer"><span>${icon('scan')}Ayrıntıları karşılaştır</span><span>${s.result ? 'API tarafından döndürülen çıktı' : 'Temsili şişe görseli · Hazır dekupe'}</span></div>`;
+    return `<div class="rh-panel-top"><span class="rh-panel-title">${icon('image')}${s.file ? `<span translate="no">${esc(s.file.name)}</span>` : 'Onaylı şişe örneği'}</span><div class="rh-segmented" aria-label="Görünüm">${[['compare', 'Karşılaştır'], ['original', 'Orijinal'], ['result', 'Sonuç']].map(([key, label]) => `<button data-view="${key}" aria-pressed="${s.tab === key}">${label}</button>`).join('')}</div></div><div class="rh-compare ${s.bgColor === 'transparent' ? 'rh-checker' : ''}" style="${s.bgColor !== 'transparent' ? `background:${esc(s.bgColor)};` : ''}--split:${s.tab === 'original' ? '100' : s.tab === 'result' ? '0' : '50'}%"><img src="${esc(after)}" alt="${s.result ? 'Arka plan kaldırılmış sonuç' : 'Önceden hazırlanmış örnek dekupe'}"/><div class="rh-compare-front"><img src="${esc(before)}" alt="Orijinal ürün fotoğrafı"/></div><span class="rh-compare-label left" ${s.tab === 'result' ? 'hidden' : ''}>Orijinal</span><span class="rh-compare-label right" ${s.tab === 'original' ? 'hidden' : ''}>${s.result ? 'Sonuç' : 'Hazır örnek çıktı'}</span>${s.tab === 'compare' ? `<div class="rh-compare-line"><span class="rh-compare-handle">↔</span></div><input class="rh-compare-input" type="range" min="0" max="100" value="50" aria-label="Önce ve sonra karşılaştırması" data-compare="true"/>` : ''}</div><div class="rh-canvas-footer"><span>${icon('scan')}Ayrıntıları karşılaştır</span><span>${s.result ? 'API tarafından döndürülen çıktı' : 'Temsili şişe görseli · Hazır dekupe'}</span></div>`;
   }
   function background(): string {
     const hasAdapter = !!options.adapters?.removeBackground;
@@ -412,7 +412,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const errorEl = $('#rh-qr-error');
     try {
       const payload = buildPayload(s.qrType, s.qr);
-      const artifact = await buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle);
+      const artifact = await buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle, locale);
       s.qrSvg = artifact.svg;
       s.qrPayload = payload;
       s.qrError = '';
@@ -430,7 +430,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'false');
       qrStatus('pending', 'Dijital veri kontrolü sürüyor', 'SVG görüntüleniyor; QR verisi ve hata kontrolü sınanıyor.');
       // Verify the same-payload classic baseline, then the selected visual style.
-      if (s.qrStyle !== 'square') await validateQrRaster(await buildQrArtifact(payload, s.qrColor, s.qrSize, 'square'), controller.signal);
+      if (s.qrStyle !== 'square') await validateQrRaster(await buildQrArtifact(payload, s.qrColor, s.qrSize, 'square', locale), controller.signal);
       const validated = await validateQrRaster(artifact, controller.signal);
       if (!current()) return;
       qrValidated = validated;
