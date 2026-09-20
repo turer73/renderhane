@@ -110,7 +110,7 @@ export function presetPath(style: QrStyle, x = 0, y = 0): string {
   return out + 'Z';
 }
 export function presetIcon(style: QrStyle): string { return `<svg viewBox="-.08 -.08 1.16 1.16" aria-hidden="true"><path d="${presetPath(style)}" fill="currentColor"/></svg>`; }
-export async function buildQrArtifact(payload: string, color = '#0b0f2d', pixels = 1024, style: QrStyle = 'square'): Promise<QrArtifact> {
+export async function buildQrArtifact(payload: string, color = '#0b0f2d', pixels = 1024, style: QrStyle = 'square', locale: 'tr' | 'en' = 'tr'): Promise<QrArtifact> {
   validateQrOptions(payload, color, pixels, style);
   const v = await vendor();
   const qr = new (v.LocalQR)(-1, 2); // LocalQR 2 = error correction H.
@@ -127,7 +127,13 @@ export async function buildQrArtifact(payload: string, color = '#0b0f2d', pixels
     else shapes += presetPath(style, x + 4, y + 4);
   }
   const label = (QR_PRESETS.find(p => p.id === style) ?? QR_PRESETS[0]).label;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label} biçimli QR kod" width="${pixels}" height="${pixels}" viewBox="0 0 ${span} ${span}" data-qr-style="${style}" data-qr-version="${version}" data-qr-margin="4" data-qr-ecc="H"><title>Renderhane · ${label} QR</title><desc>Statik QR. Boş kenarı koruyun; hedef baskı ve telefonda deneyin.</desc><rect width="${span}" height="${span}" fill="#ffffff"/><path data-qr-functional="true" d="${fixed}" fill="${esc(color)}"/><path data-qr-data="true" d="${shapes}" fill="${esc(color)}"/></svg>`;
+  const englishLabel: Record<QrStyle, string> = { square: 'Classic', rounded: 'Soft', dots: 'Dots', diamond: 'Diamond', star: 'Star' };
+  const accessibleLabel = locale === 'en' ? englishLabel[style] : label;
+  const ariaLabel = locale === 'en' ? `${accessibleLabel}-style QR code` : `${label} biçimli QR kod`;
+  const description = locale === 'en'
+    ? 'Static QR code. Preserve the quiet zone and test it on the target print and phone.'
+    : 'Statik QR. Boş kenarı koruyun; hedef baskı ve telefonda deneyin.';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${ariaLabel}" width="${pixels}" height="${pixels}" viewBox="0 0 ${span} ${span}" data-qr-style="${style}" data-qr-version="${version}" data-qr-margin="4" data-qr-ecc="H"><title>Renderhane · ${accessibleLabel} QR</title><desc>${description}</desc><rect width="${span}" height="${span}" fill="#ffffff"/><path data-qr-functional="true" d="${fixed}" fill="${esc(color)}"/><path data-qr-data="true" d="${shapes}" fill="${esc(color)}"/></svg>`;
   return { svg, size: pixels, modules: n, version, style, matrix, functional, payload };
 }
 function bch(value: number, polynomial: number, shift: number, xor = 0): number {

@@ -1,3 +1,5 @@
+import {localizeToolText} from './english-copy';
+
 /* Manuel sahne yerleştirme: ürünü sürükle/boyutlandır/döndür, hazır zeminle birleştir, PNG/JPG indir.
    Tek dosyalık demoyla eşit porttur. Piksel işlemi ve indirme tamamen tarayıcıdadır;
    sunucuya istek atılmaz, AI kredisi harcanmaz. İndirme üyelik kapısının arkasındadır. */
@@ -7,6 +9,7 @@ export const COMPOSER_FORMATS: Record<ComposerFormat, [number, number]> = {
 };
 export interface ComposerOptions {
   sampleProduct: string;
+  locale?: 'tr' | 'en';
   verifyMember?: () => Promise<boolean>;
   loginUrl?: string;
   allowDemoMembership?: boolean;
@@ -34,8 +37,61 @@ export function validateCompositionFile(file: File): void {
 }
 const isComposerFormat = (v: string): v is ComposerFormat => v === 'square' || v === 'portrait' || v === 'landscape';
 const esc = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, s => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[s]!));
+
+const COMPOSER_COPY = new Map<string, string>([
+  ['Hazır şişe (temsili)', 'Sample bottle (illustrative)'],
+  ['Ürünü sürükle; köşelerinden boyutlandır. Görseller bu sayfadan sunucuya gönderilmez.', 'Drag the product and resize it from the corners. Images are not sent to a server from this page.'],
+  ['Hazır stüdyo zemini · çizim, AI değil', 'Prepared studio background · rendered, not AI'],
+  ['ÜCRETSİZ MANUEL YERLEŞTİRME', 'FREE MANUAL PLACEMENT'], ['Ürününü sahneye yerleştir.', 'Place your product in a scene.'],
+  ['Kendi arka planın. Kendi kompozisyonun. AI kredisi harcanmaz.', 'Your background. Your composition. No AI credits are used.'],
+  ['Düzenleyiciyi kapat', 'Close editor'], ['ÖNİZLEME', 'PREVIEW'], ['İndirme: ücretsiz üyelik', 'Download: free membership'],
+  ['Ürün kompozisyonu. Ürünü sürükleyin, köşelerden boyutlandırın. Ok tuşlarıyla taşıyabilirsiniz.', 'Product composition. Drag the product, resize it from the corners, or move it with the arrow keys.'],
+  ['↔ Sürükle / köşelerden ölçekle', '↔ Drag / resize from corners'], ['Ortala', 'Center'], ['Konumu sıfırla', 'Reset position'],
+  ['Manuel kompozisyon; otomatik dekupe, perspektif veya AI ışık uyumu uygulanmaz. Gölge seçeneği basit çizimdir. Taslak bu sekmenin belleğinde tutulur; sayfa yenilenirse kaybolur.', 'Manual composition does not apply automatic cutout, perspective, or AI lighting. The shadow option is a simple rendering. The draft stays in this tab memory and is lost if the page reloads.'],
+  ['Ürün görseli', 'Product image'], ['Dekupe ürün yükle', 'Upload cutout product'], ['Kompozisyon için ürün görseli yükle', 'Upload a product image for the composition'],
+  ['Saydam PNG önerilir. JPG ve WebP de yüklenebilir; arka planı otomatik silinmez.', 'A transparent PNG is recommended. JPG and WebP are also supported; their backgrounds are not removed automatically.'],
+  ['Kendi arka planını yükle', 'Upload your background'], ['Sıcak stüdyo', 'Warm studio'], ['Lavanta', 'Lavender'], ['Gece', 'Night'],
+  ['Düz renk', 'Solid color'], ['Düz arka plan rengi', 'Solid background color'], ['Yerleşim', 'Fit'], ['Alanı doldur (kırp)', 'Fill area (crop)'],
+  ['Görselin tamamı', 'Entire image'], ['Yüklenen arka planı kaldır', 'Remove uploaded background'],
+  ['Dosyalar en fazla 10 MB / 24 MP. Uzun kenar 2500 px üzerinde çalışma kopyası küçültülür.', 'Files may be up to 10 MB / 24 MP. A working copy is reduced when the long edge exceeds 2500 px.'],
+  ['Konum ve boyut', 'Position and size'], ['Yatay konum', 'Horizontal position'], ['Dikey konum', 'Vertical position'], ['Ürün boyutu', 'Product size'],
+  ['Döndürme', 'Rotation'], ['Basit temas gölgesi (AI değil)', 'Simple contact shadow (not AI)'], ['Çıktı', 'Output'], ['Görsel oranı', 'Image ratio'],
+  ['Kare · 1080 × 1080', 'Square · 1080 × 1080'], ['Dikey · 1080 × 1350', 'Portrait · 1080 × 1350'], ['Yatay · 1920 × 1080', 'Landscape · 1920 × 1080'],
+  ['JPG indir', 'Download JPG'], ['Ücretsiz üyelik gerekir. Manuel işlemden AI kredisi düşülmez.', 'Free membership is required. Manual processing does not use AI credits.'],
+  ['Üyelik açıklamasını kapat', 'Close membership information'], ['ÜCRETSİZ + ÜYELİKLİ', 'FREE + MEMBER ACCESS'], ['Kompozisyonun hazır.', 'Your composition is ready.'],
+  ['Giriş için ayrı sekme açılır. Taslağı korumak için bu sekmeyi açık tut.', 'Sign-in opens in a separate tab. Keep this tab open to preserve your draft.'],
+  ['Sahne düzenleme adımları', 'Scene editing steps'], ['Ürün', 'Product'], ['Konum', 'Position'], ['İndir', 'Download'],
+  ['Demo üyelik adımını dene', 'Try the demo membership step'], ['Ücretsiz giriş / kayıt', 'Free sign in / register'], ['Giriş yaptım, kontrol et', 'I signed in, check again'],
+  ['Ürün yükleniyor…', 'Loading product…'], ['Ürün hazır. Kendi arka planını yükleyebilir veya hazır zemini seçebilirsin.', 'Product ready. Upload your own background or choose a prepared one.'],
+  ['Ürün açılamadı.', 'The product could not be opened.'], ['Ürün yüklendi. Arka planını otomatik silmedik; en iyi sonuç için dekupe PNG kullan.', 'Product uploaded. Its background was not removed automatically; use a cutout PNG for best results.'],
+  ['Kendi arka planın yüklendi. Ürünü sürükleyerek konumlandır.', 'Your background was uploaded. Drag the product into position.'],
+  ['Bu dosya gerçek hesap açmaz. Aşağıdaki düğme yalnız demo üyelik adımını taklit eder; bilgi toplamaz.', 'This file does not create a real account. The button below only simulates the demo membership step and collects no information.'],
+  ['Manuel yerleştirme ücretsizdir. PNG/JPG indirmek için Renderhane hesabına giriş yap. Bu sekmeyi kapatma; taslağın bellekte kalır.', 'Manual placement is free. Sign in to your Renderhane account to download PNG/JPG. Keep this tab open so the draft remains in memory.'],
+  ['Ücretsiz indirme için üyelik gerekli.', 'Membership is required for the free download.'], ['Kompozisyon indirildi. AI kredisi kullanılmadı.', 'Composition downloaded. No AI credits were used.'],
+  ['Kompozisyon indirildi · demo üyelik onayı kullanıldı. Gerçek hesap oluşturulmadı.', 'Composition downloaded · demo membership approval was used. No real account was created.'],
+  ['İndirme tamamlanamadı.', 'The download could not be completed.'], ['Demo üyelik adımı tamamlandı. Şimdi PNG veya JPG indir. Gerçek hesap açılmadı.', 'Demo membership step completed. You can now download PNG or JPG. No real account was created.'],
+  ['Giriş doğrulandı. Çıktını indirebilirsin.', 'Sign-in verified. You can download your output.'], ['Oturum doğrulanamadı. Girişten sonra yeniden dene.', 'The session could not be verified. Try again after signing in.'],
+  ['Önizleme çizilemedi.', 'The preview could not be rendered.'], ['Tarayıcı çizim alanını açamadı.', 'The browser could not open the drawing surface.'],
+  ['Geçersiz görsel boyutu.', 'Invalid image dimensions.'], ['Yalnız JPG, PNG veya WebP yükleyebilirsin. SVG kabul edilmez.', 'Upload only JPG, PNG, or WebP. SVG is not accepted.'],
+  ['Görsel 0–10 MB aralığında olmalı.', 'The image must be between 0 and 10 MB.'],  ['Görsel yükleme süresi doldu.', 'Image loading timed out.'],
+  ['Görsel açılamadı veya çapraz kaynak izni yok.', 'The image could not be opened or cross-origin access is not allowed.'],
+  ['En fazla 24 megapiksel görsel kullan.', 'Use an image up to 24 megapixels.'],
+  ['Canvas kullanılamıyor.', 'Canvas is unavailable.'],
+  ['Görsel tamamen saydam; yerleştirilecek ürün yok.', 'The image is fully transparent; there is no product to place.'],
+  ['Dosya açılamadı.', 'The file could not be opened.'],
+  ['Çıktı oluşturulamadı.', 'The output could not be created.'],
+]);
+
+export function localizeComposerText(value: string, locale: 'tr' | 'en' = 'tr'): string {
+  return locale === 'en' ? (COMPOSER_COPY.get(value) ?? localizeToolText(value)) : value;
+}
+
+export function fallbackComposerLoginPath(locale: 'tr' | 'en' = 'tr'): string { return `/${locale}/login`; }
+
 export function createManualComposer(host: HTMLElement, options: ComposerOptions): ManualComposer {
   const doc = host.ownerDocument, win = doc.defaultView as Window;
+  const en = options.locale === 'en';
+  const l = (value: string): string => localizeComposerText(value, options.locale);
   let dialog: HTMLDialogElement | null = null, canvas: HTMLCanvasElement | null = null;
   let dead = false, product: HTMLCanvasElement | null = null, background: HTMLCanvasElement | null = null;
   let productName = 'Hazır şişe (temsili)', backgroundName = '', sourceKey = '';
@@ -50,7 +106,7 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
   const dimensions = (): [number, number] => COMPOSER_FORMATS[format];
   function status(s: string, error = false): void {
     const el = q('#mc-status');
-    if (el) { el.textContent = s; el.classList.toggle('mc-error', error); }
+    if (el) { el.textContent = l(s); el.classList.toggle('mc-error', error); }
   }
   function modelSize(w: number, h: number): [number, number] {
     if (!product) return [0, 0];
@@ -131,7 +187,7 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
     const name = q('#mc-product-name');
     if (name) name.textContent = productName;
     const bg = q('#mc-background-name');
-    if (bg) bg.textContent = background ? backgroundName : 'Hazır stüdyo zemini · çizim, AI değil';
+    if (bg) bg.textContent = background ? backgroundName : l('Hazır stüdyo zemini · çizim, AI değil');
     dialog?.querySelectorAll('[data-mc-preset]').forEach(b => b.setAttribute('aria-pressed', String(!background && (b as HTMLElement).dataset.mcPreset === preset)));
     dialog?.querySelectorAll('[data-mc-export]').forEach(b => { (b as HTMLButtonElement).disabled = !product || exporting; });
   }
@@ -228,7 +284,7 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
     if (!gate) return;
     gate.hidden = false;
     const text = q('#mc-member-info');
-    if (text) text.textContent = options.allowDemoMembership ? 'Bu dosya gerçek hesap açmaz. Aşağıdaki düğme yalnız demo üyelik adımını taklit eder; bilgi toplamaz.' : 'Manuel yerleştirme ücretsizdir. PNG/JPG indirmek için Renderhane hesabına giriş yap. Bu sekmeyi kapatma; taslağın bellekte kalır.';
+    if (text) text.textContent = l(options.allowDemoMembership ? 'Bu dosya gerçek hesap açmaz. Aşağıdaki düğme yalnız demo üyelik adımını taklit eder; bilgi toplamaz.' : 'Manuel yerleştirme ücretsizdir. PNG/JPG indirmek için Renderhane hesabına giriş yap. Bu sekmeyi kapatma; taslağın bellekte kalır.');
     q('#mc-member-close')?.focus();
   }
   async function authorized(): Promise<boolean> {
@@ -400,7 +456,7 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
     doc.body.style.overflow = previousOverflow;
     if (returnFocus?.isConnected) (returnFocus as HTMLElement).focus?.({preventScroll: true});
   }
-  function open(source: string = options.sampleProduct, label = 'Hazır şişe (temsili)'): void {
+  function open(source: string = options.sampleProduct, label = l('Hazır şişe (temsili)')): void {
     if (dead || dialog) return;
     returnFocus = doc.activeElement;
     previousOverflow = doc.body.style.overflow;
@@ -414,6 +470,22 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
       <section><h3>03 <span>Konum ve boyut</span></h3>${([['x', 'Yatay konum', 0, 100], ['y', 'Dikey konum', 0, 100], ['scale', 'Ürün boyutu', 8, 165], ['rotation', 'Döndürme', -180, 180]] as Array<[string, string, number, number]>).map(([k, v, min, max]) => `<label class="mc-range-label" for="mc-${k}">${v}<output id="mc-${k}-value"></output></label><input id="mc-${k}" data-mc-place="${k}" type="range" min="${min}" max="${max}" step="1">`).join('')}<label class="mc-check"><input id="mc-shadow" type="checkbox" ${shadow ? 'checked' : ''}>Basit temas gölgesi (AI değil)</label></section>
       <section><h3>04 <span>Çıktı</span></h3><label class="mc-format-label" for="mc-format">Görsel oranı</label><select id="mc-format"><option value="square">Kare · 1080 × 1080</option><option value="portrait">Dikey · 1080 × 1350</option><option value="landscape">Yatay · 1920 × 1080</option></select><div class="mc-export-row"><button type="button" data-mc-export="png" class="mc-primary">PNG indir</button><button type="button" data-mc-export="jpeg">JPG indir</button></div><small>Ücretsiz üyelik gerekir. Manuel işlemden AI kredisi düşülmez.</small></section></aside></div>
       <section id="mc-member" class="mc-member" hidden aria-labelledby="mc-member-title"><div><button type="button" data-mc-action="member-close" id="mc-member-close" class="mc-close" aria-label="Üyelik açıklamasını kapat">×</button><span class="mc-kicker">ÜCRETSİZ + ÜYELİKLİ</span><h3 id="mc-member-title">Kompozisyonun hazır.</h3><p id="mc-member-info"></p><div id="mc-member-actions"></div><small>Giriş için ayrı sekme açılır. Taslağı korumak için bu sekmeyi açık tut.</small></div></section>`;
+    if (en) {
+      const walker = doc.createTreeWalker(dialog, doc.defaultView?.NodeFilter.SHOW_TEXT ?? 4);
+      const nodes: Text[] = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+      for (const node of nodes) {
+        const parent = node.parentElement;
+        if (!parent || parent.closest('[translate="no"]') || parent.closest('textarea,script,style')) continue;
+        node.nodeValue = l(node.nodeValue ?? '');
+      }
+      dialog.querySelectorAll<HTMLElement>('[placeholder],[aria-label],[title],[alt]').forEach(element => {
+        for (const name of ['placeholder', 'aria-label', 'title', 'alt']) {
+          const value = element.getAttribute(name);
+          if (value) element.setAttribute(name, l(value));
+        }
+      });
+    }
     const controls = q<HTMLElement>('.mc-controls');
     const body = q<HTMLElement>('.mc-body');
     const panels = Array.from(controls?.children ?? []) as HTMLElement[];
@@ -425,9 +497,9 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
     const mobileTabs = doc.createElement('div');
     mobileTabs.className = 'mc-mobile-tabs';
     mobileTabs.setAttribute('role', 'tablist');
-    mobileTabs.setAttribute('aria-label', 'Sahne düzenleme adımları');
+    mobileTabs.setAttribute('aria-label', l('Sahne düzenleme adımları'));
     mobileTabs.innerHTML = [
-      ['product', 'Ürün'], ['background', 'Arka plan'], ['position', 'Konum'], ['export', 'İndir'],
+      ['product', l('Ürün')], ['background', l('Arka plan')], ['position', l('Konum')], ['export', l('İndir')],
     ].map(([panel, label], index) => `<button type="button" role="tab" data-mc-tab="${panel}" aria-controls="mc-panel-${panel}" aria-selected="${index === 0}" tabindex="${index === 0 ? 0 : -1}">${label}</button>`).join('');
     body?.insertBefore(mobileTabs, controls ?? null);
     dialog.dataset.mobilePanel = 'product';
@@ -466,10 +538,10 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
       b.type = 'button';
       b.className = 'mc-primary';
       b.dataset.mcAction = 'demo-member';
-      b.textContent = 'Demo üyelik adımını dene';
+      b.textContent = l('Demo üyelik adımını dene');
       actions?.append(b);
     } else {
-      const raw = options.loginUrl || '/tr/login';
+      const raw = options.loginUrl || fallbackComposerLoginPath(options.locale);
       let url: URL | null = null;
       try { url = new URL(raw, win.location.href); } catch { /* göreli ya da geçersiz URL: giriş bağlantısı kurulmaz */ }
       if (url && ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password) {
@@ -478,13 +550,13 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
         a.href = url.href;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        a.textContent = 'Ücretsiz giriş / kayıt';
+        a.textContent = l('Ücretsiz giriş / kayıt');
         actions?.append(a);
       }
       const b = doc.createElement('button');
       b.type = 'button';
       b.dataset.mcAction = 'check-member';
-      b.textContent = 'Giriş yaptım, kontrol et';
+      b.textContent = l('Giriş yaptım, kontrol et');
       actions?.append(b);
     }
     dialog.addEventListener('click', click);

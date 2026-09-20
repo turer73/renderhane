@@ -52,10 +52,11 @@ export function EngineToolView({
       if (cancelled || !host.current) return;
       dispose = mountRenderhane(host.current, {
         initialPage: page,
+        locale,
         chrome: false,
         preview: false,
         assetBase: "/launch-preview/tools",
-        adapters: enableBackgroundApi ? createRenderhaneAdapter() : undefined,
+        adapters: enableBackgroundApi ? createRenderhaneAdapter(locale) : undefined,
         pageHref: (p) => realHref(locale, p),
         onNavigate: (p) => router.push(realHref(locale, p)),
         onAnchor: (id) => {

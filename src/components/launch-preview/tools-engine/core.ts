@@ -6,8 +6,10 @@
 import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
+import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
+export type ToolLocale = 'tr' | 'en';
 export type ContentType = 'url' | 'vcard' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
 export type Fields = Record<string, string>;
 export interface ImageResult { url: string; remaining?: number }
@@ -18,6 +20,7 @@ export interface RenderhaneAdapters {
 }
 export interface MountOptions {
   initialPage?: Page;
+  locale?: ToolLocale;
   /** Optional host chrome. Omitted values preserve V3's original behavior. */
   chrome?: boolean;
   homeMarkup?: string;
@@ -62,8 +65,14 @@ type ToolWindow = Window & {
 const MAX_FILE = 5 * 1024 * 1024;
 const MAX_PIXELS = 24_000_000;
 const pages: Page[] = ['home', 'background', 'scenes', 'qr', 'nfc', 'artistic', 'tools'];
-const pageNames: Record<Page, string> = { home: 'Ana sayfa', background: 'Arka plan kaldır', scenes: 'Sahne oluştur', qr: 'QR kod oluştur', nfc: 'NFC etiket yaz', artistic: 'Sanatsal QR', tools: 'Tüm araçlar' };
-const contentLabels: Record<ContentType, string> = { url: 'URL', vcard: 'Kişi kartı', wifi: 'WiFi', phone: 'Telefon', email: 'E-posta', sms: 'SMS', location: 'Konum', text: 'Metin', app: 'Uygulama' };
+const PAGE_NAMES: Record<ToolLocale, Record<Page, string>> = {
+  tr: { home: 'Ana sayfa', background: 'Arka plan kaldır', scenes: 'Sahne oluştur', qr: 'QR kod oluştur', nfc: 'NFC etiket yaz', artistic: 'Sanatsal QR', tools: 'Tüm araçlar' },
+  en: { home: 'Home', background: 'Remove background', scenes: 'Create a scene', qr: 'Create QR code', nfc: 'Write NFC tag', artistic: 'Artistic QR', tools: 'All tools' },
+};
+const CONTENT_LABELS: Record<ToolLocale, Record<ContentType, string>> = {
+  tr: { url: 'URL', vcard: 'Kişi kartı', wifi: 'WiFi', phone: 'Telefon', email: 'E-posta', sms: 'SMS', location: 'Konum', text: 'Metin', app: 'Uygulama' },
+  en: { url: 'URL', vcard: 'Contact card', wifi: 'WiFi', phone: 'Phone', email: 'Email', sms: 'SMS', location: 'Location', text: 'Text', app: 'App' },
+};
 const contentIcons: Record<ContentType, string> = { url: 'link', vcard: 'user', wifi: 'wifi', phone: 'phone', email: 'mail', sms: 'message', location: 'pin', text: 'text', app: 'grid' };
 const sceneNames = ['Doğal ışık', 'Minimal stüdyo', 'Banyo', 'Pazaryeri'];
 const scenePrompts = [
@@ -171,6 +180,15 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> { return new Promi
 
 export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): () => void {
   const doc = root.ownerDocument; const win = doc.defaultView! as unknown as ToolWindow;
+  const locale = options.locale ?? 'tr';
+  const en = locale === 'en';
+  const l = (tr: string, english: string): string => en ? english : tr;
+  const setLocalizedHtml = (element: HTMLElement, markup: string): void => {
+    element.innerHTML = markup;
+    if (en) localizeToolElement(element);
+  };
+  const pageNames = PAGE_NAMES[locale];
+  const contentLabels = CONTENT_LABELS[locale];
   let viewCleanup: (() => void) | undefined;
   let disposed = false; let toastTimer = 0; let qrTimer = 0; let nfcTimer = 0; let uploadTicket = 0;
   let qrRevision = 0; let qrController: AbortController | null = null;
@@ -197,7 +215,9 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     brief: {brand:'',url:'',usage:'Ürün ambalajı',size:'',style:'Çiçek & Ornament',notes:''} as Fields,
     ideas: {qr: {category:'all',expanded:false,selected:null}, nfc: {category:'all',expanded:false,selected:null}} as Record<IdeaChannel, InspirationState>,
   };
-  function ideaSection(channel: IdeaChannel): string { return renderInspiration(channel, s.ideas[channel]); }
+  function ideaSection(channel: IdeaChannel): string {
+    return en ? englishInspiration(channel, s.ideas[channel]) : renderInspiration(channel, s.ideas[channel]);
+  }
   function refreshIdeas(focusSelector?: string, scroll = false): void {
     if (s.page !== 'qr' && s.page !== 'nfc') return;
     const section = $('#rh-inspiration');
@@ -273,11 +293,11 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function compareCanvas(): string {
     if (s.fileUrl && !s.result) return `<div class="rh-panel-top"><span class="rh-panel-title">Yüklenen fotoğraf</span><span class="rh-pill">Yerel önizleme</span></div><div class="rh-empty"><img class="rh-custom-preview" src="${s.fileUrl}" alt="Yüklediğiniz fotoğraf"/></div><div class="rh-canvas-footer"><span>${icon('info')}Henüz AI işlemi uygulanmadı.</span><button class="rh-link-button" data-action="sample">Hazır örneğe dön</button></div>`;
     const before = s.fileUrl || asset('photo.jpg'); const after = s.result || asset('cutout.png');
-    return `<div class="rh-panel-top"><span class="rh-panel-title">${icon('image')}${s.file ? esc(s.file.name) : 'Onaylı şişe örneği'}</span><div class="rh-segmented" aria-label="Görünüm">${[['compare', 'Karşılaştır'], ['original', 'Orijinal'], ['result', 'Sonuç']].map(([key, label]) => `<button data-view="${key}" aria-pressed="${s.tab === key}">${label}</button>`).join('')}</div></div><div class="rh-compare ${s.bgColor === 'transparent' ? 'rh-checker' : ''}" style="${s.bgColor !== 'transparent' ? `background:${esc(s.bgColor)};` : ''}--split:${s.tab === 'original' ? '100' : s.tab === 'result' ? '0' : '50'}%"><img src="${esc(after)}" alt="${s.result ? 'Arka plan kaldırılmış sonuç' : 'Önceden hazırlanmış örnek dekupe'}"/><div class="rh-compare-front"><img src="${esc(before)}" alt="Orijinal ürün fotoğrafı"/></div><span class="rh-compare-label left" ${s.tab === 'result' ? 'hidden' : ''}>Orijinal</span><span class="rh-compare-label right" ${s.tab === 'original' ? 'hidden' : ''}>${s.result ? 'Sonuç' : 'Hazır örnek çıktı'}</span>${s.tab === 'compare' ? `<div class="rh-compare-line"><span class="rh-compare-handle">↔</span></div><input class="rh-compare-input" type="range" min="0" max="100" value="50" aria-label="Önce ve sonra karşılaştırması" data-compare="true"/>` : ''}</div><div class="rh-canvas-footer"><span>${icon('scan')}Ayrıntıları karşılaştır</span><span>${s.result ? 'API tarafından döndürülen çıktı' : 'Temsili şişe görseli · Hazır dekupe'}</span></div>`;
+    return `<div class="rh-panel-top"><span class="rh-panel-title">${icon('image')}${s.file ? `<span translate="no">${esc(s.file.name)}</span>` : 'Onaylı şişe örneği'}</span><div class="rh-segmented" aria-label="Görünüm">${[['compare', 'Karşılaştır'], ['original', 'Orijinal'], ['result', 'Sonuç']].map(([key, label]) => `<button data-view="${key}" aria-pressed="${s.tab === key}">${label}</button>`).join('')}</div></div><div class="rh-compare ${s.bgColor === 'transparent' ? 'rh-checker' : ''}" style="${s.bgColor !== 'transparent' ? `background:${esc(s.bgColor)};` : ''}--split:${s.tab === 'original' ? '100' : s.tab === 'result' ? '0' : '50'}%"><img src="${esc(after)}" alt="${s.result ? 'Arka plan kaldırılmış sonuç' : 'Önceden hazırlanmış örnek dekupe'}"/><div class="rh-compare-front"><img src="${esc(before)}" alt="Orijinal ürün fotoğrafı"/></div><span class="rh-compare-label left" ${s.tab === 'result' ? 'hidden' : ''}>Orijinal</span><span class="rh-compare-label right" ${s.tab === 'original' ? 'hidden' : ''}>${s.result ? 'Sonuç' : 'Hazır örnek çıktı'}</span>${s.tab === 'compare' ? `<div class="rh-compare-line"><span class="rh-compare-handle">↔</span></div><input class="rh-compare-input" type="range" min="0" max="100" value="50" aria-label="Önce ve sonra karşılaştırması" data-compare="true"/>` : ''}</div><div class="rh-canvas-footer"><span>${icon('scan')}Ayrıntıları karşılaştır</span><span>${s.result ? 'API tarafından döndürülen çıktı' : 'Temsili şişe görseli · Hazır dekupe'}</span></div>`;
   }
   function background(): string {
     const hasAdapter = !!options.adapters?.removeBackground;
-    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Arka planı <span class="rh-highlight">geride bırak.</span>', 'Ürün fotoğrafını yükle. Sade bir çalışma alanında incele, arka planını düzenle ve çıktını indir.', ['Kayıt olmadan', 'Günde 3 ücretsiz kullanım', 'Şeffaf PNG'])}<div class="rh-mobile-upload"><span>Kendi fotoğrafınla başla</span>${btn("Fotoğraf seç","upload-open",true,"upload")}</div><div class="rh-workspace"><section class="rh-panel" id="rh-canvas">${compareCanvas()}</section><aside class="rh-panel rh-tool-controls"><div class="rh-panel-top"><span class="rh-panel-title">${icon('upload')}Fotoğraf ve çıktı</span><span class="rh-pill purple">${hasAdapter ? 'API bağlı' : 'Demo'}</span></div><div class="rh-panel-body">${uploadBox()}<div class="rh-control-settings"><div class="rh-field"><label for="rh-format">Çıktı biçimi</label><select class="rh-select" id="rh-format"><option>PNG</option></select></div><div class="rh-field"><label for="rh-size-info">Boyut</label><input class="rh-input" id="rh-size-info" value="Kaynak boyutu" readonly/></div><div class="rh-label-row"><span>Arka plan</span><span class="rh-helper">PNG önizlemesi</span></div><div class="rh-color-row">${['transparent', '#ffffff', '#eee9e2', '#e9e4f6', '#dce8df', '#202832'].map(c => `<button data-bg="${c}" class="rh-color-button ${c === 'transparent' ? 'rh-checker' : ''}" style="--swatch:${c}" aria-label="${c === 'transparent' ? 'Şeffaf' : c} arka plan" aria-pressed="${s.bgColor === c}"></button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="remove" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'eraser', s.busy ? 'rh-spin' : '')}${s.busy ? 'İşleniyor…' : hasAdapter && s.file ? 'Arka planı kaldır' : s.file ? 'AI bağlantısını kontrol et' : 'Örnek sonucu göster'}</button><button class="rh-btn rh-block-btn" data-action="download-bg" ${s.file && !s.result ? 'disabled' : ''}>${icon('download')}${s.result ? 'PNG indir' : 'Örnek PNG indir'}</button><div class="rh-file-card"><img src="${s.fileUrl || asset('photo.jpg')}" alt=""/><div><strong>${s.file ? esc(s.file.name) : 'aurelia-sise-ornek.jpg'}</strong><small>${s.file ? (s.file.size / 1024).toFixed(0) + ' KB · yerel dosya' : '896 × 894 · temsili şişe örneği'}</small></div></div></div><div class="rh-control-note"><div class="rh-status" id="rh-bg-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Fotoğraf yüklemek üretim işlemi başlatmaz.'}</div>${hasAdapter ? `<p class="rh-helper">İşlem düğmesine basıldığında fotoğraf mevcut API’ye gönderilir. ${s.remaining !== null ? `Kalan hak: ${s.remaining}` : ''}</p>` : `<div class="rh-notice">Demo, yalnızca hazır örneğin dekupe sonucunu içerir. Kendi fotoğrafın için mevcut AI API’sini bağlamak gerekir.</div>`}</div></div></aside></div>${composerEntry()}${benefits([['image', 'Gerçek fotoğrafla başla', 'Örnek yerine kendi ürün fotoğrafını da yükleyebilirsin.'], ['layers', 'Sonucu karşılaştır', 'Kaydırıcıyla kenarları ve detayları incele.'], ['download', 'PNG olarak indir', 'Saydam veya seçtiğin düz zeminle dışa aktar.'], ['shield', 'İşlemler görünür', 'Demo çıktısı ve gerçek API çıktısı ayrı etiketlenir.']])}</main>`;
+    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Arka planı <span class="rh-highlight">geride bırak.</span>', 'Ürün fotoğrafını yükle. Sade bir çalışma alanında incele, arka planını düzenle ve çıktını indir.', ['Kayıt olmadan', 'Günde 3 ücretsiz kullanım', 'Şeffaf PNG'])}<div class="rh-mobile-upload"><span>Kendi fotoğrafınla başla</span>${btn("Fotoğraf seç","upload-open",true,"upload")}</div><div class="rh-workspace"><section class="rh-panel" id="rh-canvas">${compareCanvas()}</section><aside class="rh-panel rh-tool-controls"><div class="rh-panel-top"><span class="rh-panel-title">${icon('upload')}Fotoğraf ve çıktı</span><span class="rh-pill purple">${hasAdapter ? 'API bağlı' : 'Demo'}</span></div><div class="rh-panel-body">${uploadBox()}<div class="rh-control-settings"><div class="rh-field"><label for="rh-format">Çıktı biçimi</label><select class="rh-select" id="rh-format"><option>PNG</option></select></div><div class="rh-field"><label for="rh-size-info">Boyut</label><input class="rh-input" id="rh-size-info" value="Kaynak boyutu" readonly/></div><div class="rh-label-row"><span>Arka plan</span><span class="rh-helper">PNG önizlemesi</span></div><div class="rh-color-row">${['transparent', '#ffffff', '#eee9e2', '#e9e4f6', '#dce8df', '#202832'].map(c => `<button data-bg="${c}" class="rh-color-button ${c === 'transparent' ? 'rh-checker' : ''}" style="--swatch:${c}" aria-label="${c === 'transparent' ? 'Şeffaf' : c} arka plan" aria-pressed="${s.bgColor === c}"></button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="remove" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'eraser', s.busy ? 'rh-spin' : '')}${s.busy ? 'İşleniyor…' : hasAdapter && s.file ? 'Arka planı kaldır' : s.file ? 'AI bağlantısını kontrol et' : 'Örnek sonucu göster'}</button><button class="rh-btn rh-block-btn" data-action="download-bg" ${s.file && !s.result ? 'disabled' : ''}>${icon('download')}${s.result ? 'PNG indir' : 'Örnek PNG indir'}</button><div class="rh-file-card"><img src="${s.fileUrl || asset('photo.jpg')}" alt=""/><div><strong translate="no">${s.file ? esc(s.file.name) : 'aurelia-sise-ornek.jpg'}</strong><small>${s.file ? (s.file.size / 1024).toFixed(0) + ' KB · yerel dosya' : '896 × 894 · temsili şişe örneği'}</small></div></div></div><div class="rh-control-note"><div class="rh-status" id="rh-bg-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Fotoğraf yüklemek üretim işlemi başlatmaz.'}</div>${hasAdapter ? `<p class="rh-helper">İşlem düğmesine basıldığında fotoğraf mevcut API’ye gönderilir. ${s.remaining !== null ? `Kalan hak: ${s.remaining}` : ''}</p>` : `<div class="rh-notice">Demo, yalnızca hazır örneğin dekupe sonucunu içerir. Kendi fotoğrafın için mevcut AI API’sini bağlamak gerekir.</div>`}</div></div></aside></div>${composerEntry()}${benefits([['image', 'Gerçek fotoğrafla başla', 'Örnek yerine kendi ürün fotoğrafını da yükleyebilirsin.'], ['layers', 'Sonucu karşılaştır', 'Kaydırıcıyla kenarları ve detayları incele.'], ['download', 'PNG olarak indir', 'Saydam veya seçtiğin düz zeminle dışa aktar.'], ['shield', 'İşlemler görünür', 'Demo çıktısı ve gerçek API çıktısı ayrı etiketlenir.']])}</main>`;
   }
   function composerEntry(): string {
     return `<section class="mc-entry"><div><span class="mc-kicker">SONRAKİ ADIM · ÜCRETSİZ + ÜYELİKLİ</span><h2>Kendi sahneni kur.</h2><p>Kendi arka planını yükle; ürününü sürükle, boyutlandır ve döndür. Manuel yerleştirme ücretsizdir; indirmek için üyelik gerekir. AI ile sahne üretimi ayrı ve kredilidir.</p></div><button type="button" class="rh-btn rh-btn-primary" data-action="open-composer">${icon('layers')}Sahneye yerleştir</button></section>`;
@@ -307,17 +327,25 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function qrView(): string { return `<main id="rh-main" class="rh-page rh-wrap rh-qr-styled" tabindex="-1">${heading('Senin stilin.<br><span class="rh-highlight">Önce okunabilirlik.</span>', 'İçeriğini gir, hazır şeklini seç. QR yapısı korunur; her değişiklikte dijital veri kontrolü yeniden çalışır.', ['Ücretsiz · Kayıt yok', 'Hazır vektörel şekiller', 'Kontrollü PNG + SVG'])}<div class="rh-workspace rh-qr-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçeriğini seç</div>${typeTabs('qr')}<div id="rh-qr-fields">${fields('qr')}</div><div class="rh-number-title rh-qr-step"><span>2</span>Hazır şeklini seç</div><div class="rh-qr-presets" role="group" aria-label="QR modül şekli">${QR_PRESETS.map(pr => `<button type="button" class="rh-qr-preset" data-qr-style="${pr.id}" aria-pressed="${s.qrStyle === pr.id}"><span class="rh-qr-preset-icon">${presetIcon(pr.id)}</span><strong>${pr.label}</strong><small>${pr.hint}</small></button>`).join('')}</div><p class="rh-helper rh-qr-shape-note">Şekil yalnız veri alanına uygulanır. İşaret köşe, hizalama, zamanlama ve bilgi alanları kare olarak korunur.</p><div class="rh-number-title rh-qr-step"><span>3</span>Renk ve çıktı boyutu</div><div class="rh-two-fields"><div class="rh-field"><label for="rh-qr-color">Koyu QR rengi</label><div class="rh-color-input"><input type="color" id="rh-qr-color" value="${esc(s.qrColor)}"/><span class="rh-helper" id="rh-qr-hex">${esc(s.qrColor)}</span></div></div><div class="rh-field"><label for="rh-qr-size">Çıktı boyutu</label><select class="rh-select" id="rh-qr-size">${[512, 1024, 2048].map(v => `<option value="${v}" ${s.qrSize === v ? 'selected' : ''}>${v} × ${v} px</option>`).join('')}</select></div></div><div class="rh-qr-lock-note">${icon('shield')}<span><strong>Yapısal alanlar kilitli.</strong> Beyaz zemin, dört modüllük boş kenar ve H hata düzeltmesi korunur. Logo örtüşmesi, şeffaf zemin ve serbest çizim bu sürümde yok.</span></div><div class="rh-notice error" id="rh-qr-error" role="alert" hidden></div></section><section class="rh-panel rh-qr-preview-panel"><div class="rh-panel-top"><h2 class="rh-panel-title">${icon('qr')}QR önizlemesi</h2><span class="rh-pill" id="rh-qr-style-label">${(QR_PRESETS.find(pr => pr.id === s.qrStyle) ?? QR_PRESETS[0]).label}</span></div><div class="rh-qr-result" id="rh-qr-stage" data-invalid="true"><div class="rh-qr-paper" id="rh-qr-svg"></div></div><div class="rh-qr-meta" id="rh-qr-meta">Çıktı hazırlanıyor.</div><div class="rh-qr-check" id="rh-qr-check" role="status" aria-live="polite" data-state="pending"><span class="rh-qr-check-icon">${icon('shield')}</span><div><strong id="rh-qr-check-title">Kontrol bekleniyor</strong><p id="rh-qr-check-detail">Geçerli içerik ve okunabilir bir çıktı hazırlanmalı.</p></div></div><div class="rh-qr-result-footer"><div class="rh-toolbar">${btn('PNG indir', 'qr-png', true, 'download', 'disabled')}${btn('SVG indir', 'qr-svg', false, 'download', 'disabled')}</div><p>Test geçmeden indirme açılmaz. Baskıdan önce son boyutta telefonla tara.</p></div><details class="rh-qr-check-scope"><summary>Dijital kontrol neyi doğruluyor?</summary><p>SVG görüntüsünün ve indirilecek PNG&apos;nin bilinen ızgarasından veri okunur; biçim, yönlendirme alanları, hata kontrolü ve içerik eşleşmesi sınanır. Nihai boyut, 6 piksel/modül ve hafif bulanıklıkta toplam 9 kontrol yapılır.</p><p>Bu işlem, kamerayla QR bulma testi veya her telefonda okuma garantisi değildir. Hazır stil örnekleri geliştirme testlerinde OpenCV ve ZBar ile ayrıca okunur. Üretim baskısını gerçek cihazda kontrol et.</p></details><div class="rh-payload" id="rh-qr-payload" aria-label="QR içeriği"></div></section></div>${benefits([['shield', 'Okunabilirlik önce gelir', 'Yapısal alanlar değişmez; hatalı sonuç indirmeye açılmaz.'], ['download', 'Gerçek vektörel çıktı', 'Şekiller SVG yollarıdır; PNG aynı görüntüden üretilir.'], ['infinity', 'AI kredisi harcamaz', 'Hazır şekiller ve kontroller tarayıcıda çalışır.'], ['scan', 'Son baskıyı test et', 'Malzeme, boyut ve telefon sonucu etkileyebilir.']])}${premiumBlock(true)}${ideaSection('qr')}</main>`; }
   function supportedNfc(): boolean { return !!win.NDEFReader && win.isSecureContext; }
-  function nfcView(): string { const ready = supportedNfc(); return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div><label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!ready || s.nfcBusy || s.nfcType === 'wifi' ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!ready || s.nfcBusy ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${esc(s.nfcMessage || (ready ? 'Tarayıcı Web NFC sunuyor. Gerçek donanım ve etiket uygunluğu işlem sırasında doğrulanır.' : 'Bu tarayıcıda NFC yazma kullanılamıyor. İçeriği hazırlayabilirsin; yazmak için HTTPS üzerinden NFC destekli Android telefonda Chrome ile aç.'))}</div><p class="rh-helper">Bu sürümde kalıcı kilitleme ve toplu yazım yoktur. WiFi/WSC yazımı için mevcut projedeki NDEF modülü kullanılmalıdır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><img src="${asset('logo.svg')}" alt=""/><h3>Dokun, bağlantı kur.</h3><p id="rh-nfc-preview">İçeriğini hazırlamaya başla.</p><div class="rh-wave">Temsili telefon önizlemesi</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${ready ? 'Tarayıcı desteği var' : 'Önce cihaz uyumluluğu'}</strong><p>${ready ? 'Yazmak için etiketi telefona yaklaştır.' : 'NFC donanımı, Chrome ve HTTPS gerekir.'}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'İzin senin kontrolünde', 'Üzerine yazma seçeneği varsayılan olarak kapalıdır.'], ['phone', 'Cihazı önce kontrol et', 'Tarayıcı desteği, fiziksel donanım garantisi değildir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Yazma başarı mesajı ancak cihaz onayından sonra gelir.']])}${ideaSection('nfc')}</main>`; }
+  function nfcStatus(ready: boolean): string {
+    const readPrefix = 'Etiket okundu: ';
+    if (s.nfcMessage.startsWith(readPrefix))
+      return esc(l('Etiket okundu:', 'Tag read:')) + ' <span translate="no">' + esc(s.nfcMessage.slice(readPrefix.length)) + '</span>';
+    return esc(s.nfcMessage || (ready ? 'Tarayıcı Web NFC sunuyor. Gerçek donanım ve etiket uygunluğu işlem sırasında doğrulanır.' : 'Bu tarayıcıda NFC yazma kullanılamıyor. İçeriği hazırlayabilirsin; yazmak için HTTPS üzerinden NFC destekli Android telefonda Chrome ile aç.'));
+  }
+  function nfcView(): string { const ready = supportedNfc(); return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div><label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!ready || s.nfcBusy || s.nfcType === 'wifi' ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!ready || s.nfcBusy ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${nfcStatus(ready)}</div><p class="rh-helper">Bu sürümde kalıcı kilitleme ve toplu yazım yoktur. WiFi/WSC yazımı için mevcut projedeki NDEF modülü kullanılmalıdır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><img src="${asset('logo.svg')}" alt=""/><h3>Dokun, bağlantı kur.</h3><p id="rh-nfc-preview">İçeriğini hazırlamaya başla.</p><div class="rh-wave">Temsili telefon önizlemesi</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${ready ? 'Tarayıcı desteği var' : 'Önce cihaz uyumluluğu'}</strong><p>${ready ? 'Yazmak için etiketi telefona yaklaştır.' : 'NFC donanımı, Chrome ve HTTPS gerekir.'}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'İzin senin kontrolünde', 'Üzerine yazma seçeneği varsayılan olarak kapalıdır.'], ['phone', 'Cihazı önce kontrol et', 'Tarayıcı desteği, fiziksel donanım garantisi değildir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Yazma başarı mesajı ancak cihaz onayından sonra gelir.']])}${ideaSection('nfc')}</main>`; }
   function render(focus = false): void {
     if (disposed) return;
     viewCleanup?.(); viewCleanup = undefined;
     const approvedHome = s.page === 'home' && options.homeMarkup !== undefined;
     root.classList.toggle('rh-app', !approvedHome);
     const content = s.page === 'home' ? home() : s.page === 'background' ? background() : s.page === 'scenes' ? scenesView() : s.page === 'qr' ? qrView() : s.page === 'artistic' ? artisticView() : s.page === 'tools' ? toolsView() : nfcView();
-    root.innerHTML = approvedHome ? options.homeMarkup! :
+    const markup = approvedHome ? options.homeMarkup! :
       (options.chrome === false ? '' : options.headerMarkup ?? header()) + content +
       (options.chrome === false ? '' : options.footerMarkup ?? footer()) +
       '<div class="rh-toast" role="status" aria-live="polite" id="rh-toast"></div>';
+    root.innerHTML = markup;
+    if (en) localizeToolElement(root);
     if (options.pageHref) $$<HTMLAnchorElement>('a[data-page]').forEach(a => {
       a.href = options.pageHref!(a.dataset.page as Page);
     });
@@ -328,7 +356,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     viewCleanup = options.onRender?.(s.page) || undefined;
     if (focus) $(approvedHome ? '#rhl-main' : '#rh-main')?.focus({ preventScroll: true });
   }
-  function toast(message: string): void { const el = $('#rh-toast'); if (!el) return; win.clearTimeout(toastTimer); el.textContent = message; el.classList.add('show'); toastTimer = win.setTimeout(() => el.classList.remove('show'), 4200); }
+  function toast(message: string): void { const el = $('#rh-toast'); if (!el) return; win.clearTimeout(toastTimer); el.textContent = en ? localizeToolText(message) : message; el.classList.add('show'); toastTimer = win.setTimeout(() => el.classList.remove('show'), 4200); }
   function stopNfc(): void { nfcAbort?.abort(); nfcAbort = null; win.clearTimeout(nfcTimer); s.nfcBusy = false; }
   function navigate(page: Page): void {
     if (!pages.includes(page)) return;
@@ -353,8 +381,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     // the state change must see settled layout, or clicks can split across
     // a mid-click layout shift and get lost.
     const a = $('#rh-qr-check-title'), b = $('#rh-qr-check-detail');
-    if (a) a.textContent = title;
-    if (b) b.textContent = detail;
+    if (a) a.textContent = en ? localizeToolText(title) : title;
+    if (b) b.textContent = en ? localizeToolText(detail) : detail;
     const el = $('#rh-qr-check');
     if (el) el.dataset.state = state;
   }
@@ -384,23 +412,25 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const errorEl = $('#rh-qr-error');
     try {
       const payload = buildPayload(s.qrType, s.qr);
-      const artifact = await buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle);
+      const artifact = await buildQrArtifact(payload, s.qrColor, s.qrSize, s.qrStyle, locale);
       s.qrSvg = artifact.svg;
       s.qrPayload = payload;
       s.qrError = '';
       const svgEl = $('#rh-qr-svg');
       if (svgEl) svgEl.innerHTML = artifact.svg;
       const text = $('#rh-qr-payload');
-      if (text) text.textContent = s.qrType === 'wifi' ? 'WiFi QR kodu ağ adını ve şifresini içerir. Şifre bu önizlemede gizlendi.' : payload;
+      if (text) text.textContent = s.qrType === 'wifi' ? l('WiFi QR kodu ağ adını ve şifresini içerir. Şifre bu önizlemede gizlendi.', 'The WiFi QR code contains the network name and password. The password is hidden in this preview.') : payload;
       const label = $('#rh-qr-style-label');
-      if (label) label.textContent = (QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label;
+      if (label) label.textContent = en ? localizeToolText((QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label) : (QR_PRESETS.find(p => p.id === s.qrStyle) ?? QR_PRESETS[0]).label;
       const meta = $('#rh-qr-meta');
-      if (meta) meta.textContent = `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modül · H · 4 modül kenar`;
+      if (meta) meta.textContent = en
+        ? `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modules · H · 4-module quiet zone`
+        : `${artifact.size} × ${artifact.size} px · ${artifact.modules} × ${artifact.modules} modül · H · 4 modül kenar`;
       if (errorEl) errorEl.hidden = true;
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'false');
       qrStatus('pending', 'Dijital veri kontrolü sürüyor', 'SVG görüntüleniyor; QR verisi ve hata kontrolü sınanıyor.');
       // Verify the same-payload classic baseline, then the selected visual style.
-      if (s.qrStyle !== 'square') await validateQrRaster(await buildQrArtifact(payload, s.qrColor, s.qrSize, 'square'), controller.signal);
+      if (s.qrStyle !== 'square') await validateQrRaster(await buildQrArtifact(payload, s.qrColor, s.qrSize, 'square', locale), controller.signal);
       const validated = await validateQrRaster(artifact, controller.signal);
       if (!current()) return;
       qrValidated = validated;
@@ -413,20 +443,20 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       qrValidatedKey = '';
       s.qrSvg = '';
       s.qrPayload = '';
-      s.qrError = err instanceof Error ? err.message : 'QR doğrulanamadı.';
+      s.qrError = err instanceof Error ? (en ? localizeToolText(err.message) : err.message) : l('QR doğrulanamadı.', 'QR verification failed.');
       if (errorEl) { errorEl.textContent = s.qrError; errorEl.hidden = false; }
       qrStatus('failed', 'İndirme kapalı', s.qrError);
       $('#rh-qr-stage')?.setAttribute('data-invalid', 'true');
       const svgEl = $('#rh-qr-svg');
-      if (svgEl) svgEl.innerHTML = `<div class="rh-empty" style="min-height:220px">${icon('shield')}<p>Bu ayarla çıktı onaylanmadı.</p><small>İçeriği, rengi veya boyutu değiştir.</small></div>`;
+      if (svgEl) svgEl.innerHTML = `<div class="rh-empty" style="min-height:220px">${icon('shield')}<p>${l('Bu ayarla çıktı onaylanmadı.', 'The output was not approved with these settings.')}</p><small>${l('İçeriği, rengi veya boyutu değiştir.', 'Change the content, color, or size.')}</small></div>`;
       const payloadEl = $('#rh-qr-payload');
-      if (payloadEl) payloadEl.textContent = 'Doğrulanmış çıktı bekleniyor.';
+      if (payloadEl) payloadEl.textContent = l('Doğrulanmış çıktı bekleniyor.', 'Waiting for verified output.');
       const meta = $('#rh-qr-meta');
-      if (meta) meta.textContent = 'Kontrol başarısız. Otomatik olarak başka şekle geçilmedi.';
+      if (meta) meta.textContent = l('Kontrol başarısız. Otomatik olarak başka şekle geçilmedi.', 'Verification failed. The tool did not switch shapes automatically.');
       $$<HTMLButtonElement>('[data-action="qr-png"],[data-action="qr-svg"]').forEach(b => b.disabled = true);
     }
   }
-  function updateNfcPreview(): void { const el = $('#rh-nfc-preview'); if (!el) return; try { el.textContent = s.nfcType === 'wifi' ? 'WiFi içeriği · yazım bu sürümde kapalı' : buildPayload(s.nfcType, s.nfc); } catch { el.textContent = 'İçeriğini tamamla.'; } }
+  function updateNfcPreview(): void { const el = $('#rh-nfc-preview'); if (!el) return; try { el.textContent = s.nfcType === 'wifi' ? l('WiFi içeriği · yazım bu sürümde kapalı', 'WiFi content · writing is disabled in this version') : buildPayload(s.nfcType, s.nfc); } catch { el.textContent = l('İçeriğini tamamla.', 'Complete your content.'); } }
   async function removeBackground(): Promise<void> {
     if (!s.file) { s.tab = 'result'; render(); toast('Hazır örnek çıktı gösteriliyor. Bu işlem AI çağrısı değildir.'); return; }
     const adapter = options.adapters?.removeBackground;
@@ -476,7 +506,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       if (mode === 'write') {
         let records: NFCRecord[];
         if (s.nfcType === 'vcard') records = [{ recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload) }];
-        else if (s.nfcType === 'text') records = [{ recordType: 'text', lang: 'tr', data: payload }];
+        else if (s.nfcType === 'text') records = [{ recordType: 'text', lang: locale, data: payload }];
         else if (s.nfcType === 'app') records = [{ recordType: 'url', data: payload }, { recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package) }];
         else records = [{ recordType: 'url', data: payload }];
         await reader.write({ records }, { signal: controller.signal, overwrite: s.nfcOverwrite });
@@ -536,8 +566,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       s.menu = s.tools = false; $('.rh-nav')?.classList.remove('open'); return;
     }
     if (target.dataset.hero !== undefined) { s.hero = Number(target.dataset.hero); const img = $<HTMLImageElement>('#rh-hero-photo'); if (img) img.src = asset(s.hero < 0 ? 'photo.jpg' : `scene-${s.hero}.jpg`); const badge = $('#rh-hero-badge'); if (badge) badge.textContent = s.hero < 0 ? 'Temsili şişe görseli' : 'Hazırlanmış kompozisyon'; $$('[data-hero]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.hero) === s.hero))); return; }
-    if (target.dataset.view) { s.tab = target.dataset.view; const el = $('#rh-canvas'); if (el) el.innerHTML = compareCanvas(); return; }
-    if (target.dataset.bg) { s.bgColor = target.dataset.bg; const el = $('#rh-canvas'); if (el) el.innerHTML = compareCanvas(); $$('[data-bg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bg === s.bgColor))); return; }
+    if (target.dataset.view) { s.tab = target.dataset.view; const el = $('#rh-canvas'); if (el) setLocalizedHtml(el, compareCanvas()); return; }
+    if (target.dataset.bg) { s.bgColor = target.dataset.bg; const el = $('#rh-canvas'); if (el) setLocalizedHtml(el, compareCanvas()); $$('[data-bg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bg === s.bgColor))); return; }
     if (target.dataset.preset !== undefined) { s.scenePreset = Number(target.dataset.preset); s.prompt = scenePrompts[s.scenePreset]; const prompt = $<HTMLTextAreaElement>('#rh-prompt'); if (prompt) prompt.value = s.prompt; $$('[data-preset]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.preset) === s.scenePreset))); $$('.rh-scene').forEach((e, i) => e.setAttribute('data-active', String(i === s.scenePreset))); return; }
     if (target.dataset.qrType || target.dataset.nfcType) { const kind = target.dataset.qrType ? 'qr' : 'nfc'; const type = (target.dataset.qrType || target.dataset.nfcType) as ContentType; if (!Object.hasOwn(contentLabels, type)) return; if (kind === 'nfc') stopNfc(); s[`${kind}Type`] = type; render(); $(`#rh-${kind}-fields input, #rh-${kind}-fields textarea`)?.focus({ preventScroll: true }); return; }
     if (target.dataset.qrStyle) {
@@ -553,11 +583,12 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         if (!manualComposer)
           manualComposer = createManualComposer(root, {
             sampleProduct: asset('cutout.png'),
+            locale,
             verifyMember: options.verifyComposerMember,
-            loginUrl: options.composerLoginUrl || 'https://www.renderhane.com/tr/login',
+            loginUrl: options.composerLoginUrl || 'https://www.renderhane.com/' + locale + '/login',
             allowDemoMembership: options.demoComposerMembership === true,
           });
-        manualComposer.open(s.result || s.fileUrl || asset('cutout.png'), s.result ? 'Dekupe API sonucu' : s.file ? `${s.file.name} · arka plan otomatik silinmedi` : 'Hazır şişe · temsili dekupe');
+        manualComposer.open(s.result || s.fileUrl || asset('cutout.png'), s.result ? l('Dekupe API sonucu', 'Background removal API result') : s.file ? s.file.name + l(' · arka plan otomatik silinmedi', ' · background was not removed automatically') : l('Hazır şişe · temsili dekupe', 'Prepared bottle · illustrative cutout'));
         break;
       }
       case 'brief-focus': $('#rh-brief-brand')?.focus(); $('#rh-brief-form')?.scrollIntoView({behavior:'smooth',block:'start'}); break;
@@ -608,7 +639,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         field?.focus({preventScroll:true});
         (field as HTMLElement | null)?.scrollIntoView({block:'center'});
         toast(channel === 'qr' ? 'Bağlantı aktarıldı. Yeni QR kontrol ediliyor.' : 'Bağlantı aktarıldı. Yazma için ayrıca etiket ve onay gerekir.');
-      } catch(error) { if(status) status.textContent = error instanceof Error ? error.message : 'Bağlantıyı kontrol et.'; }
+      } catch(error) { if(status) { const message = error instanceof Error ? error.message : 'Bağlantıyı kontrol et.'; status.textContent = en ? localizeToolText(message) : message; } }
       return;
     }
     if (form.id !== 'rh-brief-form') return;

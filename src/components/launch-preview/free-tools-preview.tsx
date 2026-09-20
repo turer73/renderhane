@@ -34,24 +34,26 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
    const {mountRenderhane}=await import('./tools-engine/core');
    const {createRenderhaneAdapter}=await import('./tools-engine/api-adapter');
    if(cancelled||!host.current)return;
-   dispose=mountRenderhane(host.current,{initialPage:page,chrome:false,preview:!production,assetBase:'/launch-preview/tools',
-    onRender:p=>enhanceMobileToolFlow(host.current!,p),
-    adapters:enableBackgroundApi?createRenderhaneAdapter():undefined,
+   dispose=mountRenderhane(host.current,{initialPage:page,locale,chrome:false,preview:!production,assetBase:'/launch-preview/tools',
+    onRender:p=>enhanceMobileToolFlow(host.current!,p,locale),
+    adapters:enableBackgroundApi?createRenderhaneAdapter(locale):undefined,
     pageHref:p=>production?productionPath(locale,p):previewPath(locale,p),
     onNavigate:p=>router.push(production?productionPath(locale,p):previewPath(locale,p)),
     onAnchor:anchor=>router.push(`${production?`/${locale}`:previewHome(locale)}#${({examples:'rhl-example',faq:'rhl-scope',how:'rhl-paths'} as Record<string,string>)[anchor]||anchor}`),
    });
    setStatus('ready');
-  })().catch(()=>{if(!cancelled)setStatus('error')});
+ })().catch(()=>{if(!cancelled)setStatus('error')});
   return()=>{cancelled=true;dispose?.()};
  },[page,locale,enableBackgroundApi,production,router]);
- const labels=[['background','Arka plan kaldır'],['qr','Ücretsiz QR'],['nfc','NFC etiket yaz'],['artistic','Sanatsal QR']] as const;
- return <><div className="rhl rhl-tools-wrapper"><a className="rhl-skip" href="#rh-main">İçeriğe geç</a>{!production&&<div className="rhl-notice">TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi</div>}<div className="rhl-shell"><LaunchNavigation locale={locale} current={page} production={production}/></div>
- <div className="rh-unified-tabs"><nav aria-label="Araçlar arasında geçiş">{labels.map(([p,label])=><Link href={href(p)} key={p} aria-current={page===p?'page':undefined} className={p==='artistic'?'rh-paid-link':''}>{label}{p==='artistic'&&<small>Ücretli</small>}</Link>)}</nav></div>
- {locale==='en'&&<p className="rhl-notice">V3 tool copy is currently available in Turkish.</p>}
- {status==='loading'&&<p className="rhl-tools-loading" role="status">Araç yükleniyor…</p>}
- {status==='error'&&<p className="rhl-tools-error" role="alert">Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.</p>}
- <div ref={host} aria-label="Renderhane araç çalışma alanı"/>
+ const tr=locale==='tr';
+ const labels=tr
+  ? [['background','Arka plan kaldır'],['qr','Ücretsiz QR'],['nfc','NFC etiket yaz'],['artistic','Sanatsal QR']] as const
+  : [['background','Remove background'],['qr','Free QR code'],['nfc','Write NFC tag'],['artistic','Artistic QR']] as const;
+ return <><div className="rhl rhl-tools-wrapper" lang={locale}><a className="rhl-skip" href="#rh-main">{tr?'İçeriğe geç':'Skip to content'}</a>{!production&&<div className="rhl-notice">{tr?'TASARIM ÖNİZLEMESİ · 3D ana sayfa + V3 araçları · Canlı site değiştirilmedi':'DESIGN PREVIEW · 3D homepage + V3 tools · Production site unchanged'}</div>}<div className="rhl-shell"><LaunchNavigation locale={locale} current={page} production={production}/></div>
+ <div className="rh-unified-tabs"><nav aria-label={tr?'Araçlar arasında geçiş':'Switch between tools'}>{labels.map(([p,label])=><Link href={href(p)} key={p} aria-current={page===p?'page':undefined} className={p==='artistic'?'rh-paid-link':''}>{label}{p==='artistic'&&<small>{tr?'Ücretli':'Paid'}</small>}</Link>)}</nav></div>
+ {status==='loading'&&<p className="rhl-tools-loading" role="status">{tr?'Araç yükleniyor…':'Loading tool…'}</p>}
+ {status==='error'&&<p className="rhl-tools-error" role="alert">{tr?'Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.':'The tool could not be opened. Refresh the page or return to the homepage.'}</p>}
+ <div ref={host} aria-label={tr?'Renderhane araç çalışma alanı':'Renderhane tool workspace'}/>
  </div>
  <Footer />
  </>;

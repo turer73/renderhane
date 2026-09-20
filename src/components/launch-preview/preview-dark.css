@@ -75,6 +75,32 @@
 .dark .rh-app .rh-benefit h3{color:var(--ink)}
 .dark .rh-app .rh-benefit p{color:var(--muted)}
 .dark .rh-app .rh-faq-v3 summary,.dark .rh-app details summary{color:var(--ink)}
+.dark .rh-unified-tabs{background:#171231;border-color:#2e2752}
+.dark .rh-unified-tabs a{color:#a7a3c0}
+.dark .rh-unified-tabs a:hover{background:#221a4a;color:#cfc2ff}
+.dark .rh-unified-tabs a[aria-current=page]{background:#2c2358;border-color:#5a4a9e;color:#eceaf6;box-shadow:none}
+.dark .rh-unified-tabs .rh-paid-link small{color:#cfc2ff;border-color:#5a4a9e}
+.dark .rh-app .rh-btn:not(.rh-btn-primary):not(.rh-btn-light){background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .rh-app .rh-btn:not(.rh-btn-primary):not(.rh-btn-light):hover{background:#2c2358;border-color:#5a4a9e;color:#fff}
+.dark .rh-app .rh-segmented{background:#141126;border-color:#3d2f7a}
+.dark .rh-app .rh-segmented button[aria-pressed="true"]{background:#2c2358;color:var(--ink);box-shadow:none}
+.dark .rh-app .rh-color-input input[type="color"]{background:#221a4a;border-color:#3d2f7a}
+.dark .rh-app .rh-qr-lock-note{background:#171231;border-color:#352a63;color:var(--muted)}
+.dark .rh-app .rh-qr-meta{background:#171231;color:var(--muted)}
+.dark .rh-app .rh-qr-check{background:#221a4a;border-color:#3d2f7a;color:#cfc2ff}
+.dark .rh-app .rh-qr-check[data-state="passed"]{background:#12372d;border-color:#255f4c;color:#a7f3d0}
+.dark .rh-app .rh-qr-check[data-state="failed"]{background:#3a1b24;border-color:#6d2d39;color:#fecaca}
+.dark .rh-app .rh-qr-check-scope{color:var(--muted)}
+.dark .rh-app .rh-qr-check-scope summary{color:var(--ink)}
+.dark .rh-app .rh-notice.success{background:#12372d;border-color:#255f4c;color:#a7f3d0}
+.dark .rh-app .rh-notice.error{background:#3a1b24;border-color:#6d2d39;color:#fecaca}
+.dark .rh-app .rh-nfc-live-status,.dark .rh-app .rh-compat>div{background:#191335;border-color:#352a63}
+.dark .rh-app .rh-phone{background:#171231;border-color:#0d0b18;color:var(--ink);box-shadow:0 0 0 1px #4a4266,10px 15px 30px #0005}
+.dark .rh-app .rh-phone .rh-wave{background:linear-gradient(160deg,#2c2358,#1e1840);color:#b9a8ff}
+.dark .mc-entry{background:linear-gradient(110deg,#221a4a,#191335);border-color:#3d2f7a}
+.dark .mc-entry h2{color:var(--ink)}
+.dark .mc-entry p{color:var(--muted)}
+.dark .mc-entry .mc-kicker{color:#b9a8ff}
 
 /* Beyaz kalmasi gerekenler: QR ciktisi, dama tahtasi, onizleme zeminleri */
 .dark .rh-app .rh-checker{background-color:#fff}

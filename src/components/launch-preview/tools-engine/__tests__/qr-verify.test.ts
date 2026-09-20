@@ -89,6 +89,15 @@ describe("qr artifact + decode round-trip", () => {
     });
   }
 
+  it("emits English metadata in the rendered and downloaded SVG", async () => {
+    const artifact = await QR.buildQrArtifact("https://renderhane.com", "#0b0f2d", 1024, "rounded", "en");
+
+    expect(artifact.svg).toContain('aria-label="Soft-style QR code"');
+    expect(artifact.svg).toContain("<title>Renderhane · Soft QR</title>");
+    expect(artifact.svg).toContain("<desc>Static QR code.");
+    expect(artifact.svg).not.toMatch(/biçimli|Boş kenarı/);
+  });
+
   it("rejects a single flipped data module (no correction attempted)", async () => {
     const artifact = await QR.buildQrArtifact("https://renderhane.com", "#0b0f2d", 1024, "square");
     const n = artifact.modules;

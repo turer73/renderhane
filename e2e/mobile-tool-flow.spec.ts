@@ -10,7 +10,7 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rhl-notice')).toHaveCount(0);
     await expect(page.locator('[href^="/tr/launch-preview"]')).toHaveCount(0);
     await expect(page.locator('[href="/tr/araclar/qr-kod"]')).not.toHaveCount(0);
-    await expect(page.getByRole('button', {name: /mode/i})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Dark mode'})).toBeVisible();
   });
   test('legacy demo routes preserve their destinations', async ({page}) => {
     await page.goto('/tr/launch-preview/araclar/sahne-olustur');
@@ -60,7 +60,7 @@ test.describe('public mobile tool flows', () => {
 
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
-    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText('Dil: EN');
+    await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText(/Dil:\s*en/i);
   });
 
   test('manual composer exposes four focused inspector tabs', async ({page}) => {
@@ -97,4 +97,85 @@ test.describe('public mobile tool flows', () => {
       await expect(page.locator(`footer a[href="${href}"]`)).toHaveCount(1);
     }
   });
+
+  test('English QR keeps user data and localized mobile steps', async ({page}) => {
+    await page.goto('/en/araclar/qr-kod');
+
+    const value = 'https://example.com/Telefon/Mesaj?text=Merhaba';
+    await expect(page.getByRole('tab', {name: '1 · Content'})).toBeVisible();
+    await page.locator('#rh-qr-url').fill(value);
+    await page.getByRole('tab', {name: '2 · Style'}).click();
+    await page.getByRole('tab', {name: '1 · Content'}).click();
+    await expect(page.locator('#rh-qr-url')).toHaveValue(value);
+
+    await expect(page.locator('[data-idea-filter="all"]')).toBeVisible();
+    await page.locator('[data-idea]').first().click();
+    await expect(page.locator('#rh-idea-detail')).toBeVisible();
+    await page.locator('#rh-idea-form button[type=submit]').click();
+    await expect(page.locator('#rh-idea-form-status')).toHaveText('Enter a link to a page you own or have permission to share.');
+    await page.locator('#rh-idea-url').fill('https://example.com/ready');
+    await page.locator('#rh-idea-form button[type=submit]').click();
+    await expect(page.locator('#rh-idea-form-status')).toHaveText('Select the confirmation checkbox to replace the current content.');
+    await expect(page.locator('.rh-qr-check-scope')).toContainText('Data is read from the known grid of the SVG and downloadable PNG.');
+    await expect(page.locator('.rh-qr-check-scope')).not.toContainText('SVG görüntüsünün');
+    await expect(page.locator('#rh-qr-check')).toHaveAttribute('data-state', 'passed');
+    await expect(page.locator('#rh-qr-svg svg')).toHaveAttribute('aria-label', 'Classic-style QR code');
+    await expect(page.locator('#rh-qr-svg title')).toHaveText('Renderhane · Classic QR');
+    await expect(page.locator('#rh-qr-svg desc')).toContainText('Preserve the quiet zone');
+    await expect(page.locator('body')).not.toContainText('Fikir kategorisi');
+  });
+
+
+  test('English NFC opens with a localized safe fallback', async ({page}) => {
+    await page.goto('/en/araclar/nfc-yaz');
+    await expect(page.locator('main#rh-main')).toBeVisible();
+    await expect(page.locator('#rh-nfc-status')).toContainText('NFC');
+    await expect(page.locator('body')).not.toContainText('Maximum call stack size exceeded');
+  });
+
+  test('English background removal preserves filenames and selects English API errors', async ({page}) => {
+    let calls = 0;
+    await page.route('**/api/demo/bg-remove', async route => {
+      calls++;
+      if (calls === 1) {
+        await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({resultUrl: '/launch-preview/tools/cutout.png', remaining: 2})});
+        return;
+      }
+      await route.fulfill({status: 429, contentType: 'application/json', body: JSON.stringify({errorTr: 'Günlük ücretsiz kullanım sınırına ulaşıldı.', error: 'Daily free limit reached.'})});
+    });
+    await page.goto('/en/araclar/arka-plan-kaldirma');
+    await page.locator('input[data-file]').setInputFiles({
+      name: 'Telefon-Mesaj.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4ZsAAAAASUVORK5CYII=', 'base64'),
+    });
+    await expect(page.getByRole('button', {name: 'Remove background'})).toBeEnabled();
+    await page.getByRole('button', {name: 'Remove background'}).click();
+    await expect(page.locator('#rh-bg-status')).toHaveText('Processing completed. Review the result before downloading.');
+    await expect(page.locator('#rh-canvas .rh-panel-title')).toContainText('Telefon-Mesaj.png');
+    await expect(page.locator('#rh-canvas .rh-panel-title')).not.toContainText('Phone-Message.png');
+
+    await page.getByRole('button', {name: 'Remove background'}).click();
+    await expect(page.locator('#rh-bg-status')).toHaveText('Daily free limit reached.');
+    await expect(page.locator('#rh-bg-status')).not.toContainText('Günlük');
+  });
+  test('English manual composer is localized and uses the English login route', async ({page}) => {
+    await page.goto('/en/araclar/arka-plan-kaldirma');
+    await page.getByRole('button', {name: /Place in scene/}).click();
+
+    const dialog = page.getByRole('dialog', {name: /Place your product in a scene/});
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('tab', {name: 'Product'})).toBeVisible();
+    await expect(dialog.getByRole('tab', {name: 'Download'})).toBeVisible();
+    await expect(dialog).toContainText('Position and size');
+    await expect(dialog).toContainText('Reset position');
+    await expect(dialog).not.toContainText('Subjectm');
+    await expect(dialog).not.toContainText('Ürün');
+    await expect(dialog).not.toContainText('Arka plan');
+    await dialog.getByRole('tab', {name: 'Download'}).click();
+    await dialog.getByRole('button', {name: 'Download PNG'}).click();
+    await expect(dialog.locator('#mc-member')).toBeVisible();
+    await expect(dialog.locator('a[href*="/en/login"]')).toHaveCount(1);
+  });
+
 });
