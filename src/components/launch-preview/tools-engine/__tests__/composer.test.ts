@@ -1,11 +1,16 @@
 import {describe, expect, it} from 'vitest';
-import {COMPOSER_FORMATS, fitRect, localizeComposerText, normalizePlacement, validateCompositionFile} from '../composer';
+import {COMPOSER_FORMATS, fallbackComposerLoginPath, fitRect, localizeComposerText, normalizePlacement, validateCompositionFile} from '../composer';
 
 describe('composer', () => {
   it('localizes every runtime image error', () => {
     expect(localizeComposerText('En fazla 24 megapiksel görsel kullan.', 'en')).toBe('Use an image up to 24 megapixels.');
     expect(localizeComposerText('Görsel tamamen saydam; yerleştirilecek ürün yok.', 'en')).toBe('The image is fully transparent; there is no product to place.');
     expect(localizeComposerText('Görsel yükleme süresi doldu.', 'en')).toBe('Image loading timed out.');
+  });
+
+  it('keeps the fallback login path relative and locale-aware', () => {
+    expect(fallbackComposerLoginPath()).toBe('/tr/login');
+    expect(fallbackComposerLoginPath('en')).toBe('/en/login');
   });
 
   it('format boyutlari demoyla esit', () => {

@@ -86,6 +86,8 @@ export function localizeComposerText(value: string, locale: 'tr' | 'en' = 'tr'):
   return locale === 'en' ? (COMPOSER_COPY.get(value) ?? localizeToolText(value)) : value;
 }
 
+export function fallbackComposerLoginPath(locale: 'tr' | 'en' = 'tr'): string { return `/${locale}/login`; }
+
 export function createManualComposer(host: HTMLElement, options: ComposerOptions): ManualComposer {
   const doc = host.ownerDocument, win = doc.defaultView as Window;
   const en = options.locale === 'en';
@@ -539,7 +541,7 @@ export function createManualComposer(host: HTMLElement, options: ComposerOptions
       b.textContent = l('Demo üyelik adımını dene');
       actions?.append(b);
     } else {
-      const raw = options.loginUrl || `//login`;
+      const raw = options.loginUrl || fallbackComposerLoginPath(options.locale);
       let url: URL | null = null;
       try { url = new URL(raw, win.location.href); } catch { /* göreli ya da geçersiz URL: giriş bağlantısı kurulmaz */ }
       if (url && ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password) {
