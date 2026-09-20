@@ -225,6 +225,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Yalnızca JPG, PNG veya WebP yükleyin.", "Upload only JPG, PNG, or WebP files."],
   ["Dosya 5 MB sınırını aşıyor.", "The file exceeds the 5 MB limit."],
   ["Görsel çok büyük: en fazla 24 megapiksel.", "The image is too large: maximum 24 megapixels."],
+  ["Dosya okunamadı.", "The file could not be read."],
   ["Dosya açılamadı.", "The file could not be opened."],
   ["Görsel açılamadı.", "The image could not be opened."],
   ["Görsel dışa aktarılamadı.", "The image could not be exported."],

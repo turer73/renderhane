@@ -31,6 +31,7 @@ describe("English free-tool copy", () => {
       .toBe("The QR quiet zone or white background has changed.");
     expect(localizeToolText("Orijinal ürün fotoğrafı"))
       .toBe("Original product photo");
+    expect(localizeToolText("Dosya okunamadı.")).toBe("The file could not be read.");
   });
 
   it("keeps the full English inspiration experience interactive", () => {

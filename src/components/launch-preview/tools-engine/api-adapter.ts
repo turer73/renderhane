@@ -1,13 +1,13 @@
 import type { ImageResult, RenderhaneAdapters } from './core';
 
-function fileAsDataUrl(file: File, signal: AbortSignal): Promise<string> {
+function fileAsDataUrl(file: File, signal: AbortSignal, readError: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     const abort = () => { reader.abort(); reject(new DOMException('İptal edildi.', 'AbortError')); };
     if (signal.aborted) { abort(); return; }
     signal.addEventListener('abort', abort, { once: true });
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+    reader.onerror = () => reject(new Error(readError));
     reader.onloadend = () => signal.removeEventListener('abort', abort);
     reader.readAsDataURL(file);
   });
@@ -23,7 +23,7 @@ export function createRenderhaneAdapter(locale: 'tr' | 'en' = 'tr'): RenderhaneA
   return {
     async removeBackground(file: File, signal: AbortSignal): Promise<ImageResult> {
       if (file.size > 5 * 1024 * 1024) throw new Error(message('Dosya 5 MB sınırını aşıyor.', 'The file exceeds the 5 MB limit.'));
-      const imageDataUrl = await fileAsDataUrl(file, signal);
+      const imageDataUrl = await fileAsDataUrl(file, signal, message('Dosya okunamadı.', 'The file could not be read.'));
       const response = await fetch('/api/demo/bg-remove', {
         method: 'POST', credentials: 'same-origin', signal,
         headers: { 'Content-Type': 'application/json' },
