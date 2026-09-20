@@ -73,13 +73,23 @@ const COMPOSER_COPY = new Map<string, string>([
   ['Giriş doğrulandı. Çıktını indirebilirsin.', 'Sign-in verified. You can download your output.'], ['Oturum doğrulanamadı. Girişten sonra yeniden dene.', 'The session could not be verified. Try again after signing in.'],
   ['Önizleme çizilemedi.', 'The preview could not be rendered.'], ['Tarayıcı çizim alanını açamadı.', 'The browser could not open the drawing surface.'],
   ['Geçersiz görsel boyutu.', 'Invalid image dimensions.'], ['Yalnız JPG, PNG veya WebP yükleyebilirsin. SVG kabul edilmez.', 'Upload only JPG, PNG, or WebP. SVG is not accepted.'],
-  ['Görsel 0–10 MB aralığında olmalı.', 'The image must be between 0 and 10 MB.'],
+  ['Görsel 0–10 MB aralığında olmalı.', 'The image must be between 0 and 10 MB.'],  ['Görsel yükleme süresi doldu.', 'Image loading timed out.'],
+  ['Görsel açılamadı veya çapraz kaynak izni yok.', 'The image could not be opened or cross-origin access is not allowed.'],
+  ['En fazla 24 megapiksel görsel kullan.', 'Use an image up to 24 megapixels.'],
+  ['Canvas kullanılamıyor.', 'Canvas is unavailable.'],
+  ['Görsel tamamen saydam; yerleştirilecek ürün yok.', 'The image is fully transparent; there is no product to place.'],
+  ['Dosya açılamadı.', 'The file could not be opened.'],
+  ['Çıktı oluşturulamadı.', 'The output could not be created.'],
 ]);
+
+export function localizeComposerText(value: string, locale: 'tr' | 'en' = 'tr'): string {
+  return locale === 'en' ? (COMPOSER_COPY.get(value) ?? localizeToolText(value)) : value;
+}
 
 export function createManualComposer(host: HTMLElement, options: ComposerOptions): ManualComposer {
   const doc = host.ownerDocument, win = doc.defaultView as Window;
   const en = options.locale === 'en';
-  const l = (value: string): string => en ? (COMPOSER_COPY.get(value) ?? localizeToolText(value)) : value;
+  const l = (value: string): string => localizeComposerText(value, options.locale);
   let dialog: HTMLDialogElement | null = null, canvas: HTMLCanvasElement | null = null;
   let dead = false, product: HTMLCanvasElement | null = null, background: HTMLCanvasElement | null = null;
   let productName = 'Hazır şişe (temsili)', backgroundName = '', sourceKey = '';
