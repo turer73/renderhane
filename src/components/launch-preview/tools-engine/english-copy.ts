@@ -351,6 +351,155 @@ const EN_IDEAS: Record<string, [string, string]> = {
   "authenticated-edition": ["A verifiable limited edition", "Use a verification chain, not a decorative label."],
 };
 
+
+type EnglishGuidance = {what: string; steps: string[]; needs: string; caution: string};
+const EN_GUIDANCE: Record<string, EnglishGuidance> = {
+  "talking-souvenir": {
+    what: "A Cappadocia relief or city souvenir opens an audio story, route, and making-of video. This product adaptation is inspired by the Talking Statues approach.",
+    steps: ["Publish the short narration and transcript on an HTTPS page.", "Print its QR code and write the same link to the NFC tag.", "Test the marked tap area with real phones on the finished souvenir."],
+    needs: "A hosted story page and a tag suitable for the physical product.",
+    caution: "Fridges and metal can disrupt ordinary NFC tags. Test an on-metal or ferrite tag in the final object. Audio starts only after a user action.",
+  },
+  "product-360": {
+    what: "Product packaging or a printed display opens a rotatable 3D product page. AR may be a separate option on supported devices; a direct GLB link alone is not this experience.",
+    steps: ["Publish a product page with a working 3D viewer.", "Connect the same page through QR or NFC.", "Check the model, scale, and AR behavior on target devices."],
+    needs: "A web-based 3D viewer and a model you have the right to use.",
+    caution: "This tool does not create a new viewer-hosting service. AR support varies by device, and dimensional accuracy must be tested separately.",
+  },
+  "maker-story": {
+    what: "A handmade product links to its maker's story, process video, and care information. Each collection can use its own maintained destination.",
+    steps: ["Prepare a story page for the product or series.", "Add care and contact links to that page.", "Place QR and a clearly marked NFC area under the product."],
+    needs: "A product-story page and rights to use its media.",
+    caution: "A URL or ordinary NFC identifier does not prove authenticity. Do not market it as an anti-counterfeit certificate.",
+  },
+  "repair-guide": {
+    what: "A lamp, organizer, or printed product links to assembly guidance, maintenance, and replacement files for the correct version.",
+    steps: ["Identify the product version and parts list.", "Publish the guide and a controlled download page.", "Place a durable link where it remains accessible."],
+    needs: "A guide and file page matched to the product version.",
+    caution: "A download should not start printing automatically. Do not skip printer, material, and safety checks.",
+  },
+  "tactile-learning": {
+    what: "A tactile map, figure, or replica links to description, captions, and understandable learning content, following real museum accessibility patterns.",
+    steps: ["Prepare a short audio description and readable transcript.", "Mark the scan point with a tactile cue.", "Test discoverability and access with target users."],
+    needs: "An accessible destination page and a text alternative for audio.",
+    caution: "Adding QR or NFC does not create accessibility by itself. Finding the tag, screen-reader behavior, and content clarity must be tested together.",
+  },
+  "memory-gift": {
+    what: "A photo block or key ring opens a page containing a short recorded message. A plain link is suitable only for content that may safely be shared.",
+    steps: ["Record the message with permission.", "Upload it to a page whose sharing settings you control.", "Explain on the gift what the QR or NFC action opens."],
+    needs: "A separate hosting page for the audio or photo.",
+    caution: "An unlisted link is not a password. Private family or child content needs authentication and access control; do not write personal data to the tag.",
+  },
+  "playlist-object": {
+    what: "A small printed record or key ring opens a playlist page. Playing it through a speaker with a separate reader is an advanced setup.",
+    steps: ["Obtain a shareable playlist link.", "Use the same URL for QR or NFC.", "Explain any target app and account requirements."],
+    needs: "A working media or playlist URL.",
+    caution: "The tag does not store the music. A subscription, app, and playback confirmation may be required; autoplay is not guaranteed.",
+  },
+  "recipe-heirloom": {
+    what: "A recipe card or kitchen object opens the written recipe and an optional narrated video.",
+    steps: ["Publish the recipe and ingredients on a mobile page.", "Add captions or a transcript to narration.", "Protect the scan area from heat and moisture."],
+    needs: "A recipe page and permission to use its images and audio.",
+    caution: "Private family recordings require access control. Protect the NFC tag from food, heat, and moisture.",
+  },
+  guestbook: {
+    what: "An event card first opens the programme, then a permitted photo-upload and guestbook experience. The linked service changes while the printed URL stays fixed.",
+    steps: ["Create the programme and upload page in a separate service.", "Define sharing permissions, storage, and deletion periods.", "Update the fixed destination after the event."],
+    needs: "A photo-upload or form service with appropriate access settings.",
+    caution: "This tool does not create a guestbook service. Public uploads require moderation and storage controls.",
+  },
+  "time-capsule": {
+    what: "An object links to a letter or video released on a chosen date. The server, not the code, must enforce date and access rules.",
+    steps: ["Store the content on a reliable server.", "Enforce release time and authorized users on the server.", "Test early-access attempts against the printed link."],
+    needs: "Trusted server time, access control, and durable content storage.",
+    caution: "A hidden browser button or client-side date check does not protect content. This tool does not create a time lock.",
+  },
+  "plant-pot": {
+    what: "A planter tag opens species-specific care guidance. A live watering journal requires a separate form and data service.",
+    steps: ["Prepare a care page for the plant.", "Choose a water-resistant tag or enclosure.", "Test it with the final pot, soil, and watering routine."],
+    needs: "A maintained plant-care link.",
+    caution: "Standard NFC does not measure moisture or send reminders by itself. Sensors and notifications require a separate system.",
+  },
+  scavenger: {
+    what: "Each QR or NFC stop in a museum, fair, or neighborhood route reveals the next clue. The simple version is a chain of linked pages.",
+    steps: ["Choose permitted physical locations.", "Create an accessible clue page for every stop.", "Test the full route and signs with real participants."],
+    needs: "Clue pages and permission to use each location.",
+    caution: "Scores, rewards, or single-use participation require a server. A copied code can be shared, so a scan does not prove a physical visit.",
+  },
+  "branching-story": {
+    what: "Bookmarks or collectible cards send readers to alternate endings, audio scenes, and extra illustrations.",
+    steps: ["Publish alternate scenes as linked pages.", "Define clearly which branch each card opens.", "Verify every link and media right."],
+    needs: "Mobile story pages.",
+    caution: "Saving progress across devices requires accounts and a database; a plain QR code cannot do this.",
+  },
+  "fan-collectible": {
+    what: "A figure, badge, or apparel tag opens a making-of journal or collection page. Historical connected-product examples do not imply a current third-party service.",
+    steps: ["Build a content page owned by your brand.", "Plan links by series or product.", "Publish a maintenance and link-change policy."],
+    needs: "A content page and the required brand and copyright rights.",
+    caution: "A public link is not owner-only access. Ownership and membership benefits require separate verification.",
+  },
+  "exhibition-vote": {
+    what: "A code beside an artwork or demo opens comments, voting, or a choice for the next design.",
+    steps: ["Build the vote in an external service or your own server.", "Explain what data will be stored.", "Define result publication and repeat-vote rules."],
+    needs: "A form or voting service with spam and repeat-participation controls.",
+    caution: "QR or NFC does not secure a ballot. Do not present an artistic poll as an official election or identity-verification system.",
+  },
+  "guest-hub": {
+    what: "A printed welcome stand opens house rules, transport, local suggestions, and contact information. Wi-Fi can use a separate standard Wi-Fi QR code.",
+    steps: ["Publish an updatable guest page.", "Show a readable short domain on the card.", "Test both QR and NFC on different phones."],
+    needs: "A maintained guest-guide URL.",
+    caution: "Do not expose door codes or private home details. NFC Wi-Fi records are not a universal automatic connection method on iPhone.",
+  },
+  "workshop-guide": {
+    what: "A machine or fixture label opens setup, safe-use instructions, and the correct version's parts list.",
+    steps: ["Show model and version clearly on the page.", "Link only authorized documents and videos.", "Use an on-metal tag or suitable mount on metal surfaces."],
+    needs: "A current guide page.",
+    caution: "Scanning NFC does not put a machine into a safe state or prove maintenance. Keep a physical fallback for critical instructions.",
+  },
+  portfolio: {
+    what: "A designer or maker's stand opens a portfolio, model viewer, and quotation links.",
+    steps: ["Simplify the portfolio for mobile.", "Add relevant samples and a separate contact action.", "Write the portfolio URL to the display's QR or NFC."],
+    needs: "A portfolio page and, optionally, a form service.",
+    caution: "It does not silently collect contacts or add entries to a phone. New-client data requires an explicit user action.",
+  },
+  "return-tag": {
+    what: "A luggage or pet tag opens a relay contact form without exposing the owner's home address.",
+    steps: ["Build a contact page that hides personal details.", "Add abuse limits and notification controls.", "Test the tag for wear and outdoor use."],
+    needs: "A contact relay or form, notification service, and abuse controls.",
+    caution: "Standard QR or NFC is not GPS and cannot track live location. Do not encode health data, a home address, or a child's name openly.",
+  },
+  feedback: {
+    what: "A branded counter stand opens a genuine customer-feedback page and may link to a review platform when its rules are followed.",
+    steps: ["Use the correct verified business review link.", "State that feedback is voluntary and neutral.", "Show the real domain and purpose on the card."],
+    needs: "A verified feedback or review link.",
+    caution: "Do not offer discounts for reviews or route only happy customers to public reviews. Keep this separate from loyalty rewards.",
+  },
+  "desk-routine": {
+    what: "An NFC personal automation configured by the phone owner can start focus mode, a timer, or a supported smart-home scene. It is not the same as a QR web link.",
+    steps: ["Check Shortcuts or Home Assistant support on the phone.", "Pair the tag inside the app and choose the actions.", "Test locked-device, permission, and confirmation behavior."],
+    needs: "An automation app and per-user setup on the user's device.",
+    caution: "Text written to an NFC tag does not install an automation on another phone. Support and confirmation vary by device and action.",
+  },
+  "music-dock": {
+    what: "A separate NFC reader, Home Assistant, and media player can turn physical cards into a music collection, optionally using a printed enclosure.",
+    steps: ["Complete the reader and player setup.", "Map card identifiers to media content.", "Test the enclosure, connection, and duplicate scans."],
+    needs: "A reader, home-automation server or app, and media player.",
+    caution: "The Renderhane browser page alone is not a jukebox. Hardware, configuration, and media rights are separate requirements.",
+  },
+  loyalty: {
+    what: "A venue or maker can offer controlled tasks, points, or content progress from product cards. A plain QR code carries only the entry link.",
+    steps: ["Define membership, reward, and privacy rules.", "Use unique server-side tokens and replay controls.", "Test copied codes and multiple-account abuse."],
+    needs: "A backend, user and transaction verification, and abuse prevention.",
+    caution: "Ordinary NFC and QR can be copied and do not prove a visit or purchase. Never offer rewards in exchange for platform reviews.",
+  },
+  "authenticated-edition": {
+    what: "A limited edition can use a cryptographic NFC chip, verification server, and controlled product-to-tag provisioning. This is a different product line from an ordinary URL tag.",
+    steps: ["Design the secure chip and key-management process.", "Build the verification server and production provisioning flow.", "Test cloning, tag transfer, and replay risks."],
+    needs: "A secure NFC chip, key provisioning, backend, and secure product assembly.",
+    caution: "A UID or ordinary QR code is not proof of authenticity. Even a secure chip cannot by itself solve the physical binding between a tag and the real product.",
+  },
+};
+
 function englishIdeaCopy(idea: InspirationIdea): [string, string] {
   return EN_IDEAS[idea.id] ?? [idea.id.replaceAll("-", " "), "Explore a connected product experience."];
 }
@@ -367,11 +516,15 @@ function englishIdeaSources(ids: string[]): string {
 
 function englishIdeaDetail(idea: InspirationIdea, channel: IdeaChannel): string {
   const copy = englishIdeaCopy(idea);
-  const title = copy[0], hook = copy[1], word = channel === "qr" ? "QR" : "NFC";
+  const title = copy[0], word = channel === "qr" ? "QR" : "NFC";
+  const guidance = EN_GUIDANCE[idea.id] ?? {
+    what: copy[1], steps: ["Prepare the destination.", "Connect the code or tag.", "Test the finished product."],
+    needs: "A maintained destination and production plan.", caution: "Test compatibility and do not overclaim the result.",
+  };
   const form = idea.canApply
     ? '<form class="rh-idea-link-form" id="rh-idea-form" data-idea-id="' + ideaEscape(idea.id) + '" novalidate><div><h4>Is your link ready?</h4><p>This fills only the ' + word + ' link field. It does not create or contact the destination page.</p></div><label for="rh-idea-url">HTTPS link to use<input id="rh-idea-url" name="url" type="url" inputmode="url" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="https://example.com/my-page" aria-describedby="rh-idea-url-help rh-idea-form-status" required></label><small id="rh-idea-url-help">Use a short address under your control. Do not enter private access keys.</small><label class="rh-idea-consent"><input type="checkbox" name="confirm" required><span>I confirm replacing the current ' + word + ' content with this link.</span></label><button class="rh-btn rh-btn-primary" type="submit">Apply to ' + word + ' field <span aria-hidden="true">↑</span></button><p id="rh-idea-form-status" role="status" aria-live="polite"></p><small>' + (channel === "qr" ? "Style and size stay unchanged; readability checks rerun for the new QR code." : "This does not write to a tag automatically. Overwrite consent resets and writing still requires a device action.") + '</small></form>'
     : '<div class="rh-idea-no-auto"><strong>This idea is not a one-click feature.</strong><p>Set up the required service, app, or hardware before production.</p></div>';
-  return '<article class="rh-idea-detail" id="rh-idea-detail" tabindex="-1" aria-labelledby="rh-idea-detail-title"><div class="rh-idea-detail-top"><div><div class="rh-idea-meta">IMPLEMENTATION GUIDE · ' + EN_CATEGORIES[idea.category] + '</div><h3 id="rh-idea-detail-title">' + ideaEscape(title) + '</h3></div><button type="button" class="rh-idea-close" data-idea-close aria-label="Close idea details">×</button></div><p class="rh-idea-what">' + ideaEscape(hook) + ' Use a short HTTPS destination that you control, then test the complete experience on the final product.</p><div class="rh-idea-detail-grid"><div><h4>How to set it up</h4><ol><li>Prepare and publish the destination content.</li><li>Connect the same controlled link to the ' + word + ' experience.</li><li>Test the finished product on representative devices.</li></ol><div class="rh-idea-need"><strong>' + EN_READINESS[idea.readiness] + '</strong><p>Plan destination ownership, maintenance, and physical placement before production.</p></div></div><div><div class="rh-idea-caution"><strong>Important limitation</strong><p>A QR code or standard NFC tag does not host content, prove ownership, guarantee compatibility, or provide authentication by itself.</p></div><div class="rh-idea-sources"><strong>References and technical foundations</strong>' + englishIdeaSources(idea.sourceIds) + '<small>These are adaptation ideas for Renderhane; the references do not guarantee sales or outcomes.</small></div></div></div>' + form + '</article>';
+  return '<article class="rh-idea-detail" id="rh-idea-detail" tabindex="-1" aria-labelledby="rh-idea-detail-title"><div class="rh-idea-detail-top"><div><div class="rh-idea-meta">IMPLEMENTATION GUIDE · ' + EN_CATEGORIES[idea.category] + '</div><h3 id="rh-idea-detail-title">' + ideaEscape(title) + '</h3></div><button type="button" class="rh-idea-close" data-idea-close aria-label="Close idea details">×</button></div><p class="rh-idea-what">' + ideaEscape(guidance.what) + '</p><div class="rh-idea-detail-grid"><div><h4>How to set it up</h4><ol>' + guidance.steps.map(step => '<li>' + ideaEscape(step) + '</li>').join('') + '</ol><div class="rh-idea-need"><strong>' + EN_READINESS[idea.readiness] + '</strong><p>' + ideaEscape(guidance.needs) + '</p></div></div><div><div class="rh-idea-caution"><strong>Important limitation</strong><p>' + ideaEscape(guidance.caution) + '</p></div><div class="rh-idea-sources"><strong>References and technical foundations</strong>' + englishIdeaSources(idea.sourceIds) + '<small>These are adaptation ideas for Renderhane; the references do not guarantee sales or outcomes.</small></div></div></div>' + form + '</article>';
 }
 
 function englishIdeaReality(channel: IdeaChannel): string {

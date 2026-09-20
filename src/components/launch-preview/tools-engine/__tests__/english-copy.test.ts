@@ -42,4 +42,24 @@ describe("English free-tool copy", () => {
     expect(nfc).toContain('data-idea=');
     expect(qr + nfc).not.toMatch(/[ÇĞİÖŞÜçğıöşü]/);
   });
+
+  it("preserves idea-specific setup and risk guidance in English", () => {
+    const automation = englishInspiration("nfc", {
+      category: "all",
+      expanded: true,
+      selected: "desk-routine",
+    });
+    const authenticated = englishInspiration("nfc", {
+      category: "all",
+      expanded: true,
+      selected: "authenticated-edition",
+    });
+
+    expect(automation).toContain("Shortcuts or Home Assistant");
+    expect(automation).toContain("does not install an automation on another phone");
+    expect(authenticated).toContain("key-management process");
+    expect(authenticated).toContain("cloning, tag transfer, and replay risks");
+    expect(authenticated).toContain("physical binding between a tag and the real product");
+  });
+
 });
