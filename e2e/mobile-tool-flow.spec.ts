@@ -127,10 +127,19 @@ test.describe('public mobile tool flows', () => {
 
 
   test('English NFC opens with a localized safe fallback', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 900});
     await page.goto('/en/araclar/nfc-yaz');
     await expect(page.locator('main#rh-main')).toBeVisible();
     await expect(page.locator('#rh-nfc-status')).toContainText('NFC');
     await expect(page.locator('body')).not.toContainText('Maximum call stack size exceeded');
+
+    await page.getByRole('button', {name: 'Dark mode'}).click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    await expect(page.locator('.rh-app')).toHaveCSS('background-color', 'rgb(20, 17, 38)');
+    await expect(page.locator('.rh-page-heading h1')).toHaveCSS('color', 'rgb(236, 234, 246)');
+    await expect(page.locator('.rh-field label').first()).toHaveCSS('color', 'rgb(167, 163, 192)');
+    await expect(page.locator('.rh-idea-card h3').first()).toHaveCSS('color', 'rgb(236, 234, 246)');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   });
 
   test('English background removal preserves filenames and selects English API errors', async ({page}) => {

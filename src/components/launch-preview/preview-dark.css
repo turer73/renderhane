@@ -3,6 +3,9 @@
    (okunabilirlik + seffaflik onizlemesi bozulmasin). */
 .dark .rhl{color-scheme:dark;--ink:#eceaf6;--muted:#a7a3c0;--accent:#a690fa;--line:#2e2752;--paper:#141126;--soft:#1e1840}
 .dark .rh-app{color-scheme:dark;background:#141126;--ink:#eceaf6;--muted:#a7a3c0;--purple:#a690fa;--purple-dark:#8a6df0;--line:#2e2752;--surface:#171231;--soft:#1e1840;--success:#4ade9e}
+.dark .rh-app[data-current-page="background"],.dark .rh-app[data-current-page="scenes"],.dark .rh-app[data-current-page="qr"],.dark .rh-app[data-current-page="nfc"]{background:#141126}
+.dark .rh-app .rh-breadcrumb,.dark .rh-app .rh-field label{color:var(--muted)}
+.dark .rh-app .rh-heading-note{color:var(--muted);border-left-color:#4a3d85}
 
 /* — Anasayfa kartlari — */
 .dark .rhl .rhl-route-visual{background:linear-gradient(155deg,#1e1840 60%,#191335);box-shadow:0 10px 30px -26px #00000090;border-color:#2e2752}
@@ -109,8 +112,14 @@
 
 /* — Ilham bolumu — */
 .dark .rh-idea-card{background:#191335;border-color:#352a63}
+.dark .rh-ideas{color:var(--ink);border-top-color:#352a63}
+.dark .rh-idea-card h3{color:var(--ink)}
 .dark .rh-idea-card>p{color:var(--muted)}
+.dark .rh-idea-icon{background:#2c2358;color:#cfc2ff}
+.dark .rh-idea-number{color:var(--muted)}
 .dark .rh-idea-badge{background:#2c2358;color:#cfc2ff}
+.dark .rh-idea-badge.service,.dark .rh-idea-badge.setup,.dark .rh-idea-badge.hardware{background:#2c2358;color:#cfc2ff;border-color:#5a4a9e}
+.dark .rh-idea-open,.dark .rh-idea-open[aria-expanded="true"]{color:#cfc2ff}
 .dark .rh-idea-filters button{background:#191335;border-color:#3d2f7a;color:var(--muted)}
 .dark .rh-idea-filters button[aria-pressed="true"]{background:#cfc2ff;color:#221a4a;border-color:#cfc2ff}
 .dark .rh-idea-count{color:var(--muted)}
@@ -119,10 +128,18 @@
 .dark .mc-mobile-tabs{background:#191335;border-color:#352a63}
 .dark .mc-dialog .mc-mobile-tabs button{color:var(--muted)}
 .dark .mc-dialog .mc-mobile-tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
-.dark .rh-idea-detail{background:#191335}
+.dark .rh-idea-detail{background:#191335;border-color:#4a3d85;color:var(--ink)}
+.dark .rh-idea-meta,.dark .rh-idea-detail h4{color:#cfc2ff}
+.dark .rh-idea-close{background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .rh-idea-what,.dark .rh-idea-detail ol,.dark .rh-idea-need{color:var(--muted)}
 .dark .rh-idea-detail-grid p,.dark .rh-idea-detail-grid li{color:var(--muted)}
-.dark .rh-idea-need,.dark .rh-idea-caution{background:#221a4a}
+.dark .rh-idea-need,.dark .rh-idea-caution{background:#221a4a;color:var(--muted);border-color:#4a3d85}
+.dark .rh-idea-sources a,.dark .rh-idea-source-row a{color:#cfc2ff;text-decoration-color:#5a4a9e}
+.dark .rh-idea-sources small,.dark .rh-idea-link-form p,.dark .rh-idea-link-form small,.dark .rh-idea-consent{color:var(--muted)}
+.dark .rh-idea-link-form{border-top-color:#352a63}
 .dark .rh-idea-link-form input[type="url"]{background:#221a4a;border-color:#3d2f7a;color:var(--ink)}
+.dark .rh-idea-no-auto,.dark .rh-idea-reality{background:#171231;border-color:#352a63;color:var(--muted)}
+.dark .rh-idea-reality summary{color:var(--ink)}
 .dark .rh-idea-endnote{color:var(--muted)}
 
 /* — Composer — */
