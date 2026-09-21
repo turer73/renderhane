@@ -11,6 +11,7 @@ import './tools-engine/styles.css';
 import './launch.css';
 import './tools.css';
 import './preview-dark.css';
+import './guide.css';
 
 function productionPath(locale:Locale,page:PreviewTool|'home'):string {
  if(page==='home')return `/${locale}`;
@@ -55,7 +56,7 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
  {status==='error'&&<p className="rhl-tools-error" role="alert">{tr?'Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.':'The tool could not be opened. Refresh the page or return to the homepage.'}</p>}
  <div ref={host} aria-label={tr?'Renderhane araç çalışma alanı':'Renderhane tool workspace'}/>
  </div>
- {children}
+ {children&&<div className="rh-guide-surface" lang={locale}><div className="rh-wrap">{children}</div></div>}
  <Footer />
  </>;
 }

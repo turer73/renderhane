@@ -34,10 +34,10 @@ export function ToolGuideSection({ slug, locale }: ToolGuideSectionProps) {
     relevantArticles.length > 0 ? relevantArticles : articles.slice(0, 3);
 
   return (
-    <section className="mt-12 space-y-10" aria-label={tr ? "Kullanım Rehberi ve SSS" : "Usage Guide & FAQ"}>
+    <section className="tool-guide mt-12 space-y-10" aria-label={tr ? "Kullanım Rehberi ve SSS" : "Usage Guide & FAQ"}>
       {/* ── How to Use Steps ── */}
       {config.steps && config.steps.length > 0 && (
-        <div className="rounded-2xl border border-border/40 bg-card/60 p-6 sm:p-8 backdrop-blur-sm">
+        <div className="tool-guide-panel rounded-2xl border border-border/40 bg-card/60 p-6 sm:p-8 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-indigo-500 mb-6">
             <ListOrdered className="size-5" />
             <h2 className="text-xl font-bold tracking-tight text-foreground">
@@ -48,7 +48,7 @@ export function ToolGuideSection({ slug, locale }: ToolGuideSectionProps) {
             {config.steps.map((step, idx) => (
               <div
                 key={idx}
-                className="relative rounded-xl border border-border/50 bg-background/80 p-5 shadow-sm"
+                className="tool-guide-item relative rounded-xl border border-border/50 bg-background/80 p-5 shadow-sm"
               >
                 <div className="mb-3 flex size-8 items-center justify-center rounded-lg bg-indigo-500/10 font-bold text-indigo-600 dark:text-indigo-400">
                   {idx + 1}
@@ -67,7 +67,7 @@ export function ToolGuideSection({ slug, locale }: ToolGuideSectionProps) {
 
       {/* ── FAQ Section (Visible text backing FAQPage schema) ── */}
       {config.faqs && config.faqs.length > 0 && (
-        <div className="rounded-2xl border border-border/40 bg-card/60 p-6 sm:p-8 backdrop-blur-sm">
+        <div className="tool-guide-panel rounded-2xl border border-border/40 bg-card/60 p-6 sm:p-8 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-indigo-500 mb-6">
             <HelpCircle className="size-5" />
             <h2 className="text-xl font-bold tracking-tight text-foreground">
@@ -78,7 +78,7 @@ export function ToolGuideSection({ slug, locale }: ToolGuideSectionProps) {
             {config.faqs.map((faq, idx) => (
               <details
                 key={idx}
-                className="group rounded-xl border border-border/50 bg-background/80 p-4 transition-colors hover:border-indigo-500/30 open:border-indigo-500/40"
+                className="tool-guide-item group rounded-xl border border-border/50 bg-background/80 p-4 transition-colors hover:border-indigo-500/30 open:border-indigo-500/40"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-foreground text-sm sm:text-base">
                   <span>{tr ? faq.q.tr : faq.q.en}</span>
@@ -109,7 +109,7 @@ export function ToolGuideSection({ slug, locale }: ToolGuideSectionProps) {
 
       {/* ── Related Guides (Internal Linking Cluster) ── */}
       {displayedArticles.length > 0 && (
-        <div className="rounded-2xl border border-border/40 bg-muted/20 p-6 sm:p-8">
+        <div className="tool-guide-panel rounded-2xl border border-border/40 bg-muted/20 p-6 sm:p-8">
           <div className="flex items-center gap-2 text-muted-foreground mb-4">
             <BookOpen className="size-4" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -121,7 +121,7 @@ export function ToolGuideSection({ slug, locale }: ToolGuideSectionProps) {
               <Link
                 key={art.slug}
                 href={`/${locale}/blog/${art.slug}`}
-                className="group rounded-xl border border-border/40 bg-background/60 p-4 transition-all hover:border-indigo-500/40 hover:shadow-sm"
+                className="tool-guide-item group rounded-xl border border-border/40 bg-background/60 p-4 transition-all hover:border-indigo-500/40 hover:shadow-sm"
               >
                 <h4 className="text-sm font-semibold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-2">
                   {tr ? art.title.tr : (art.title.en || art.title.tr)}

@@ -1,0 +1,105 @@
+/* Keep public tool guides in the same visual system as the tool workspace. */
+.rh-guide-surface {
+  --ink: #111327;
+  --muted: #646779;
+  --line: #e8e7ed;
+  --surface: #f8f8fb;
+  background: #fbfafc;
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  padding: 0 0 72px;
+}
+
+/* One width rule for the tool workspace and its guide, regardless of CSS load order. */
+.rhl-tools-wrapper .rh-app .rh-wrap,
+.rh-guide-surface .rh-wrap {
+  width: min(1248px, calc(100% - 80px));
+  margin: auto;
+}
+
+.rh-guide-surface .rh-wrap {
+  border-top: 1px solid var(--line);
+  padding-top: 48px;
+}
+
+.rh-guide-surface .tool-guide {
+  margin-top: 0;
+}
+
+.rh-guide-surface .tool-guide-panel {
+  border-color: var(--line);
+  background: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.rh-guide-surface .tool-guide-panel h2 {
+  color: var(--ink);
+  font-size: clamp(21px, 2vw, 28px);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.rh-guide-surface .tool-guide-panel summary {
+  color: var(--ink);
+}
+
+.rh-guide-surface .tool-guide-panel p,
+.rh-guide-surface .tool-guide-panel details > div {
+  color: var(--muted);
+}
+
+.rh-guide-surface .tool-guide-item {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.dark .rh-guide-surface {
+  --ink: #eceaf6;
+  --muted: #a7a3c0;
+  --line: #2e2752;
+  --surface: #221a4a;
+  background: #141126;
+}
+
+.dark .rh-guide-surface .tool-guide-panel {
+  background: #191335;
+}
+
+.dark .rh-guide-surface .tool-guide-item {
+  background: var(--surface);
+}
+
+@media (max-width: 1150px) {
+  .rhl-tools-wrapper .rh-app .rh-wrap,
+  .rh-guide-surface .rh-wrap {
+    width: calc(100% - 56px);
+  }
+}
+
+@media (max-width: 680px) {
+  .rhl-tools-wrapper .rh-app .rh-wrap,
+  .rh-guide-surface .rh-wrap {
+    width: calc(100% - 36px);
+  }
+}
+
+@media (max-width: 560px) {
+  .rh-guide-surface {
+    padding-bottom: 48px;
+  }
+
+  .rh-guide-surface .rh-wrap {
+    padding-top: 32px;
+  }
+}
+
+@media (max-width: 360px) {
+  .rhl-tools-wrapper .rh-app .rh-wrap,
+  .rh-guide-surface .rh-wrap {
+    width: calc(100% - 28px);
+  }
+}

@@ -69,6 +69,35 @@ test.describe('public mobile tool flows', () => {
     })).toBe(true);
   });
 
+  test('SEO guide follows the tool workspace layout in light and dark modes', async ({page}) => {
+    await page.goto('/tr/araclar/qr-kod');
+    const guide = page.locator('section[aria-label="Kullanım Rehberi ve SSS"]');
+    await expect(guide).toBeVisible();
+    await expect(page.locator('.rh-app main')).toBeVisible();
+
+    const layout = await page.evaluate(() => {
+      const workspace = document.querySelector('.rh-app main');
+      const guide = document.querySelector('.rh-guide-surface .tool-guide');
+      if (!workspace || !guide) return null;
+      const workspaceRect = workspace.getBoundingClientRect();
+      const guideRect = guide.getBoundingClientRect();
+      return {
+        leftDifference: Math.abs(workspaceRect.left - guideRect.left),
+        widthDifference: Math.abs(workspaceRect.width - guideRect.width),
+        fontMatches: getComputedStyle(workspace).fontFamily === getComputedStyle(guide).fontFamily,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+    expect(layout).not.toBeNull();
+    expect(layout?.leftDifference).toBeLessThanOrEqual(1);
+    expect(layout?.widthDifference).toBeLessThanOrEqual(1);
+    expect(layout?.fontMatches).toBe(true);
+    expect(layout?.overflow).toBe(false);
+
+    await page.evaluate(() => document.documentElement.classList.add('dark'));
+    await expect(page.locator('.rh-guide-surface')).toHaveCSS('background-color', 'rgb(20, 17, 38)');
+  });
+
   test('manual composer exposes four focused inspector tabs', async ({page}) => {
     await page.goto('/tr/araclar/arka-plan-kaldirma');
     await page.getByRole('button', {name: /Sahneye yerleştir/}).click();

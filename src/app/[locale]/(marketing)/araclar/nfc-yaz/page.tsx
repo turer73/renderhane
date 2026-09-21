@@ -8,9 +8,7 @@ export default function PublicNfcWriterPage(){
  const locale=params.locale==="en"?"en":"tr";
  return (
    <FreeToolsPreview locale={locale} page="nfc" production>
-   <div className="mx-auto max-w-5xl px-4 pb-16">
     <ToolGuideSection slug="nfc-yaz" locale={locale} />
-   </div>
    </FreeToolsPreview>
  );
 }
