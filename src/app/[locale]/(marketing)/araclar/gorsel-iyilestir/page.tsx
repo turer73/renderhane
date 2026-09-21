@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 /* ── Data ─────────────────────────────────────── */
 
@@ -228,7 +229,7 @@ export default function PublicEnhancePage() {
                 size="lg"
                 className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90 transition-all"
               >
-                <Link href={`/${locale}/login`}>
+                <Link href={`/${locale}/login`} rel="nofollow">
                   {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                   <ArrowRight className="size-4" />
                 </Link>
@@ -241,24 +242,8 @@ export default function PublicEnhancePage() {
           </div>
         </div>
 
-        {/* SEO Content */}
-        <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">
-          <h2 className="text-xl font-bold">
-            {tr ? "AI Gorsel Iyilestirme Nedir?" : "What is AI Image Enhancement?"}
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
-            <p>
-              {tr
-                ? "Renderhane'nin gorsel iyilestirme araci, dusuk cozunurluklu veya bulanik gorselleri AI kullanarak yuksek kaliteye donusturur. Piksel bazinda detay ekleyerek cozunurlugu 4 katina cikarabilir."
-                : "Renderhane's image enhancement tool transforms low-resolution or blurry images into high quality using AI. It can increase resolution by 4x by adding pixel-level detail."}
-            </p>
-            <p>
-              {tr
-                ? "E-ticaret urun gorselleri, eski fotograflarin restorasyonu ve baski oncesi gorsel hazirlama icin idealdir. Islem saniyeler icerisinde tamamlanir."
-                : "Ideal for e-commerce product images, restoration of old photos, and pre-print image preparation. Processing completes within seconds."}
-            </p>
-          </div>
-        </div>
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="gorsel-iyilestir" locale={locale} />
       </div>
 
       {/* Footer */}

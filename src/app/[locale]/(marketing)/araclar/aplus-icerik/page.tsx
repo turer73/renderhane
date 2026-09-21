@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 /* ── Data ─────────────────────────────────────── */
 
@@ -227,7 +228,7 @@ export default function PublicAplusPage() {
                 size="lg"
                 className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90 transition-all"
               >
-                <Link href={`/${locale}/login`}>
+                <Link href={`/${locale}/login`} rel="nofollow">
                   {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                   <ArrowRight className="size-4" />
                 </Link>
@@ -240,24 +241,8 @@ export default function PublicAplusPage() {
           </div>
         </div>
 
-        {/* SEO Content */}
-        <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">
-          <h2 className="text-xl font-bold">
-            {tr ? "A+ Icerik Nedir? Neden Onemlidir?" : "What is A+ Content? Why Does It Matter?"}
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
-            <p>
-              {tr
-                ? "A+ icerik, pazaryerlerinde urun listeleme sayfanizi zenginlestiren gelismis gorsellerdir. Amazon, Trendyol ve Hepsiburada gibi platformlarda donusum oranlarini %15-25 artirdigi kanitlanmistir."
-                : "A+ content refers to enhanced visuals that enrich your product listing pages on marketplaces. It has been proven to increase conversion rates by 15-25% on platforms like Amazon, Trendyol and similar marketplaces."}
-            </p>
-            <p>
-              {tr
-                ? "Renderhane ile tek bir urun fotografindan 4 farkli sahnede profesyonel A+ gorseller olusturabilirsiniz. Studyo ve fotografci maliyetlerinden tasarruf edin."
-                : "With Renderhane, you can create professional A+ visuals in 4 different scenes from a single product photo. Save on studio and photographer costs."}
-            </p>
-          </div>
-        </div>
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="aplus-icerik" locale={locale} />
       </div>
 
       {/* Footer */}
