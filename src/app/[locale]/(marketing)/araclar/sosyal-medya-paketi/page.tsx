@@ -20,6 +20,7 @@ import {
   SOCIAL_KIT_VIDEO_SECONDS,
   TOOL_CREDITS,
 } from "@/lib/fal/models";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 const SOCIAL_KIT_CREDITS = TOOL_CREDITS["social-kit"];
 
@@ -223,7 +224,7 @@ export default function PublicSocialKitPage() {
               size="lg"
               className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90"
             >
-              <Link href={`/${locale}/login`}>
+              <Link href={`/${locale}/login`} rel="nofollow">
                 {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                 <ArrowRight className="size-4" />
               </Link>
@@ -234,6 +235,9 @@ export default function PublicSocialKitPage() {
             </div>
           </div>
         </div>
+
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="sosyal-medya-paketi" locale={locale} />
       </div>
 
     </main>

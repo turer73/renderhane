@@ -17,6 +17,7 @@ import {
   Shield,
   type LucideIcon,
 } from "lucide-react";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 /* ── Data ─────────────────────────────────────────── */
 
@@ -218,7 +219,7 @@ export default function PublicImageEditPage() {
               size="lg"
               className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90"
             >
-              <Link href={`/${locale}/login`}>
+              <Link href={`/${locale}/login`} rel="nofollow">
                 {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                 <ArrowRight className="size-4" />
               </Link>
@@ -229,6 +230,9 @@ export default function PublicImageEditPage() {
             </div>
           </div>
         </div>
+
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="gorsel-duzenle" locale={locale} />
       </div>
 
     </main>

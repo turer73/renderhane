@@ -7,21 +7,21 @@
  *   // render seo.jsonLd(locale) in <script type="application/ld+json">
  */
 
-const BASE_URL = "https://www.renderhane.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";
 
 /* ── Types ──────────────────────────────────── */
 
-interface FAQ {
+export interface FAQ {
   q: { tr: string; en: string };
   a: { tr: string; en: string };
 }
 
-interface HowToStep {
+export interface HowToStep {
   name: { tr: string; en: string };
   text: { tr: string; en: string };
 }
 
-interface ToolSEOConfig {
+export interface ToolSEOConfig {
   slug: string;
   name: { tr: string; en: string };
   description: { tr: string; en: string };
@@ -934,3 +934,11 @@ export const TOOL_SEO: Record<ToolSlug, { jsonLd: (locale: string) => object }> 
       { jsonLd: (locale: string) => buildJsonLd(cfg, locale) },
     ])
   );
+
+export function getToolConfig(slug: string): ToolSEOConfig | undefined {
+  return toolConfigs.find((cfg) => cfg.slug === slug);
+}
+
+export function getAllToolConfigs(): ToolSEOConfig[] {
+  return toolConfigs;
+}

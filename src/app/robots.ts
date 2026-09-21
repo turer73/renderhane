@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -9,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/app/", "/tr/app/", "/en/app/", "/ref/", "/embed/", "/tr/onboarding", "/en/onboarding", "/tr/login", "/en/login", "/tr/launch-preview", "/en/launch-preview"],
       },
     ],
-    sitemap: "https://www.renderhane.com/sitemap.xml",
+    sitemap: `${BASE_URL}/sitemap.xml`,
   };
 }
