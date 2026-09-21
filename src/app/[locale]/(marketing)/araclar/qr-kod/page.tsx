@@ -7,11 +7,10 @@ export default function PublicQRCodePage(){
  const params=useParams<{locale:string}>();
  const locale=params.locale==="en"?"en":"tr";
  return (
-  <>
-   <FreeToolsPreview locale={locale} page="qr" production/>
+   <FreeToolsPreview locale={locale} page="qr" production>
    <div className="mx-auto max-w-5xl px-4 pb-16">
     <ToolGuideSection slug="qr-kod" locale={locale} />
    </div>
-  </>
+   </FreeToolsPreview>
  );
 }

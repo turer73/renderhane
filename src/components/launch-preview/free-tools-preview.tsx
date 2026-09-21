@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {LaunchNavigation} from './launch-navigation';
@@ -22,7 +22,7 @@ function productionPath(locale:Locale,page:PreviewTool|'home'):string {
 }
 
 /** Reuses the tested V3 TypeScript tool views. Not an iframe or a new AI backend. */
-export function FreeToolsPreview({locale,page,enableBackgroundApi=false,production=false}:{locale:Locale;page:PreviewTool;enableBackgroundApi?:boolean;production?:boolean}){
+export function FreeToolsPreview({locale,page,enableBackgroundApi=false,production=false,children}:{locale:Locale;page:PreviewTool;enableBackgroundApi?:boolean;production?:boolean;children?:ReactNode}){
  const router=useRouter();
  const host=useRef<HTMLDivElement>(null);
  const [status,setStatus]=useState<'loading'|'ready'|'error'>('loading');
@@ -55,6 +55,7 @@ export function FreeToolsPreview({locale,page,enableBackgroundApi=false,producti
  {status==='error'&&<p className="rhl-tools-error" role="alert">{tr?'Araç arayüzü açılamadı. Sayfayı yenileyin veya ana sayfaya dönün.':'The tool could not be opened. Refresh the page or return to the homepage.'}</p>}
  <div ref={host} aria-label={tr?'Renderhane araç çalışma alanı':'Renderhane tool workspace'}/>
  </div>
+ {children}
  <Footer />
  </>;
 }
