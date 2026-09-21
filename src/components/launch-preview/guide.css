@@ -12,9 +12,14 @@
   padding: 0 0 72px;
 }
 
+/* One width rule for the tool workspace and its guide, regardless of CSS load order. */
+.rhl-tools-wrapper .rh-app .rh-wrap,
 .rh-guide-surface .rh-wrap {
   width: min(1248px, calc(100% - 80px));
   margin: auto;
+}
+
+.rh-guide-surface .rh-wrap {
   border-top: 1px solid var(--line);
   padding-top: 48px;
 }
@@ -69,12 +74,14 @@
 }
 
 @media (max-width: 1150px) {
+  .rhl-tools-wrapper .rh-app .rh-wrap,
   .rh-guide-surface .rh-wrap {
     width: calc(100% - 56px);
   }
 }
 
 @media (max-width: 680px) {
+  .rhl-tools-wrapper .rh-app .rh-wrap,
   .rh-guide-surface .rh-wrap {
     width: calc(100% - 36px);
   }
@@ -91,6 +98,7 @@
 }
 
 @media (max-width: 360px) {
+  .rhl-tools-wrapper .rh-app .rh-wrap,
   .rh-guide-surface .rh-wrap {
     width: calc(100% - 28px);
   }
