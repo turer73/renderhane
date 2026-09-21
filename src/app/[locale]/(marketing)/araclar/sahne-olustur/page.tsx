@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 /* ── Data ─────────────────────────────────────── */
 
@@ -229,7 +230,7 @@ export default function PublicScenePage() {
                 size="lg"
                 className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90 transition-all"
               >
-                <Link href={`/${locale}/login`}>
+                <Link href={`/${locale}/login`} rel="nofollow">
                   {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                   <ArrowRight className="size-4" />
                 </Link>
@@ -242,24 +243,8 @@ export default function PublicScenePage() {
           </div>
         </div>
 
-        {/* SEO Content */}
-        <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">
-          <h2 className="text-xl font-bold">
-            {tr ? "AI ile Urun Sahne Olusturma Nedir?" : "What is AI Product Scene Generation?"}
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
-            <p>
-              {tr
-                ? "Renderhane'nin sahne olusturma araci, urun fotografinizi alir ve AI ile profesyonel ortamlara yerlestir. Mutfak tezgahi, ofis masasi, salon ortami gibi onlarca hazir sahne arasinda secim yapabilir veya kendi sahnenizi tarif edebilirsiniz."
-                : "Renderhane's scene generator takes your product photo and places it into professional environments using AI. Choose from dozens of ready-made scenes like kitchen counters, office desks, living rooms, or describe your own custom scene."}
-            </p>
-            <p>
-              {tr
-                ? "E-ticaret magazalari, pazaryeri saticilar ve marka yoneticileri icin ideal. Studyo kirasi ve fotografci maliyeti olmadan profesyonel urun gorselleri olusturun."
-                : "Ideal for e-commerce stores, marketplace sellers and brand managers. Create professional product visuals without studio rental or photographer costs."}
-            </p>
-          </div>
-        </div>
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="sahne-olustur" locale={locale} />
       </div>
 
       {/* Footer */}

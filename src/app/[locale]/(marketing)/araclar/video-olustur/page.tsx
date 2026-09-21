@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 /* ── Data ─────────────────────────────────────── */
 
@@ -228,7 +229,7 @@ export default function PublicVideoPage() {
                 size="lg"
                 className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90 transition-all"
               >
-                <Link href={`/${locale}/login`}>
+                <Link href={`/${locale}/login`} rel="nofollow">
                   {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                   <ArrowRight className="size-4" />
                 </Link>
@@ -241,24 +242,8 @@ export default function PublicVideoPage() {
           </div>
         </div>
 
-        {/* SEO Content */}
-        <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">
-          <h2 className="text-xl font-bold">
-            {tr ? "AI ile Urun Videosu Nasil Olusturulur?" : "How to Create Product Videos with AI?"}
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
-            <p>
-              {tr
-                ? "Renderhane'nin video olusturma araci, tek bir urun fotografindan profesyonel tanitim videosu uretir. 360 derece donus, zoom efekti, yasam tarzi sahneleri gibi stiller arasinda secim yapabilirsiniz."
-                : "Renderhane's video generator creates professional promo videos from a single product photo. Choose from styles like 360-degree spin, zoom effects, and lifestyle scenes."}
-            </p>
-            <p>
-              {tr
-                ? "Video icerikleri e-ticarette donusum oranlarini %80'e kadar artirabilir. Instagram Reels, TikTok, YouTube ve pazaryeri listelemeleri icin optimum formatta videolar indirin."
-                : "Video content can increase e-commerce conversion rates by up to 80%. Download videos in optimal format for Instagram Reels, TikTok, YouTube and marketplace listings."}
-            </p>
-          </div>
-        </div>
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="video-olustur" locale={locale} />
       </div>
 
       {/* Footer */}

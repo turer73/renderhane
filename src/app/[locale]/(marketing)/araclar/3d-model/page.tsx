@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthCta } from "@/components/auth/auth-cta";
+import { ToolGuideSection } from "@/components/seo/tool-guide-section";
 
 /* ── Data ─────────────────────────────────────── */
 
@@ -227,7 +228,7 @@ export default function Public3DModelPage() {
                 size="lg"
                 className="gap-2 bg-white text-indigo-700 font-bold shadow-lg hover:bg-white/90 transition-all"
               >
-                <Link href={`/${locale}/login`}>
+                <Link href={`/${locale}/login`} rel="nofollow">
                   {tr ? "Ucretsiz Kayit Ol — 50 Kredi Hediye" : "Sign Up Free — 50 Credits Gift"}
                   <ArrowRight className="size-4" />
                 </Link>
@@ -240,24 +241,8 @@ export default function Public3DModelPage() {
           </div>
         </div>
 
-        {/* SEO Content */}
-        <div className="mb-12 rounded-2xl border border-border/40 bg-card/80 p-6 sm:p-8">
-          <h2 className="text-xl font-bold">
-            {tr ? "AI ile Fotograftan 3D Model Nasil Olusturulur?" : "How to Create 3D Models from Photos with AI?"}
-          </h2>
-          <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
-            <p>
-              {tr
-                ? "Renderhane'nin 3D model araci, tek bir urun fotografindan AI kullanarak detayli 3D model olusturur. Geleneksel 3D modelleme saatler suren bir is iken, AI ile bu surec dakikalara iner."
-                : "Renderhane's 3D model tool creates detailed 3D models from a single product photo using AI. While traditional 3D modeling takes hours, AI reduces this process to minutes."}
-            </p>
-            <p>
-              {tr
-                ? "Olusturulan modeller GLB ve OBJ formatinda indirilebilir. E-ticaret siteleri, oyun motorlari, 3D yazicilar ve AR uygulamalarinda kullanilabilir."
-                : "Generated models can be downloaded in GLB and OBJ formats. They can be used in e-commerce sites, game engines, 3D printers and AR applications."}
-            </p>
-          </div>
-        </div>
+        {/* SEO & Guide Content */}
+        <ToolGuideSection slug="3d-model" locale={locale} />
       </div>
 
       {/* Footer */}

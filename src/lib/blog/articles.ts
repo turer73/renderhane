@@ -1642,6 +1642,385 @@ Taking a good product photo doesn't have to be complicated or expensive. By appl
 `,
     },
   },
+  {
+    slug: "e-ticarette-3d-model-kullanimi-glb-usdz-rehberi",
+    date: "2026-09-18",
+    author: "Renderhane",
+    tags: ["3D Model", "E-Ticaret", "Artırılmış Gerçeklik", "GLB", "Dönüşüm Oranı"],
+    title: {
+      tr: "E-Ticarette 3D Model ve AR Kullanımı: Satışları Artıran GLB ve USDZ Rehberi",
+      en: "Using 3D Models and AR in E-Commerce: A Comprehensive Guide to GLB and USDZ",
+    },
+    description: {
+      tr: "E-ticaret sitelerinde 3D model ve artırılmış gerçeklik (AR) deneyimi satış dönüşümünü nasıl %90'a kadar artırır? GLB ve USDZ formatları hakkında bilinmesi gerekenler.",
+      en: "How 3D models and augmented reality (AR) boost e-commerce conversion rates by up to 90%. Key insights into GLB and USDZ formats for modern online stores.",
+    },
+    content: {
+      tr: `## E-Ticarette İki Boyutlu Görsellerin Sınırı
+
+Geleneksel e-ticaret sitelerinde kullanıcılar ürünleri sabit açılardan çekilmiş 3-4 fotoğrafla değerlendirmek zorundadır. Ancak müşteri bir ürünü fiziksel bir mağazada incelerken eline alır, çevirir, dokusuna bakar ve mekanındaki boyutunu hayal eder. Statik fotoğraflar bu ihtiyacı karşılamakta yetersiz kaldığı için iki temel problem ortaya çıkar:
+1. **Satın alma tereddütü:** Müşteri ürünün arkasını veya altını göremediği için siparişi erteler.
+2. **Yüksek iade oranları:** Ürün eline ulaştığında beklentisiyle uyuşmayan alıcı iade sürecini başlatır. E-ticarette tekstil ve mobilya sektöründe iade oranları %30'ların üzerine çıkabilmektedir.
+
+İşte bu noktada interaktif 3D modeller ve Artırılmış Gerçeklik (AR) teknolojisi oyunun kurallarını kökten değiştirmektedir.
+
+## Veriler Ne Söylüyor? 3D ve AR Dönüşümü Nasıl Etkiler?
+
+Shopify ve bağımsız e-ticaret araştırma kuruluşlarının son analizlerine göre:
+- Ürün sayfalarında interaktif 3D model görüntüleyici sunan mağazalar, statik fotoğraflara kıyasla **%40 ila %94 arasında daha yüksek dönüşüm oranı** elde etmektedir.
+- Müşterilerin ürün detay sayfasında geçirdiği ortalama süre 3 katına çıkmaktadır.
+- En önemlisi: Alıcı ürünü satın almadan önce tüm açılarıyla inceleyebildiği ve AR ile odasına yerleştirebildiği için **iade oranlarında %35-40 oranında net düşüş** gözlemlenmektedir.
+
+## Web İçin 3D Formatları: GLB ve USDZ Arasındaki Fark Nedir?
+
+E-ticaret sitenizde 3D model sergilerken iki ana endüstri standardı ile karşılaşırsınız:
+
+### 1. GLB (glTF Binary)
+GLB, web için "3D'nin JPEG'i" olarak kabul edilir. Açık bir standarttır ve tüm modern web tarayıcılarında (Chrome, Safari, Firefox, Edge) doğrudan Three.js veya Google'ın \`<model-viewer>\` bileşeni ile çalışır.
+- **Avantajı:** Doku, geometri, animasyon ve PBR (Fiziksel Tabanlı İşleme) materyal bilgilerini tek bir sıkıştırılmış dosya içinde taşır.
+- **Kullanım Alanı:** Masaüstü tarayıcılar ve Android cihazlarda standart web görüntüleme.
+
+### 2. USDZ
+Pixar ve Apple tarafından geliştirilen, iOS ekosisteminin (iPhone ve iPad) yerel AR formatıdır.
+- **Avantajı:** iPhone kullanıcıları ek bir uygulama indirmeye gerek kalmadan Safari üzerinden doğrudan Safari Quick Look özelliğini kullanarak ürünü gerçek dünyadaki zeminlerine yerleştirebilir.
+- **Kullanım Alanı:** iOS odaklı artırılmış gerçeklik deneyimleri.
+
+İdeal bir e-ticaret altyapısı, ürün için hem GLB hem de USDZ dosyasını barındırmalı ve kullanıcının cihazına göre uygun formatı otomatik sunmalıdır.
+
+## 3D Modellerde Optimizasyon ve Performans Kriterleri
+
+Web sayfalarının hızlı yüklenmesi hem kullanıcı deneyimi hem de Google Core Web Vitals (SEO) açısından hayati önem taşır. Bir 3D modelin webde akıcı çalışması için şu standartlara dikkat edilmelidir:
+- **Poligon Sayısı (Polycount):** Bir e-ticaret ürünü için 20.000 ila 80.000 üçgen (triangle) ideal dengedir. 500.000 poligonluk ham CAD modelleri web tarayıcısını yavaşlatır.
+- **Doku Boyutu (Texture Maps):** Dokular WebP veya optimize edilmiş PNG/JPG formatında, maksimum 2048x2048 piksel çözünürlükte tutulmalıdır.
+- **Dosya Boyutu:** İdeal bir web GLB dosyasının boyutu 3MB ila 8MB arasında olmalıdır.
+
+## Renderhane ile Tek Fotoğraftan 3D Model Üretimi
+
+Eskiden bir ürünün 3D modelini çıkartmak için haftalar süren stüdyo taramaları veya pahalı 3D modelleme uzmanlarıyla çalışmak gerekirdi. [Renderhane 3D Model Aracı](/tr/araclar/3d-model), tek bir temiz ürün fotoğrafından yapay zeka ile profesyonel GLB modeller üretmenizi sağlar.
+
+Ürettiğiniz 3D modeli doğrudan e-ticaret altyapınıza (Shopify, WooCommerce, özel yazılımlar) entegre edebilir veya [Sahne Oluşturma Aracı](/tr/araclar/sahne-olustur) ile farklı yaşam tarzı arka planlarına yerleştirerek pazaryeri galerilerinizi zenginleştirebilirsiniz.`,
+      en: `## The Limitations of 2D Imagery in Modern E-Commerce
+
+In traditional online shopping, consumers have to make buying decisions based on 3 or 4 flat photos taken from fixed angles. Yet in a brick-and-mortar store, a shopper picks up an item, turns it around, examines the material texture, and envisions how it fits into their space. When static images fail to deliver that tactile clarity, two major problems arise:
+1. **Purchase hesitation:** Customers hesitate to check out because they cannot inspect the back, bottom, or scale of the product.
+2. **High return rates:** When the delivered product differs from expectations, returns spike. In categories like furniture and apparel, return rates can climb over 30%.
+
+Interactive 3D models and Augmented Reality (AR) solve both problems at the root.
+
+## What the Data Proves: Conversion and Return Metrics
+
+According to industry benchmark studies by Shopify and global e-commerce analysts:
+- Product pages featuring interactive 3D viewers achieve **40% to 94% higher conversion rates** compared to static photo listings.
+- Average time spent on product detail pages triples.
+- Because shoppers can inspect dimensions and place products in their rooms via AR before ordering, **return rates drop by 35% to 40%**.
+
+## Understanding Web 3D Standards: GLB vs. USDZ
+
+When deploying 3D on your store, you will primarily work with two formats:
+
+### 1. GLB (glTF Binary)
+Known as the "JPEG of 3D," GLB is the universal open standard for modern web browsers. It renders smoothly on Chrome, Safari, Firefox, and Edge via WebGL frameworks like Google's \`<model-viewer>\` or Three.js.
+- **Strengths:** Bundles geometry, PBR (Physically Based Rendering) materials, and textures into a single compact file.
+- **Primary Use:** Web viewing across desktop and Android devices.
+
+### 2. USDZ
+Co-developed by Apple and Pixar, USDZ is the native standard for the iOS ecosystem.
+- **Strengths:** Allows iPhone and iPad users to launch Apple Quick Look directly inside Safari, placing the 3D model in their physical room without third-party app installations.
+- **Primary Use:** Native iOS Augmented Reality.
+
+A modern e-commerce setup should store both formats, serving GLB to desktop/Android and USDZ to mobile Safari.
+
+## Optimization Rules for Web Performance
+
+Fast page loads remain essential for user engagement and Google Core Web Vitals:
+- **Polycount:** Keep models between 20,000 and 80,000 triangles for responsive rendering on mobile hardware.
+- **Texture Maps:** Use compressed 2K (2048x2048) texture maps.
+- **File Size:** Target total file size between 3MB and 8MB.
+
+## Creating 3D Models with Renderhane
+
+Generating 3D models no longer requires weeks of manual sculpting or expensive studio photogrammetry. With [Renderhane's 3D Model Tool](/en/araclar/3d-model), you can generate high-fidelity GLB models from a single product photo using advanced AI.
+
+Integrate the output directly into Shopify or WooCommerce, or compose them into lifestyle photos using our [Scene Generator](/en/araclar/sahne-olustur) to build high-converting marketplace catalogs.`,
+    },
+  },
+  {
+    slug: "3d-baski-icin-ai-model-uretimi-stl-rehberi",
+    date: "2026-09-19",
+    author: "Renderhane",
+    tags: ["3D Baskı", "STL", "Mesh Onarım", "Slicer", "3D Tasarım"],
+    title: {
+      tr: "3D Baskı (STL) İçin AI ile Model Üretimi ve Mesh Onarım İpuçları",
+      en: "AI-Powered 3D Modeling for 3D Printing: STL Workflow and Mesh Repair",
+    },
+    description: {
+      tr: "Fotoğraftan veya 2D çizimden 3D baskıya uygun STL modeli nasıl üretilir? Manifold geometri, su geçirmezlik (watertight mesh) ve dilimleme ipuçları.",
+      en: "How to generate 3D printable STL models from 2D images. Essential rules for manifold geometry, watertight meshes, and slicer preparation.",
+    },
+    content: {
+      tr: `## Fotoğraftan Fiziksel Nesneye: AI ve 3D Baskı Kesişimi
+
+Son yıllarda yapay zeka alanındaki en heyecan verici gelişmelerden biri, iki boyutlu bir görselden saniyeler içinde üç boyutlu mesh üretebilme yeteneğidir. Ancak görsel olarak ekranda güzel duran bir 3D model, her zaman fiziksel bir 3D yazıcıda sorunsuz basılabileceği anlamına gelmez.
+
+Bilgisayar grafiklerinde kullanılan modeller (oyunlar ve web için) genellikle içi boş kabuklardır ve sadece dış yüzey dokusuna odaklanırlar. Oysa FDM veya SLA tipi bir 3D yazıcının modeli katman katman işleyebilmesi için katı, hacimli ve fiziksel kurallara uygun bir geometriye (**Manifold / Watertight**) ihtiyacı vardır.
+
+## 3D Baskı İçin Kritik Geometri Kuralları
+
+Bir yapay zeka modelini dilimleyiciye (Cura, PrusaSlicer, Bambu Studio) atmadan önce dikkat edilmesi gereken 4 temel ilke vardır:
+
+### 1. Su Geçirmezlik (Watertight Mesh)
+Modelin tüm kenarları birbirine bağlı olmalı ve dışarıdan bakıldığında hiçbir delik veya açık yüzey bulunmamalıdır. Modelin içine sanal olarak su doldurulduğunda suyun hiçbir yerden sızmaması gerekir. Açık yüzeyler dilimleyicinin iç ve dış ayrımını yapamamasına yol açar.
+
+### 2. Manifold Geometri ve Sıfır Kalınlıklı Yüzeyler
+Non-manifold (bağlantısız) kenarlar, iki veya daha fazla yüzeyin tek bir kenarı paylaştığı veya sonsuz ince duvarların oluştuğu durumlardır. Yapay zeka ile üretilen modellerde bazen sıfır kalınlıklı saçaklar oluşabilir. Bu bölgeler dilimleyici tarafından "katı madde" olarak algılanamaz ve baskı sırasında o bölgeler boş geçilir.
+
+### 3. Duvar Kalınlığı (Wall Thickness)
+FDM yazıcılarda standart nozül çapı 0.4 mm'dir. Bu nedenle modeldeki en ince detayın en az 0.8 mm (2 nozül genişliği) kalınlığında olması gerekir. SLA (reçine) yazıcılarda bu sınır 0.3-0.5 mm'ye kadar inebilir. Çok ince kalan kısımlar baskı sırasında kırılır veya hiç oluşmaz.
+
+### 4. Düz Taban (Flat Base) ve Destek Açıları
+Modelin baskı tablasına sağlam yapışabilmesi için en az bir düz yüzeyinin bulunması gerekir. Ayrıca 45 dereceden daha dik çıkıntılar için dilimleyicide destek (support) yapıları açılmalıdır.
+
+## GLB / OBJ Formatından STL'e Dönüştürme ve Onarım
+
+Yapay zeka araçları çıktıyı genellikle GLB veya OBJ formatında verir. 3D yazıcılar ise standart olarak STL (Stereolithography) formatını okur:
+1. **Mesh Onarımı (Mesh Repair):** Blender veya ücretsiz araçlarla (3D Builder, Netfabb) modeldeki ters çevrilmiş normalleri (flipped normals) düzeltin ve otomatik "Make Manifold" filtresi uygulayın.
+2. **Taban Düzleme:** Modelin alt kısmını boolean kesme ile sıfır tabana oturtun.
+3. **Ölçeklendirme:** Web modelleri genellikle birimsizdir. Dilimleyiciye attığınızda modelin milimetre cinsinden gerçek boyutunu (örneğin 120 mm yükseklik) belirleyin.
+
+## Renderhane ile 3D Baskı Tasarımları
+
+[Renderhane 3D Model Oluşturucu](/tr/araclar/3d-model) aracılığıyla yüklediğiniz ürün, figür veya tasarım görsellerini dakikalar içinde yüksek kaliteli 3D geometriye dönüştürebilirsiniz. Ürettiğiniz modelleri STL formatına çevirip doğrudan kendi 3D yazıcınızda basabilir veya prototipleme süreçlerinizde kullanabilirsiniz.`,
+      en: `## From Photo to Physical Object: AI Meets 3D Printing
+
+Generating 3D models from a 2D image has become one of the most transformative AI capabilities for designers and makers. However, a model that renders beautifully on a screen is not automatically ready for physical fabrication on an FDM or resin 3D printer.
+
+Computer graphics assets built for games or web viewers are hollow surface shells. A 3D printer, by contrast, requires a mathematically solid, closed volume with clear internal and external boundaries—a **manifold or watertight geometry**.
+
+## 4 Essential Rules for 3D Printable Meshes
+
+Before importing an AI-generated model into your slicer (Bambu Studio, PrusaSlicer, or Cura), keep these geometric rules in mind:
+
+### 1. Watertight Topology
+Every vertex and edge must form a continuous, enclosed shell. If you simulated filling the mesh with water, none should leak out. Open holes cause slicers to miscalculate interior infill.
+
+### 2. Manifold Geometry
+Non-manifold edges occur when more than two faces share an edge or when zero-thickness planar surfaces exist. These artifacts must be resolved before slicing so the toolpath generator can distinguish solid plastic from empty air.
+
+### 3. Minimum Wall Thickness
+For standard FDM printers with a 0.4mm nozzle, structural walls should be at least 0.8mm (two perimeters) thick. Resin (SLA) printing can handle down to 0.4mm. Features thinner than this will fail to extrude or break easily.
+
+### 4. Stable Build-Plate Contact
+A 3D print needs a stable foundation to adhere to the build plate. Plan for a flat base or orient the model to minimize steep overhangs beyond 45 degrees.
+
+## Converting and Repairing Meshes for Slicing
+
+Most generative AI pipelines output GLB or OBJ files. Slicers typically expect STL or 3MF:
+1. **Automated Mesh Repair:** Run your mesh through repair utilities (Blender's 3D Print Toolbox, Windows 3D Builder, or Netfabb) to unify flipped normals and sew open boundaries.
+2. **Base Planar Cut:** Apply a planar boolean cut to the bottom surface to ensure solid bed adhesion.
+3. **Scaling:** Assign real-world dimensions in millimeters inside your slicer before generating G-code.
+
+## Accelerate Prototyping with Renderhane
+
+Using [Renderhane's 3D Model Studio](/en/araclar/3d-model), you can rapidly turn sketches, product photos, and concepts into printable 3D assets without manual sculpting from scratch.`,
+    },
+  },
+  {
+    slug: "amazon-aplus-icerik-banner-olculeri-stratejisi",
+    date: "2026-09-20",
+    author: "Renderhane",
+    tags: ["Amazon", "A+ İçerik", "Pazaryeri", "Dönüşüm Optimizasyonu", "E-Ticaret"],
+    title: {
+      tr: "Amazon A+ İçerik Rehberi (2026): Dönüşümü %20 Artıran Modül ve Görsel Stratejileri",
+      en: "Amazon A+ Content Masterclass (2026): Module Layouts and High-Converting Visuals",
+    },
+    description: {
+      tr: "Amazon A+ İçerik (EBC) nedir, nasıl hazırlanır? Tam piksel ölçüleri, en çok satan modül kombinasyonları ve dönüşümü artıran görsel yerleşim stratejileri.",
+      en: "The ultimate 2026 guide to Amazon A+ Content (Enhanced Brand Content). Exact pixel dimensions, top-converting module layouts, and visual storytelling tips.",
+    },
+    content: {
+      tr: `## Amazon A+ İçerik Nedir ve Neden Hayatidir?
+
+Amazon'da standart bir ürün listelemesi yalnızca düz metin açıklamalar ve temel fotoğraf galerisinden ibarettir. Ancak **Marka Kaydı (Amazon Brand Registry)** sahibi satıcılar için sunulan **A+ İçerik (eski adıyla Enhanced Brand Content / EBC)**, ürün açıklama alanını zengin görseller, tablolar ve marka hikayeleriyle dinamik bir vitrine dönüştürür.
+
+Amazon'un kendi yayınladığı resmi satıcı verilerine göre, kaliteli bir A+ İçeriğe sahip ürünler:
+- Ortalama **%5 ila %20 arasında dönüşüm artışı** sağlamaktadır.
+- Mobil cihazlarda alıcıların sayfanın en altına kadar kaydırma oranını %45 artırmaktadır.
+- Ürünün teknik detaylarını ve boyutlarını görsel olarak anlattığı için alıcı memnuniyetini yükseltir ve olumsuz yorumları azaltır.
+
+## En Çok Tercih Edilen A+ İçerik Modülleri ve Tam Piksel Ölçüleri
+
+Amazon A+ paneli modüler bir sistemle çalışır. En etkili sonuç veren modüller ve yüklenmesi gereken kesin görsel boyutları şunlardır:
+
+### 1. Standart Şirket Logosu (Standard Company Logo)
+- **Görsel Boyutu:** 600 x 180 piksel
+- **Kullanım Amacı:** Sayfanın en başında markanın kurumsal kimliğini konumlandırır. Şeffaf veya beyaz zemin önerilir.
+
+### 2. Standart Başlık ve Görsel (Standard Header Image with Text)
+- **Görsel Boyutu:** 970 x 600 piksel
+- **Kullanım Amacı:** Ürünün kahraman (hero) yaşam tarzı görselidir. Ürünü gerçek bir ortamda göstererek alıcıda duygu ve bağlam yaratır.
+
+### 3. Standart 4 Görsel ve Metin (Standard Four Image & Text)
+- **Görsel Boyutu:** Her biri 220 x 220 piksel (veya kare format)
+- **Kullanım Amacı:** Ürünün 4 temel özelliğini (örneğin malzeme kalitesi, ergonomi, taşınabilirlik, garanti) ikon ve kısa başlıklarla vurgulamak için idealdir.
+
+### 4. Standart Karşılaştırma Tablosu (Standard Comparison Chart)
+- **Görsel Boyutu:** Her ürün için 150 x 300 piksel
+- **Kullanım Amacı:** Markanızın diğer modellerini yan yana kıyaslayarak çapraz satış (cross-selling) yapmanızı sağlar. Alıcı sayfanızdan çıkmadan üst modele yönelebilir.
+
+### 5. Standart 3 Görsel ve Metin (Standard Three Image & Text)
+- **Görsel Boyutu:** Her biri 300 x 300 piksel
+- **Kullanım Amacı:** Ürünün kullanım adımlarını veya kutu içeriğini adım adım anlatmak için kullanılır.
+
+## Yüksek Dönüşüm Getiren A+ Tasarım Stratejisi
+
+### Mobil Öncelikli Düşünün
+Amazon trafiğinin %70'inden fazlası mobil uygulamadan gelmektedir. Modüllerdeki görseller küçüldüğünde üzerindeki yazıların okunabilir kalması şarttır. Görselin içine çok küçük puntolarla metin gömmek yerine, görseli temiz tutup Amazon'un yerel metin kutularını kullanın.
+
+### Beyaz Arka Plandan Yaşam Tarzına Geçin
+Ana arama sonuçlarında beyaz zemin zorunludur; ancak A+ alanında tamamen özgürsünüz! Ürününüzü ahşap bir mutfakta, modern bir salonda veya açık havada gösteren yaşam tarzı sahneleri kullanın.
+
+### Renk Paletinizi Sabitleyin
+Sayfa boyunca 2 veya 3 ana renkten sapmayın. Dağınık renkler kurumsallık algısını zedeler.
+
+## Renderhane ile A+ İçerik Üretimi
+
+Amazon için gereken onlarca yüksek çözünürlüklü sahne görselini hazırlamak stüdyo ortamında haftalar alabilir. [Renderhane A+ İçerik Aracı](/tr/araclar/aplus-icerik) ve [Sahne Oluşturma Aracı](/tr/araclar/sahne-olustur), tek bir ürün fotoğrafından Amazon modül standartlarına uygun profesyonel lifestyle görseller üretmenizi sağlar.`,
+      en: `## What is Amazon A+ Content and Why Does It Matter?
+
+A basic Amazon product listing relies on plain text bullet points and a standard image carousel. For sellers enrolled in **Amazon Brand Registry**, **A+ Content (formerly Enhanced Brand Content or EBC)** transforms the description section into a rich, visual storefront with custom graphics, lifestyle photography, and comparison matrices.
+
+According to official Amazon seller metrics, listings equipped with well-structured A+ Content achieve:
+- A proven **5% to 20% lift in sales conversion rates**.
+- A 45% increase in mobile scroll depth.
+- A marked decrease in customer returns by clarifying sizing, materials, and usage instructions visually.
+
+## Top A+ Content Modules and Exact Pixel Dimensions
+
+Amazon's builder uses modular blocks. The most effective modules and their exact specifications include:
+
+### 1. Standard Company Logo
+- **Dimensions:** 600 x 180 px
+- **Function:** Establishes brand credibility at the top of the detail page.
+
+### 2. Standard Header with Text
+- **Dimensions:** 970 x 600 px
+- **Function:** The primary hero banner showcasing the product in a real-world lifestyle environment.
+
+### 3. Standard Four Image & Text
+- **Dimensions:** 220 x 220 px each
+- **Function:** Highlights 4 core benefits or functional features with dedicated icons and copy.
+
+### 4. Standard Comparison Table
+- **Dimensions:** 150 x 300 px per item
+- **Function:** Enables cross-selling across your product catalog so shoppers upgrade without leaving your listing.
+
+### 5. Standard Three Image & Text
+- **Dimensions:** 300 x 300 px each
+- **Function:** Perfect for detailing packaging contents or sequential how-to steps.
+
+## Best Practices for Maximum Conversion
+
+### Design for Mobile First
+Over 70% of Amazon transactions occur on mobile devices. Avoid baking tiny typography directly into banner imagery. Keep images visually clean and use Amazon's native text overlays for maximum readability.
+
+### Contrast Against Plain White
+While main search gallery rules mandate pure white backgrounds, your A+ modules should feature rich, contextual environments that convey quality and emotion.
+
+### Maintain Visual Continuity
+Stick to a unified brand palette across all module tiles. Cohesion builds customer trust and reduces hesitation.
+
+## Produce A+ Assets with Renderhane
+
+Building multi-scene marketing packages traditionally requires lengthy studio photography shoots. With [Renderhane's A+ Content Suite](/en/araclar/aplus-icerik) and [Scene Generator](/en/araclar/sahne-olustur), you can transform a single clean product photo into complete Amazon-ready module assets in minutes.`,
+    },
+  },
+  {
+    slug: "pazaryerlerinde-tiklama-oranini-artiran-urun-fotografciligi",
+    date: "2026-09-21",
+    author: "Renderhane",
+    tags: ["Ürün Fotoğrafçılığı", "Trendyol", "Pazaryeri", "Arka Plan", "Tıklama Oranı"],
+    title: {
+      tr: "Trendyol, Hepsiburada ve Amazon'da Tıklama Oranını Artıran Ürün Görseli Standartları",
+      en: "Maximizing Click-Through Rates on Marketplaces: Proven Image Standards for Sellers",
+    },
+    description: {
+      tr: "Pazaryeri arama ızgarasında öne çıkmanın yolları: Doğru arka plan, ışık, gölge ve açı seçimleriyle ürün tıklama (CTR) ve satış dönüşümünü katlayın.",
+      en: "How to stand out in marketplace search results. Master background removal, lighting, shadows, and resolution standards to maximize click-through and sales.",
+    },
+    content: {
+      tr: `## Arama Sonuçlarındaki Savaş: İlk Görsel Neden Her Şeydir?
+
+Trendyol, Hepsiburada, Amazon veya Etsy gibi pazaryerlerinde bir müşteri arama yaptığında karşısına onlarca satıcının ürünleri küçük kare kartlar halinde sıralanır. Müşteri fiyat ve başlığa bakmadan önce gözüyle ilk görseli tarar. Yapılan göz izleme (eye-tracking) araştırmaları, alıcıların bir ürün kartına tıklayıp tıklamama kararını **ortalama 1.2 saniyede** verdiğini göstermektedir.
+
+Eğer ana görseliniz soluk, karanlık, yamuk veya kalabalık bir arka plana sahipse, ürününüz ne kadar kaliteli veya fiyatınız ne kadar rekabetçi olursa olsun müşteri o karta tıklamaz. Tıklanmayan ürünün satılma şansı ise sıfırdır.
+
+## Pazaryeri Görsel Standartlarında 5 Altın Kural
+
+Pazaryerlerinde arama sıralamasını yükselten ve tıklama oranını (CTR) artıran temel kurallar şunlardır:
+
+### 1. Kusursuz Beyaz Arka Plan (Pure White - #FFFFFF)
+Amazon ve Trendyol gibi platformlar ana görselde saf beyaz arka planı şart koşar. Hafif gri, gölgeli veya ev ortamında çekilmiş zeminler algoritma tarafından tespit edilerek ürünün aramalarda geri plana atılmasına neden olabilir. Ürününüzü arka plandan kusursuzca ayırmak için profesyonel [Arka Plan Kaldırma Araçları](/tr/araclar/arka-plan-kaldirma) kullanılmalıdır.
+
+### 2. Çerçeve Doldurma Oranı (%85 Kuralı)
+Ürün görsel çerçevesinin en az %85'ini kaplamalıdır. Çok uzaktan çekilmiş ve etrafında devasa boşluklar kalan ürünler arama ızgarasında kaybolur. Ancak kenarlara sıfır yapışık olup taşma yapmamalıdır; dengeli bir nefes payı bırakılmalıdır.
+
+### 3. Yüksek Çözünürlük ve Yakınlaştırma (Zoom) Uyumluluğu
+Pazaryerleri alıcının ürünü büyüterek detayları incelemesine izin verir. Bu özelliğin aktif olması için görselin en uzun kenarının **en az 1600 piksel (ideal olarak 2000x2000 veya 2400x2400 piksel)** olması gerekir. Bulanık veya pikselleşmiş fotoğraflar doğrudan kalite algısını düşürür. Düşük çözünürlüklü fotoğraflar için [Görsel İyileştirme Aracı](/tr/araclar/gorsel-iyilestir) ile piksel kalitesini artırabilirsiniz.
+
+### 4. Gerçekçi Doğal Gölge (Drop Shadow)
+Saf beyaz zemin üzerinde havada asılı duran ürünler yapay görünür. Ürünün altına hafif, yumuşak bir doğal temas gölgesi eklemek, ürüne derinlik ve gerçeklik katar.
+
+### 5. Galeri İçi Sahne Çeşitliliği (Lifestyle & Detay)
+Ana görsel beyaz olmalıdır; ancak galerinin 2., 3. ve 4. görselleri mutlaka ürünün kullanım alanını göstermelidir. Bir kahve makinesi mutfak tezgahında, bir sırt çantası modelin omzunda sergilenmelidir. [Sahne Oluşturma Aracı](/tr/araclar/sahne-olustur) ile tek tıkla ürününüze özel yaşam tarzı sahneleri üretebilirsiniz.
+
+## Pazaryerlerinde En Sık Yapılan Hatalar
+
+- **Görsel Üzerine Logo / Metin Koymak:** Ana görsel üzerine "Ücretsiz Kargo", "%50 İndirim" veya mağaza logosu basmak hem Amazon hem de Trendyol algoritmaları tarafından yasaklanmıştır ve ürünün askıya alınmasına yol açabilir.
+- **Aşırı Filtre ve Renk Sapması:** Ürünün gerçek rengi ile fotoğraftaki renk uyuşmadığında iadeler kaçınılmaz hale gelir.
+- **Cep Telefonu Işığı ile Flaş Kullanmak:** Sert flaş patlamaları yüzeyde parlama yapar ve ürün dokusunu yok eder. Yumuşak, difüze stüdyo ışığı tercih edilmelidir.
+
+## Renderhane ile Profesyonel Ürün Fotoğrafçılığı
+
+Fotoğraf stüdyosu kiralamak, profesyonel ışık ekipmanı almak ve binlerce ürünün dekupe işlemini yapmak küçük ve orta ölçekli satıcılar için büyük bir maliyettir. Renderhane'nin yapay zeka destekli e-ticaret stüdyosu ile:
+1. Ürününüzün arka planını temizleyin,
+2. Çözünürlüğünü 4K seviyesine yükseltin,
+3. Tek tıkla pazaryeri standartlarında sahneler oluşturun.`,
+      en: `## The Battle in the Search Grid: Why the Main Image Decides Everything
+
+When a shopper searches on Amazon, Etsy, or regional marketplaces, they are presented with a dense grid of product cards. Long before reading prices or brand names, their eyes scan thumbnail imagery. Eye-tracking studies confirm that consumers decide whether to click on a product card in **less than 1.2 seconds**.
+
+If your primary photo is dim, pixelated, or set against a cluttered background, shoppers will skip your listing regardless of how superior your product or pricing might be. An unclicked listing yields zero sales.
+
+## 5 Golden Rules for High-Converting Marketplace Images
+
+Follow these proven standards to boost click-through rates (CTR) and search visibility:
+
+### 1. Pure White Background (#FFFFFF)
+Marketplace search algorithms enforce pure white backgrounds for primary photos. Off-white, gray, or amateur backgrounds can cause algorithm suppression. Use dedicated [AI Background Removal Tools](/en/araclar/arka-plan-kaldirma) to isolate products cleanly.
+
+### 2. The 85% Frame Fill Standard
+Your product should occupy roughly 85% of the total frame area. An item photographed too far away looks tiny in mobile search results, while an over-cropped item cuts off key features.
+
+### 3. High-Resolution Zoom Capability
+Marketplaces activate the detail zoom loupe only when images reach a minimum of 1600 pixels on the longest side (ideally 2000x2000 or 2400x2400). Blurry images erode consumer confidence immediately. For smaller images, use [AI Image Enhancement](/en/araclar/gorsel-iyilestir) to restore crisp edges.
+
+### 4. Natural Contact Shadows
+Products floating in pure white space can look synthetic and disconnected. Retaining a subtle, soft ground shadow grounds the object and creates three-dimensional depth.
+
+### 5. Multi-Angle and Lifestyle Gallery Depth
+While the hero image must be clean white, the subsequent carousel slots must showcase context. Show a travel mug in a car cup holder or a backpack in transit. Use [AI Scene Generation](/en/araclar/sahne-olustur) to place your clean cutout into photorealistic settings.
+
+## Common Mistakes That Damage Seller Accounts
+
+- **Watermarks and Promotional Badges:** Stamping "Fast Shipping" or promotional badges onto primary photos violates marketplace guidelines and risks listing deactivation.
+- **Color Distortion:** Inaccurate lighting leads to post-purchase dissatisfaction and costly returns.
+- **Harsh Direct Flash:** Smartphone flash creates harsh reflections that obscure textures.
+
+## Transform Your Catalog with Renderhane
+
+Renting physical studio space and hiring product photographers for every SKU is cost-prohibitive for growing brands. Renderhane provides a unified AI-powered studio to remove backgrounds, upscale resolution, and render lifestyle scenes in seconds.`,
+    },
+  },
 ];
 
 export function getArticleBySlug(slug: string): BlogArticle | undefined {

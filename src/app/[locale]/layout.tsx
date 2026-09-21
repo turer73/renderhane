@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "latin-ext"],
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://renderhane.com";
 
 export const viewport: Viewport = {
   width: "device-width",

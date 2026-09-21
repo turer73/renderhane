@@ -18,6 +18,7 @@ export function AuthCta({ locale }: { locale: string }) {
   return (
     <Link
       href={signedIn ? `/${locale}/app` : `/${locale}/login`}
+      rel="nofollow"
       className="rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm transition-all hover:bg-white/25"
     >
       {signedIn

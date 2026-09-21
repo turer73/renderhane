@@ -221,7 +221,7 @@ export function LandingHeader() {
 
           {!signedIn && (
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-              <Link href={`/${locale}/login`}>{tc("login")}</Link>
+              <Link href={`/${locale}/login`} rel="nofollow">{tc("login")}</Link>
             </Button>
           )}
 
@@ -232,6 +232,7 @@ export function LandingHeader() {
           >
             <Link
               href={signedIn ? `/${locale}/app` : `/${locale}/login`}
+              rel="nofollow"
               className="flex items-center gap-2"
             >
               {signedIn ? tc("goToApp") : tc("tryIt")} <ArrowRight className="size-3.5" />
@@ -325,11 +326,11 @@ export function LandingHeader() {
         >
           {!signedIn && (
             <Button variant="outline" size="sm" asChild className="w-full min-h-[48px]">
-              <Link href={`/${locale}/login`}>{tc("login")}</Link>
+              <Link href={`/${locale}/login`} rel="nofollow">{tc("login")}</Link>
             </Button>
           )}
           <Button size="sm" asChild className="w-full min-h-[48px] bg-indigo-600 text-white hover:bg-indigo-700">
-            <Link href={signedIn ? `/${locale}/app` : `/${locale}/login`}>
+            <Link href={signedIn ? `/${locale}/app` : `/${locale}/login`} rel="nofollow">
               {signedIn ? tc("goToApp") : tc("tryIt")}
             </Link>
           </Button>
