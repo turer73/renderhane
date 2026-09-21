@@ -8,9 +8,7 @@ export default function PublicBgRemovePage(){
  const locale=params.locale==="en"?"en":"tr";
  return (
    <FreeToolsPreview locale={locale} page="background" enableBackgroundApi production>
-   <div className="mx-auto max-w-5xl px-4 pb-16">
     <ToolGuideSection slug="arka-plan-kaldirma" locale={locale} />
-   </div>
    </FreeToolsPreview>
  );
 }
