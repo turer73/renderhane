@@ -61,6 +61,12 @@ test.describe('public mobile tool flows', () => {
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
     await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText(/Dil:\s*en/i);
+    const guide = page.locator('section[aria-label="Kullanım Rehberi ve SSS"]');
+    await expect(guide).toBeVisible();
+    expect(await guide.evaluate(element => {
+      const footer = document.querySelector('footer');
+      return Boolean(footer && (element.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING));
+    })).toBe(true);
   });
 
   test('manual composer exposes four focused inspector tabs', async ({page}) => {
