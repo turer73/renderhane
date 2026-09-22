@@ -125,12 +125,13 @@
   html {
     height: 100%;
     touch-action: manipulation;
-    overflow-x: hidden;
+    /* Clip horizontal overflow without creating a second vertical scroller. */
+    overflow-x: clip;
   }
   body {
     height: 100%;
     @apply bg-background text-foreground;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 }
 
