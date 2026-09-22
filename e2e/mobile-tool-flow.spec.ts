@@ -58,6 +58,31 @@ test.describe('public mobile tool flows', () => {
     expect(columns).toBe(1);
   });
 
+  test('tool page has only the document vertical scrollbar', async ({page}) => {
+    await page.setViewportSize({width: 720, height: 900});
+    await page.goto('/tr/araclar/nfc-yaz');
+    await expect(page.locator('.rh-guide-surface')).toBeVisible();
+
+    const scroll = await page.evaluate(() => {
+      window.scrollTo({top: 400, behavior: 'instant'});
+      return {
+        rootOverflowY: getComputedStyle(document.documentElement).overflowY,
+        bodyOverflowY: getComputedStyle(document.body).overflowY,
+        rootScrollHeight: document.documentElement.scrollHeight,
+        viewportHeight: document.documentElement.clientHeight,
+        windowScrollY: window.scrollY,
+        bodyScrollTop: document.body.scrollTop,
+        horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    expect(scroll.rootOverflowY).toBe('visible');
+    expect(scroll.bodyOverflowY).toBe('visible');
+    expect(scroll.rootScrollHeight).toBeGreaterThan(scroll.viewportHeight);
+    expect(scroll.windowScrollY).toBeGreaterThan(0);
+    expect(scroll.bodyScrollTop).toBe(0);
+    expect(scroll.horizontalOverflow).toBe(false);
+  });
+
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
     await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText(/Dil:\s*en/i);
