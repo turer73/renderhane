@@ -24,12 +24,18 @@ interface WebNfcReadingEvent extends Event {
 
 interface WebNfcReader {
   write(message: {records: readonly NfcRecordInput[]}, options: NfcWriteOptions): Promise<void>;
+  makeReadOnly?(options: {signal: AbortSignal}): Promise<void>;
   scan(options: NfcScanOptions): Promise<void>;
   onreading: ((event: WebNfcReadingEvent) => void) | null;
   onreadingerror: (() => void) | null;
 }
 
-export type WebNfcWindow = Window & {NDEFReader?: new () => WebNfcReader};
+interface WebNfcReaderConstructor {
+  new (): WebNfcReader;
+  prototype: WebNfcReader;
+}
+
+export type WebNfcWindow = Window & {NDEFReader?: WebNfcReaderConstructor};
 
 function unavailableReason(win: WebNfcWindow): string | undefined {
   if (!win.isSecureContext) return 'NFC erişimi HTTPS veya localhost gerektirir.';
@@ -48,7 +54,7 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
         canReadNdef: !reason,
         canWriteNdef: !reason,
         canFormatNdef: false,
-        canLock: false,
+        canLock: !reason && typeof win.NDEFReader?.prototype.makeReadOnly === 'function',
         canTransceive: false,
         reason,
       };
@@ -57,6 +63,13 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
       if (unavailableReason(win) || !win.NDEFReader) throw new DOMException(unavailableReason(win), 'NotSupportedError');
       const reader = new win.NDEFReader();
       await reader.write({records}, options);
+    },
+    async makeReadOnly(_tag, signal): Promise<void> {
+      if (unavailableReason(win) || !win.NDEFReader) throw new DOMException(unavailableReason(win), 'NotSupportedError');
+      if (typeof win.NDEFReader.prototype.makeReadOnly !== 'function')
+        throw new DOMException('Bu tarayıcı kalıcı NFC kilitlemeyi desteklemiyor.', 'NotSupportedError');
+      const reader = new win.NDEFReader();
+      await reader.makeReadOnly!({signal});
     },
     async scan(options: NfcScanOptions): Promise<NfcScanResult> {
       if (unavailableReason(win) || !win.NDEFReader) throw new DOMException(unavailableReason(win), 'NotSupportedError');

@@ -43,9 +43,11 @@ describe('NFC chip platform', () => {
   it('writes and reads through the Web NFC adapter boundary', async () => {
     class FakeReader {
       static last: FakeReader | undefined;
+      static lock = vi.fn(async (options: {signal: AbortSignal}) => { void options; });
       onreading: ((event: never) => void) | null = null;
       onreadingerror: (() => void) | null = null;
       write = vi.fn(async () => undefined);
+      async makeReadOnly(options: {signal: AbortSignal}): Promise<void> { await FakeReader.lock(options); }
       scanSignal: AbortSignal | undefined;
       constructor() { FakeReader.last = this; }
       async scan(options: {signal: AbortSignal}): Promise<void> {
@@ -64,7 +66,7 @@ describe('NFC chip platform', () => {
 
     const win = {isSecureContext: true, NDEFReader: FakeReader} as unknown as WebNfcWindow;
     const adapter = createWebNfcAdapter(win);
-    expect(adapter.support()).toMatchObject({available: true, canReadNdef: true, canTransceive: false});
+    expect(adapter.support()).toMatchObject({available: true, canReadNdef: true, canLock: true, canTransceive: false});
 
     const writeController = new AbortController();
     await adapter.write([{recordType: 'url', data: 'https://renderhane.com'}], {signal: writeController.signal, overwrite: false});
@@ -72,6 +74,10 @@ describe('NFC chip platform', () => {
       {records: [{recordType: 'url', data: 'https://renderhane.com'}]},
       {signal: writeController.signal, overwrite: false},
     );
+
+    const lockController = new AbortController();
+    await adapter.makeReadOnly?.({technologies: ['ndef']}, lockController.signal);
+    expect(FakeReader.lock).toHaveBeenCalledWith({signal: lockController.signal});
 
     const scan = await adapter.scan({signal: new AbortController().signal});
     expect(scan.serialNumber).toBe('test-tag');
