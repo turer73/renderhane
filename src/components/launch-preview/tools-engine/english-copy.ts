@@ -287,6 +287,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.", "NFC permission was denied. Check permissions and try again."],
   ["Cihaz veya etiket bu işlemi desteklemiyor.", "The device or tag does not support this operation."],
   ["NFC işlemi tamamlanmadı:", "NFC operation did not complete:"],
+  ["NDEF etiketi okunamadı.", "The NDEF tag could not be read."],
   ["Panoya erişim için HTTPS veya localhost gerekir.", "Clipboard access requires HTTPS or localhost."],
   ["WiFi şifresini kopyalamak yerine QR aracını kullan.", "Use the QR tool instead of copying a WiFi password."],
   ["İçerik panoya kopyalandı.", "Content copied to the clipboard."],

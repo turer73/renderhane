@@ -66,7 +66,14 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
         options.signal.addEventListener('abort', abort, {once: true});
         reader.onreading = event => {
           options.signal.removeEventListener('abort', abort);
-          const records: NfcReadRecord[] = event.message.records.map(record => ({...record}));
+          const records: NfcReadRecord[] = event.message.records.map(record => ({
+            recordType: record.recordType,
+            mediaType: record.mediaType,
+            encoding: record.encoding,
+            lang: record.lang,
+            id: record.id,
+            data: record.data,
+          }));
           resolve({serialNumber: event.serialNumber, records});
         };
         reader.onreadingerror = () => {

@@ -48,9 +48,14 @@ describe('NFC chip platform', () => {
       write = vi.fn(async () => undefined);
       constructor() { FakeReader.last = this; }
       async scan(): Promise<void> {
+        const record = Object.create({
+          recordType: 'text',
+          encoding: 'utf-8',
+          data: new DataView(new TextEncoder().encode('merhaba').buffer),
+        });
         queueMicrotask(() => this.onreading?.({
           serialNumber: 'test-tag',
-          message: {records: [{recordType: 'text', encoding: 'utf-8', data: new DataView(new TextEncoder().encode('merhaba').buffer)}]},
+          message: {records: [record]},
         } as never));
       }
     }
