@@ -298,6 +298,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Etiket yazıldı ve kalıcı olarak kilitlendi. Kullanacağın cihazla okuyarak test et.", "Tag written and permanently locked. Read it with the intended device to test it."],
   ["İçerik yazıldı ancak etiket kalıcı kilitlenemedi:", "Content was written, but the tag could not be permanently locked:"],
   ["Kilit işlemi tamamlanmadı.", "The locking operation did not complete."],
+  ["Kalıcı kilit zaman aşımına uğradı; kilit durumu doğrulanamadı.", "Permanent locking timed out; the lock status could not be verified."],
   ["etiket yazıldı ve kalıcı kilitlendi", "tag written and permanently locked"],
   ["etiket yazıldı ve", "tags written and"],
   ["etiket yazıldı", "tags written"],

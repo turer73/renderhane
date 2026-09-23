@@ -127,6 +127,34 @@ test.describe('public mobile tool flows', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   });
 
+  test('NFC lock timeout preserves bulk progress and blocks type changes while busy', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> {}
+        async makeReadOnly(): Promise<void> { await new Promise<void>(() => {}); }
+        async scan(): Promise<void> {}
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+      state.confirm = () => true;
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.clock.install();
+
+    await page.locator('#rh-nfc-lock').check();
+    await page.locator('#rh-nfc-bulk-count').fill('2');
+    await page.getByRole('button', {name: /Toplu yazımı başlat/}).click();
+    await page.getByRole('button', {name: /Sıradaki etiketi yaz/}).click();
+    expect(await page.locator('[data-nfc-type]').evaluateAll(buttons => buttons.every(button => (button as HTMLButtonElement).disabled))).toBe(true);
+
+    await page.clock.fastForward(30_000);
+    await expect(page.locator('#rh-nfc-status')).toContainText('1/2 etiket yazıldı');
+    await expect(page.locator('#rh-nfc-status')).toContainText('Kalıcı kilit zaman aşımına uğradı; kilit durumu doğrulanamadı.');
+    await expect(page.locator('.rh-nfc-bulk-progress')).toContainText('1/2');
+    await expect(page.locator('[data-nfc-type="url"]')).toBeEnabled();
+  });
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
     await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText(/Dil:\s*en/i);

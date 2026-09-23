@@ -304,7 +304,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Ürününe <span class="rh-highlight">yeni bir sahne.</span>', 'Fotoğrafını seç, kompozisyonu tarif et. Sonuçlarını tek bir çalışma alanında karşılaştır.', ['Ürün odaklı kompozisyon', 'Hazır sahne yönleri', 'Düzenli çıktı alanı'])}<div class="rh-workspace rh-scene-workspace"><section class="rh-panel rh-scene-form"><div class="rh-panel-body"><div><div class="rh-number-title"><span>1</span>Ürün fotoğrafı</div><div class="rh-product-input"><div class="rh-checker"><img src="${s.fileUrl || asset('cutout.png')}" alt="Ürün fotoğrafı girdisi"/></div>${uploadBox(true)}</div>${s.file ? `<button class="rh-link-button" data-action="sample">Hazır örneğe dön</button>` : ''}</div><div><div class="rh-number-title"><span>2</span>Sahneni tarif et</div><label class="rh-sr" for="rh-prompt">Sahne açıklaması</label><textarea class="rh-textarea" id="rh-prompt" maxlength="1500" data-prompt="true">${esc(s.prompt)}</textarea><div class="rh-label-row"><span>Bir yön seç</span><span class="rh-helper">4 hazır örnek</span></div><div class="rh-tags">${sceneNames.map((name, i) => `<button class="rh-tag" data-preset="${i}" aria-pressed="${s.scenePreset === i}">${name}</button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="generate-scenes" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'spark', s.busy ? 'rh-spin' : '')}${options.adapters?.generateScenes && s.file ? 'Sahneleri oluştur' : 'Örnek sahneleri göster'}</button><div class="rh-notice" id="rh-scene-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Buradaki sahneler önceden hazırlanmış kompozisyonlardır. Canlı AI üretimi için API adaptörünü bağla.'}</div></div></div></section><section class="rh-panel"><div class="rh-scene-result-header"><div><h2>${s.scenes ? 'Üretilen sahneler' : 'Örnek kompozisyonlar'}</h2><p>${s.scenes ? 'API’den dönen sonuçlar.' : 'Onaylı şişe tasarımından dört hazır sahne.'}</p></div><span class="rh-pill">${activeScenes.length} ${s.scenes ? 'sonuç' : 'hazır örnek'}</span></div><div class="rh-scenes">${activeScenes.map((scene, i) => `<article class="rh-scene" data-active="${s.scenePreset === i}"><img src="${esc(scene.url)}" alt="${esc(scene.label)} kompozisyonu" width="1200" height="800"/><span class="rh-scene-label">${esc(scene.label)}</span><button class="rh-scene-download" data-download-scene="${i}" aria-label="${esc(scene.label)} indir">${icon('download')}İndir</button></article>`).join('')}</div><div class="rh-canvas-footer"><span>${icon('info')}${s.scenes ? 'Sonuçları kullanmadan önce detayları kontrol et.' : 'Hazır kompozisyonlar, bu arayüzün otomatik AI performansını göstermez.'}</span></div></section></div><section class="rh-section">${method()}</section></main>`;
   }
   function typeTabs(kind: 'qr' | 'nfc'): string { const all = Object.keys(contentLabels) as ContentType[]; const allowed = kind === 'qr' ? all.filter(t => t !== 'app') : all;
-    return `<div class="rh-content-types" role="group" aria-label="${kind === 'qr' ? 'QR' : 'NFC'} içerik türü">${allowed.map(type => `<button class="rh-type-btn" type="button" data-${kind}-type="${type}" aria-pressed="${s[`${kind}Type`] === type}">${icon(contentIcons[type])}<span>${contentLabels[type]}</span></button>`).join('')}</div>`;
+    return `<div class="rh-content-types" role="group" aria-label="${kind === 'qr' ? 'QR' : 'NFC'} içerik türü">${allowed.map(type => `<button class="rh-type-btn" type="button" data-${kind}-type="${type}" aria-pressed="${s[`${kind}Type`] === type}" ${kind === 'nfc' && s.nfcBusy ? 'disabled' : ''}>${icon(contentIcons[type])}<span>${contentLabels[type]}</span></button>`).join('')}</div>`;
   }
   function fields(kind: 'qr' | 'nfc'): string {
     const type = s[`${kind}Type`]; const f = s[kind];
@@ -373,11 +373,12 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function toast(message: string): void { const el = $('#rh-toast'); if (!el) return; win.clearTimeout(toastTimer); el.textContent = en ? localizeToolText(message) : message; el.classList.add('show'); toastTimer = win.setTimeout(() => el.classList.remove('show'), 4200); }
   function stopNfc(): void { nfcAbort?.abort(); nfcAbort = null; win.clearTimeout(nfcTimer); s.nfcBusy = false; }
-  function armNfcTimeout(controller: AbortController, message: string): void {
+  function armNfcTimeout(controller: AbortController, message: string, onTimeout?: () => void): void {
     win.clearTimeout(nfcTimer);
     nfcTimer = win.setTimeout(() => {
       if (nfcAbort !== controller) return;
       controller.abort();
+      if (onTimeout) { onTimeout(); return; }
       s.nfcBusy = false;
       s.nfcMessage = message;
       render();
@@ -587,6 +588,25 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     s.nfcBusy = true;
     s.nfcMessage = writing ? 'Etiketi telefonun arkasına yaklaştır. Yazma ve varsa kilitleme tamamlanana kadar uzaklaştırma.' : 'Okumak istediğin etiketi yaklaştır.';
     render();
+    let writeFinished = false;
+    const finishWrite = (locked: boolean, lockFailure: string): void => {
+      if (writeFinished) return;
+      writeFinished = true;
+      if (mode === 'bulk-write') {
+        s.nfcBulkWritten++;
+        if (locked) s.nfcBulkLocked++;
+        if (lockFailure) s.nfcBulkLockFailed++;
+        const completed = s.nfcBulkWritten >= s.nfcBulkTarget;
+        if (completed) { s.nfcBulkActive = false; s.nfcBulkRecords = null; }
+        if (lockFailure && completed) s.nfcMessage = `Toplu yazım tamamlandı: ${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı; ${s.nfcBulkLocked} kilitlendi, ${s.nfcBulkLockFailed} kilitlenemedi. Son hata: ${lockFailure}`;
+        else if (lockFailure) s.nfcMessage = `${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı; son etiket kalıcı kilitlenemedi: ${lockFailure} Etiketi uzaklaştır ve sıradaki etiketle devam et.`;
+        else if (completed) s.nfcMessage = `Toplu yazım tamamlandı: ${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı${lockRequested ? ` ve ${s.nfcBulkLocked} etiket kalıcı kilitlendi` : ''}.`;
+        else s.nfcMessage = `${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı${locked ? ' ve kalıcı kilitlendi' : ''}. Etiketi uzaklaştır, sıradaki etiketi yaklaştır.`;
+      } else if (lockFailure) s.nfcMessage = `İçerik yazıldı ancak etiket kalıcı kilitlenemedi: ${lockFailure}`;
+      else s.nfcMessage = locked ? 'Etiket yazıldı ve kalıcı olarak kilitlendi. Kullanacağın cihazla okuyarak test et.' : 'Etiket yazıldı. Kullanacağın cihazla okuyarak test et.';
+      stopNfc();
+      render();
+    };
     armNfcTimeout(controller, '30 saniye içinde etiket algılanmadı. İşlemi yeniden başlatabilirsin.');
     try {
       if (writing) {
@@ -597,29 +617,20 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         if (lockRequested && nfcAdapter.makeReadOnly) {
           s.nfcMessage = 'İçerik yazıldı. Etiketi uzaklaştırma; kalıcı kilit uygulanıyor.';
           render();
-          armNfcTimeout(controller, '30 saniye içinde kalıcı kilit tamamlanmadı. Etiket yazıldı ancak kilit durumunu kontrol et.');
+          armNfcTimeout(
+            controller,
+            '30 saniye içinde kalıcı kilit tamamlanmadı. Etiket yazıldı ancak kilit durumunu kontrol et.',
+            () => finishWrite(false, 'Kalıcı kilit zaman aşımına uğradı; kilit durumu doğrulanamadı.'),
+          );
           try {
             await nfcAdapter.makeReadOnly({technologies: ['ndef']}, controller.signal);
             locked = true;
           } catch (error) {
             lockFailure = error instanceof Error ? error.message : 'Kilit işlemi tamamlanmadı.';
           }
-          if (controller.signal.aborted || disposed) return;
+          if (writeFinished || controller.signal.aborted || disposed) return;
         }
-        if (mode === 'bulk-write') {
-          s.nfcBulkWritten++;
-          if (locked) s.nfcBulkLocked++;
-          if (lockFailure) s.nfcBulkLockFailed++;
-          const completed = s.nfcBulkWritten >= s.nfcBulkTarget;
-          if (completed) { s.nfcBulkActive = false; s.nfcBulkRecords = null; }
-          if (lockFailure && completed) s.nfcMessage = `Toplu yazım tamamlandı: ${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı; ${s.nfcBulkLocked} kilitlendi, ${s.nfcBulkLockFailed} kilitlenemedi. Son hata: ${lockFailure}`;
-          else if (lockFailure) s.nfcMessage = `${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı; son etiket kalıcı kilitlenemedi: ${lockFailure} Etiketi uzaklaştır ve sıradaki etiketle devam et.`;
-          else if (completed) s.nfcMessage = `Toplu yazım tamamlandı: ${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı${lockRequested ? ` ve ${s.nfcBulkLocked} etiket kalıcı kilitlendi` : ''}.`;
-          else s.nfcMessage = `${s.nfcBulkWritten}/${s.nfcBulkTarget} etiket yazıldı${locked ? ' ve kalıcı kilitlendi' : ''}. Etiketi uzaklaştır, sıradaki etiketi yaklaştır.`;
-        } else if (lockFailure) s.nfcMessage = `İçerik yazıldı ancak etiket kalıcı kilitlenemedi: ${lockFailure}`;
-        else s.nfcMessage = locked ? 'Etiket yazıldı ve kalıcı olarak kilitlendi. Kullanacağın cihazla okuyarak test et.' : 'Etiket yazıldı. Kullanacağın cihazla okuyarak test et.';
-        stopNfc();
-        render();
+        finishWrite(locked, lockFailure);
       } else {
         const result = await nfcAdapter.scan({signal: controller.signal});
         if (disposed || controller.signal.aborted) return;
