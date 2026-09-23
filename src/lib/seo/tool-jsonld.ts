@@ -657,8 +657,8 @@ const toolConfigs: ToolSEOConfig[] = [
           en: "Can I write an NFC tag from my phone without installing an app?",
         },
         a: {
-          tr: "Evet. Bu araç Web NFC arayüzünü kullanır: Android telefonda Chrome 89 ve üzeri ile sayfayı açar, içeriği girer ve telefonu etikete değdirirsiniz. Uygulama kurmanız veya kayıt olmanız gerekmez, sınır yoktur.",
-          en: "Yes. The tool uses the Web NFC interface: open the page in Chrome 89+ on an Android phone, enter your content and touch the tag with the phone. No app install, no registration, no limits.",
+          tr: "Evet. Bu araç Web NFC arayüzünü kullanır: NFC destekli Android telefonda güncel Chrome ile sayfayı açar, içeriği girer ve telefonu etikete yaklaştırırsınız. Uygulama kurmanız veya kayıt olmanız gerekmez.",
+          en: "Yes. The tool uses Web NFC: open the page in current Chrome on an NFC-enabled Android phone, enter your content, and hold the phone near the tag. No app install or registration is required.",
         },
       },
       {
@@ -677,8 +677,8 @@ const toolConfigs: ToolSEOConfig[] = [
           en: "Can I prepare the content on a computer and write it from the phone?",
         },
         a: {
-          tr: "Evet. Bilgisayarda formu doldurup bağlantı oluşturursunuz; çıkan QR kodu telefonunuzun kamerasıyla okuttuğunuzda sayfa telefonda aynı içerikle dolu açılır. Telefonda okuduğunuz bir etiketi de forma yükleyip bağlantı olarak bilgisayara gönderebilirsiniz. İçerik bağlantının # işaretinden sonrasında taşınır ve sunucuya gönderilmez.",
-          en: "Yes. Fill the form on your computer and create a link; scanning the QR code with your phone camera opens the page there already filled in. You can also load a tag you read on the phone into the form and send it to your computer as a link. The content rides after the # in the link and is never sent to the server.",
+          tr: "İçeriği bilgisayarda hazırlayıp kopyalayabilirsiniz; ancak etikete yazma işlemini NFC destekli Android telefonda güncel Chrome ile başlatmanız gerekir. Bu sürüm form içeriğini cihazlar arasında otomatik eşitlemez.",
+          en: "You can prepare and copy the content on a computer, but writing must be started in current Chrome on an NFC-enabled Android phone. This version does not automatically sync form content between devices.",
         },
       },
       {
@@ -687,8 +687,8 @@ const toolConfigs: ToolSEOConfig[] = [
           en: "Which NFC tag should I buy?",
         },
         a: {
-          tr: "NTAG213 132 bayt, NTAG215 492 bayt, NTAG216 872 bayt NDEF mesajı alır. Kısa bir bağlantı için NTAG213 yeter, dijital kartvizit için genellikle NTAG215 gerekir. Araç, girdiğiniz içeriğin kaç bayt tuttuğunu ve hangi etiketlere sığdığını canlı gösterir.",
-          en: "NTAG213 holds a 132-byte NDEF message, NTAG215 492 bytes, NTAG216 872 bytes. A short link fits an NTAG213; a digital business card usually needs an NTAG215. The tool shows live how many bytes your content takes and which tags it still fits.",
+          tr: "Kısa bağlantılar için yaygın NDEF uyumlu NTAG21x etiketler uygundur; kişi kartı gibi daha büyük içerikler daha fazla kapasite gerektirebilir. Kesin kapasite ve yazılabilirlik işlem sırasında etiket ve cihaz tarafından doğrulanır.",
+          en: "Common NDEF-compatible NTAG21x tags work well for short links; larger content such as contact cards may require more capacity. Exact capacity and writability are verified by the tag and device during the operation.",
         },
       },
     ],
@@ -703,22 +703,29 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         name: { tr: "Bilgileri girin", en: "Enter the details" },
         text: {
-          tr: "Alanları doldurun. Boyut göstergesi içeriğin kaç bayt tuttuğunu ve hangi etiketlere sığdığını anında gösterir.",
-          en: "Fill the fields. The size meter instantly shows the byte count and which tags it fits.",
+          tr: "Alanları doldurun ve yazmadan önce bağlantıyı veya iletişim bilgilerini kontrol edin.",
+          en: "Fill in the fields and review the link or contact details before writing.",
         },
       },
       {
         name: { tr: "Telefonu etikete değdirin", en: "Touch the tag with your phone" },
         text: {
-          tr: "Etikete Yaz düğmesine dokunun ve telefonun arka yüzünü etikete yaklaştırın. Yazma bir saniyeden kısa sürer.",
-          en: "Tap Write to Tag and hold the back of your phone against the tag. The write takes under a second.",
+          tr: "Etikete Yaz düğmesine dokunun ve telefonun arka yüzünü etikete yaklaştırın. Başarı mesajı görünene kadar etiketi uzaklaştırmayın.",
+          en: "Tap Write to Tag and hold the back of your phone near the tag. Keep it in place until the success message appears.",
         },
       },
       {
         name: { tr: "Doğrulayın veya kilitleyin", en: "Verify or lock" },
         text: {
-          tr: "Etiketi Oku ile yazdığınızı doğrulayın. İçeriğin bir daha değiştirilmemesi gerekiyorsa etiketi kalıcı olarak kilitleyin.",
-          en: "Use Read a Tag to verify what you wrote. Lock the tag permanently if its content must never change again.",
+          tr: "Etiketi Oku ile yazdığınızı doğrulayın. Desteklenen etiketlerde kalıcı kilidi yalnız içeriği kontrol ettikten sonra kullanın; işlem geri alınamaz.",
+          en: "Use Read Tag to verify what you wrote. On supported tags, use permanent locking only after checking the content; it cannot be undone.",
+        },
+      },
+      {
+        name: { tr: "Gerekirse toplu yazın", en: "Use bulk writing when needed" },
+        text: {
+          tr: "2–100 etiketlik bir oturum başlatın. Her etiketi ayrı ayrı yaklaştırıp Sıradaki Etiketi Yaz düğmesine basın ve ilerleme sayacını izleyin.",
+          en: "Start a session for 2–100 tags. Present each tag separately, press Write Next Tag, and follow the progress counter.",
         },
       },
     ],

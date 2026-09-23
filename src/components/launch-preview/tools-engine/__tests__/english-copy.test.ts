@@ -32,6 +32,12 @@ describe("English free-tool copy", () => {
     expect(localizeToolText("Orijinal ürün fotoğrafı"))
       .toBe("Original product photo");
     expect(localizeToolText("Dosya okunamadı.")).toBe("The file could not be read.");
+    expect(localizeToolText("1/2 etiket yazıldı ve kalıcı kilitlendi. Etiketi uzaklaştır, sıradaki etiketi yaklaştır."))
+      .toBe("1/2 tag written and permanently locked. Remove the tag and hold the next tag near the phone.");
+    expect(localizeToolText("Toplu yazım tamamlandı: 2/2 etiket yazıldı ve 2 etiket kalıcı kilitlendi."))
+      .toBe("Bulk writing completed: 2/2 tags written and 2 tags permanently locked.");
+    expect(localizeToolText("30 saniye içinde etiket algılanmadı. İşlemi yeniden başlatabilirsin."))
+      .toBe("No tag was detected within 30 seconds. You can start the operation again.");
   });
 
   it("keeps the full English inspiration experience interactive", () => {

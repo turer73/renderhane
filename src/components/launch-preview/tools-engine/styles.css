@@ -280,6 +280,15 @@
 .rh-app .rh-nfc-live-status strong{font-size:13px;display:block}
 .rh-app .rh-nfc-live-status p{font-size:11px;color:var(--muted);margin-top:4px}
 .rh-app .rh-nfc-live-status .rh-icon-tile{flex-shrink:0}
+.rh-app .rh-nfc-lock-toggle{margin-top:12px}
+.rh-app .rh-nfc-lock-help{margin:6px 0 0 30px;line-height:1.55}
+.rh-app .rh-nfc-bulk{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,auto);gap:16px;align-items:center;margin-top:18px;padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rh-app .rh-nfc-bulk>div>strong{font-size:13px}
+.rh-app .rh-nfc-bulk p{font-size:11px;color:var(--muted);margin-top:3px}
+.rh-app .rh-nfc-bulk-setup{display:grid;grid-template-columns:auto 74px auto;gap:9px;align-items:center}
+.rh-app .rh-nfc-bulk-setup label{font-size:11px;color:var(--muted);white-space:nowrap}
+.rh-app .rh-nfc-bulk-setup .rh-input{height:44px;padding:8px 10px}
+.rh-app .rh-nfc-bulk-progress .rh-toolbar{margin-top:10px;justify-content:flex-end}
 .rh-app .rh-toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,15px);opacity:0;pointer-events:none;z-index:120;background:#15162b;color:white;border-radius:12px;padding:14px 20px;font-size:12px;box-shadow:0 9px 30px #0b0f2d20;max-width:calc(100% - 32px);transition:opacity .2s,transform .2s;text-align:center}
 .rh-app .rh-toast.show{opacity:1;transform:translate(-50%,0)}
 .rh-app .rh-spin{animation:rh-spin 1s linear infinite}
@@ -965,6 +974,11 @@ to{opacity:1;transform:translateY(0)}
 .rh-app .rh-workspace .rh-compare-front { background:#eeeae4; }
 .rh-app .rh-mobile-upload { display:none; }
 @media(max-width:680px){
+ .rh-app .rh-nfc-bulk{grid-template-columns:1fr}
+ .rh-app .rh-nfc-bulk-setup{grid-template-columns:1fr 82px}
+ .rh-app .rh-nfc-bulk-setup .rh-btn{grid-column:1/-1}
+ .rh-app .rh-nfc-bulk-progress .rh-toolbar{justify-content:stretch}
+ .rh-app .rh-nfc-bulk-progress .rh-btn{width:100%}
  .rh-app .rh-workspace .rh-compare { height:auto; aspect-ratio:1; }
  .rh-app .rh-mobile-upload { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; margin:0 0 16px; color:var(--muted); }
  .rh-app .rh-mobile-upload .rh-btn { min-height:42px; font-size:12px; padding:10px 14px; }

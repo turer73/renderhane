@@ -83,6 +83,44 @@ test.describe('public mobile tool flows', () => {
     expect(scroll.horizontalOverflow).toBe(false);
   });
 
+  test('NFC supports irreversible locking and guided bulk writing', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {
+        NDEFReader?: typeof FakeNDEFReader;
+        __nfcWrites?: number;
+        __nfcLocks?: number;
+      };
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> { state.__nfcWrites = (state.__nfcWrites || 0) + 1; }
+        async makeReadOnly(): Promise<void> { state.__nfcLocks = (state.__nfcLocks || 0) + 1; }
+        async scan(): Promise<void> {}
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+      state.confirm = () => true;
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+
+    const lock = page.locator('#rh-nfc-lock');
+    await expect(lock).toBeEnabled();
+    await lock.check();
+    await page.locator('#rh-nfc-bulk-count').fill('2');
+    await page.getByRole('button', {name: /Toplu yazımı başlat/}).click();
+    await expect(page.locator('.rh-nfc-bulk-progress')).toContainText('0/2');
+
+    await page.getByRole('button', {name: /Sıradaki etiketi yaz/}).click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('1/2 etiket yazıldı ve kalıcı kilitlendi');
+    await page.getByRole('button', {name: /Sıradaki etiketi yaz/}).click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Toplu yazım tamamlandı: 2/2 etiket yazıldı ve 2 etiket kalıcı kilitlendi');
+
+    expect(await page.evaluate(() => ({
+      writes: (window as Window & {__nfcWrites?: number}).__nfcWrites,
+      locks: (window as Window & {__nfcLocks?: number}).__nfcLocks,
+    }))).toEqual({writes: 2, locks: 2});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  });
+
   test('production tool pages retain locale switching', async ({page}) => {
     await page.goto('/tr/araclar/qr-kod');
     await expect(page.locator('footer a[href="/en/araclar/qr-kod"]')).toHaveText(/Dil:\s*en/i);
