@@ -168,6 +168,8 @@ test.describe('public mobile tool flows', () => {
     await page.getByRole('button', {name: /Sıradaki etiketi yaz/}).click();
     expect(await page.locator('[data-nfc-type]').evaluateAll(buttons => buttons.every(button => (button as HTMLButtonElement).disabled))).toBe(true);
     await expect(page.locator('#rh-nfc-lock')).toBeDisabled();
+    await expect(page.locator('#rh-nfc-url')).toBeDisabled();
+    await expect(page.locator('#rh-nfc-overwrite')).toBeDisabled();
 
     await page.clock.fastForward(30_000);
     await expect(page.locator('#rh-nfc-status')).toContainText('1/2 etiket yazıldı');
@@ -203,6 +205,53 @@ test.describe('public mobile tool flows', () => {
     await page.locator('#rh-nfc-lock').check();
     await page.getByRole('button', {name: /^Etikete yaz$/}).click();
     await expect(page.locator('#rh-nfc-status')).toContainText('Etiketten geri okunan içerik yazılan NDEF ile eşleşmedi; kalıcı kilit uygulanmadı.');
+    expect(await page.evaluate(() => (window as Window & {__nfcLocks?: number}).__nfcLocks || 0)).toBe(0);
+  });
+
+  test('NFC verifies unlocked writes and rejects mismatched read-back', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> {}
+        async scan(): Promise<void> {
+          const bytes = new TextEncoder().encode('https://wrong.example');
+          queueMicrotask(() => this.onreading?.({message: {records: [{recordType: 'url', data: new DataView(bytes.buffer)}]}} as unknown as Event));
+        }
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+
+    await page.getByRole('button', {name: /^Etikete yaz$/}).click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiket yazıldı ancak içerik doğrulanamadı');
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiketten geri okunan içerik yazılan NDEF ile eşleşmedi');
+  });
+
+  test('NFC refuses locking when text language metadata is missing', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader; __nfcLocks?: number};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> {}
+        async makeReadOnly(): Promise<void> { state.__nfcLocks = (state.__nfcLocks || 0) + 1; }
+        async scan(): Promise<void> {
+          const bytes = new TextEncoder().encode('Merhaba');
+          queueMicrotask(() => this.onreading?.({message: {records: [{recordType: 'text', data: new DataView(bytes.buffer)}]}} as unknown as Event));
+        }
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+      state.confirm = () => true;
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+
+    await page.locator('[data-nfc-type="text"]').click();
+    await page.locator('#rh-nfc-text').fill('Merhaba');
+    await page.locator('#rh-nfc-lock').check();
+    await page.getByRole('button', {name: /^Etikete yaz$/}).click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiketten geri okunan içerik yazılan NDEF ile eşleşmedi');
     expect(await page.evaluate(() => (window as Window & {__nfcLocks?: number}).__nfcLocks || 0)).toBe(0);
   });
 
