@@ -38,6 +38,10 @@ describe("English free-tool copy", () => {
       .toBe("Bulk writing completed: 2/2 tags written and 2 tags permanently locked.");
     expect(localizeToolText("30 saniye içinde etiket algılanmadı. İşlemi yeniden başlatabilirsin."))
       .toBe("No tag was detected within 30 seconds. You can start the operation again.");
+    expect(localizeToolText("30 saniye içinde kalıcı kilit tamamlanmadı. Etiket yazıldı ancak kilit durumunu kontrol et."))
+      .toBe("Permanent locking did not finish within 30 seconds. The tag was written, but check its lock status.");
+    expect(localizeToolText("Toplu yazım tamamlandı: 3/3 etiket yazıldı; 1 kilitlendi, 2 kilitlenemedi. Son hata: Kilit işlemi tamamlanmadı."))
+      .toBe("Bulk writing completed: 3/3 tags written; 1 locked, 2 could not be locked. Last error: The locking operation did not complete.");
   });
 
   it("keeps the full English inspiration experience interactive", () => {

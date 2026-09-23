@@ -89,11 +89,12 @@ test.describe('public mobile tool flows', () => {
         NDEFReader?: typeof FakeNDEFReader;
         __nfcWrites?: number;
         __nfcLocks?: number;
+        __nfcPayloads?: string[];
       };
       class FakeNDEFReader {
         onreading: ((event: Event) => void) | null = null;
         onreadingerror: (() => void) | null = null;
-        async write(): Promise<void> { state.__nfcWrites = (state.__nfcWrites || 0) + 1; }
+        async write(message: unknown): Promise<void> { state.__nfcWrites = (state.__nfcWrites || 0) + 1; (state.__nfcPayloads ||= []).push(JSON.stringify(message)); }
         async makeReadOnly(): Promise<void> { state.__nfcLocks = (state.__nfcLocks || 0) + 1; }
         async scan(): Promise<void> {}
       }
@@ -111,13 +112,18 @@ test.describe('public mobile tool flows', () => {
 
     await page.getByRole('button', {name: /Sıradaki etiketi yaz/}).click();
     await expect(page.locator('#rh-nfc-status')).toContainText('1/2 etiket yazıldı ve kalıcı kilitlendi');
+    await page.locator('#rh-nfc-url').fill('https://changed.example');
     await page.getByRole('button', {name: /Sıradaki etiketi yaz/}).click();
     await expect(page.locator('#rh-nfc-status')).toContainText('Toplu yazım tamamlandı: 2/2 etiket yazıldı ve 2 etiket kalıcı kilitlendi');
 
     expect(await page.evaluate(() => ({
       writes: (window as Window & {__nfcWrites?: number}).__nfcWrites,
       locks: (window as Window & {__nfcLocks?: number}).__nfcLocks,
-    }))).toEqual({writes: 2, locks: 2});
+      payloads: (window as Window & {__nfcPayloads?: string[]}).__nfcPayloads,
+    }))).toEqual({writes: 2, locks: 2, payloads: expect.arrayContaining([expect.any(String), expect.any(String)])});
+    const payloads = await page.evaluate(() => (window as Window & {__nfcPayloads?: string[]}).__nfcPayloads || []);
+    expect(payloads).toHaveLength(2);
+    expect(payloads[1]).toBe(payloads[0]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   });
 
