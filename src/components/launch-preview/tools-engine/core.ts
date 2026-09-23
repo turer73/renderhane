@@ -7,6 +7,7 @@ import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
+import {createWebNfcAdapter, decodeNfcRecord, type NfcAdapter, type NfcAdapterSupport, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
 export type ToolLocale = 'tr' | 'en';
@@ -17,6 +18,8 @@ export interface SceneResult { url: string; label: string }
 export interface RenderhaneAdapters {
   removeBackground?: (file: File, signal: AbortSignal) => Promise<ImageResult>;
   generateScenes?: (file: File, prompt: string, signal: AbortSignal) => Promise<SceneResult[]>;
+  /** Optional native or USB implementation. Defaults to the browser Web NFC adapter. */
+  nfc?: NfcAdapter;
 }
 export interface MountOptions {
   initialPage?: Page;
@@ -47,21 +50,12 @@ interface QrTools {
   rsBlocks(v: number, l: number): QrRsBlock[];
   functionGrid(v: number, l: number, m: number): (boolean | null)[][];
 }
-interface NFCRecord { recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array }
-interface NFCEvent { message: { records: Array<{ recordType: string; data: DataView; encoding?: string }> } }
-interface NFCReaderInstance {
-  write(message: { records: NFCRecord[] }, options: { signal: AbortSignal; overwrite: boolean }): Promise<void>;
-  scan(options: { signal: AbortSignal }): Promise<void>;
-  onreading: ((event: NFCEvent) => void) | null;
-  onreadingerror: (() => void) | null;
-}
 // Local browser shape, not a global Window declaration: avoids colliding with
 // the host project's existing NFC/QR typings when the preview is installed.
 type ToolWindow = Window & {
   LocalQR: new (version: number, level: number) => QRModel;
   LocalQRTools: QrTools;
-  NDEFReader?: new () => NFCReaderInstance;
-};
+} & WebNfcWindow;
 const MAX_FILE = 5 * 1024 * 1024;
 const MAX_PIXELS = 24_000_000;
 const pages: Page[] = ['home', 'background', 'scenes', 'qr', 'nfc', 'artistic', 'tools'];
@@ -180,6 +174,7 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> { return new Promi
 
 export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): () => void {
   const doc = root.ownerDocument; const win = doc.defaultView! as unknown as ToolWindow;
+  const nfcAdapter = options.adapters?.nfc ?? createWebNfcAdapter(win);
   const locale = options.locale ?? 'tr';
   const en = locale === 'en';
   const l = (tr: string, english: string): string => en ? english : tr;
@@ -326,14 +321,18 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     }
   }
   function qrView(): string { return `<main id="rh-main" class="rh-page rh-wrap rh-qr-styled" tabindex="-1">${heading('Senin stilin.<br><span class="rh-highlight">Önce okunabilirlik.</span>', 'İçeriğini gir, hazır şeklini seç. QR yapısı korunur; her değişiklikte dijital veri kontrolü yeniden çalışır.', ['Ücretsiz · Kayıt yok', 'Hazır vektörel şekiller', 'Kontrollü PNG + SVG'])}<div class="rh-workspace rh-qr-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçeriğini seç</div>${typeTabs('qr')}<div id="rh-qr-fields">${fields('qr')}</div><div class="rh-number-title rh-qr-step"><span>2</span>Hazır şeklini seç</div><div class="rh-qr-presets" role="group" aria-label="QR modül şekli">${QR_PRESETS.map(pr => `<button type="button" class="rh-qr-preset" data-qr-style="${pr.id}" aria-pressed="${s.qrStyle === pr.id}"><span class="rh-qr-preset-icon">${presetIcon(pr.id)}</span><strong>${pr.label}</strong><small>${pr.hint}</small></button>`).join('')}</div><p class="rh-helper rh-qr-shape-note">Şekil yalnız veri alanına uygulanır. İşaret köşe, hizalama, zamanlama ve bilgi alanları kare olarak korunur.</p><div class="rh-number-title rh-qr-step"><span>3</span>Renk ve çıktı boyutu</div><div class="rh-two-fields"><div class="rh-field"><label for="rh-qr-color">Koyu QR rengi</label><div class="rh-color-input"><input type="color" id="rh-qr-color" value="${esc(s.qrColor)}"/><span class="rh-helper" id="rh-qr-hex">${esc(s.qrColor)}</span></div></div><div class="rh-field"><label for="rh-qr-size">Çıktı boyutu</label><select class="rh-select" id="rh-qr-size">${[512, 1024, 2048].map(v => `<option value="${v}" ${s.qrSize === v ? 'selected' : ''}>${v} × ${v} px</option>`).join('')}</select></div></div><div class="rh-qr-lock-note">${icon('shield')}<span><strong>Yapısal alanlar kilitli.</strong> Beyaz zemin, dört modüllük boş kenar ve H hata düzeltmesi korunur. Logo örtüşmesi, şeffaf zemin ve serbest çizim bu sürümde yok.</span></div><div class="rh-notice error" id="rh-qr-error" role="alert" hidden></div></section><section class="rh-panel rh-qr-preview-panel"><div class="rh-panel-top"><h2 class="rh-panel-title">${icon('qr')}QR önizlemesi</h2><span class="rh-pill" id="rh-qr-style-label">${(QR_PRESETS.find(pr => pr.id === s.qrStyle) ?? QR_PRESETS[0]).label}</span></div><div class="rh-qr-result" id="rh-qr-stage" data-invalid="true"><div class="rh-qr-paper" id="rh-qr-svg"></div></div><div class="rh-qr-meta" id="rh-qr-meta">Çıktı hazırlanıyor.</div><div class="rh-qr-check" id="rh-qr-check" role="status" aria-live="polite" data-state="pending"><span class="rh-qr-check-icon">${icon('shield')}</span><div><strong id="rh-qr-check-title">Kontrol bekleniyor</strong><p id="rh-qr-check-detail">Geçerli içerik ve okunabilir bir çıktı hazırlanmalı.</p></div></div><div class="rh-qr-result-footer"><div class="rh-toolbar">${btn('PNG indir', 'qr-png', true, 'download', 'disabled')}${btn('SVG indir', 'qr-svg', false, 'download', 'disabled')}</div><p>Test geçmeden indirme açılmaz. Baskıdan önce son boyutta telefonla tara.</p></div><details class="rh-qr-check-scope"><summary>Dijital kontrol neyi doğruluyor?</summary><p>SVG görüntüsünün ve indirilecek PNG&apos;nin bilinen ızgarasından veri okunur; biçim, yönlendirme alanları, hata kontrolü ve içerik eşleşmesi sınanır. Nihai boyut, 6 piksel/modül ve hafif bulanıklıkta toplam 9 kontrol yapılır.</p><p>Bu işlem, kamerayla QR bulma testi veya her telefonda okuma garantisi değildir. Hazır stil örnekleri geliştirme testlerinde OpenCV ve ZBar ile ayrıca okunur. Üretim baskısını gerçek cihazda kontrol et.</p></details><div class="rh-payload" id="rh-qr-payload" aria-label="QR içeriği"></div></section></div>${benefits([['shield', 'Okunabilirlik önce gelir', 'Yapısal alanlar değişmez; hatalı sonuç indirmeye açılmaz.'], ['download', 'Gerçek vektörel çıktı', 'Şekiller SVG yollarıdır; PNG aynı görüntüden üretilir.'], ['infinity', 'AI kredisi harcamaz', 'Hazır şekiller ve kontroller tarayıcıda çalışır.'], ['scan', 'Son baskıyı test et', 'Malzeme, boyut ve telefon sonucu etkileyebilir.']])}${premiumBlock(true)}${ideaSection('qr')}</main>`; }
-  function supportedNfc(): boolean { return !!win.NDEFReader && win.isSecureContext; }
-  function nfcStatus(ready: boolean): string {
+  function nfcStatus(support: NfcAdapterSupport): string {
     const readPrefix = 'Etiket okundu: ';
     if (s.nfcMessage.startsWith(readPrefix))
       return esc(l('Etiket okundu:', 'Tag read:')) + ' <span translate="no">' + esc(s.nfcMessage.slice(readPrefix.length)) + '</span>';
-    return esc(s.nfcMessage || (ready ? 'Tarayıcı Web NFC sunuyor. Gerçek donanım ve etiket uygunluğu işlem sırasında doğrulanır.' : 'Bu tarayıcıda NFC yazma kullanılamıyor. İçeriği hazırlayabilirsin; yazmak için HTTPS üzerinden NFC destekli Android telefonda Chrome ile aç.'));
+    if (s.nfcMessage) return esc(s.nfcMessage);
+    if (!support.available) return esc(support.reason || l('NFC bağlantısı kullanılamıyor.', 'The NFC connection is unavailable.'));
+    if (support.canReadNdef && support.canWriteNdef) return esc(l('NDEF okuma ve yazma hazır. Gerçek donanım ve etiket uygunluğu işlem sırasında doğrulanır.', 'NDEF reading and writing are ready. Hardware and tag compatibility are verified during the operation.'));
+    if (support.canWriteNdef) return esc(l('NDEF yazma hazır; bu sürücü etiket okumayı desteklemiyor.', 'NDEF writing is ready; this adapter does not support tag reading.'));
+    if (support.canReadNdef) return esc(l('NDEF okuma hazır; bu sürücü etikete yazmayı desteklemiyor.', 'NDEF reading is ready; this adapter does not support tag writing.'));
+    return esc(support.reason || l('Bu sürücü NDEF okuma veya yazma sunmuyor.', 'This adapter does not provide NDEF reading or writing.'));
   }
-  function nfcView(): string { const ready = supportedNfc(); return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div><label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!ready || s.nfcBusy || s.nfcType === 'wifi' ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!ready || s.nfcBusy ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${nfcStatus(ready)}</div><p class="rh-helper">Bu sürümde kalıcı kilitleme ve toplu yazım yoktur. WiFi/WSC yazımı için mevcut projedeki NDEF modülü kullanılmalıdır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><img src="${asset('logo.svg')}" alt=""/><h3>Dokun, bağlantı kur.</h3><p id="rh-nfc-preview">İçeriğini hazırlamaya başla.</p><div class="rh-wave">Temsili telefon önizlemesi</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${ready ? 'Tarayıcı desteği var' : 'Önce cihaz uyumluluğu'}</strong><p>${ready ? 'Yazmak için etiketi telefona yaklaştır.' : 'NFC donanımı, Chrome ve HTTPS gerekir.'}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'İzin senin kontrolünde', 'Üzerine yazma seçeneği varsayılan olarak kapalıdır.'], ['phone', 'Cihazı önce kontrol et', 'Tarayıcı desteği, fiziksel donanım garantisi değildir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Yazma başarı mesajı ancak cihaz onayından sonra gelir.']])}${ideaSection('nfc')}</main>`; }
+  function nfcView(): string { const support = nfcAdapter.support(); const ready = support.available; const canWrite = ready && support.canWriteNdef; const canRead = ready && support.canReadNdef; const transportLabel = ({'web-nfc': 'Web NFC', 'android-native': 'Android NFC', 'ios-core-nfc': 'iOS Core NFC', 'pcsc-usb': 'USB / PC-SC'} as const)[support.transport]; const capabilityTitle = !ready ? l('Önce cihaz uyumluluğu', 'Check device compatibility') : canRead && canWrite ? l('NDEF okuma ve yazma hazır', 'NDEF reading and writing are ready') : canWrite ? l('NDEF yazma hazır', 'NDEF writing is ready') : canRead ? l('NDEF okuma hazır', 'NDEF reading is ready') : l('NDEF işlemleri kullanılamıyor', 'NDEF operations are unavailable'); const capabilityHint = !ready ? (support.reason || l('Uyumlu NFC donanımı ve sürücü gerekir.', 'Compatible NFC hardware and an adapter are required.')) : `${transportLabel} · ${canRead ? l('okuma', 'read') : ''}${canRead && canWrite ? ' + ' : ''}${canWrite ? l('yazma', 'write') : ''}`; return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div><label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!canWrite || s.nfcBusy || s.nfcType === 'wifi' ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!canRead || s.nfcBusy ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${nfcStatus(support)}</div><p class="rh-helper">Bu sürümde kalıcı kilitleme ve toplu yazım yoktur. WiFi/WSC yazımı için mevcut projedeki NDEF modülü kullanılmalıdır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><img src="${asset('logo.svg')}" alt=""/><h3>Dokun, bağlantı kur.</h3><p id="rh-nfc-preview">İçeriğini hazırlamaya başla.</p><div class="rh-wave">Temsili telefon önizlemesi</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${capabilityTitle}</strong><p>${esc(capabilityHint)}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'İzin senin kontrolünde', 'Üzerine yazma seçeneği varsayılan olarak kapalıdır.'], ['phone', 'Cihazı önce kontrol et', 'Tarayıcı desteği, fiziksel donanım garantisi değildir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Yazma başarı mesajı ancak cihaz onayından sonra gelir.']])}${ideaSection('nfc')}</main>`; }
   function render(focus = false): void {
     if (disposed) return;
     viewCleanup?.(); viewCleanup = undefined;
@@ -495,26 +494,30 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     downloadBlob(blob, `renderhane-qr-${s.qrType}-${artifact.style}.${kind}`);
   }
   async function nfcAction(mode: 'write' | 'scan'): Promise<void> {
-    if (!supportedNfc() || !win.NDEFReader) { toast('NFC destekli Android, Chrome ve HTTPS gerekir.'); return; }
+    const support = nfcAdapter.support();
+    if (!support.available) { toast(support.reason || 'NFC donanımı ve uyumlu bir sürücü gerekir.'); return; }
+    if (mode === 'write' && !support.canWriteNdef) { toast(support.reason || 'Bu NFC sürücüsü NDEF yazmayı desteklemiyor.'); return; }
+    if (mode === 'scan' && !support.canReadNdef) { toast(support.reason || 'Bu NFC sürücüsü NDEF okumayı desteklemiyor.'); return; }
     if (mode === 'write' && s.nfcType === 'wifi') { toast('WiFi/WSC yazımı bu sürümde kapalı.'); return; }
     let payload = '';
     try { if (mode === 'write') payload = buildPayload(s.nfcType, s.nfc); } catch (error) { toast(error instanceof Error ? error.message : 'İçeriği kontrol edin.'); return; }
     stopNfc(); const controller = new AbortController(); nfcAbort = controller; s.nfcBusy = true; s.nfcMessage = mode === 'write' ? 'Etiketi telefonun arkasına yaklaştır. Yazma tamamlanana kadar uzaklaştırma.' : 'Okumak istediğin etiketi yaklaştır.'; render();
     nfcTimer = win.setTimeout(() => { if (nfcAbort === controller) { controller.abort(); s.nfcBusy = false; s.nfcMessage = '20 saniye içinde etiket algılanmadı. İşlemi yeniden başlatabilirsin.'; render(); } }, 20_000);
     try {
-      const reader = new win.NDEFReader();
       if (mode === 'write') {
-        let records: NFCRecord[];
+        let records: NfcRecordInput[];
         if (s.nfcType === 'vcard') records = [{ recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload) }];
         else if (s.nfcType === 'text') records = [{ recordType: 'text', lang: locale, data: payload }];
         else if (s.nfcType === 'app') records = [{ recordType: 'url', data: payload }, { recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package) }];
         else records = [{ recordType: 'url', data: payload }];
-        await reader.write({ records }, { signal: controller.signal, overwrite: s.nfcOverwrite });
+        await nfcAdapter.write(records, { signal: controller.signal, overwrite: s.nfcOverwrite });
         if (!controller.signal.aborted && !disposed) { s.nfcMessage = 'Etiket yazıldı. Kullanacağın cihazla okuyarak test et.'; stopNfc(); render(); }
       } else {
-        reader.onreading = event => { if (disposed || controller.signal.aborted) return; const parts = event.message.records.map(record => { try { return new TextDecoder(record.encoding || 'utf-8').decode(record.data); } catch { return `[${record.recordType}: ikili veri]`; } }); s.nfcMessage = 'Etiket okundu: ' + parts.join(' / '); stopNfc(); render(); };
-        reader.onreadingerror = () => { if (!disposed) { s.nfcMessage = 'Etiket okunamadı. Biçim veya yakınlığı kontrol et.'; stopNfc(); render(); } };
-        await reader.scan({ signal: controller.signal });
+        const result = await nfcAdapter.scan({signal: controller.signal});
+        if (disposed || controller.signal.aborted) return;
+        const parts = result.records.map(decodeNfcRecord);
+        s.nfcMessage = 'Etiket okundu: ' + parts.join(' / ');
+        stopNfc(); render();
       }
     } catch (error) {
       if (!controller.signal.aborted && !disposed) { const name = error instanceof Error ? error.name : ''; const reason = error instanceof Error ? error.message : 'Bilinmeyen hata'; s.nfcMessage = name === 'NotAllowedError' ? 'NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.' : name === 'NotSupportedError' ? 'Cihaz veya etiket bu işlemi desteklemiyor.' : `NFC işlemi tamamlanmadı: ${reason}`; stopNfc(); render(); }
