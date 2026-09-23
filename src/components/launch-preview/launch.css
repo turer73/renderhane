@@ -343,6 +343,13 @@
 .rhl .rhl-audit-title small{font-size:10px;font-weight:500;color:var(--muted)}
 .rhl .rhl-audit-note .rhl-strip-icon{width:32px;height:32px;border-radius:9px}
 .rhl .rhl-audit-note .rhl-strip-icon svg{width:17px;height:17px}
+@media(min-width:768px) and (max-width:1199px){
+ .rhl .rhl-tool-visual{grid-template-columns:minmax(0,1fr) 34px;grid-template-rows:100px auto;padding:18px;gap:12px 7px;min-height:242px;align-items:start}
+ .rhl .rhl-tool-art-wrap{grid-column:1/-1;width:108px;height:100px;justify-self:start}
+ .rhl .rhl-tool-art{width:100px!important;height:94px!important}
+ .rhl .rhl-tool-copy{grid-column:1;grid-row:2}
+ .rhl .rhl-tool-arrow{grid-column:2;grid-row:2;align-self:center}
+}
 @media(max-width:767px){
  .rhl #rhl-free .rhl-section-head>p{padding-top:0;text-align:left;max-width:520px}
  .rhl .rhl-tool-visual{grid-template-columns:72px minmax(0,1fr) 32px;padding:13px;gap:13px}
