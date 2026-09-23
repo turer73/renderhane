@@ -715,10 +715,10 @@ const toolConfigs: ToolSEOConfig[] = [
         },
       },
       {
-        name: { tr: "Yazmadan önce kontrol edin", en: "Review before writing" },
+        name: { tr: "Doğrulayın ve kilitleyin", en: "Verify and lock" },
         text: {
-          tr: "İçeriği yazmadan önce kontrol edin. Desteklenen etiketlerde ‘Yazdıktan sonra etiketi kalıcı olarak kilitle’ seçeneği içeriği yazıp hemen kilitler; işlem geri alınamaz. Yazımdan sonra Etiketi Oku ile hedef cihaz davranışını sınayabilirsiniz.",
-          en: "Review the content before writing. On supported tags, ‘Permanently lock the tag after writing’ writes and immediately locks the content; it cannot be undone. After writing, use Read Tag to test behavior on the intended device.",
+          tr: "İçeriği yazmadan önce kontrol edin. Kalıcı kilit seçildiğinde araç etiketi yazdıktan sonra geri okur, NDEF kayıtlarını karşılaştırır ve yalnız eşleşirse kilitler; işlem geri alınamaz. Yazımdan sonra Etiketi Oku ile hedef cihaz davranışını sınayabilirsiniz.",
+          en: "Review the content before writing. When permanent locking is selected, the tool reads the tag back after writing, compares the NDEF records, and locks only on an exact match; this cannot be undone. After writing, use Read Tag to test behavior on the intended device.",
         },
       },
       {
