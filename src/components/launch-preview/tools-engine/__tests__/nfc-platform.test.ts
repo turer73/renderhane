@@ -46,8 +46,10 @@ describe('NFC chip platform', () => {
       onreading: ((event: never) => void) | null = null;
       onreadingerror: (() => void) | null = null;
       write = vi.fn(async () => undefined);
+      scanSignal: AbortSignal | undefined;
       constructor() { FakeReader.last = this; }
-      async scan(): Promise<void> {
+      async scan(options: {signal: AbortSignal}): Promise<void> {
+        this.scanSignal = options.signal;
         const record = Object.create({
           recordType: 'text',
           encoding: 'utf-8',
@@ -74,5 +76,6 @@ describe('NFC chip platform', () => {
     const scan = await adapter.scan({signal: new AbortController().signal});
     expect(scan.serialNumber).toBe('test-tag');
     expect(decodeNfcRecord(scan.records[0]!)).toBe('merhaba');
+    expect(FakeReader.last?.scanSignal?.aborted).toBe(true);
   });
 });

@@ -62,10 +62,19 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
       if (unavailableReason(win) || !win.NDEFReader) throw new DOMException(unavailableReason(win), 'NotSupportedError');
       const reader = new win.NDEFReader();
       return await new Promise<NfcScanResult>((resolve, reject) => {
-        const abort = () => reject(new DOMException('NFC işlemi durduruldu.', 'AbortError'));
+        const session = new AbortController();
+        let settled = false;
+        const finish = (callback: () => void) => {
+          if (settled) return;
+          settled = true;
+          options.signal.removeEventListener('abort', abort);
+          session.abort();
+          callback();
+        };
+        const abort = () => finish(() => reject(new DOMException('NFC işlemi durduruldu.', 'AbortError')));
+        if (options.signal.aborted) { abort(); return; }
         options.signal.addEventListener('abort', abort, {once: true});
         reader.onreading = event => {
-          options.signal.removeEventListener('abort', abort);
           const records: NfcReadRecord[] = event.message.records.map(record => ({
             recordType: record.recordType,
             mediaType: record.mediaType,
@@ -74,16 +83,12 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
             id: record.id,
             data: record.data,
           }));
-          resolve({serialNumber: event.serialNumber, records});
+          finish(() => resolve({serialNumber: event.serialNumber, records}));
         };
-        reader.onreadingerror = () => {
-          options.signal.removeEventListener('abort', abort);
-          reject(new DOMException('NDEF etiketi okunamadı.', 'DataError'));
-        };
-        void reader.scan(options).catch(error => {
-          options.signal.removeEventListener('abort', abort);
-          reject(error);
-        });
+        reader.onreadingerror = () =>
+          finish(() => reject(new DOMException('NDEF etiketi okunamadı.', 'DataError')));
+        void reader.scan({signal: session.signal}).catch(error =>
+          finish(() => reject(error)));
       });
     },
   };
