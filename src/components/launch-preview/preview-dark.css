@@ -15,7 +15,8 @@
 .dark .rhl .rhl-route-body p{color:var(--muted)}
 .dark .rhl .rhl-tool-visual{background:linear-gradient(145deg,#1e1840,#191335);box-shadow:0 8px 24px -24px #000}
 .dark .rhl .rhl-tool-visual:hover,.dark .rhl .rhl-tool-visual:focus-visible{background:#221a4a;border-color:#5a4a9e}
-.dark .rhl .rhl-tool-visual .rhl-tool-art{background:#fff;border-radius:12px}
+.dark .rhl .rhl-tool-art-wrap{background:linear-gradient(145deg,#f8f5ff,#ece5ff);border-color:#5b4a91;box-shadow:inset 0 0 0 1px #ffffff66}
+.dark .rhl .rhl-tool-visual .rhl-tool-art{background:transparent;border-radius:0;mix-blend-mode:normal;filter:none;opacity:1}
 .dark .rhl .rhl-tool-copy small{color:var(--muted)}
 .dark .rhl .rhl-tool-badge{background:#3a2d6e;color:#cfc2ff}
 .dark .rhl .rhl-tool-arrow{background:#2c2358;color:var(--accent)}
@@ -23,6 +24,10 @@
 .dark .rhl .rhl-artistic-strip:after{background:#3d2f7a55;box-shadow:-110px 29px 0 0 #3d2f7a44}
 .dark .rhl .rhl-strip-icon{background:#2c2358;color:#cfc2ff}
 .dark .rhl .rhl-paid-tag{background:#ffffff14;border-color:#5a4a9e;color:#cfc2ff}
+.dark .rhl .rhl-artistic-copy>span{color:#ad9ae0}
+.dark .rhl .rhl-artistic-copy p,.dark .rhl .rhl-audit-title b{color:#f5f1ff}
+.dark .rhl .rhl-artistic-link{color:#c7b6ff!important}
+.dark .rhl .rhl-audit-title small{color:#a99fbe}
 .dark .rhl .rhl-estimator{background:#191335;border-color:#352a63}
 .dark .rhl .rhl-estimator p{color:var(--muted)}
 .dark .rhl .rhl-fields label{color:var(--ink)}

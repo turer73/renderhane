@@ -318,3 +318,42 @@
 @media(max-width:767px){
  .rhl-footer-clearance{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px));background:#141126}
 }
+
+/* 1.7.0 — Supporting tools hierarchy and dark-mode-safe artwork. */
+.rhl #rhl-free .rhl-section-head{align-items:flex-start;margin-bottom:26px}
+.rhl #rhl-free .rhl-section-head>p{max-width:360px;padding-top:24px;line-height:1.65;text-align:right}
+.rhl .rhl-tool-visual{grid-template-columns:82px minmax(0,1fr) 34px;padding:16px;gap:16px;overflow:hidden}
+.rhl .rhl-tool-art-wrap{display:grid;place-items:center;width:82px;height:82px;border:1px solid #e7e0f7;border-radius:14px;background:linear-gradient(145deg,#f8f5ff,#f0eafd);overflow:hidden}
+.rhl .rhl-tool-art{width:76px!important;height:76px!important;object-fit:contain;mix-blend-mode:normal!important;filter:none;opacity:1}
+.rhl .rhl-tool-copy b{font-size:15px;line-height:1.35}
+.rhl .rhl-tool-copy small{font-size:11px;line-height:1.55}
+.rhl .rhl-tool-arrow{width:34px;height:34px;font-size:initial}
+.rhl .rhl-tool-arrow svg{width:16px;height:16px}
+.rhl .rhl-artistic-strip{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:16px;align-items:center;padding:17px 20px}
+.rhl .rhl-artistic-copy{min-width:0}
+.rhl .rhl-artistic-copy>span{display:block;margin-bottom:3px;color:#79669d;font-size:9px;font-weight:760;letter-spacing:1.25px}
+.rhl .rhl-artistic-copy p{color:var(--ink);font-size:13px;font-weight:620;line-height:1.55}
+.rhl .rhl-artistic-link{display:flex!important;align-items:center;justify-content:flex-end;gap:9px;min-height:44px;color:var(--accent)!important;font-size:12px;font-weight:720;white-space:nowrap}
+.rhl .rhl-artistic-link svg{width:16px;height:16px;flex:none}
+.rhl .rhl-artistic-strip .rhl-paid-tag{font-size:9px}
+.rhl .rhl-audit-note{padding:12px 16px}
+.rhl .rhl-audit-note summary{min-height:48px;cursor:pointer}
+.rhl .rhl-audit-title{display:grid;gap:2px;min-width:0}
+.rhl .rhl-audit-title b{font-size:12px;color:var(--ink)}
+.rhl .rhl-audit-title small{font-size:10px;font-weight:500;color:var(--muted)}
+.rhl .rhl-audit-note .rhl-strip-icon{width:32px;height:32px;border-radius:9px}
+.rhl .rhl-audit-note .rhl-strip-icon svg{width:17px;height:17px}
+@media(max-width:767px){
+ .rhl #rhl-free .rhl-section-head>p{padding-top:0;text-align:left;max-width:520px}
+ .rhl .rhl-tool-visual{grid-template-columns:72px minmax(0,1fr) 32px;padding:13px;gap:13px}
+ .rhl .rhl-tool-art-wrap{width:72px;height:72px;border-radius:13px}
+ .rhl .rhl-tool-art{width:66px!important;height:66px!important}
+ .rhl .rhl-artistic-strip{grid-template-columns:36px minmax(0,1fr);padding:16px;gap:10px 13px}
+ .rhl .rhl-artistic-link{grid-column:2;justify-content:flex-start;white-space:normal}
+}
+@media(max-width:390px){
+ .rhl .rhl-tool-visual{grid-template-columns:62px minmax(0,1fr) 28px;gap:10px;padding:12px 10px}
+ .rhl .rhl-tool-art-wrap{width:62px;height:62px}
+ .rhl .rhl-tool-art{width:58px!important;height:58px!important}
+ .rhl .rhl-tool-copy b{font-size:14px}
+}
