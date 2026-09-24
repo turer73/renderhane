@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Box } from "lucide-react";
+import { ArrowRight, Box, CheckCircle2, ChevronDown, WandSparkles } from "lucide-react";
 import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
 import { loginPath, photoModelOptions, quoteCredits, type Locale } from "@/lib/launch-preview/core";
 import { LaunchNavigation } from "./launch-navigation";
@@ -309,34 +309,43 @@ export function LaunchPreviewSections({ locale, production = false }: { locale: 
             ["nfc-yaz", "/launch-preview/home/tool-nfc.webp", tr ? "Mobil" : "Mobile", tr ? "NFC etiketi yaz" : "Write an NFC tag", tr ? "Uyumlu Android + Chrome" : "Compatible Android + Chrome"],
           ].map(([slug, art, badge, title, sub]) => (
             <Link className="rhl-tool rhl-tool-visual" href={toolHref(slug)} key={slug}>
-              <Image className="rhl-tool-art" src={art} width={240} height={224} loading="lazy" alt="" aria-hidden="true" />
+              <span className="rhl-tool-art-wrap" aria-hidden="true">
+                <Image className="rhl-tool-art" src={art} width={240} height={224} loading="lazy" alt="" />
+              </span>
               <div className="rhl-tool-copy">
                 <span className="rhl-tool-badge">{badge}</span>
                 <b>{title}</b>
                 <small>{sub}</small>
               </div>
               <span className="rhl-tool-arrow" aria-hidden="true">
-                →
+                <ArrowRight />
               </span>
             </Link>
           ))}
         </div>
         <div className="rhl-artistic-strip">
           <span className="rhl-strip-icon">
-            <svg aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24">
-              <path d="m14 6 4-4a2.1 2.1 0 0 1 3 3l-9 9-3-3 5-5Z" />
-              <path d="M10 13c-5-2-2 6-8 7 6 2 10 0 10-5" />
-            </svg>
+            <WandSparkles aria-hidden="true" />
           </span>
-          <p>
-            {tr ? "Markana özel bir tasarım mı? " : "Looking for a branded design? "}
-            <Link href={artisticHref}>
-              {tr ? "Sanatsal QR çalışmalarını incele" : "Explore artistic QR"} <span className="rhl-paid-tag">{tr ? "Ücretli özel tasarım" : "Paid design"}</span> <span aria-hidden="true">→</span>
-            </Link>
-          </p>
+          <div className="rhl-artistic-copy">
+            <span>{tr ? "ÖZEL TASARIM" : "CUSTOM DESIGN"}</span>
+            <p>{tr ? "Markana özel, görsel kimliğinle uyumlu bir QR tasarımı hazırlayalım." : "Get an artistic QR design tailored to your brand identity."}</p>
+          </div>
+          <Link className="rhl-artistic-link" href={artisticHref}>
+            <span>{tr ? "Çalışmaları incele" : "Explore the work"}</span>
+            <span className="rhl-paid-tag">{tr ? "Ücretli" : "Paid"}</span>
+            <ArrowRight aria-hidden="true" />
+          </Link>
         </div>
         <details className="rhl-audit-note" id="rhl-scope">
-          <summary>{tr ? "Araç ve servis durumu" : "Tool and service status"}</summary>
+          <summary>
+            <span className="rhl-strip-icon"><CheckCircle2 aria-hidden="true" /></span>
+            <span className="rhl-audit-title">
+              <b>{tr ? "Araç ve servis durumu" : "Tool and service status"}</b>
+              <small>{tr ? "Ücretsiz araçların çalışma kapsamını görüntüle" : "View availability for the free tools"}</small>
+            </span>
+            <ChevronDown className="rhl-disclosure-chevron" aria-hidden="true" />
+          </summary>
           <p>{tr ? "Yeni ana sayfa ve araç ekranları aynı arayüzü kullanır. Standart QR tarayıcıda üretilir. AI üretim ve sipariş servisleri varsayılan olarak bağlı değildir. Şişe örneği önceden hazırlanmıştır. NFC fiziksel cihazda test edilmedi." : "The new homepage and tool screens use one interface. Standard QR generation runs locally. Live AI and order services are not connected by default. The bottle sample is prebuilt. NFC hardware is not tested."}</p>
         </details>
       </section>
