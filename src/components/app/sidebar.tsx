@@ -14,6 +14,7 @@ import {
   LogOut,
   Sparkles,
   ArrowLeft,
+  Layers3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
@@ -106,6 +107,11 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     ...(isAdminUser
       ? [
           {
+            href: `/${locale}/app/relief`,
+            label: "Relief Pro Atölyesi",
+            icon: Layers3,
+          },
+          {
             href: `/${locale}/app/admin`,
             label: tSidebar("admin"),
             icon: Shield,
@@ -116,6 +122,11 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   ];
 
   const adminNavItems = [
+    {
+      href: `/${locale}/app/relief`,
+      label: "Relief Pro Atölyesi",
+      icon: Layers3,
+    },
     {
       href: `/${locale}/app`,
       label: "Uygulamaya Dön",

@@ -17,6 +17,17 @@ permissions:
   contents: read
 
 jobs:
+  workshop-container:
+    name: Private workshop container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build pinned native runtime
+        run: docker build -f workers/relief/Dockerfile -t renderhane-relief-workshop:ci .
+      - name: Verify non-root runtime and HTTP application construction
+        run: |
+          docker run --rm --network none --entrypoint python renderhane-relief-workshop:ci -c "import os; assert os.getuid() != 0; os.environ['RELIEF_WORKSHOP_TOKEN'] = 'ci-ephemeral-test-only-' * 3; from workshop_http import create_app; from workshop_contract import validate_submission; assert callable(create_app()); spec, payload = validate_submission({'sample': 'calibration-v1', 'acknowledge_candidate': True}); assert spec['recipe']['normalization_mode'] == 'absolute'; print('private worker runtime contract passed')"
+
   relief-worker:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
