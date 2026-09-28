@@ -8,7 +8,7 @@ import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl,
 import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
 import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload} from '@/lib/share-links';
-import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
+import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
 export type ToolLocale = 'tr' | 'en';
@@ -944,8 +944,13 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
           const compact = decodeCompactNfcRecord(record);
           return compact ? formatCompactNfcDetails(compact) : decodeNfcRecord(record);
         });
+        const form = decodeNfcForm(result.records);
+        if (form) {
+          s.nfcType = form.type;
+          s.nfc = {...form.fields};
+        }
         s.nfcLastReadText = parts.join('\n\n');
-        s.nfcMessage = 'Etiket okundu.';
+        s.nfcMessage = form ? 'Etiket okundu ve düzenleme alanına aktarıldı.' : 'Etiket okundu.';
         stopNfc();
         render();
       }
