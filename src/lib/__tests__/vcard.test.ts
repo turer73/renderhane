@@ -92,13 +92,25 @@ describe("buildVCard", () => {
     });
   });
 
-  it("declines to edit cards with additional phone or email values", () => {
+  it("declines to edit cards with additional phone, email, or address values", () => {
     const phones = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "TEL:+905551111111", "TEL:+905552222222", "END:VCARD"].join("\r\n");
     const emails = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "EMAIL:ada@example.com", "EMAIL:work@example.com", "END:VCARD"].join("\r\n");
+    const addresses = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "ADR;TYPE=HOME:;;Home Street;;;;", "ADR;TYPE=WORK:;;Work Street;;;;", "END:VCARD"].join("\r\n");
     expect(() => parseVCard(phones)).toThrow(/Birden fazla telefon/);
     expect(() => parseVCard(emails)).toThrow(/Birden fazla e-posta/);
+    expect(() => parseVCard(addresses)).toThrow(/Birden fazla adres/);
+  });
+
+  it("recognizes WhatsApp only from an exact grouped wa.me destination", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://example.com/go/wa.me/905551234567", "END:VCARD"].join("\r\n");
+    expect(parseVCard(card)).toMatchObject({
+      website: "https://example.com/go/wa.me/905551234567",
+    });
+    expect(parseVCard(card).whatsapp).toBeUndefined();
   });
 
   it("folds generated content lines at 75 UTF-8 octets without changing values", () => {
