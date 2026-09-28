@@ -274,6 +274,13 @@ describe("describeRecord", () => {
       type: "email",
       fields: { email: "a@b.com", subject: "Merhaba Dünya" },
     });
+    expect(describeRecord({
+      recordType: "url",
+      data: "mailto:person%2Bsales@example.com",
+    }).form).toEqual({
+      type: "email",
+      fields: { email: "person+sales@example.com" },
+    });
     expect(roundTrip("sms", { phone: "+905551234567", body: "selam" })).toEqual({
       type: "sms",
       fields: { phone: "+905551234567", body: "selam" },
@@ -281,6 +288,11 @@ describe("describeRecord", () => {
     expect(roundTrip("location", { lat: "41.0082", lon: "28.9784" })).toEqual({
       type: "location",
       fields: { lat: "41.0082", lon: "28.9784" },
+    });
+    const deceptiveMap = "https://maps.example.com/search?q=41.0,28.9&source=custom";
+    expect(describeRecord({ recordType: "url", data: deceptiveMap }).form).toEqual({
+      type: "url",
+      fields: { url: deceptiveMap },
     });
     expect(roundTrip("text", { text: "merhaba" })).toEqual({
       type: "text",
