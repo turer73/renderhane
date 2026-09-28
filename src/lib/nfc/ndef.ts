@@ -248,7 +248,7 @@ export function buildNdefRecords(
   opts: { lang?: string } = {}
 ): NfcRecordInit[] {
   if (!isNfcInputValid(type, fields)) return [];
-  const lang = opts.lang || "tr";
+  const lang = fields.lang || opts.lang || "tr";
   const encoder = new TextEncoder();
 
   switch (type) {
@@ -361,7 +361,7 @@ export interface DecodedRecord {
 }
 
 /** Maps a URI record back to the content type that would have produced it. */
-function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
+function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } | null {
   if (/^tel:/i.test(uri)) return { type: "phone", fields: { phone: uri.slice(4) } };
 
   if (/^mailto:/i.test(uri)) {
@@ -373,6 +373,8 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
       // Preserve malformed legacy values as-is so the reader still displays them.
     }
     const params = new URLSearchParams(query);
+    if ([...params.keys()].some((key) => !["subject", "body"].includes(key.toLowerCase())))
+      return null;
     const fields: NfcFields = { email: address };
     if (params.get("subject")) fields.subject = params.get("subject") as string;
     if (params.get("body")) fields.body = params.get("body") as string;
@@ -568,6 +570,7 @@ export function readWscSsid(data: Uint8Array): string {
 export function describeRecord(record: {
   recordType: string;
   mediaType?: string | null;
+  lang?: string | null;
   data?: unknown;
 }): DecodedRecord {
   const { recordType, mediaType } = record;
@@ -575,11 +578,11 @@ export function describeRecord(record: {
 
   if (recordType === "url" || recordType === "absolute-url") {
     const value = toText(record.data);
-    return { kind: "url", value, form: uriToForm(value) };
+    return { kind: "url", value, form: uriToForm(value) ?? undefined };
   }
   if (recordType === "text") {
     const value = toText(record.data);
-    return { kind: "text", value, form: { type: "text", fields: { text: value } } };
+    return { kind: "text", value, form: { type: "text", fields: { text: value, lang: record.lang || "" } } };
   }
   if (recordType === "empty") {
     return { kind: "empty", value: "" };
