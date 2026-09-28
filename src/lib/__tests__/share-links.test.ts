@@ -23,7 +23,7 @@ describe("social link normalization", () => {
 
   it("accepts official full URLs and rejects look-alike hosts", () => {
     expect(normalizeSocialLink("x", "https://twitter.com/renderhane?ref=test").url).toBe(
-      "https://x.com/renderhane"
+      "https://twitter.com/renderhane?ref=test"
     );
     expect(() =>
       normalizeSocialLink("instagram", "https://instagram.com.example.org/renderhane")
@@ -52,6 +52,14 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("telegram", "https://t.me/+AbCd123").url).toBe(
       "https://t.me/+AbCd123"
     );
+    expect(normalizeSocialLink("tiktok", "https://vm.tiktok.com/ZAbCd123/").url).toBe(
+      "https://vm.tiktok.com/ZAbCd123/"
+    );
+  });
+
+  it("uses platform-specific handle rules", () => {
+    expect(() => normalizeSocialLink("instagram", "bad-name")).toThrow(/kullanıcı adı/);
+    expect(() => normalizeSocialLink("x", "a".repeat(16))).toThrow(/kullanıcı adı/);
   });
 
   it("marks contact and social share routes as analytics-free", () => {

@@ -37,7 +37,14 @@ const BY_KEY = Object.fromEntries(SOCIAL_PLATFORMS.map((platform) => [platform.k
   (typeof SOCIAL_PLATFORMS)[number]
 >;
 
-const HANDLE = /^[A-Za-z0-9._-]{1,100}$/;
+const HANDLE_RULES: Partial<Record<SocialPlatform, RegExp>> = {
+  instagram: /^[A-Za-z0-9._]{1,30}$/,
+  x: /^[A-Za-z0-9_]{1,15}$/,
+  telegram: /^[A-Za-z0-9_]{5,32}$/,
+  tiktok: /^[A-Za-z0-9._]{2,24}$/,
+  facebook: /^[A-Za-z0-9.]{1,50}$/,
+  youtube: /^[A-Za-z0-9._-]{3,30}$/,
+};
 const ORIGIN = "https://www.renderhane.com";
 
 function parseHttpUrl(raw: string): URL {
@@ -60,13 +67,14 @@ function exactHost(url: URL, hosts: readonly string[]): void {
 
 function removeTrackingParams(url: URL): void {
   for (const key of [...url.searchParams.keys()]) {
-    if (/^(utm_|fbclid$|gclid$|ref$)/i.test(key)) url.searchParams.delete(key);
+    if (/^(utm_|fbclid$|gclid$)/i.test(key)) url.searchParams.delete(key);
   }
 }
 
-function cleanHandle(raw: string): string {
+function cleanHandle(raw: string, platform?: SocialPlatform): string {
   const value = raw.trim().replace(/^@/, "").replace(/\/+$/, "");
-  if (!HANDLE.test(value)) throw new Error("Geçerli bir kullanıcı adı girin.");
+  const rule = (platform && HANDLE_RULES[platform]) || /^[A-Za-z0-9._-]{1,100}$/;
+  if (!rule.test(value)) throw new Error("Geçerli bir kullanıcı adı girin.");
   return value;
 }
 
@@ -117,7 +125,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       }
     }
     if (!/^(in|company)\/[A-Za-z0-9._%-]{1,100}$/.test(path))
-      path = `in/${cleanHandle(path)}`;
+      path = `in/${cleanHandle(path, platform)}`;
     return { url: `https://www.linkedin.com/${path}`, token: path };
   }
 
@@ -128,7 +136,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
   }> = {
     instagram: { hosts: ["instagram.com"], prefix: "https://www.instagram.com/", fromPath: (path) => path },
     telegram: { hosts: ["t.me", "telegram.me"], prefix: "https://t.me/", fromPath: (path) => path },
-    tiktok: { hosts: ["tiktok.com"], prefix: "https://www.tiktok.com/@", fromPath: (path) => path.replace(/^@/, "") },
+    tiktok: { hosts: ["tiktok.com", "vm.tiktok.com", "vt.tiktok.com"], prefix: "https://www.tiktok.com/@", fromPath: (path) => path.replace(/^@/, "") },
     x: { hosts: ["x.com", "twitter.com"], prefix: "https://x.com/", fromPath: (path) => path },
     facebook: { hosts: ["facebook.com", "fb.com"], prefix: "https://www.facebook.com/", fromPath: (path) => path },
     youtube: { hosts: ["youtube.com", "youtu.be"], prefix: "https://www.youtube.com/@", fromPath: (path) => path.replace(/^@/, "") },
@@ -152,7 +160,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       return { url: url.href, token: url.href };
     handle = rule.fromPath(segment);
   }
-  handle = cleanHandle(handle);
+  handle = cleanHandle(handle, platform);
   return { url: `${rule.prefix}${handle}`, token: handle };
 }
 
