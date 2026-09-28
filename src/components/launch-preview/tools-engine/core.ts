@@ -8,6 +8,7 @@ import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl,
 import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
 import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload} from '@/lib/share-links';
+import {buildVCard} from '@/lib/vcard';
 import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
@@ -204,8 +205,18 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
       if ((f.contactMode || 'android') === 'linked') return buildContactLandingUrl(f, locale);
       const firstName = requireField(f, 'firstName', 'Ad');
       const lastName = (f.lastName || '').trim();
-      const fullName = [firstName, lastName].filter(Boolean).join(' ');
-      return ['BEGIN:VCARD', 'VERSION:3.0', `N:${vcardEscape(lastName)};${vcardEscape(firstName)};;;`, `FN:${vcardEscape(fullName)}`, f.phone ? `TEL:${phone()}` : '', f.email ? `EMAIL:${vcardEscape(email(f.email))}` : '', f.org ? `ORG:${vcardEscape(f.org)}` : '', f.website ? `URL:${validHttp(f.website)}` : '', 'END:VCARD'].filter(Boolean).join('\r\n');
+      return buildVCard({
+        firstName,
+        lastName,
+        phone: f.phone ? phone() : undefined,
+        email: f.email ? email(f.email) : undefined,
+        org: f.org?.trim() || undefined,
+        title: f.title?.trim() || undefined,
+        address: f.address?.trim() || undefined,
+        website: f.website ? validHttp(f.website) : undefined,
+        instagram: f.instagram?.trim() || undefined,
+        whatsapp: f.whatsapp?.trim() || undefined,
+      });
     }
     case 'social': return buildSocialPayload(f, locale);
     case 'bank': return formatCompactNfcDetails(buildBusinessDetails('bank', f, locale));
@@ -433,7 +444,12 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         const hint = contactMode === 'android'
           ? l('Standart vCard doğrudan kişi uygulamasını hedefler. Kişi kartına özel sıkıştırma uygulanmaz.', 'Standard vCard targets the contacts app directly. Contact cards are never compressed.')
           : l('Standart HTTPS bağlantısı iki platformda da açılır; kişi bilgileri Renderhane sayfasında gösterilir.', 'A standard HTTPS link opens on both platforms and shows the contact details on a Renderhane page.');
-        return mode + `<div class="rh-two-fields">${input('firstName', l('Ad *', 'First name *'), l('Adınız', 'First name'))}${input('lastName', l('Soyad', 'Last name'), l('Soyadınız', 'Last name'))}</div>` + `<div class="rh-two-fields">${input('phone', l('Telefon', 'Phone'), '+90…', 'tel')}${input('email', l('E-posta', 'Email'), 'ad@firma.com', 'email')}</div>` + input('org', l('Kurum / marka', 'Organization / brand'), l('Marka adı', 'Brand name')) + input('website', l('Web sitesi', 'Website'), 'https://…', 'url') + `<p class="rh-helper">${hint}</p>`;
+        const extended = contactMode === 'android'
+          ? input('title', l('Unvan', 'Job title'), l('Görev / unvan', 'Role / title'))
+            + area('address', l('Adres', 'Address'))
+            + `<div class="rh-two-fields">${input('instagram', 'Instagram', '@renderhane')}${input('whatsapp', 'WhatsApp', '+905551234567', 'tel')}</div>`
+          : '';
+        return mode + `<div class="rh-two-fields">${input('firstName', l('Ad *', 'First name *'), l('Adınız', 'First name'))}${input('lastName', l('Soyad', 'Last name'), l('Soyadınız', 'Last name'))}</div>` + `<div class="rh-two-fields">${input('phone', l('Telefon', 'Phone'), '+90…', 'tel')}${input('email', l('E-posta', 'Email'), 'ad@firma.com', 'email')}</div>` + input('org', l('Kurum / marka', 'Organization / brand'), l('Marka adı', 'Brand name')) + input('website', l('Web sitesi', 'Website'), 'https://…', 'url') + extended + `<p class="rh-helper">${hint}</p>`;
       }
       case 'social': {
         const socialMode = f.socialMode || 'single';
