@@ -386,12 +386,15 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
     return { type: "location", fields: { lat: maps[1], lon: maps[2] } };
   }
 
-  const play = /play\.google\.com\/store\/apps\/details\?id=([^&\s]+)/i.exec(uri);
-  if (play) return { type: "app", fields: { packageName: play[1] } };
-
   try {
     const url = new URL(uri);
     const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const playPackage =
+      host === "play.google.com" && url.pathname === "/store/apps/details"
+        ? url.searchParams.get("id")
+        : null;
+    if (playPackage) return { type: "app", fields: { packageName: playPackage } };
+
     if (host === "renderhane.com" && /^\/(?:tr|en)\/k\/?$/.test(url.pathname)) {
       const fields: NfcFields = {
         contactMode: "linked",
