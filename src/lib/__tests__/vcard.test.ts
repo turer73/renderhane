@@ -111,6 +111,23 @@ describe("buildVCard", () => {
       website: "https://example.com/go/wa.me/905551234567",
     });
     expect(parseVCard(card).whatsapp).toBeUndefined();
+
+    const instagramRedirect = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://example.com/go?target=https://instagram.com/renderhane",
+      "END:VCARD"].join("\r\n");
+    expect(parseVCard(instagramRedirect)).toMatchObject({
+      website: "https://example.com/go?target=https://instagram.com/renderhane",
+    });
+    expect(parseVCard(instagramRedirect).instagram).toBeUndefined();
+  });
+
+  it("keeps structured names and unsupported user properties read-only", () => {
+    const structured = ["BEGIN:VCARD", "VERSION:3.0", "FN:Dr. John Quincy Doe Jr.",
+      "N:Doe;John;Quincy;Dr.;Jr.", "END:VCARD"].join("\r\n");
+    const note = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "NOTE:Important", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(structured)).toThrow(/Ek ad/);
+    expect(() => parseVCard(note)).toThrow(/Desteklenmeyen/);
   });
 
   it("folds generated content lines at 75 UTF-8 octets without changing values", () => {
