@@ -76,6 +76,13 @@ describe("share links", () => {
     });
   });
 
+  it("rejects a complete handoff URL that cannot fit the H-level QR budget", () => {
+    expect(() => buildShareUrl("https://www.renderhane.com", "/tr/araclar/nfc-yaz", {
+      type: "social",
+      fields: { instagram: "https://example.com/" + "a".repeat(1500) },
+    })).toThrow(/çok uzun/);
+  });
+
   it("returns null for an empty or unrelated hash", () => {
     expect(readShareHash("")).toBeNull();
     expect(readShareHash("#section-2")).toBeNull();
