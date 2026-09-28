@@ -26,33 +26,17 @@ describe("Sentry privacy scrubbing", () => {
     );
   });
 
-  it("scrubs request, transaction, breadcrumbs, and spans", () => {
+  it("drops events from private routes even when data appears in root fields", () => {
     const event = {
       request: {
         url: "https://www.renderhane.com/tr/k?n=Ada&e=ada%40example.com",
         query_string: "n=Ada&e=ada%40example.com",
-        headers: {
-          Referer: "https://www.renderhane.com/tr/k?n=Ada&e=ada%40example.com",
-        },
       },
       transaction: "GET /tr/s?i=renderhane",
-      breadcrumbs: [{ data: { from: "/tr/k?n=Ada", to: "/tr/" } }],
-      spans: [{
-        description: "GET https://www.renderhane.com/en/s?i=renderhane",
-        data: { "url.full": "https://www.renderhane.com/tr/k?n=Ada&e=ada%40example.com" },
-      }],
+      message: "Failed for https://www.renderhane.com/tr/k?n=Ada",
+      exception: { values: [{ value: "Contact Ada at +905551234567" }] },
+      extra: { destination: "/tr/s?i=renderhane" },
     };
-    expect(scrubSentryEvent(event)).toEqual({
-      request: {
-        url: "https://www.renderhane.com/tr/k",
-        headers: { Referer: "https://www.renderhane.com/tr/k" },
-      },
-      transaction: "GET /tr/s",
-      breadcrumbs: [{ data: { from: "/tr/k", to: "/tr/" } }],
-      spans: [{
-        description: "GET https://www.renderhane.com/en/s",
-        data: { "url.full": "https://www.renderhane.com/tr/k" },
-      }],
-    });
+    expect(scrubSentryEvent(event)).toBeNull();
   });
 });
