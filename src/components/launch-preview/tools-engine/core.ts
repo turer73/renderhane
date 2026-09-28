@@ -16,6 +16,18 @@ export type ContentType = 'url' | 'vcard' | 'social' | 'bank' | 'invoice' | 'wif
 type NfcStorageMode = 'standard' | 'compact';
 const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode';
 export type Fields = Record<string, string>;
+/** Adapts the shared NDEF decoder schema to this editor's field names. */
+export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {type: ContentType; fields: Fields} {
+  if (form.type === 'app') {
+    return {type: 'app', fields: {package: form.fields.package || form.fields.packageName || ''}};
+  }
+  if (form.type === 'url') {
+    const geo = /^geo:(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:[?;].*)?$/i.exec(form.fields.url || '');
+    if (geo) return {type: 'location', fields: {lat: geo[1], lon: geo[2]}};
+  }
+  return {type: form.type, fields: {...form.fields}};
+}
+
 export interface ImageResult { url: string; remaining?: number }
 export interface SceneResult { url: string; label: string }
 export interface RenderhaneAdapters {
@@ -944,13 +956,16 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
           const compact = decodeCompactNfcRecord(record);
           return compact ? formatCompactNfcDetails(compact) : decodeNfcRecord(record);
         });
-        const form = decodeNfcForm(result.records);
+        const decodedForm = decodeNfcForm(result.records);
+        const form = decodedForm ? toEditorNfcForm(decodedForm) : null;
         if (form) {
           s.nfcType = form.type;
-          s.nfc = {...form.fields};
+          s.nfc = form.fields;
         }
         s.nfcLastReadText = parts.join('\n\n');
-        s.nfcMessage = form ? 'Etiket okundu ve düzenleme alanına aktarıldı.' : 'Etiket okundu.';
+        s.nfcMessage = form
+          ? l('Etiket okundu ve düzenleme alanına aktarıldı.', 'Tag read and loaded into the editor.')
+          : l('Etiket okundu.', 'Tag read.');
         stopNfc();
         render();
       }
