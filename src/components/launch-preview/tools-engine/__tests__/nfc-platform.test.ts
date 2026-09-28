@@ -104,6 +104,13 @@ describe('NFC chip platform', () => {
       recordType: 'mime', mediaType: 'Text/VCard; Charset=UTF-8',
       data: new DataView(new TextEncoder().encode(raw).buffer),
     }])).toEqual({type: 'vcard', fields: {firstName: 'Ada', lastName: 'Lovelace'}});
+
+    const latin1Raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:;Ürer;;;', 'FN:Ürer', 'END:VCARD'].join('\r\n');
+    const latin1 = Uint8Array.from([...latin1Raw].map(character => character.charCodeAt(0)));
+    expect(decodeNfcForm([{
+      recordType: 'mime', mediaType: 'text/vcard; charset=iso-8859-1',
+      data: new DataView(latin1.buffer),
+    }])).toEqual({type: 'vcard', fields: {firstName: 'Ürer'}});
   });
 
   it('restores direct and linked social scans into the editable form', () => {
