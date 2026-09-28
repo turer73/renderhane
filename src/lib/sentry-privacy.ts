@@ -15,7 +15,11 @@ export function isPrivateShareRoute(value: string): boolean {
 
 export function scrubSentryEvent<T>(event: T): T {
   const mutable = event as {
-    request?: { url?: string; query_string?: unknown };
+    request?: {
+      url?: string;
+      query_string?: unknown;
+      headers?: Record<string, unknown>;
+    };
     transaction?: string;
     breadcrumbs?: Array<{ data?: Record<string, unknown> }>;
     spans?: Array<{ description?: string }>;
@@ -28,6 +32,10 @@ export function scrubSentryEvent<T>(event: T): T {
     mutable.request.url = sanitizePrivateShareText(mutable.request.url);
   if (privateRequest && mutable.request)
     delete mutable.request.query_string;
+  for (const [key, value] of Object.entries(mutable.request?.headers || {})) {
+    if (/^referr?er$/i.test(key) && typeof value === "string" && mutable.request?.headers)
+      mutable.request.headers[key] = sanitizePrivateShareText(value);
+  }
   if (mutable.transaction)
     mutable.transaction = sanitizePrivateShareText(mutable.transaction);
 
