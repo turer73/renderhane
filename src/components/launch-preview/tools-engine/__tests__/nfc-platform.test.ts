@@ -91,6 +91,14 @@ describe('NFC chip platform', () => {
     expect(checkNfcCapacity(records, 'ntag215').fits).toBe(true);
   });
 
+  it('restores vCards with MIME casing and charset parameters', () => {
+    const raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lovelace;Ada;;;', 'FN:Ada Lovelace', 'END:VCARD'].join('\r\n');
+    expect(decodeNfcForm([{
+      recordType: 'mime', mediaType: 'Text/VCard; Charset=UTF-8',
+      data: new DataView(new TextEncoder().encode(raw).buffer),
+    }])).toEqual({type: 'vcard', fields: {firstName: 'Ada', lastName: 'Lovelace'}});
+  });
+
   it('restores direct and linked social scans into the editable form', () => {
     const record = (url: string) => ({
       recordType: 'url',
