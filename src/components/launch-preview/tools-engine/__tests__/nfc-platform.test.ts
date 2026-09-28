@@ -129,12 +129,12 @@ describe('NFC chip platform', () => {
     });
     expect(decodeNfcForm([record('https://renderhane.com/tr/s?n=Renderhane&i=%40renderhane')])).toEqual({
       type: 'social',
-      fields: {socialMode: 'card', profileName: 'Renderhane', instagram: '@renderhane'},
+      fields: {socialMode: 'card', shareLocale: 'tr', profileName: 'Renderhane', instagram: '@renderhane'},
     });
     expect(decodeNfcForm([record('https://renderhane.com/tr/k?n=Turgut&s=%C3%9Crer&p=%2B905551234567&e=turgut%40example.com')])).toEqual({
       type: 'vcard',
       fields: {
-        contactMode: 'linked', firstName: 'Turgut', lastName: 'Ürer',
+        contactMode: 'linked', shareLocale: 'tr', firstName: 'Turgut', lastName: 'Ürer',
         phone: '+905551234567', email: 'turgut@example.com',
       },
     });
