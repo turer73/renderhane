@@ -205,6 +205,11 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
       if ((f.contactMode || 'android') === 'linked') return buildContactLandingUrl(f, locale);
       const firstName = requireField(f, 'firstName', 'Ad');
       const lastName = (f.lastName || '').trim();
+      const whatsapp = f.whatsapp?.trim() || undefined;
+      if (whatsapp) {
+        if (!/^\+?[\d\s()-]+$/.test(whatsapp) || !/^\d{7,15}$/.test(whatsapp.replace(/\D/g, '')))
+          throw Error('WhatsApp numarasını ülke koduyla girin.');
+      }
       return buildVCard({
         firstName,
         lastName,
@@ -215,7 +220,7 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
         address: f.address?.trim() || undefined,
         website: f.website ? validHttp(f.website) : undefined,
         instagram: f.instagram?.trim() || undefined,
-        whatsapp: f.whatsapp?.trim() || undefined,
+        whatsapp,
       });
     }
     case 'social': return buildSocialPayload(f, locale);
