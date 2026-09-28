@@ -197,9 +197,13 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; fatura oluşturulmaz veya gönderilmez.", "The details are prepared only as copyable text; no invoice is created or sent."],
   ["Etiket kapasitesi", "Tag capacity"],
   ["Etiket modelini seç", "Choose tag model"],
-  ["NTAG213 · 144 bayt", "NTAG213 · 144 bytes"],
-  ["NTAG215 · 504 bayt", "NTAG215 · 504 bytes"],
-  ["NTAG216 · 888 bayt", "NTAG216 · 888 bytes"],
+  ["NTAG213 · 132 bayt", "NTAG213 · 132 bytes"],
+  ["NTAG215 · 492 bayt", "NTAG215 · 492 bytes"],
+  ["NTAG216 · 872 bayt", "NTAG216 · 872 bytes"],
+  ["NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene.", "The NFC tag could not be read. Contact may have been lost or the tag may be incompatible; hold it steady near the phone's NFC area and try again."],
+  ["NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.", "The NFC tag could not be read. Hold it steady near the phone's NFC area and try again."],
+  ["Cihaz veya etiket NDEF okumayı desteklemiyor.", "The device or tag does not support NDEF reading."],
+  ["NFC okuma işlemi durduruldu.", "The NFC reading operation was stopped."],
   ["İçeriği tamamladığında tahmini NDEF boyutu burada görünür.", "The estimated NDEF size will appear here when the content is complete."],
   ["Tahmini NDEF kullanımı", "Estimated NDEF usage"],
   ["Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.", "Allow overwriting the tag's existing content."],
@@ -428,8 +432,8 @@ export function localizeToolElement(root: HTMLElement): void {
     if (!parent || parent.closest('[translate="no"]') || parent.closest("textarea,script,style")) continue;
     node.nodeValue = localizeToolText(node.nodeValue ?? "");
   }
-  root.querySelectorAll<HTMLElement>("[placeholder],[aria-label],[title],[alt]").forEach(element => {
-    for (const name of ["placeholder", "aria-label", "title", "alt"]) {
+  root.querySelectorAll<HTMLElement>("[placeholder],[aria-label],[aria-valuetext],[title],[alt]").forEach(element => {
+    for (const name of ["placeholder", "aria-label", "aria-valuetext", "title", "alt"]) {
       const value = element.getAttribute(name);
       if (value) element.setAttribute(name, localizeToolText(value));
     }

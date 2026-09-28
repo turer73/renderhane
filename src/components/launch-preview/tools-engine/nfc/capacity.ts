@@ -1,4 +1,5 @@
 import type {NfcRecordInput} from './types';
+import {NFC_TAG_CAPACITIES} from '@/lib/nfc/ndef';
 
 export type NfcCapacityProfileId = 'unknown' | 'ntag213' | 'ntag215' | 'ntag216';
 
@@ -8,11 +9,15 @@ export interface NfcCapacityProfile {
   capacityBytes: number | null;
 }
 
+function canonicalCapacity(id: 'NTAG213' | 'NTAG215' | 'NTAG216'): number {
+  return NFC_TAG_CAPACITIES.find(profile => profile.id === id)!.capacity;
+}
+
 export const NFC_CAPACITY_PROFILES: readonly NfcCapacityProfile[] = [
   {id: 'unknown', label: 'Etiket modelini seç', capacityBytes: null},
-  {id: 'ntag213', label: 'NTAG213 · 144 bayt', capacityBytes: 144},
-  {id: 'ntag215', label: 'NTAG215 · 504 bayt', capacityBytes: 504},
-  {id: 'ntag216', label: 'NTAG216 · 888 bayt', capacityBytes: 888},
+  {id: 'ntag213', label: `NTAG213 · ${canonicalCapacity('NTAG213')} bayt`, capacityBytes: canonicalCapacity('NTAG213')},
+  {id: 'ntag215', label: `NTAG215 · ${canonicalCapacity('NTAG215')} bayt`, capacityBytes: canonicalCapacity('NTAG215')},
+  {id: 'ntag216', label: `NTAG216 · ${canonicalCapacity('NTAG216')} bayt`, capacityBytes: canonicalCapacity('NTAG216')},
 ] as const;
 
 const encoder = new TextEncoder();

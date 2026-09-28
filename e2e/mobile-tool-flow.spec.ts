@@ -157,6 +157,17 @@ test.describe('public mobile tool flows', () => {
     await page.locator('#rh-nfc-capacity').selectOption('ntag215');
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
     await expect(page.locator('.rh-nfc-capacity')).toContainText('Sığıyor');
+
+    await page.locator('#rh-nfc-capacity').selectOption('ntag213');
+    await expect(page.locator('[data-action="nfc-bulk-start"]')).toBeDisabled();
+    const meter = page.locator('.rh-nfc-meter');
+    const [value, max, valueText] = await Promise.all([
+      meter.getAttribute('aria-valuenow'),
+      meter.getAttribute('aria-valuemax'),
+      meter.getAttribute('aria-valuetext'),
+    ]);
+    expect(Number(value)).toBeLessThanOrEqual(Number(max));
+    expect(valueText).toMatch(/bayt fazla/);
   });
 
   test('NFC IO failure opens an actionable error dialog without leaking null', async ({page}) => {
