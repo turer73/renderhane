@@ -92,6 +92,13 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("tiktok", "@render_hane").url).toBe(
       "https://www.tiktok.com/@render_hane"
     );
+    expect(() => normalizeSocialLink("tiktok", "person.")).toThrow(/kullanıcı adı/);
+    expect(normalizeSocialLink("youtube", "@ışık").url).toBe(
+      "https://www.youtube.com/@ışık"
+    );
+    expect(normalizeSocialLink("youtube", "https://www.youtube.com/@ışık").url).toBe(
+      "https://www.youtube.com/@ışık"
+    );
     expect(normalizeSocialLink("linkedin", "in/jane-doe").url).toBe(
       "https://www.linkedin.com/in/jane-doe"
     );
