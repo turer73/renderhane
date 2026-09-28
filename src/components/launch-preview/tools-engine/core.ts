@@ -24,8 +24,11 @@ export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {typ
   }
   if (form.type === 'url') {
     const number = '[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?';
-    const geo = new RegExp(`^geo:(${number}),(${number})(?:[?;].*)?$`, 'i').exec(form.fields.url || '');
-    if (geo) return {type: 'location', fields: {lat: geo[1], lon: geo[2]}};
+    const geo = new RegExp(`^geo:(${number}),(${number})((?:[?;].*)?)$`, 'i').exec(form.fields.url || '');
+    if (geo) return {
+      type: 'location',
+      fields: {lat: geo[1], lon: geo[2], geoSuffix: geo[3] || ''},
+    };
   }
   return {type: form.type, fields: {...form.fields}};
 }
@@ -248,7 +251,9 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
     case 'location': {
       const lat = Number(requireField(f, 'lat', 'Enlem')), lon = Number(requireField(f, 'lon', 'Boylam'));
       if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) throw Error('Enlem −90…90, boylam −180…180 aralığında olmalı.');
-      return `geo:${lat},${lon}`;
+      const suffix = f.geoSuffix || '';
+      if (suffix && !/^[?;][^\r\n]*$/.test(suffix)) throw Error('Geçersiz konum parametreleri.');
+      return `geo:${lat},${lon}${suffix}`;
     }
     case 'app': { const name = requireField(f, 'package', 'Paket adı'); if (!/^[A-Za-z][\w]*(\.[A-Za-z][\w]*)+$/.test(name)) throw Error('Geçerli bir Android paket adı girin (ör. com.firma.uygulama).'); return `https://play.google.com/store/apps/details?id=${encodeURIComponent(name)}`; }
     case 'text': return requireField(f, 'text', 'Metin');
