@@ -26,4 +26,11 @@ describe("buildVCard", () => {
     };
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
+
+  it("preserves URI punctuation in website values", () => {
+    const website = "https://example.com/a,b;c#/contact";
+    const card = buildVCard({ firstName: "Ada", website });
+    expect(card).toContain(`URL:${website}`);
+    expect(parseVCard(card).website).toBe(website);
+  });
 });

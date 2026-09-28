@@ -23,6 +23,8 @@ const escapeValue = (value: string): string => value
   .replace(/,/g, "\\,")
   .trim();
 
+const safeUriValue = (value: string): string => value.replace(/[\r\n]/g, "").trim();
+
 const unescapeValue = (value: string): string => {
   let result = "";
   for (let index = 0; index < value.length; index++) {
@@ -119,7 +121,7 @@ export function buildVCard(fields: VCardFields): string {
   if (fields.org) lines.push(`ORG:${escapeValue(fields.org)}`);
   if (fields.title) lines.push(`TITLE:${escapeValue(fields.title)}`);
   if (fields.address) lines.push(`ADR;TYPE=WORK:;;${escapeValue(fields.address)};;;;`);
-  if (fields.website) lines.push(`URL:${escapeValue(fields.website)}`);
+  if (fields.website) lines.push(`URL:${safeUriValue(fields.website)}`);
   // Social links use Apple item-grouping (itemN.URL + X-ABLabel) so they
   // show up labeled on iOS Contacts and as tappable URLs on Android.
   let socialIdx = 1;

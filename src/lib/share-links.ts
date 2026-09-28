@@ -145,7 +145,12 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       platform !== "youtube" || url.hostname.toLowerCase().replace(/^www\./, "") === "youtube.com"
     );
     if (!isSimpleProfile) return { url: url.href, token: url.href };
-    handle = rule.fromPath(segments[0] || "");
+    const segment = segments[0] || "";
+    if ((platform === "telegram" && segment.startsWith("+")) ||
+        (platform === "youtube" && !segment.startsWith("@")) ||
+        (platform === "tiktok" && !segment.startsWith("@")))
+      return { url: url.href, token: url.href };
+    handle = rule.fromPath(segment);
   }
   handle = cleanHandle(handle);
   return { url: `${rule.prefix}${handle}`, token: handle };
@@ -209,6 +214,8 @@ export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" 
     params.set("e", email);
   }
   if (fields.org?.trim()) params.set("o", fields.org.trim());
+  if ((fields.org?.trim().length || 0) > 120)
+    throw new Error("Kurum / marka en fazla 120 karakter olabilir.");
   if (fields.website?.trim()) params.set("u", parseHttpUrl(fields.website).href);
   return `${ORIGIN}/${locale}/k?${params.toString()}`;
 }

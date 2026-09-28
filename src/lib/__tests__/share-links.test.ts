@@ -49,6 +49,9 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("website", "https://example.com/#/contact").url).toBe(
       "https://example.com/#/contact"
     );
+    expect(normalizeSocialLink("telegram", "https://t.me/+AbCd123").url).toBe(
+      "https://t.me/+AbCd123"
+    );
   });
 
   it("marks contact and social share routes as analytics-free", () => {
@@ -100,6 +103,12 @@ describe("share landing URLs", () => {
     expect(() => buildContactLandingUrl({ firstName: "A".repeat(81) })).toThrow(/80 karakter/);
     expect(() => buildContactLandingUrl({ firstName: "Ada", lastName: "B".repeat(81) })).toThrow(
       /80 karakter/
+    );
+  });
+
+  it("rejects organizations that the landing page cannot preserve", () => {
+    expect(() => buildContactLandingUrl({ firstName: "Ada", org: "A".repeat(121) })).toThrow(
+      /120 karakter/
     );
   });
 });
