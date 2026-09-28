@@ -124,7 +124,7 @@ function applyConsent(consent: CookieConsent, analyticsAllowed = true) {
   } else {
     document.getElementById(GA_SCRIPT_ID)?.remove();
     document.getElementById(PANOLA_SCRIPT_ID)?.remove();
-    removeFirstPartyAnalyticsCookies();
+    if (!consent.analytics) removeFirstPartyAnalyticsCookies();
   }
 }
 
