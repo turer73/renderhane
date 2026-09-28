@@ -68,17 +68,20 @@ describe("buildVCard", () => {
   it("keeps unsupported telephone types and multiple websites read-only", () => {
     const workPhone = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "TEL;TYPE=WORK:+905551234567", "END:VCARD"].join("\r\n");
+    const typedEmail = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "EMAIL;TYPE=WORK:ada@example.com", "END:VCARD"].join("\r\n");
     const websites = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "item1.URL:https://work.example.com", "item2.URL:https://personal.example.com",
       "END:VCARD"].join("\r\n");
     expect(() => parseVCard(workPhone)).toThrow(/Telefon türü/);
+    expect(() => parseVCard(typedEmail)).toThrow(/E-posta türü/);
     expect(() => parseVCard(websites)).toThrow(/Birden fazla web adresi/);
   });
 
   it("recognizes grouped email, phone, and labeled social URLs", () => {
     const grouped = [
       "BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
-      "item1.EMAIL;TYPE=INTERNET:ada@example.com",
+      "item1.EMAIL:ada@example.com",
       "item2.TEL;TYPE=CELL:+905551234567",
       "item3.URL:https://www.instagram.com/renderhane",
       "END:VCARD",
@@ -137,9 +140,12 @@ describe("buildVCard", () => {
   it("keeps structured names and unsupported user properties read-only", () => {
     const structured = ["BEGIN:VCARD", "VERSION:3.0", "FN:Dr. John Quincy Doe Jr.",
       "N:Doe;John;Quincy;Dr.;Jr.", "END:VCARD"].join("\r\n");
+    const formatted = ["BEGIN:VCARD", "VERSION:3.0", "N:Doe;John;;;",
+      "FN:Dr. John Doe", "END:VCARD"].join("\r\n");
     const note = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "NOTE:Important", "END:VCARD"].join("\r\n");
     expect(() => parseVCard(structured)).toThrow(/Ek ad/);
+    expect(() => parseVCard(formatted)).toThrow(/Biçimlendirilmiş adı/);
     expect(() => parseVCard(note)).toThrow(/Desteklenmeyen/);
   });
 
