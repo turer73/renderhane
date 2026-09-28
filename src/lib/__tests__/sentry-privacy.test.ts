@@ -15,6 +15,12 @@ describe("Sentry privacy scrubbing", () => {
     expect(sanitizePrivateShareText("/en/s/?i=renderhane")).toBe("/en/s/");
     expect(isPrivateShareRoute("/tr/k")).toBe(true);
     expect(isPrivateShareRoute("GET /en/s?i=renderhane")).toBe(true);
+    expect(isPrivateShareRoute("/api/contact-card?n=Ada")).toBe(true);
+    expect(
+      sanitizePrivateShareText(
+        "https://www.renderhane.com/api/contact-card?n=Ada&e=ada%40example.com"
+      )
+    ).toBe("https://www.renderhane.com/api/contact-card");
     expect(sanitizePrivateShareText("/tr/araclar/nfc-yaz?x=1")).toBe(
       "/tr/araclar/nfc-yaz?x=1"
     );
