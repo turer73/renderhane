@@ -77,6 +77,12 @@ export function decodeNfcState(token: string): NfcShareState | null {
     for (const [key, value] of Object.entries(parsed.f as Record<string, unknown>)) {
       if (typeof value === "string") fields[key] = value;
     }
+    if (parsed.t === "vcard" && fields.name && !fields.firstName) {
+      const [firstName, ...lastName] = fields.name.trim().split(/\s+/);
+      if (firstName) fields.firstName = firstName;
+      if (lastName.length) fields.lastName = lastName.join(" ");
+      delete fields.name;
+    }
     return { type: parsed.t as NfcContentType, fields };
   } catch {
     return null;
