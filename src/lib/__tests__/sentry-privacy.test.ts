@@ -37,7 +37,10 @@ describe("Sentry privacy scrubbing", () => {
       },
       transaction: "GET /tr/s?i=renderhane",
       breadcrumbs: [{ data: { from: "/tr/k?n=Ada", to: "/tr/" } }],
-      spans: [{ description: "GET https://www.renderhane.com/en/s?i=renderhane" }],
+      spans: [{
+        description: "GET https://www.renderhane.com/en/s?i=renderhane",
+        data: { "url.full": "https://www.renderhane.com/tr/k?n=Ada&e=ada%40example.com" },
+      }],
     };
     expect(scrubSentryEvent(event)).toEqual({
       request: {
@@ -46,7 +49,10 @@ describe("Sentry privacy scrubbing", () => {
       },
       transaction: "GET /tr/s",
       breadcrumbs: [{ data: { from: "/tr/k", to: "/tr/" } }],
-      spans: [{ description: "GET https://www.renderhane.com/en/s" }],
+      spans: [{
+        description: "GET https://www.renderhane.com/en/s",
+        data: { "url.full": "https://www.renderhane.com/tr/k" },
+      }],
     });
   });
 });
