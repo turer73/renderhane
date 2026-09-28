@@ -95,7 +95,7 @@ export function parseVCard(text: string): VCardFields {
       fields.title ||= value;
     } else if (base === "ADR") {
       const parts = splitEscaped(rawValue, ";").map(unescapeValue);
-      fields.address ||= parts[2]?.trim() || "";
+      fields.address ||= parts.map((part) => part.trim()).filter(Boolean).join(", ");
     } else if (base === "URL" && grouped) {
       const instagram = /instagram\.com\/([^/?#]+)/i.exec(value)?.[1];
       const whatsapp = /wa\.me\/(\d+)/i.exec(value)?.[1];
