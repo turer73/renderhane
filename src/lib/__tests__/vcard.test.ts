@@ -27,6 +27,23 @@ describe("buildVCard", () => {
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 
+  it("unfolds standards-compliant continuation lines before parsing", () => {
+    const folded = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      "FN:Ada Lovelace",
+      "ORG:Render",
+      " hane",
+      "URL:https://example.com/a/very/long/",
+      " path",
+      "END:VCARD",
+    ].join("\r\n");
+    expect(parseVCard(folded)).toMatchObject({
+      firstName: "Ada", lastName: "Lovelace", org: "Renderhane",
+      website: "https://example.com/a/very/long/path",
+    });
+  });
+
   it("preserves URI punctuation in website values", () => {
     const website = "https://example.com/a,b;c#/contact";
     const card = buildVCard({ firstName: "Ada", website });
