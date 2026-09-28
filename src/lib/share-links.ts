@@ -140,7 +140,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
     telegram: { hosts: ["t.me", "telegram.me"], prefix: "https://t.me/", fromPath: (path) => path },
     tiktok: { hosts: ["tiktok.com", "vm.tiktok.com", "vt.tiktok.com"], prefix: "https://www.tiktok.com/@", fromPath: (path) => path.replace(/^@/, "") },
     x: { hosts: ["x.com", "twitter.com"], prefix: "https://x.com/", fromPath: (path) => path },
-    facebook: { hosts: ["facebook.com", "fb.com"], prefix: "https://www.facebook.com/", fromPath: (path) => path },
+    facebook: { hosts: ["facebook.com", "m.facebook.com", "fb.com"], prefix: "https://www.facebook.com/", fromPath: (path) => path },
     youtube: { hosts: ["youtube.com", "youtu.be"], prefix: "https://www.youtube.com/@", fromPath: (path) => path.replace(/^@/, "") },
   };
   const rule = rules[platform];
@@ -220,7 +220,8 @@ export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" 
   }
   if (fields.email?.trim()) {
     const email = fields.email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Geçerli bir e-posta adresi girin.");
+    if (!/^[^\s@]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/.test(email))
+      throw new Error("Geçerli bir e-posta adresi girin.");
     params.set("e", email);
   }
   if (fields.org?.trim()) params.set("o", fields.org.trim());
