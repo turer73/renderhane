@@ -27,6 +27,15 @@ describe("buildVCard", () => {
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 
+  it("decodes quoted-printable UTF-8 values and soft line breaks", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0",
+      "N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:=C3=9Crer;Tur=",
+      "gut;;;",
+      "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Turgut =C3=9Crer",
+      "END:VCARD"].join("\r\n");
+    expect(parseVCard(card)).toMatchObject({firstName: "Turgut", lastName: "Ürer"});
+  });
+
   it("normalizes URI-valued telephone properties for editing", () => {
     const card = ["BEGIN:VCARD", "VERSION:4.0", "FN:Ada Lovelace",
       "TEL;VALUE=uri:tel:+905551234567", "END:VCARD"].join("\r\n");
