@@ -108,6 +108,8 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       if (!isPlainPhoneUrl) return { url: url.href, token: url.href };
       return { url: `https://wa.me/${digits}`, token: digits };
     }
+    if (!/^\+?[\d\s()-]+$/.test(phone))
+      throw new Error("WhatsApp numarasını ülke koduyla girin.");
     const digits = phone.replace(/\D/g, "");
     if (!/^\d{7,15}$/.test(digits)) throw new Error("WhatsApp numarasını ülke koduyla girin.");
     return { url: `https://wa.me/${digits}`, token: digits };
