@@ -392,6 +392,25 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
   try {
     const url = new URL(uri);
     const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "renderhane.com" && /^\/(?:tr|en)\/k\/?$/.test(url.pathname)) {
+      const fields: NfcFields = {
+        contactMode: "linked",
+        firstName: url.searchParams.get("n") || "",
+      };
+      const linkedFields: ReadonlyArray<readonly [string, string]> = [
+        ["lastName", "s"],
+        ["phone", "p"],
+        ["email", "e"],
+        ["org", "o"],
+        ["website", "u"],
+      ];
+      for (const [field, key] of linkedFields) {
+        const value = url.searchParams.get(key);
+        if (value) fields[field] = value;
+      }
+      return { type: "vcard", fields };
+    }
+
     if (host === "renderhane.com" && /^\/(?:tr|en)\/s\/?$/.test(url.pathname)) {
       const fields: NfcFields = { socialMode: "card" };
       const profileName = url.searchParams.get("n");
