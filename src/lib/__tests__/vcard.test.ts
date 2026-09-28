@@ -58,10 +58,10 @@ describe("buildVCard", () => {
 
   it("keeps structured address components read-only", () => {
     const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
-      "ADR:;;123 Main St;London;;SW1;UK", "END:VCARD"].join("\r\n");
+      "ADR;TYPE=WORK:;;123 Main St;London;;SW1;UK", "END:VCARD"].join("\r\n");
     expect(() => parseVCard(card)).toThrow(/Yapılandırılmış adres/);
     const streetOnly = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
-      "ADR:;;123 Main St;;;;", "END:VCARD"].join("\r\n");
+      "ADR;TYPE=WORK:;;123 Main St;;;;", "END:VCARD"].join("\r\n");
     expect(parseVCard(streetOnly).address).toBe("123 Main St");
   });
 
@@ -114,7 +114,7 @@ describe("buildVCard", () => {
     const emails = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "EMAIL:ada@example.com", "EMAIL:work@example.com", "END:VCARD"].join("\r\n");
     const addresses = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
-      "ADR;TYPE=HOME:;;Home Street;;;;", "ADR;TYPE=WORK:;;Work Street;;;;", "END:VCARD"].join("\r\n");
+      "ADR;TYPE=WORK:;;Home Street;;;;", "ADR;TYPE=WORK:;;Work Street;;;;", "END:VCARD"].join("\r\n");
     expect(() => parseVCard(phones)).toThrow(/Birden fazla telefon/);
     expect(() => parseVCard(emails)).toThrow(/Birden fazla e-posta/);
     expect(() => parseVCard(addresses)).toThrow(/Birden fazla adres/);
@@ -147,6 +147,32 @@ describe("buildVCard", () => {
     expect(() => parseVCard(structured)).toThrow(/Ek ad/);
     expect(() => parseVCard(formatted)).toThrow(/Biçimlendirilmiş adı/);
     expect(() => parseVCard(note)).toThrow(/Desteklenmeyen/);
+  });
+
+  it("validates formatted names independently of property order", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Dr. John Doe",
+      "N:Doe;John;;;", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(card)).toThrow(/Biçimlendirilmiş adı/);
+  });
+
+  it("keeps unsupported address types and structured organizations read-only", () => {
+    const homeAddress = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "ADR;TYPE=HOME:;;123 Main St;;;;", "END:VCARD"].join("\r\n");
+    const organizationUnit = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "ORG:Acme;Research", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(homeAddress)).toThrow(/Adres türü/);
+    expect(() => parseVCard(organizationUnit)).toThrow(/Birim bilgisi/);
+  });
+
+  it("keeps cards with multiple social destinations read-only", () => {
+    const instagram = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://instagram.com/renderhane",
+      "item2.URL:https://instagram.com/renderhane3d", "END:VCARD"].join("\r\n");
+    const whatsapp = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://wa.me/905551111111",
+      "item2.URL:https://wa.me/905552222222", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(instagram)).toThrow(/Birden fazla Instagram/);
+    expect(() => parseVCard(whatsapp)).toThrow(/Birden fazla WhatsApp/);
   });
 
   it("folds generated content lines at 75 UTF-8 octets without changing values", () => {
