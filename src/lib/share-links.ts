@@ -218,6 +218,18 @@ export function socialLinksFromParams(
   return links;
 }
 
+export function normalizeContactPhone(raw: string): string | null {
+  const phone = raw.trim().replace(/[\s()-]/g, "");
+  return /^\+?\d{5,15}$/.test(phone) ? phone : null;
+}
+
+export function normalizeContactEmail(raw: string): string | null {
+  const email = raw.trim();
+  return /^[^\s@]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/.test(email)
+    ? email
+    : null;
+}
+
 export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" = "tr"): string {
   const firstName = fields.firstName?.trim() || "";
   const lastName = fields.lastName?.trim() || "";
@@ -227,14 +239,13 @@ export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" 
   const params = new URLSearchParams({ n: firstName });
   if (lastName) params.set("s", lastName);
   if (fields.phone?.trim()) {
-    const phone = fields.phone.replace(/[\s()-]/g, "");
-    if (!/^\+?\d{5,15}$/.test(phone)) throw new Error("Telefon numarasını ülke koduyla girin.");
+    const phone = normalizeContactPhone(fields.phone);
+    if (!phone) throw new Error("Telefon numarasını ülke koduyla girin.");
     params.set("p", phone);
   }
   if (fields.email?.trim()) {
-    const email = fields.email.trim();
-    if (!/^[^\s@]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/.test(email))
-      throw new Error("Geçerli bir e-posta adresi girin.");
+    const email = normalizeContactEmail(fields.email);
+    if (!email) throw new Error("Geçerli bir e-posta adresi girin.");
     params.set("e", email);
   }
   if (fields.org?.trim()) params.set("o", fields.org.trim());
