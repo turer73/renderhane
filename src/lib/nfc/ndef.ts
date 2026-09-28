@@ -462,11 +462,10 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
 export function recordsToForm(
   records: DecodedRecord[]
 ): { type: NfcContentType; fields: NfcFields } | null {
-  const priority: DecodedRecord["kind"][] = ["app", "wifi", "vcard", "text", "url"];
-  for (const kind of priority) {
-    const hit = records.find((record) => record.kind === kind && record.form);
-    if (hit?.form) return hit.form;
-  }
+  // Android Application Records intentionally override their Play Store fallback.
+  const app = records.find((record) => record.kind === "app" && record.form);
+  if (app?.form) return app.form;
+  // For every other message, NDEF record order expresses the writer's intent.
   return records.find((record) => record.form)?.form ?? null;
 }
 
