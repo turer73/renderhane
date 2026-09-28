@@ -60,11 +60,18 @@ describe('copyable business payloads', () => {
       type: 'app', fields: {package: 'com.renderhane.app'},
     });
     expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:41.0082,28.9784'}})).toEqual({
-      type: 'location', fields: {lat: '41.0082', lon: '28.9784'},
+      type: 'location', fields: {lat: '41.0082', lon: '28.9784', geoSuffix: ''},
     });
     expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:1e-7,-2.5E+3'}})).toEqual({
-      type: 'location', fields: {lat: '1e-7', lon: '-2.5E+3'},
+      type: 'location', fields: {lat: '1e-7', lon: '-2.5E+3', geoSuffix: ''},
     });
+    const parameterized = toEditorNfcForm({
+      type: 'url', fields: {url: 'geo:41.0,29.0;u=25'},
+    });
+    expect(parameterized).toEqual({
+      type: 'location', fields: {lat: '41.0', lon: '29.0', geoSuffix: ';u=25'},
+    });
+    expect(buildPayload(parameterized.type, parameterized.fields)).toBe('geo:41,29;u=25');
   });
 
   it('builds a standards-compatible Android vCard with separate name fields', () => {
