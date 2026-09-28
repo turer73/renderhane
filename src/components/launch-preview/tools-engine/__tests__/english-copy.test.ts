@@ -23,6 +23,7 @@ describe("English free-tool copy", () => {
         "9/9 kontrol · İçerik birebir eşleşti · Klasik karşılaştırma da geçti"
       )
     ).toBe("9/9 checks · Exact payload match · Classic baseline also passed");
+    expect(localizeToolText("Ad alanını doldurun.")).toBe("Complete the first name field.");
     expect(localizeToolText("Etiket yazıldı. Kullanacağın cihazla okuyarak test et."))
       .toBe("Tag written. Read it with the intended device to test it.");
     expect(localizeToolText("Bu içerik için 512px küçük kalıyor. Stilli QR için en az 6 piksel/modül gerekiyor; daha büyük çıktı seçin."))
