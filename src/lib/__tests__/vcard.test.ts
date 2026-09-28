@@ -27,6 +27,12 @@ describe("buildVCard", () => {
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 
+  it("preserves every populated structured address component", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "ADR:;;123 Main St;London;;SW1;UK", "END:VCARD"].join("\r\n");
+    expect(parseVCard(card).address).toBe("123 Main St, London, SW1, UK");
+  });
+
   it("recognizes grouped email, phone, and labeled social URLs", () => {
     const grouped = [
       "BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
