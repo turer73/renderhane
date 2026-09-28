@@ -169,6 +169,8 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
     removeTrackingParams(url);
     const path = url.pathname.replace(/^\/+|\/+$/g, "");
     const segments = path.split("/").filter(Boolean);
+    if (segments.length === 0)
+      throw new Error("Sosyal ağ profil veya paylaşım bağlantısını girin.");
     const isSimpleProfile = segments.length === 1 && !url.search && (
       platform !== "youtube" || url.hostname.toLowerCase().replace(/^www\./, "") === "youtube.com"
     );
