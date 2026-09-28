@@ -44,10 +44,13 @@ describe("social link normalization", () => {
       "https://facebook.com/profile.php?id=123"
     );
     expect(normalizeSocialLink("facebook", "https://m.facebook.com/renderhane").url).toBe(
-      "https://m.facebook.com/renderhane"
+      "https://www.facebook.com/renderhane"
     );
     expect(normalizeSocialLink("whatsapp", "https://wa.me/905551234567?text=Merhaba").url).toBe(
       "https://wa.me/905551234567?text=Merhaba"
+    );
+    expect(() => normalizeSocialLink("whatsapp", "https://wa.me/90555123456O")).toThrow(
+      /ülke koduyla/
     );
     expect(normalizeSocialLink("whatsapp", "https://www.whatsapp.com/channel/example").url).toBe(
       "https://www.whatsapp.com/channel/example"
@@ -97,6 +100,9 @@ describe("share landing URLs", () => {
       "https://www.instagram.com/renderhane",
       "https://wa.me/905551234567",
     ]);
+    expect(
+      socialLinksFromParams(new URLSearchParams("u=https%3A%2F%2Fexample.com"), "en")[0]?.label
+    ).toBe("Website");
   });
 
   it("requires at least two links for a multi-network card", () => {
