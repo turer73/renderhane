@@ -82,8 +82,19 @@ const splitEscaped = (value: string, separator: string): string[] => {
 /** Reverse of {@link buildVCard} — turns a scanned card back into form fields. */
 export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
-  // RFC 6350 folding: a CRLF followed by space or tab continues the same content line.
-  const lines = text.replace(/=\r?\n/g, "").replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
+  // RFC 6350 folding applies to every property; quoted-printable soft breaks
+  // apply only when that property explicitly declares the transfer encoding.
+  const physical = text.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
+  const lines: string[] = [];
+  for (let index = 0; index < physical.length; index++) {
+    let line = physical[index];
+    const header = line.slice(0, Math.max(0, line.indexOf(":")));
+    if (/(?:^|;)ENCODING=QUOTED-PRINTABLE(?:;|$)/i.test(header)) {
+      while (line.endsWith("=") && index + 1 < physical.length)
+        line = line.slice(0, -1) + physical[++index];
+    }
+    lines.push(line);
+  }
 
   for (const line of lines) {
     const sep = line.indexOf(":");
@@ -118,7 +129,7 @@ export function parseVCard(text: string): VCardFields {
       const parts = splitEscaped(rawValue, ";").map(unescapeValue);
       fields.address ||= parts.map((part) => part.trim()).filter(Boolean).join(", ");
     } else if (base === "URL" && grouped) {
-      const instagram = /instagram\.com\/([^/?#]+)/i.exec(value)?.[1];
+      const instagram = /https?:\/\/(?:www\.)?instagram\.com\//i.test(value) ? value : "";
       const whatsapp = /wa\.me\/(\d+)/i.exec(value)?.[1];
       if (instagram) fields.instagram ||= instagram;
       else if (whatsapp) fields.whatsapp ||= whatsapp;
