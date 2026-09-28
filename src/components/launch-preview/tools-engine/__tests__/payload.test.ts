@@ -62,6 +62,9 @@ describe('copyable business payloads', () => {
     expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:41.0082,28.9784'}})).toEqual({
       type: 'location', fields: {lat: '41.0082', lon: '28.9784'},
     });
+    expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:1e-7,-2.5E+3'}})).toEqual({
+      type: 'location', fields: {lat: '1e-7', lon: '-2.5E+3'},
+    });
   });
 
   it('builds a standards-compatible Android vCard with separate name fields', () => {
