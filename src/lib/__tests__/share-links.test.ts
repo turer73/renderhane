@@ -5,6 +5,8 @@ import {
   buildSocialPayload,
   normalizeSocialLink,
   isPrivateSharePath,
+  normalizeContactEmail,
+  normalizeContactPhone,
   socialLinksFromParams,
 } from "../share-links";
 
@@ -78,6 +80,15 @@ describe("social link normalization", () => {
     expect(isPrivateSharePath("/tr/k")).toBe(true);
     expect(isPrivateSharePath("/en/s/")).toBe(true);
     expect(isPrivateSharePath("/tr/araclar/nfc-yaz")).toBe(false);
+  });
+});
+
+describe("public contact field validation", () => {
+  it("rejects dialer commands and malformed email addresses", () => {
+    expect(normalizeContactPhone("+90 555 123 45 67")).toBe("+905551234567");
+    expect(normalizeContactPhone("*21*905551234567#")).toBeNull();
+    expect(normalizeContactEmail("person@example.com")).toBe("person@example.com");
+    expect(normalizeContactEmail("person@example.com,")).toBeNull();
   });
 });
 
