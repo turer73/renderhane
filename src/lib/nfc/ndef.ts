@@ -416,6 +416,7 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
       "x.com": "x",
       "twitter.com": "x",
       "facebook.com": "facebook",
+      "m.facebook.com": "facebook",
       "fb.com": "facebook",
       "linkedin.com": "linkedin",
       "youtube.com": "youtube",
