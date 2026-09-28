@@ -216,7 +216,7 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
         : undefined;
       const whatsapp = f.whatsapp?.trim() || undefined;
       if (whatsapp) {
-        if (!/^\+?[\d\s()-]+$/.test(whatsapp) || !/^\d{7,15}$/.test(whatsapp.replace(/\D/g, '')))
+        if (!/^\+?[\d\s()-]+$/.test(whatsapp) || !/^[1-9]\d{6,14}$/.test(whatsapp.replace(/\D/g, '')))
           throw Error('WhatsApp numarasını ülke koduyla girin.');
       }
       return buildVCard({
