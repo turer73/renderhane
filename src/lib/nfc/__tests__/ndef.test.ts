@@ -296,6 +296,21 @@ describe("describeRecord", () => {
     expect(form).toEqual({type: "url", fields: {url: "https://renderhane.com"}});
   });
 
+  it("classifies only exact Play Store destinations as apps", () => {
+    expect(
+      describeRecord({
+        recordType: "url",
+        data: "https://play.google.com/store/apps/details?id=com.renderhane.app",
+      }).form
+    ).toEqual({ type: "app", fields: { packageName: "com.renderhane.app" } });
+    const wrapped =
+      "https://example.com/go?to=https://play.google.com/store/apps/details?id=com.acme";
+    expect(describeRecord({ recordType: "url", data: wrapped }).form).toEqual({
+      type: "url",
+      fields: { url: wrapped },
+    });
+  });
+
   it("prefers the Android app record over its Play Store fallback URL", () => {
     const form = recordsToForm(
       buildNdefRecords("app", { packageName: "com.renderhane.app" }).map((r) => describeRecord(r))
