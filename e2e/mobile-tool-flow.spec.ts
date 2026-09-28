@@ -164,7 +164,8 @@ test.describe('public mobile tool flows', () => {
     });
     await page.goto('/tr/araclar/nfc-yaz');
     await page.locator('[data-nfc-type="vcard"]').click();
-    await page.locator('#rh-nfc-name').fill('Turgut Ürer');
+    await page.locator('#rh-nfc-firstName').fill('Turgut');
+    await page.locator('#rh-nfc-lastName').fill('Ürer');
     await page.locator('#rh-nfc-phone').fill('+905551234567');
     await page.locator('#rh-nfc-email').fill('turgut.urer@gmail.com');
     await page.locator('#rh-nfc-org').fill('Renderhane');
@@ -208,6 +209,36 @@ test.describe('public mobile tool flows', () => {
     await page.reload();
     await page.locator('[data-nfc-type="vcard"]').click();
     await expect(page.locator('.rh-nfc-storage')).toHaveCount(0);
+  });
+
+  test('NFC validates direct social links and builds a stateless multi-network card', async ({page}) => {
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.locator('[data-nfc-type="social"]').click();
+    await page.locator('#rh-nfc-socialValue').fill('@renderhane');
+    await expect(page.locator('#rh-nfc-social-check')).toHaveAttribute('data-state', 'valid');
+    await expect(page.locator('#rh-nfc-social-check')).toContainText('https://www.instagram.com/renderhane');
+
+    await page.locator('#rh-nfc-socialMode').selectOption('card');
+    await page.locator('#rh-nfc-instagram').fill('@renderhane');
+    await page.locator('#rh-nfc-whatsapp').fill('+90 555 123 45 67');
+    await expect(page.locator('#rh-nfc-social-check')).toHaveAttribute('data-state', 'valid');
+    await expect(page.locator('#rh-nfc-social-check')).toContainText('/tr/s?');
+    await expect(page.locator('.rh-nfc-capacity')).not.toHaveAttribute('data-state', 'error');
+  });
+
+  test('linked social and contact cards open safely on mobile', async ({page, request}) => {
+    await page.goto('/tr/s?n=Renderhane&i=renderhane&w=905551234567');
+    await expect(page.getByRole('heading', {name: 'Renderhane'})).toBeVisible();
+    await expect(page.getByRole('link', {name: /Instagram/})).toHaveAttribute('href', 'https://www.instagram.com/renderhane');
+    await expect(page.getByRole('link', {name: /WhatsApp/})).toHaveAttribute('href', 'https://wa.me/905551234567');
+
+    await page.goto('/tr/k?n=Turgut&s=%C3%9Crer&p=%2B905551234567&e=turgut.urer%40gmail.com');
+    await expect(page.getByRole('heading', {name: 'Turgut Ürer'})).toBeVisible();
+    await expect(page.getByRole('link', {name: 'Kişilere ekle'})).toBeVisible();
+    const card = await request.get('/api/contact-card?n=Turgut&s=%C3%9Crer&p=%2B905551234567');
+    expect(card.ok()).toBe(true);
+    expect(card.headers()['content-type']).toContain('text/vcard');
+    expect(await card.text()).toContain('N:Ürer;Turgut;;;');
   });
 
   test('NFC offers a compact NTAG213 business record and restores copyable text', async ({page}) => {

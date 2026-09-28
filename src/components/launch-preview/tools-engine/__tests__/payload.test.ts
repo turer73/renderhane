@@ -51,6 +51,36 @@ describe('copyable business payloads', () => {
 
   it('rejects malformed optional business email addresses', () => {
     expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres', invoiceEmail: 'not-an-email'})).toThrow('Geçerli bir e-posta');
-    expect(() => buildPayload('vcard', {name: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+    expect(() => buildPayload('vcard', {firstName: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+  });
+
+  it('builds a standards-compatible Android vCard with separate name fields', () => {
+    const payload = buildPayload('vcard', {
+      contactMode: 'android',
+      firstName: 'Turgut',
+      lastName: 'Ürer',
+      phone: '+90 555 123 45 67',
+    });
+    expect(payload).toContain('N:Ürer;Turgut;;;');
+    expect(payload).toContain('FN:Turgut Ürer');
+    expect(payload).toContain('TEL:+905551234567');
+  });
+
+  it('builds iPhone/Android contact and social landing links', () => {
+    expect(buildPayload('vcard', {
+      contactMode: 'linked',
+      firstName: 'Turgut',
+      lastName: 'Ürer',
+    })).toContain('/tr/k?');
+    expect(buildPayload('social', {
+      socialMode: 'single',
+      platform: 'instagram',
+      socialValue: '@renderhane',
+    })).toBe('https://www.instagram.com/renderhane');
+    expect(buildPayload('social', {
+      socialMode: 'card',
+      instagram: '@renderhane',
+      whatsapp: '+905551234567',
+    })).toContain('/tr/s?');
   });
 });

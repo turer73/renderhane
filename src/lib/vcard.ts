@@ -16,6 +16,13 @@ export interface VCardFields {
   whatsapp?: string;
 }
 
+const escapeValue = (value: string): string => value
+  .replace(/\\/g, "\\\\")
+  .replace(/\r?\n/g, "\\n")
+  .replace(/;/g, "\\;")
+  .replace(/,/g, "\\,")
+  .trim();
+
 /** Reverse of {@link buildVCard} — turns a scanned card back into form fields. */
 export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
@@ -62,18 +69,20 @@ export function parseVCard(text: string): VCardFields {
 }
 
 export function buildVCard(fields: VCardFields): string {
+  const firstName = escapeValue(fields.firstName || "");
+  const lastName = escapeValue(fields.lastName || "");
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    `N:${fields.lastName || ""};${fields.firstName || ""};;;`,
-    `FN:${fields.firstName || ""} ${fields.lastName || ""}`.trim(),
+    `N:${lastName};${firstName};;;`,
+    `FN:${firstName} ${lastName}`.trim(),
   ];
-  if (fields.phone) lines.push(`TEL;TYPE=CELL:${fields.phone}`);
-  if (fields.email) lines.push(`EMAIL:${fields.email}`);
-  if (fields.org) lines.push(`ORG:${fields.org}`);
-  if (fields.title) lines.push(`TITLE:${fields.title}`);
-  if (fields.address) lines.push(`ADR;TYPE=WORK:;;${fields.address};;;;`);
-  if (fields.website) lines.push(`URL:${fields.website}`);
+  if (fields.phone) lines.push(`TEL;TYPE=CELL:${escapeValue(fields.phone)}`);
+  if (fields.email) lines.push(`EMAIL:${escapeValue(fields.email)}`);
+  if (fields.org) lines.push(`ORG:${escapeValue(fields.org)}`);
+  if (fields.title) lines.push(`TITLE:${escapeValue(fields.title)}`);
+  if (fields.address) lines.push(`ADR;TYPE=WORK:;;${escapeValue(fields.address)};;;;`);
+  if (fields.website) lines.push(`URL:${escapeValue(fields.website)}`);
   // Social links use Apple item-grouping (itemN.URL + X-ABLabel) so they
   // show up labeled on iOS Contacts and as tappable URLs on Android.
   let socialIdx = 1;
@@ -98,5 +107,5 @@ export function buildVCard(fields: VCardFields): string {
     }
   }
   lines.push("END:VCARD");
-  return lines.join("\n");
+  return lines.join("\r\n");
 }

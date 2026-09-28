@@ -7,11 +7,12 @@ import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
+import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload} from '@/lib/share-links';
 import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
 export type ToolLocale = 'tr' | 'en';
-export type ContentType = 'url' | 'vcard' | 'bank' | 'invoice' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
+export type ContentType = 'url' | 'vcard' | 'social' | 'bank' | 'invoice' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
 type NfcStorageMode = 'standard' | 'compact';
 const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode';
 export type Fields = Record<string, string>;
@@ -66,10 +67,10 @@ const PAGE_NAMES: Record<ToolLocale, Record<Page, string>> = {
   en: { home: 'Home', background: 'Remove background', scenes: 'Create a scene', qr: 'Create QR code', nfc: 'Write NFC tag', artistic: 'Artistic QR', tools: 'All tools' },
 };
 const CONTENT_LABELS: Record<ToolLocale, Record<ContentType, string>> = {
-  tr: { url: 'URL', vcard: 'Kişi kartı', bank: 'Banka bilgileri', invoice: 'Fatura bilgileri', wifi: 'WiFi', phone: 'Telefon', email: 'E-posta', sms: 'SMS', location: 'Konum', text: 'Metin', app: 'Uygulama' },
-  en: { url: 'URL', vcard: 'Contact card', bank: 'Bank details', invoice: 'Invoice details', wifi: 'WiFi', phone: 'Phone', email: 'Email', sms: 'SMS', location: 'Location', text: 'Text', app: 'App' },
+  tr: { url: 'URL', vcard: 'Kişi kartı', social: 'Sosyal ağlar', bank: 'Banka bilgileri', invoice: 'Fatura bilgileri', wifi: 'WiFi', phone: 'Telefon', email: 'E-posta', sms: 'SMS', location: 'Konum', text: 'Metin', app: 'Uygulama' },
+  en: { url: 'URL', vcard: 'Contact card', social: 'Social networks', bank: 'Bank details', invoice: 'Invoice details', wifi: 'WiFi', phone: 'Phone', email: 'Email', sms: 'SMS', location: 'Location', text: 'Text', app: 'App' },
 };
-const contentIcons: Record<ContentType, string> = { url: 'link', vcard: 'user', bank: 'copy', invoice: 'text', wifi: 'wifi', phone: 'phone', email: 'mail', sms: 'message', location: 'pin', text: 'text', app: 'grid' };
+const contentIcons: Record<ContentType, string> = { url: 'link', vcard: 'user', social: 'users', bank: 'copy', invoice: 'text', wifi: 'wifi', phone: 'phone', email: 'mail', sms: 'message', location: 'pin', text: 'text', app: 'grid' };
 const sceneNames = ['Doğal ışık', 'Minimal stüdyo', 'Banyo', 'Pazaryeri'];
 const scenePrompts = [
   'Ürünü doğal ışık alan, sıcak bej bir stüdyo yüzeyinde göster. Ürünün şeklini ve rengini koru.',
@@ -188,9 +189,13 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
   switch (type) {
     case 'url': return validHttp(f.url || '');
     case 'vcard': {
-      const name = requireField(f, 'name', 'Ad soyad');
-      return ['BEGIN:VCARD', 'VERSION:3.0', `FN:${vcardEscape(name)}`, `N:;${vcardEscape(name)};;;`, f.phone ? `TEL:${phone()}` : '', f.email ? `EMAIL:${vcardEscape(email(f.email))}` : '', f.org ? `ORG:${vcardEscape(f.org)}` : '', f.website ? `URL:${validHttp(f.website)}` : '', 'END:VCARD'].filter(Boolean).join('\r\n');
+      if ((f.contactMode || 'android') === 'linked') return buildContactLandingUrl(f, locale);
+      const firstName = requireField(f, 'firstName', 'Ad');
+      const lastName = (f.lastName || '').trim();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+      return ['BEGIN:VCARD', 'VERSION:3.0', `N:${vcardEscape(lastName)};${vcardEscape(firstName)};;;`, `FN:${vcardEscape(fullName)}`, f.phone ? `TEL:${phone()}` : '', f.email ? `EMAIL:${vcardEscape(email(f.email))}` : '', f.org ? `ORG:${vcardEscape(f.org)}` : '', f.website ? `URL:${validHttp(f.website)}` : '', 'END:VCARD'].filter(Boolean).join('\r\n');
     }
+    case 'social': return buildSocialPayload(f, locale);
     case 'bank': return formatCompactNfcDetails(buildBusinessDetails('bank', f, locale));
     case 'invoice': return formatCompactNfcDetails(buildBusinessDetails('invoice', f, locale));
     case 'wifi': {
@@ -354,7 +359,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     return `<section class="rh-premium-block ${compact ? 'rh-premium-compact' : ''}" aria-labelledby="rh-premium-title"><div class="rh-premium-copy"><div class="rh-premium-label">${icon('spark')}SANATSAL QR <span>ÜCRETLİ ÖZEL TASARIM</span></div><h2 id="rh-premium-title">Sadece bir kod değil.<br><em>Markanın bir parçası.</em></h2><p>Ambalajında, kartvizitinde ya da vitrinde. Bağlantını, markanın görsel dünyasıyla buluşturan bir tasarım yaklaşımı.</p><div class="rh-premium-actions">${navlink('artistic', `Sanatsal QR’ı keşfet ${icon('arrow')}`, 'rh-btn rh-btn-light')}${navlink('qr', 'Standart QR ücretsiz', 'rh-premium-secondary')}</div><small>Ücretsiz QR aracından ayrı sunulur. Görselin taranabilirliği doğrulanmadı.</small></div><a href="#artistic" data-page="artistic" class="rh-premium-art" aria-label="Sanatsal QR özel tasarım örneğini incele"><img src="${asset('artistic-qr.png')}" alt="Paylaştığınız altın, mor ve turkuaz çiçek desenli sanatsal QR örneği" loading="lazy" width="764" height="765"/><span>ÇİÇEK & ORNAMENT <span>Özel tasarım örneği ${icon('arrow')}</span></span></a></section>`;
   }
   function toolsView(): string {
-    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('İşine yarayan <span class="rh-highlight">aracı seç.</span>','Ücretsiz yardımcı araçlar, AI çalışma alanı ve özel tasarım hizmeti. Her biri kendi kullanım koşuluyla.',['Ortak çalışma alanı','Türkçe arayüz','Açık kullanım koşulları'])}<div class="rh-catalog-title"><h2>Ücretsiz araçlar</h2><span>Gündelik işleri kolaylaştır</span></div><div class="rh-tools-grid rh-tools-three">${toolCard('background','eraser','3 / gün ücretsiz','Ürün görselini temizle; sonucu karşılaştırıp PNG olarak indir.')}${toolCard('qr','qr','Sınırsız ücretsiz','8 içerik türünde çalışan standart QR üret.')}${toolCard('nfc','nfc','Ücretsiz araç','İçeriği hazırla, uyumlu telefonda NFC etiketine aktar.')}</div><div class="rh-catalog-title"><h2>AI stüdyo</h2><span>Görsel üretim çalışma alanı</span></div><div class="rh-studio-entry"><img src="${asset('scene-1.jpg')}" alt="Minimal şişe sahnesi"/><div><span class="rh-eyebrow">SAHNE OLUŞTURMA</span><h2>Ürününe yeni bir ortam.</h2><p>Kompozisyonu tarif et, sahne yönünü seç. Bu önizlemede hazır örnekler bulunur; canlı üretim mevcut AI akışına bağlanır.</p>${navlink('scenes', `Stüdyoyu aç ${icon('arrow')}`, 'rh-btn rh-btn-primary')}</div></div>${premiumBlock(true)}<div class="rh-notice rh-catalog-note">Bu dönüşüm, ana sayfa ve burada listelenen ekranları kapsar. Mevcut 3D, video, hesap, ödeme ve diğer üretim modülleri kaldırılmaz; canlı projeye aktarılırken mevcut yolları korunmalıdır.</div></main>`;
+    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('İşine yarayan <span class="rh-highlight">aracı seç.</span>','Ücretsiz yardımcı araçlar, AI çalışma alanı ve özel tasarım hizmeti. Her biri kendi kullanım koşuluyla.',['Ortak çalışma alanı','Türkçe arayüz','Açık kullanım koşulları'])}<div class="rh-catalog-title"><h2>Ücretsiz araçlar</h2><span>Gündelik işleri kolaylaştır</span></div><div class="rh-tools-grid rh-tools-three">${toolCard('background','eraser','3 / gün ücretsiz','Ürün görselini temizle; sonucu karşılaştırıp PNG olarak indir.')}${toolCard('qr','qr','Sınırsız ücretsiz','Farklı içerik türlerinde çalışan standart QR üret.')}${toolCard('nfc','nfc','Ücretsiz araç','İçeriği hazırla, uyumlu telefonda NFC etiketine aktar.')}</div><div class="rh-catalog-title"><h2>AI stüdyo</h2><span>Görsel üretim çalışma alanı</span></div><div class="rh-studio-entry"><img src="${asset('scene-1.jpg')}" alt="Minimal şişe sahnesi"/><div><span class="rh-eyebrow">SAHNE OLUŞTURMA</span><h2>Ürününe yeni bir ortam.</h2><p>Kompozisyonu tarif et, sahne yönünü seç. Bu önizlemede hazır örnekler bulunur; canlı üretim mevcut AI akışına bağlanır.</p>${navlink('scenes', `Stüdyoyu aç ${icon('arrow')}`, 'rh-btn rh-btn-primary')}</div></div>${premiumBlock(true)}<div class="rh-notice rh-catalog-note">Bu dönüşüm, ana sayfa ve burada listelenen ekranları kapsar. Mevcut 3D, video, hesap, ödeme ve diğer üretim modülleri kaldırılmaz; canlı projeye aktarılırken mevcut yolları korunmalıdır.</div></main>`;
   }
   function artisticView(): string {
     const f=s.brief;
@@ -386,6 +391,23 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function typeTabs(kind: 'qr' | 'nfc'): string { const all = Object.keys(contentLabels) as ContentType[]; const allowed = kind === 'qr' ? all.filter(t => t !== 'app') : all;
     return `<div class="rh-content-types" role="group" aria-label="${kind === 'qr' ? 'QR' : 'NFC'} içerik türü">${allowed.map(type => `<button class="rh-type-btn" type="button" data-${kind}-type="${type}" aria-pressed="${s[`${kind}Type`] === type}" ${kind === 'nfc' && s.nfcBusy ? 'disabled' : ''}>${icon(contentIcons[type])}<span>${contentLabels[type]}</span></button>`).join('')}</div>`;
   }
+  function socialValidation(kind: 'qr' | 'nfc'): { ok: boolean; text: string } {
+    try {
+      const url = buildSocialPayload(s[kind], locale);
+      return {ok: true, text: `${l('Bağlantı hazır', 'Link ready')}: ${url}`};
+    } catch (error) {
+      return {ok: false, text: error instanceof Error ? (en ? localizeToolText(error.message) : error.message) : l('Bağlantıyı kontrol edin.', 'Check the link.')};
+    }
+  }
+  function socialValidationMarkup(kind: 'qr' | 'nfc'): string {
+    const result = socialValidation(kind);
+    return `<div class="rh-notice ${result.ok ? 'success' : 'error'}" id="rh-${kind}-social-check" role="status" data-state="${result.ok ? 'valid' : 'invalid'}">${esc(result.text)}</div>`;
+  }
+  function updateSocialValidation(kind: 'qr' | 'nfc'): void {
+    if (s[`${kind}Type`] !== 'social') return;
+    const current = $(`#rh-${kind}-social-check`);
+    if (current) current.outerHTML = socialValidationMarkup(kind);
+  }
   function fields(kind: 'qr' | 'nfc'): string {
     const type = s[`${kind}Type`]; const f = s[kind];
     const disabled = kind === 'nfc' && s.nfcBusy ? ' disabled' : '';
@@ -393,7 +415,25 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const area = (key: string, label: string): string => `<div class="rh-field"><label for="rh-${kind}-${key}">${label}</label><textarea class="rh-textarea" id="rh-${kind}-${key}" data-field="${key}" data-kind="${kind}" maxlength="1200"${disabled}>${esc(f[key])}</textarea></div>`;
     switch (type) {
       case 'url': return input('url', 'Web adresi', 'https://renderhane.com', 'url') + `<p class="rh-helper">https:// ile başlayan bağlantını gir.</p>`;
-      case 'vcard': return input('name', 'Ad soyad *', 'Adınız Soyadınız') + `<div class="rh-two-fields">${input('phone', 'Telefon', '+90…', 'tel')}${input('email', 'E-posta', 'ad@firma.com', 'email')}</div>` + input('org', 'Kurum / marka', 'Marka adı') + input('website', 'Web sitesi', 'https://…', 'url');
+      case 'vcard': {
+        const contactMode = f.contactMode || 'android';
+        const mode = `<div class="rh-field"><label for="rh-${kind}-contactMode">${l('Kart biçimi', 'Card format')}</label><select class="rh-select" data-field="contactMode" data-kind="${kind}" id="rh-${kind}-contactMode"${disabled}><option value="android" ${contactMode === 'android' ? 'selected' : ''}>${l('Android kişi kartı', 'Android contact card')}</option><option value="linked" ${contactMode === 'linked' ? 'selected' : ''}>${l('iPhone + Android bağlantılı kart', 'iPhone + Android linked card')}</option></select></div>`;
+        const hint = contactMode === 'android'
+          ? l('Standart vCard doğrudan kişi uygulamasını hedefler. Kişi kartına özel sıkıştırma uygulanmaz.', 'Standard vCard targets the contacts app directly. Contact cards are never compressed.')
+          : l('Standart HTTPS bağlantısı iki platformda da açılır; kişi bilgileri Renderhane sayfasında gösterilir.', 'A standard HTTPS link opens on both platforms and shows the contact details on a Renderhane page.');
+        return mode + `<div class="rh-two-fields">${input('firstName', l('Ad *', 'First name *'), l('Adınız', 'First name'))}${input('lastName', l('Soyad', 'Last name'), l('Soyadınız', 'Last name'))}</div>` + `<div class="rh-two-fields">${input('phone', l('Telefon', 'Phone'), '+90…', 'tel')}${input('email', l('E-posta', 'Email'), 'ad@firma.com', 'email')}</div>` + input('org', l('Kurum / marka', 'Organization / brand'), l('Marka adı', 'Brand name')) + input('website', l('Web sitesi', 'Website'), 'https://…', 'url') + `<p class="rh-helper">${hint}</p>`;
+      }
+      case 'social': {
+        const socialMode = f.socialMode || 'single';
+        const mode = `<div class="rh-field"><label for="rh-${kind}-socialMode">${l('Paylaşım biçimi', 'Share format')}</label><select class="rh-select" data-field="socialMode" data-kind="${kind}" id="rh-${kind}-socialMode"${disabled}><option value="single" ${socialMode === 'single' ? 'selected' : ''}>${l('Tek sosyal ağ', 'Single social network')}</option><option value="card" ${socialMode === 'card' ? 'selected' : ''}>${l('Çoklu sosyal kart', 'Multi-network card')}</option></select></div>`;
+        if (socialMode === 'single') {
+          const platform = f.platform || 'instagram';
+          const choices = SOCIAL_PLATFORMS.map(item => `<option value="${item.id}" ${platform === item.id ? 'selected' : ''}>${item.label}</option>`).join('');
+          const selected = SOCIAL_PLATFORMS.find(item => item.id === platform) || SOCIAL_PLATFORMS[0]!;
+          return mode + `<div class="rh-field"><label for="rh-${kind}-platform">${l('Sosyal ağ', 'Social network')}</label><select class="rh-select" data-field="platform" data-kind="${kind}" id="rh-${kind}-platform"${disabled}>${choices}</select></div>` + input('socialValue', selected.label + ' *', selected.placeholder) + `<p class="rh-helper">${l('Kullanıcı adı, telefon veya resmi tam bağlantı doğrulanıp standart HTTPS bağlantısına dönüştürülür.', 'A username, phone number, or full official URL is validated and converted to a standard HTTPS link.')}</p>` + socialValidationMarkup(kind);
+        }
+        return mode + input('profileName', l('Kart başlığı', 'Card title'), l('Adınız veya markanız', 'Your name or brand')) + `<div class="rh-two-fields">${SOCIAL_PLATFORMS.map(item => input(item.id, item.label, item.placeholder, item.id === 'website' ? 'url' : 'text')).join('')}</div><p class="rh-helper">${l('En az iki bağlantı gir. Bilgiler veritabanına kaydedilmez; URL içinde taşınır ve bağlantıyı bilen kişi tarafından görülebilir.', 'Enter at least two links. The data is not saved to the database; it travels in the URL and can be seen by anyone who has the link.')}</p>` + socialValidationMarkup(kind);
+      }
       case 'bank': return input('accountName', 'Alıcı adı *', 'Ad Soyad / Şirket') + input('iban', 'IBAN *', 'TR33 0006 1005 1978 6457 8413 26') + `<div class="rh-two-fields">${input('bankName', 'Banka', 'Banka adı')}${input('branch', 'Şube', 'Şube adı / kodu')}</div>` + input('description', 'Açıklama', 'Ödeme açıklaması') + `<p class="rh-helper">Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; ödeme başlatılmaz.</p>`;
       case 'invoice': return input('title', 'Unvan / ad soyad *', 'Şirket veya kişi adı') + `<div class="rh-two-fields">${input('taxOffice', 'Vergi dairesi', 'Vergi dairesi')}${input('taxNumber', 'Vergi / T.C. kimlik no *', '10 veya 11 hane', 'text')}</div>` + area('address', 'Fatura adresi *') + input('invoiceEmail', 'Fatura e-postası', 'fatura@firma.com', 'email') + `<p class="rh-helper">Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; fatura oluşturulmaz veya gönderilmez.</p>`;
       case 'wifi': return input('ssid', 'Ağ adı (SSID) *', 'Misafir ağı') + input('password', 'Ağ şifresi', 'Paylaşılacak WiFi şifresi', 'password') + `<div class="rh-field"><label for="rh-${kind}-encryption">Şifreleme</label><select class="rh-select" data-field="encryption" data-kind="${kind}" id="rh-${kind}-encryption"${disabled}>${['WPA', 'WEP', 'nopass'].map(e => `<option value="${e}" ${(f.encryption || 'WPA') === e ? 'selected' : ''}>${e === 'nopass' ? 'Şifresiz ağ' : e}</option>`).join('')}</select></div><p class="rh-helper">${kind === 'qr' ? 'QR, ağ şifresini içerir. Yalnızca paylaşmak istediğin bir misafir ağını kullan.' : 'WiFi için özel WSC/NDEF kodlaması gerekir. Bu bağımsız sürümde WiFi yazımı kapalıdır; QR aracını kullanabilirsin.'}</p>`;
@@ -474,7 +514,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function nfcPreviewContent(): string {
     if (s.nfcType === 'vcard') {
-      const name = s.nfc.name?.trim() || l('Ad Soyad', 'Full name');
+      const name = [s.nfc.firstName?.trim(), s.nfc.lastName?.trim()].filter(Boolean).join(' ') || l('Ad Soyad', 'Full name');
       const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toLocaleUpperCase(locale)).join('') || 'R';
       const phone = s.nfc.phone?.trim() || l('Telefon eklenmedi', 'No phone added');
       const emailAddress = s.nfc.email?.trim() || l('E-posta eklenmedi', 'No email added');
@@ -482,7 +522,10 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       const website = s.nfc.website?.trim() || l('Web sitesi eklenmedi', 'No website added');
       const action = (name: string, label: string): string => `<span class="rh-contact-action" aria-label="${esc(label)}">${icon(name)}<small>${esc(label)}</small></span>`;
       const detail = (label: string, value: string, iconName: string): string => `<div class="rh-contact-detail"><span><small>${esc(label)}</small><strong>${esc(value)}</strong></span>${icon(iconName)}</div>`;
-      return `<div class="rh-contact-preview"><section class="rh-contact-hero"><div class="rh-contact-identity"><span class="rh-contact-avatar">${esc(initials)}</span><div><h3 class="rh-contact-name">${esc(name)}</h3><p class="rh-contact-phone">${esc(phone)}</p></div></div><div class="rh-contact-actions">${action('call', l('Ara', 'Call'))}${action('message', l('Mesaj', 'Message'))}${action('mail', l('E-posta', 'Email'))}${action('link', l('Web', 'Web'))}</div></section><section class="rh-contact-details">${detail(l('E-posta', 'Email'), emailAddress, 'mail')}${detail(l('Kurum', 'Organization'), organization, 'user')}${detail(l('Web sitesi', 'Website'), website, 'link')}</section><small class="rh-contact-caption">${l('Etiket okutulduğunda kişi uygulamasında açılacak bilgilerin temsili görünümü.', 'Illustrative view of the details that will open in the contacts app after scanning.')}</small></div>`;
+      const caption = (s.nfc.contactMode || 'android') === 'linked'
+        ? l('Etiket okutulduğunda iPhone ve Android’de açılacak bağlantılı kişi kartının temsili görünümü.', 'Illustrative view of the linked contact card that opens on iPhone and Android.')
+        : l('Etiket okutulduğunda Android kişi uygulamasında açılacak standart vCard görünümü.', 'Illustrative standard vCard view that opens in Android contacts.');
+      return `<div class="rh-contact-preview"><section class="rh-contact-hero"><div class="rh-contact-identity"><span class="rh-contact-avatar">${esc(initials)}</span><div><h3 class="rh-contact-name">${esc(name)}</h3><p class="rh-contact-phone">${esc(phone)}</p></div></div><div class="rh-contact-actions">${action('call', l('Ara', 'Call'))}${action('message', l('Mesaj', 'Message'))}${action('mail', l('E-posta', 'Email'))}${action('link', l('Web', 'Web'))}</div></section><section class="rh-contact-details">${detail(l('E-posta', 'Email'), emailAddress, 'mail')}${detail(l('Kurum', 'Organization'), organization, 'user')}${detail(l('Web sitesi', 'Website'), website, 'link')}</section><small class="rh-contact-caption">${caption}</small></div>`;
     }
     let payload = l('İçeriğini hazırlamaya başla.', 'Start preparing your content.');
     try { payload = s.nfcType === 'wifi' ? l('WiFi içeriği · yazım bu sürümde kapalı', 'WiFi content · writing is disabled in this version') : buildPayload(s.nfcType, s.nfc, locale); } catch { /* Keep the empty-state copy while fields are incomplete. */ }
@@ -717,7 +760,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function nfcRecords(payload: string, mode: NfcStorageMode = s.nfcStorageMode): NfcRecordInput[] {
     if (mode === 'compact' && nfcCompactEligible())
       return [createCompactNfcRecord(buildBusinessDetails(s.nfcType as 'bank' | 'invoice', s.nfc, locale))];
-    if (s.nfcType === 'vcard') return [{recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload)}];
+    if (s.nfcType === 'vcard' && (s.nfc.contactMode || 'android') === 'android') return [{recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload)}];
     if (s.nfcType === 'text' || s.nfcType === 'bank' || s.nfcType === 'invoice') return [{recordType: 'text', lang: locale, data: payload}];
     if (s.nfcType === 'app') return [{recordType: 'url', data: payload}, {recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package)}];
     return [{recordType: 'url', data: payload}];
@@ -1017,7 +1060,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const el = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     if (el.dataset.brief) { s.brief[el.dataset.brief]=el.value; return; }
     if (el.dataset.compare) { const parent = el.closest<HTMLElement>('.rh-compare'); parent?.style.setProperty('--split', `${el.value}%`); return; }
-    if (el.dataset.field && (el.dataset.kind === 'qr' || el.dataset.kind === 'nfc')) { const kind = el.dataset.kind; if (kind === 'nfc' && s.nfcBusy) return; s[kind][el.dataset.field] = el.value; if (kind === 'qr') { scheduleQr(); } else { s.nfcLastReadText = ''; updateNfcPreview(); updateNfcCapacityUi(); } return; }
+    if (el.dataset.field && (el.dataset.kind === 'qr' || el.dataset.kind === 'nfc')) { const kind = el.dataset.kind; if (kind === 'nfc' && s.nfcBusy) return; const field = el.dataset.field; s[kind][field] = el.value; if (field === 'contactMode' || field === 'socialMode' || field === 'platform') { if (kind === 'nfc') s.nfcLastReadText = ''; render(); return; } updateSocialValidation(kind); if (kind === 'qr') { scheduleQr(); } else { s.nfcLastReadText = ''; updateNfcPreview(); updateNfcCapacityUi(); } return; }
     if (el.dataset.prompt) s.prompt = el.value;
     if (el.id === 'rh-qr-color') { s.qrColor = el.value; const text = $('#rh-qr-hex'); if (text) text.textContent = el.value; scheduleQr(); return; }
     if (el.id === 'rh-qr-size') { s.qrSize = Number(el.value); scheduleQr(); return; }

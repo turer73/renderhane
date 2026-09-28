@@ -2,6 +2,15 @@ import {IDEA_SOURCES, getInspirationIdea, getInspirationIdeas, ideaEscape} from 
 import type {IdeaCategory, IdeaChannel, IdeaReadiness, InspirationIdea, InspirationState} from "./inspiration";
 
 const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin olan sayfanın bağlantısını gir.", "Enter a link to a page you own or have permission to share."],
+  ["Farklı içerik türlerinde çalışan standart QR üret.", "Create a standard QR code for different content types."],
+  ["Geçerli bir bağlantı girin.", "Enter a valid link."],
+  ["Yalnızca güvenli HTTP/HTTPS bağlantıları destekleniyor.", "Only safe HTTP/HTTPS links are supported."],
+  ["Seçilen sosyal ağa ait resmi bağlantıyı girin.", "Enter an official URL for the selected social network."],
+  ["Geçerli bir kullanıcı adı girin.", "Enter a valid username."],
+  ["WhatsApp numarasını ülke koduyla girin.", "Enter the WhatsApp number with its country code."],
+  ["Bağlantılı kart için en az iki sosyal ağ girin.", "Enter at least two social networks for a linked card."],
+  ["Desteklenen bir sosyal ağ seçin.", "Choose a supported social network."],
+  ["Sosyal ağ bilgisini girin.", "Enter the social network details."],
   ["Daha kısa bir bağlantı kullan; en fazla 2048 karakter.", "Use a shorter link, up to 2048 characters."],
   ["Bu hazırlama akışında yalnızca geçerli HTTPS bağlantıları kabul edilir.", "Only valid HTTPS links are accepted in this setup flow."],
   ["Geçerli bir HTTPS bağlantısı gir.", "Enter a valid HTTPS link."],

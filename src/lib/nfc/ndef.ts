@@ -10,10 +10,12 @@
  */
 
 import { buildVCard, parseVCard, type VCardFields } from "@/lib/vcard";
+import { buildSocialPayload } from "@/lib/share-links";
 
 export type NfcContentType =
   | "url"
   | "vcard"
+  | "social"
   | "wifi"
   | "phone"
   | "email"
@@ -210,6 +212,7 @@ export function normalizeUrl(raw: string): string {
 const REQUIRED: Record<NfcContentType, string[]> = {
   url: ["url"],
   vcard: ["firstName"],
+  social: [],
   wifi: ["ssid"],
   phone: ["phone"],
   email: ["email"],
@@ -220,6 +223,14 @@ const REQUIRED: Record<NfcContentType, string[]> = {
 };
 
 export function isNfcInputValid(type: NfcContentType, fields: NfcFields): boolean {
+  if (type === "social") {
+    try {
+      buildSocialPayload(fields);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   return REQUIRED[type].every((key) => (fields[key] || "").trim().length > 0);
 }
 
@@ -268,6 +279,8 @@ export function buildNdefRecords(
       ];
     case "url":
       return [{ recordType: "url", data: normalizeUrl(fields.url) }];
+    case "social":
+      return [{ recordType: "url", data: buildSocialPayload(fields, opts.lang === "en" ? "en" : "tr") }];
     default:
       return [{ recordType: "url", data: buildUri(type, fields) }];
   }

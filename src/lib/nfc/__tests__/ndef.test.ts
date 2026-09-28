@@ -52,6 +52,8 @@ describe("isNfcInputValid", () => {
     expect(isNfcInputValid("location", { lat: "41.0" })).toBe(false);
     expect(isNfcInputValid("location", { lat: "41.0", lon: "28.9" })).toBe(true);
     expect(isNfcInputValid("vcard", { firstName: "   " })).toBe(false);
+    expect(isNfcInputValid("social", { socialMode: "single", platform: "instagram", socialValue: "@renderhane" })).toBe(true);
+    expect(isNfcInputValid("social", { socialMode: "single", platform: "instagram", socialValue: "" })).toBe(false);
   });
 });
 
@@ -65,6 +67,15 @@ describe("buildNdefRecords", () => {
     expect(records).toHaveLength(1);
     expect(records[0].recordType).toBe("url");
     expect(records[0].data).toBe("https://renderhane.com");
+  });
+
+  it("writes validated social destinations as one cross-platform URI record", () => {
+    const records = buildNdefRecords("social", {
+      socialMode: "single",
+      platform: "telegram",
+      socialValue: "@renderhane",
+    });
+    expect(records).toEqual([{ recordType: "url", data: "https://t.me/renderhane" }]);
   });
 
   it("builds tel/mailto/sms/maps URIs", () => {
