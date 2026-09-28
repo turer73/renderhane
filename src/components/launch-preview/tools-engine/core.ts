@@ -1080,7 +1080,12 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const el = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     if (el.dataset.brief) { s.brief[el.dataset.brief]=el.value; return; }
     if (el.dataset.compare) { const parent = el.closest<HTMLElement>('.rh-compare'); parent?.style.setProperty('--split', `${el.value}%`); return; }
-    if (el.dataset.field && (el.dataset.kind === 'qr' || el.dataset.kind === 'nfc')) { const kind = el.dataset.kind; if (kind === 'nfc' && s.nfcBusy) return; const field = el.dataset.field; s[kind][field] = el.value; if (field === 'contactMode' || field === 'socialMode' || field === 'platform') { if (kind === 'nfc') s.nfcLastReadText = ''; render(); if (kind === 'qr') scheduleQr(); return; } updateSocialValidation(kind); if (kind === 'qr') { scheduleQr(); } else { s.nfcLastReadText = ''; updateNfcPreview(); updateNfcCapacityUi(); } return; }
+    if (el.dataset.field && (el.dataset.kind === 'qr' || el.dataset.kind === 'nfc')) { const kind = el.dataset.kind; if (kind === 'nfc' && s.nfcBusy) return; const field = el.dataset.field; s[kind][field] = el.value; if (field === 'contactMode' || field === 'socialMode' || field === 'platform') {
+      if (kind === 'nfc') s.nfcLastReadText = '';
+      render();
+      if (kind === 'qr') scheduleQr();
+      return;
+    } updateSocialValidation(kind); if (kind === 'qr') { scheduleQr(); } else { s.nfcLastReadText = ''; updateNfcPreview(); updateNfcCapacityUi(); } return; }
     if (el.dataset.prompt) s.prompt = el.value;
     if (el.id === 'rh-qr-color') { s.qrColor = el.value; const text = $('#rh-qr-hex'); if (text) text.textContent = el.value; scheduleQr(); return; }
     if (el.id === 'rh-qr-size') { s.qrSize = Number(el.value); scheduleQr(); return; }
