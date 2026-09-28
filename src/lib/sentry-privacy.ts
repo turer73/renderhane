@@ -22,7 +22,7 @@ export function scrubSentryEvent<T>(event: T): T {
     };
     transaction?: string;
     breadcrumbs?: Array<{ data?: Record<string, unknown> }>;
-    spans?: Array<{ description?: string }>;
+    spans?: Array<{ description?: string; data?: Record<string, unknown> }>;
   };
 
   const privateRequest =
@@ -51,6 +51,10 @@ export function scrubSentryEvent<T>(event: T): T {
   for (const span of mutable.spans || []) {
     if (span.description)
       span.description = sanitizePrivateShareText(span.description);
+    for (const [key, value] of Object.entries(span.data || {})) {
+      if (typeof value === "string" && span.data)
+        span.data[key] = sanitizePrivateShareText(value);
+    }
   }
 
   return event;
