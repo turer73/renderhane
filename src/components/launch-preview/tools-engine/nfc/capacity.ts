@@ -37,10 +37,9 @@ function typeLength(record: NfcRecordInput): number {
 }
 
 /**
- * Conservative NFC Forum Type 2 storage estimate. It includes each NDEF record,
- * the NDEF TLV header and the terminator byte. URI prefix compression is not
- * assumed, so a value reported as fitting will not depend on browser-specific
- * compression.
+ * Conservative NDEF message estimate (record headers included). Tag capacities
+ * already use their NDEF-message allowance, so Type 2 TLV bytes are not added a
+ * second time. URI prefix compression is not assumed.
  */
 export function estimateNdefStorageBytes(records: readonly NfcRecordInput[]): number {
   return records.reduce((total, record) => {

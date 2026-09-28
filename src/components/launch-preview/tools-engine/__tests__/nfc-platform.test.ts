@@ -2,9 +2,12 @@ import {describe, expect, it, vi} from 'vitest';
 import {
   NFC_CHIP_PROFILES,
   checkNfcCapacity,
+  createCompactNfcRecord,
   createWebNfcAdapter,
+  decodeCompactNfcRecord,
   decodeNfcRecord,
   estimateNdefStorageBytes,
+  formatCompactNfcDetails,
   nfcReadErrorMessage,
   nfcWriteErrorMessage,
   profilesForForumType,
@@ -14,6 +17,40 @@ import {
 } from '../nfc';
 
 describe('NFC chip platform', () => {
+  it('stores structured bank details compactly and restores copyable text', () => {
+    const details = {
+      kind: 'bank' as const,
+      locale: 'tr' as const,
+      fields: ['Örnek Alıcı', 'TR200000000000000000000001', 'Test Bankası', 'Demo Şube', 'Sentetik test ödemesi'],
+    };
+    const text = formatCompactNfcDetails(details);
+    const standard = [{recordType: 'text', lang: 'tr', data: text}];
+    const compact = [createCompactNfcRecord(details)];
+
+    expect(estimateNdefStorageBytes(compact)).toBeLessThan(estimateNdefStorageBytes(standard));
+    expect(checkNfcCapacity(standard, 'ntag213').fits).toBe(false);
+    expect(checkNfcCapacity(compact, 'ntag213').fits).toBe(true);
+
+    const stored = compact[0]!.data as Uint8Array;
+    const decoded = decodeCompactNfcRecord({
+      recordType: compact[0]!.recordType,
+      data: new DataView(stored.buffer, stored.byteOffset, stored.byteLength),
+    });
+    expect(decoded).toEqual(details);
+    expect(formatCompactNfcDetails(decoded!)).toBe(text);
+  });
+
+  it('rejects truncated Renderhane compact records without treating them as text', () => {
+    expect(() => decodeCompactNfcRecord({
+      recordType: 'renderhane.com:c',
+      data: new DataView(Uint8Array.from([1, 1, 20, 65]).buffer),
+    })).toThrow(/eksik/);
+    expect(decodeCompactNfcRecord({
+      recordType: 'text',
+      data: new DataView(new TextEncoder().encode('normal').buffer),
+    })).toBeNull();
+  });
+
   it('estimates Type 2 NDEF storage and blocks an oversized NTAG213 vCard', () => {
     const url = [{recordType: 'url', data: 'https://renderhane.com'}];
     expect(estimateNdefStorageBytes(url)).toBe(27);

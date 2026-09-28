@@ -170,6 +170,52 @@ test.describe('public mobile tool flows', () => {
     expect(valueText).toMatch(/bayt fazla/);
   });
 
+  test('NFC offers a compact NTAG213 business record and restores copyable text', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader; __compactRecords?: Array<{recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array}>};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(message: {records: Array<{recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array}>}): Promise<void> {
+          state.__compactRecords = message.records;
+        }
+        async scan(): Promise<void> {
+          queueMicrotask(() => this.onreading?.({
+            serialNumber: 'compact-test',
+            message: {
+              records: (state.__compactRecords || []).map(record => {
+                const bytes = typeof record.data === 'string' ? new TextEncoder().encode(record.data) : record.data;
+                return {...record, data: new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)};
+              }),
+            },
+          } as unknown as Event));
+        }
+      }
+      state.NDEFReader = FakeNDEFReader;
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.locator('[data-nfc-type="bank"]').click();
+    await page.locator('#rh-nfc-accountName').fill('Örnek Alıcı');
+    await page.locator('#rh-nfc-iban').fill('TR20 0000 0000 0000 0000 0000 01');
+    await page.locator('#rh-nfc-bankName').fill('Test Bankası');
+    await page.locator('#rh-nfc-branch').fill('Demo Şube');
+    await page.locator('#rh-nfc-description').fill('Sentetik test ödemesi');
+
+    await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
+    await expect(page.locator('.rh-nfc-capacity')).toContainText('sıkıştırılmış biçimi');
+    await page.locator('input[name="rh-nfc-storage"][value="compact"]').check();
+    await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
+    await expect(page.locator('[data-action="nfc-write"]')).toBeEnabled();
+
+    await page.locator('[data-action="nfc-write"]').click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiket yazıldı.');
+    await page.locator('[data-action="nfc-scan"]').click();
+    await expect(page.locator('.rh-nfc-read-result')).toContainText('BANKA BİLGİLERİ');
+    await expect(page.locator('.rh-nfc-read-result')).toContainText('IBAN: TR200000000000000000000001');
+    await expect(page.locator('[data-action="nfc-copy-read"]')).toBeVisible();
+    expect(await page.locator('.rh-nfc-storage').evaluate(element => element.getBoundingClientRect().right <= innerWidth + 1)).toBe(true);
+  });
+
   test('NFC IO failure opens an actionable error dialog without leaking null', async ({page}) => {
     await page.addInitScript(() => {
       const state = window as Window & {NDEFReader?: typeof FakeNDEFReader};
