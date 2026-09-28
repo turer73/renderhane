@@ -471,17 +471,21 @@ export function recordsToForm(
   return records.find((record) => record.form)?.form ?? null;
 }
 
-function toText(data: unknown): string {
+function toText(data: unknown, encoding = "utf-8"): string {
   if (typeof data === "string") return data;
-  if (data instanceof Uint8Array) return new TextDecoder().decode(data);
-  if (data instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(data));
-  if (ArrayBuffer.isView(data)) {
-    const view = data as ArrayBufferView;
-    return new TextDecoder().decode(
-      new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
-    );
+  const bytes = data instanceof Uint8Array
+    ? data
+    : data instanceof ArrayBuffer
+      ? new Uint8Array(data)
+      : ArrayBuffer.isView(data)
+        ? new Uint8Array((data as ArrayBufferView).buffer, (data as ArrayBufferView).byteOffset, (data as ArrayBufferView).byteLength)
+        : null;
+  if (!bytes) return "";
+  try {
+    return new TextDecoder(encoding).decode(bytes);
+  } catch {
+    return new TextDecoder().decode(bytes);
   }
-  return "";
 }
 
 export interface WscCredentials {
@@ -581,7 +585,8 @@ export function describeRecord(record: {
       };
     }
     if (mediaTypeEssence === VCARD_MIME || mediaTypeEssence === "text/x-vcard") {
-      const raw = toText(record.data);
+      const charset = /(?:^|;)\s*charset\s*=\s*"?([^;"\s]+)"?/i.exec(mediaType || "")?.[1] || "utf-8";
+      const raw = toText(record.data, charset);
       const fn = /^FN:(.*)$/m.exec(raw)?.[1]?.trim();
       const fields: NfcFields = {};
       for (const [key, value] of Object.entries(parseVCard(raw))) {
