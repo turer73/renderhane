@@ -179,7 +179,7 @@ test.describe('public mobile tool flows', () => {
 
     await expect(page.locator('#rh-nfc-capacity')).toHaveValue('ntag213');
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
-    await expect(page.locator('.rh-nfc-capacity')).toContainText('NTAG215/216');
+    await expect(page.locator('.rh-nfc-capacity')).toContainText('NTAG215 seç.');
     await expect(page.locator('.rh-nfc-storage')).toHaveCount(0);
     await expect(page.locator('[data-action="nfc-write"]')).toBeDisabled();
 
