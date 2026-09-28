@@ -39,6 +39,24 @@ const unescapeValue = (value: string): string => {
   return result;
 };
 
+const decodeQuotedPrintable = (value: string, charset = "utf-8"): string => {
+  const bytes: number[] = [];
+  const encoder = new TextEncoder();
+  for (let index = 0; index < value.length; index++) {
+    if (value[index] === "=" && /^[0-9A-F]{2}$/i.test(value.slice(index + 1, index + 3))) {
+      bytes.push(Number.parseInt(value.slice(index + 1, index + 3), 16));
+      index += 2;
+    } else {
+      bytes.push(...encoder.encode(value[index]));
+    }
+  }
+  try {
+    return new TextDecoder(charset).decode(new Uint8Array(bytes));
+  } catch {
+    return new TextDecoder().decode(new Uint8Array(bytes));
+  }
+};
+
 const splitEscaped = (value: string, separator: string): string[] => {
   const parts: string[] = [];
   let current = "";
@@ -65,13 +83,16 @@ const splitEscaped = (value: string, separator: string): string[] => {
 export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
   // RFC 6350 folding: a CRLF followed by space or tab continues the same content line.
-  const lines = text.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
+  const lines = text.replace(/=\r?\n/g, "").replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
 
   for (const line of lines) {
     const sep = line.indexOf(":");
     if (sep < 0) continue;
     const name = line.slice(0, sep);
-    const rawValue = line.slice(sep + 1).trim();
+    const encodedValue = line.slice(sep + 1).trim();
+    const quotedPrintable = /(?:^|;)ENCODING=QUOTED-PRINTABLE(?:;|$)/i.test(name);
+    const charset = /(?:^|;)CHARSET=([^;:]+)/i.exec(name)?.[1] || "utf-8";
+    const rawValue = quotedPrintable ? decodeQuotedPrintable(encodedValue, charset) : encodedValue;
     const value = unescapeValue(rawValue);
     const property = name.split(";")[0].toUpperCase();
     const grouped = /^ITEM\d+\./.test(property);
