@@ -18,8 +18,10 @@ export interface NfcShareState {
 
 const VERSION = 1;
 const HASH_KEY = "d";
-/** Well past any realistic tag payload, short enough to stay a scannable QR. */
+/** Decoder safety limit; retained so existing handoff links remain readable. */
 const MAX_ENCODED = 3000;
+/** Conservative byte budget below QR version 40 / error-correction H capacity. */
+const MAX_QR_HANDOFF_BYTES = 1200;
 
 const CONTENT_TYPES: readonly NfcContentType[] = [
   "url",
@@ -91,5 +93,8 @@ export function readShareHash(hash: string): NfcShareState | null {
 
 /** Absolute link that reopens this tool with the same content prefilled. */
 export function buildShareUrl(origin: string, path: string, state: NfcShareState): string {
-  return `${origin}${path}#${HASH_KEY}=${encodeNfcState(state)}`;
+  const url = `${origin}${path}#${HASH_KEY}=${encodeNfcState(state)}`;
+  if (new TextEncoder().encode(url).length > MAX_QR_HANDOFF_BYTES)
+    throw new Error("Paylaşım bağlantısı için içerik çok uzun.");
+  return url;
 }
