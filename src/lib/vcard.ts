@@ -69,6 +69,16 @@ const directInstagramUrl = (value: string): string => {
   }
 };
 
+const editableHttpUrl = (value: string): string => {
+  try {
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return "";
+    return value;
+  } catch {
+    return "";
+  }
+};
+
 const directWhatsAppNumber = (value: string): string => {
   try {
     const url = new URL(value);
@@ -125,6 +135,8 @@ export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
   let formattedName: string | undefined;
   let structuredNameSeen = false;
+  const groupedKinds = new Map<string, "instagram" | "whatsapp" | "website">();
+  const groupedLabels = new Map<string, string>();
   // RFC 6350 folding applies to every property; quoted-printable soft breaks
   // apply only when that property explicitly declares the transfer encoding.
   const physical = text.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
@@ -145,11 +157,13 @@ export function parseVCard(text: string): VCardFields {
     const name = line.slice(0, sep);
     const encodedValue = line.slice(sep + 1).trim();
     const quotedPrintable = /(?:^|;)ENCODING=QUOTED-PRINTABLE(?:;|$)/i.test(name);
-    const charset = /(?:^|;)CHARSET=([^;:]+)/i.exec(name)?.[1] || "utf-8";
+    const charset = (/(?:^|;)CHARSET=([^;:]+)/i.exec(name)?.[1] || "utf-8")
+      .replace(/^(["'])(.*)\1$/, "$2");
     const rawValue = quotedPrintable ? decodeQuotedPrintable(encodedValue, charset) : encodedValue;
     const value = unescapeValue(rawValue);
     const property = name.split(";")[0].toUpperCase();
-    const grouped = /^ITEM\d+\./.test(property);
+    const group = /^(ITEM\d+)\./.exec(property)?.[1];
+    const grouped = Boolean(group);
     const base = property.replace(/^ITEM\d+\./, "");
 
     if (base === "N") {
@@ -187,9 +201,15 @@ export function parseVCard(text: string): VCardFields {
       const organization = splitEscaped(rawValue, ";").map(unescapeValue);
       if (organization.slice(1).some((part) => part.trim()))
         throw new Error("Birim bilgisi içeren kuruluşlar güvenli biçimde düzenlenemez.");
-      fields.org ||= organization[0]?.trim();
+      const nextOrganization = organization[0]?.trim() || "";
+      if (fields.org && nextOrganization && fields.org !== nextOrganization)
+        throw new Error("Birden fazla kuruluş içeren kişi kartları güvenli biçimde düzenlenemez.");
+      fields.org ||= nextOrganization;
     } else if (base === "TITLE") {
-      fields.title ||= value;
+      const nextTitle = value.trim();
+      if (fields.title && nextTitle && fields.title !== nextTitle)
+        throw new Error("Birden fazla unvan içeren kişi kartları güvenli biçimde düzenlenemez.");
+      fields.title ||= nextTitle;
     } else if (base === "ADR") {
       const typeParam = /(?:^|;)TYPE=([^;:]+)/i.exec(name)?.[1];
       const types = typeParam ? typeParam.split(",").map((type) => type.trim().toUpperCase()) : [];
@@ -203,29 +223,53 @@ export function parseVCard(text: string): VCardFields {
       if (fields.address && address && fields.address !== address)
         throw new Error("Birden fazla adres içeren kişi kartları güvenli biçimde düzenlenemez.");
       fields.address ||= address;
-    } else if (base === "URL" && grouped) {
+    } else if (base === "URL" && grouped && group) {
       const instagram = directInstagramUrl(value);
       const whatsapp = directWhatsAppNumber(value);
       if (instagram) {
         if (fields.instagram && fields.instagram !== instagram)
           throw new Error("Birden fazla Instagram adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
         fields.instagram ||= instagram;
+        groupedKinds.set(group, "instagram");
       } else if (whatsapp) {
         if (fields.whatsapp && fields.whatsapp !== whatsapp)
           throw new Error("Birden fazla WhatsApp adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
         fields.whatsapp ||= whatsapp;
+        groupedKinds.set(group, "whatsapp");
       } else {
-        if (fields.website && value && fields.website !== value)
+        const website = editableHttpUrl(value);
+        if (!website)
+          throw new Error("HTTP dışındaki web adresleri güvenli biçimde düzenlenemez.");
+        if (fields.website && website && fields.website !== website)
           throw new Error("Birden fazla web adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
-        fields.website ||= value;
+        fields.website ||= website;
+        groupedKinds.set(group, "website");
       }
     } else if (base === "URL") {
-      if (fields.website && value && fields.website !== value)
+      const website = editableHttpUrl(value);
+      if (!website)
+        throw new Error("HTTP dışındaki web adresleri güvenli biçimde düzenlenemez.");
+      if (fields.website && website && fields.website !== website)
         throw new Error("Birden fazla web adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
-      fields.website ||= value;
-    } else if (!["BEGIN", "END", "VERSION", "PRODID", "REV", "X-ABLABEL"].includes(base)) {
+      fields.website ||= website;
+    } else if (base === "X-ABLABEL" && grouped && group) {
+      const label = value.trim();
+      if (groupedLabels.has(group) && groupedLabels.get(group) !== label)
+        throw new Error("Birden fazla bağlantı etiketi içeren kişi kartları güvenli biçimde düzenlenemez.");
+      groupedLabels.set(group, label);
+    } else if (!["BEGIN", "END", "VERSION", "PRODID", "REV"].includes(base)) {
       throw new Error("Desteklenmeyen kişi kartı alanları güvenli biçimde düzenlenemez.");
     }
+  }
+
+  for (const [group, label] of groupedLabels) {
+    const expected = groupedKinds.get(group) === "instagram"
+      ? "Instagram"
+      : groupedKinds.get(group) === "whatsapp"
+        ? "WhatsApp"
+        : "";
+    if (!expected || label !== expected)
+      throw new Error("Özel bağlantı etiketi içeren kişi kartları güvenli biçimde düzenlenemez.");
   }
 
   if (structuredNameSeen) {
