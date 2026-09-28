@@ -439,6 +439,7 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
       "fb.com": "facebook",
       "linkedin.com": "linkedin",
       "youtube.com": "youtube",
+      "m.youtube.com": "youtube",
       "youtu.be": "youtube",
     };
     const platform = socialHosts[host];
