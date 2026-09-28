@@ -99,7 +99,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
     let phone = value;
     if (/^https?:\/\//i.test(value)) {
       const url = parseHttpUrl(value);
-      exactHost(url, ["wa.me", "api.whatsapp.com", "whatsapp.com"]);
+      exactHost(url, ["wa.me", "api.whatsapp.com", "whatsapp.com", "chat.whatsapp.com"]);
       removeTrackingParams(url);
       const host = url.hostname.toLowerCase().replace(/^www\./, "");
       const pathSegments = url.pathname.split("/").filter(Boolean);
