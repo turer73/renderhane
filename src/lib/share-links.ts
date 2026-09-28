@@ -102,18 +102,23 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       exactHost(url, ["wa.me", "api.whatsapp.com", "whatsapp.com"]);
       removeTrackingParams(url);
       const host = url.hostname.toLowerCase().replace(/^www\./, "");
-      phone = host === "wa.me" ? url.pathname : url.searchParams.get("phone") || "";
-      const rawPhone = phone.replace(/^\/+|\/+$/g, "");
-      const phoneOnlyUrl =
-        (host === "wa.me" && url.pathname.split("/").filter(Boolean).length === 1 && !url.search) ||
-        (host !== "wa.me" && url.searchParams.has("phone") &&
-          [...url.searchParams.keys()].every((key) => key === "phone"));
-      if (phoneOnlyUrl && !/^\+?[\d\s()-]+$/.test(rawPhone))
-        throw new Error("WhatsApp numarasını ülke koduyla girin.");
-      const digits = rawPhone.replace(/\D/g, "");
-      const isPlainPhoneUrl = phoneOnlyUrl && /^\d{7,15}$/.test(digits);
-      if (!isPlainPhoneUrl) return { url: url.href, token: url.href };
-      return { url: `https://wa.me/${digits}`, token: digits };
+      const pathSegments = url.pathname.split("/").filter(Boolean);
+      const hasPhoneTarget = host === "wa.me"
+        ? pathSegments.length === 1
+        : url.searchParams.has("phone");
+      phone = host === "wa.me" ? pathSegments[0] || "" : url.searchParams.get("phone") || "";
+      if (hasPhoneTarget) {
+        if (!/^\+?[\d\s()-]+$/.test(phone))
+          throw new Error("WhatsApp numarasını ülke koduyla girin.");
+        const digits = phone.replace(/\D/g, "");
+        if (!/^\d{7,15}$/.test(digits))
+          throw new Error("WhatsApp numarasını ülke koduyla girin.");
+        const phoneOnlyUrl =
+          (host === "wa.me" && !url.search) ||
+          (host !== "wa.me" && [...url.searchParams.keys()].every((key) => key === "phone"));
+        if (phoneOnlyUrl) return { url: `https://wa.me/${digits}`, token: digits };
+      }
+      return { url: url.href, token: url.href };
     }
     if (!/^\+?[\d\s()-]+$/.test(phone))
       throw new Error("WhatsApp numarasını ülke koduyla girin.");
