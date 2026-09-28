@@ -56,10 +56,23 @@ describe("buildVCard", () => {
     expect(parseVCard(card).phone).toBe("+905551234567");
   });
 
-  it("preserves every populated structured address component", () => {
+  it("keeps structured address components read-only", () => {
     const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "ADR:;;123 Main St;London;;SW1;UK", "END:VCARD"].join("\r\n");
-    expect(parseVCard(card).address).toBe("123 Main St, London, SW1, UK");
+    expect(() => parseVCard(card)).toThrow(/Yapılandırılmış adres/);
+    const streetOnly = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "ADR:;;123 Main St;;;;", "END:VCARD"].join("\r\n");
+    expect(parseVCard(streetOnly).address).toBe("123 Main St");
+  });
+
+  it("keeps unsupported telephone types and multiple websites read-only", () => {
+    const workPhone = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "TEL;TYPE=WORK:+905551234567", "END:VCARD"].join("\r\n");
+    const websites = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://work.example.com", "item2.URL:https://personal.example.com",
+      "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(workPhone)).toThrow(/Telefon türü/);
+    expect(() => parseVCard(websites)).toThrow(/Birden fazla web adresi/);
   });
 
   it("recognizes grouped email, phone, and labeled social URLs", () => {
