@@ -411,7 +411,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function fields(kind: 'qr' | 'nfc'): string {
     const type = s[`${kind}Type`]; const f = s[kind];
     const disabled = kind === 'nfc' && s.nfcBusy ? ' disabled' : '';
-    const input = (key: string, label: string, placeholder: string, inputType = 'text'): string => `<div class="rh-field"><label for="rh-${kind}-${key}">${label}</label><input class="rh-input" id="rh-${kind}-${key}" data-field="${key}" data-kind="${kind}" type="${inputType}" value="${esc(f[key])}" placeholder="${esc(placeholder)}" maxlength="${key === 'url' || key === 'website' ? 1000 : 200}" autocomplete="off"${disabled}/></div>`;
+    const input = (key: string, label: string, placeholder: string, inputType = 'text'): string => `<div class="rh-field"><label for="rh-${kind}-${key}">${label}</label><input class="rh-input" id="rh-${kind}-${key}" data-field="${key}" data-kind="${kind}" type="${inputType}" value="${esc(f[key])}" placeholder="${esc(placeholder)}" maxlength="${key === 'url' || key === 'website' ? 1000 : key === 'firstName' || key === 'lastName' || key === 'profileName' ? 80 : 200}" autocomplete="off"${disabled}/></div>`;
     const area = (key: string, label: string): string => `<div class="rh-field"><label for="rh-${kind}-${key}">${label}</label><textarea class="rh-textarea" id="rh-${kind}-${key}" data-field="${key}" data-kind="${kind}" maxlength="1200"${disabled}>${esc(f[key])}</textarea></div>`;
     switch (type) {
       case 'url': return input('url', 'Web adresi', 'https://renderhane.com', 'url') + `<p class="rh-helper">https:// ile başlayan bağlantını gir.</p>`;

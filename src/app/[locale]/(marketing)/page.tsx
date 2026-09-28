@@ -48,6 +48,7 @@ export default async function MarketingPage({
   const previewLocale = locale === "en" ? "en" : "tr";
   return (
     <>
+      <link rel="preload" href="/hero/renderhane.glb" as="fetch" crossOrigin="anonymous" />
       <AdSenseScript />
       <LaunchPreview locale={previewLocale} production />
     </>

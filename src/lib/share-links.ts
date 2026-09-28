@@ -50,7 +50,6 @@ function parseHttpUrl(raw: string): URL {
   }
   if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password)
     throw new Error("Yalnızca güvenli HTTP/HTTPS bağlantıları destekleniyor.");
-  url.hash = "";
   return url;
 }
 
@@ -90,7 +89,16 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
     if (/^https?:\/\//i.test(value)) {
       const url = parseHttpUrl(value);
       exactHost(url, ["wa.me", "api.whatsapp.com", "whatsapp.com"]);
-      phone = url.hostname.toLowerCase() === "wa.me" ? url.pathname : url.searchParams.get("phone") || "";
+      removeTrackingParams(url);
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      phone = host === "wa.me" ? url.pathname : url.searchParams.get("phone") || "";
+      const digits = phone.replace(/\D/g, "");
+      const isPlainPhoneUrl = /^\d{7,15}$/.test(digits) && (
+        (host === "wa.me" && !url.search) ||
+        (host !== "wa.me" && [...url.searchParams.keys()].every((key) => key === "phone"))
+      );
+      if (!isPlainPhoneUrl) return { url: url.href, token: url.href };
+      return { url: `https://wa.me/${digits}`, token: digits };
     }
     const digits = phone.replace(/\D/g, "");
     if (!/^\d{7,15}$/.test(digits)) throw new Error("WhatsApp numarasını ülke koduyla girin.");
@@ -186,6 +194,8 @@ export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" 
   const firstName = fields.firstName?.trim() || "";
   const lastName = fields.lastName?.trim() || "";
   if (!firstName) throw new Error("Ad alanını doldurun.");
+  if (firstName.length > 80 || lastName.length > 80)
+    throw new Error("Ad ve soyad en fazla 80 karakter olabilir.");
   const params = new URLSearchParams({ n: firstName });
   if (lastName) params.set("s", lastName);
   if (fields.phone?.trim()) {

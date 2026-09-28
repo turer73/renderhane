@@ -40,6 +40,15 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("facebook", "https://facebook.com/profile.php?id=123").url).toBe(
       "https://facebook.com/profile.php?id=123"
     );
+    expect(normalizeSocialLink("whatsapp", "https://wa.me/905551234567?text=Merhaba").url).toBe(
+      "https://wa.me/905551234567?text=Merhaba"
+    );
+    expect(normalizeSocialLink("whatsapp", "https://www.whatsapp.com/channel/example").url).toBe(
+      "https://www.whatsapp.com/channel/example"
+    );
+    expect(normalizeSocialLink("website", "https://example.com/#/contact").url).toBe(
+      "https://example.com/#/contact"
+    );
   });
 
   it("marks contact and social share routes as analytics-free", () => {
@@ -85,5 +94,12 @@ describe("share landing URLs", () => {
     expect(url.searchParams.get("n")).toBe("Turgut");
     expect(url.searchParams.get("s")).toBe("Ürer");
     expect(url.searchParams.get("p")).toBe("+905551234567");
+  });
+
+  it("rejects contact names that the landing page cannot preserve", () => {
+    expect(() => buildContactLandingUrl({ firstName: "A".repeat(81) })).toThrow(/80 karakter/);
+    expect(() => buildContactLandingUrl({ firstName: "Ada", lastName: "B".repeat(81) })).toThrow(
+      /80 karakter/
+    );
   });
 });
