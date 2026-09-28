@@ -365,7 +365,13 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
   if (/^tel:/i.test(uri)) return { type: "phone", fields: { phone: uri.slice(4) } };
 
   if (/^mailto:/i.test(uri)) {
-    const [address, query = ""] = uri.slice(7).split("?");
+    const [encodedAddress, query = ""] = uri.slice(7).split("?");
+    let address = encodedAddress;
+    try {
+      address = decodeURIComponent(encodedAddress);
+    } catch {
+      // Preserve malformed legacy values as-is so the reader still displays them.
+    }
     const params = new URLSearchParams(query);
     const fields: NfcFields = { email: address };
     if (params.get("subject")) fields.subject = params.get("subject") as string;
@@ -381,14 +387,17 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
     return { type: "sms", fields };
   }
 
-  const maps = /[?&]q=(-?[\d.]+),\s*(-?[\d.]+)/.exec(uri);
-  if (maps && /maps/i.test(uri)) {
-    return { type: "location", fields: { lat: maps[1], lon: maps[2] } };
-  }
-
   try {
     const url = new URL(uri);
     const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const maps = /^(-?[\d.]+),\s*(-?[\d.]+)$/.exec(url.searchParams.get("q") || "");
+    const recognizedMap =
+      (host === "google.com" && url.pathname === "/maps") ||
+      host === "maps.google.com";
+    if (maps && recognizedMap) {
+      return { type: "location", fields: { lat: maps[1], lon: maps[2] } };
+    }
+
     const playPackage =
       host === "play.google.com" && url.pathname === "/store/apps/details"
         ? url.searchParams.get("id")
