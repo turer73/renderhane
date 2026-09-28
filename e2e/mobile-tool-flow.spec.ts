@@ -139,7 +139,29 @@ test.describe('public mobile tool flows', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   });
 
-  test('NFC shows NTAG213 capacity before writing a large contact card', async ({page}) => {
+  test('NFC stores a full contact card compactly on NTAG213 and restores vCard text', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader; __contactRecords?: Array<{recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array}>};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(message: {records: Array<{recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array}>}): Promise<void> {
+          state.__contactRecords = message.records;
+        }
+        async scan(): Promise<void> {
+          queueMicrotask(() => this.onreading?.({
+            serialNumber: 'compact-contact-test',
+            message: {
+              records: (state.__contactRecords || []).map(record => {
+                const bytes = typeof record.data === 'string' ? new TextEncoder().encode(record.data) : record.data;
+                return {...record, data: new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)};
+              }),
+            },
+          } as unknown as Event));
+        }
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+    });
     await page.goto('/tr/araclar/nfc-yaz');
     await page.locator('[data-nfc-type="vcard"]').click();
     await page.locator('#rh-nfc-name').fill('Turgut Ürer');
@@ -150,24 +172,30 @@ test.describe('public mobile tool flows', () => {
 
     await expect(page.locator('#rh-nfc-capacity')).toHaveValue('ntag213');
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
-    await expect(page.locator('.rh-nfc-capacity')).toContainText(/bayt fazla/);
-    await expect(page.locator('[data-action="nfc-write"]')).toBeDisabled();
-    await expect(page.locator('[data-action="nfc-bulk-start"]')).toBeDisabled();
+    await expect(page.locator('.rh-nfc-storage-recommended')).toContainText('Seçilen etikete sığması için bunu seç');
 
-    await page.locator('#rh-nfc-capacity').selectOption('ntag215');
+    await page.locator('.rh-nfc-storage input[value="compact"]').check();
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
-    await expect(page.locator('.rh-nfc-capacity')).toContainText('Sığıyor');
+    await expect(page.locator('[data-action="nfc-write"]')).toBeEnabled();
+    await page.locator('[data-action="nfc-write"]').click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiket yazıldı.');
 
-    await page.locator('#rh-nfc-capacity').selectOption('ntag213');
-    await expect(page.locator('[data-action="nfc-bulk-start"]')).toBeDisabled();
-    const meter = page.locator('.rh-nfc-meter');
-    const [value, max, valueText] = await Promise.all([
-      meter.getAttribute('aria-valuenow'),
-      meter.getAttribute('aria-valuemax'),
-      meter.getAttribute('aria-valuetext'),
-    ]);
-    expect(Number(value)).toBeLessThanOrEqual(Number(max));
-    expect(valueText).toMatch(/bayt fazla/);
+    const recordType = await page.evaluate(() => (window as Window & {__contactRecords?: Array<{recordType: string}>}).__contactRecords?.[0]?.recordType);
+    expect(recordType).toBe('renderhane.com:c');
+
+    await page.locator('[data-action="nfc-scan"]').click();
+    await expect(page.locator('.rh-nfc-read-result')).toContainText('BEGIN:VCARD');
+    await expect(page.locator('.rh-nfc-read-result')).toContainText('FN:Turgut Ürer');
+    await expect(page.locator('.rh-nfc-read-result')).toContainText('EMAIL:turgut.urer@gmail.com');
+    await expect(page.locator('.rh-nfc-read-result')).toContainText('URL:https://renderhane.com/');
+
+    await page.locator('[data-nfc-type="url"]').click();
+    await page.locator('[data-nfc-type="vcard"]').click();
+    await expect(page.locator('.rh-nfc-storage input[value="compact"]')).toBeChecked();
+
+    await page.reload();
+    await page.locator('[data-nfc-type="vcard"]').click();
+    await expect(page.locator('.rh-nfc-storage input[value="compact"]')).toBeChecked();
   });
 
   test('NFC offers a compact NTAG213 business record and restores copyable text', async ({page}) => {
@@ -203,7 +231,7 @@ test.describe('public mobile tool flows', () => {
 
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
     await expect(page.locator('.rh-nfc-capacity')).toContainText('sıkıştırılmış biçimi');
-    await expect(page.locator('.rh-nfc-storage-recommended')).toContainText('NTAG213 için bunu seç');
+    await expect(page.locator('.rh-nfc-storage-recommended')).toContainText('Seçilen etikete sığması için bunu seç');
     await page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]').check();
     await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
@@ -216,6 +244,10 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rh-nfc-read-result')).toContainText('IBAN: TR200000000000000000000001');
     await expect(page.locator('[data-action="nfc-copy-read"]')).toBeVisible();
     expect(await page.locator('.rh-nfc-storage').evaluate(element => element.getBoundingClientRect().right <= innerWidth + 1)).toBe(true);
+
+    await page.locator('[data-nfc-type="url"]').click();
+    await page.locator('[data-nfc-type="bank"]').click();
+    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
 
     await page.reload();
     await page.locator('[data-nfc-type="bank"]').click();
