@@ -197,7 +197,7 @@ function buildBusinessDetails(type: 'bank' | 'invoice', f: Fields, locale: ToolL
 /** Payloads for ordinary static QR codes, not redirects or dynamic analytics. */
 export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 'tr'): string {
   const phone = (): string => { const v = requireField(f, 'phone', 'Telefon').replace(/[\s()-]/g, ''); if (!/^\+?[0-9]{5,15}$/.test(v)) throw Error('Telefon numarasını ülke koduyla girin.'); return v; };
-  const email = (value: string): string => { const normalized = value.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw Error('Geçerli bir e-posta adresi girin.'); return normalized; };
+  const email = (value: string): string => { const normalized = normalizeContactEmail(value); if (!normalized) throw Error('Geçerli bir e-posta adresi girin.'); return normalized; };
   switch (type) {
     case 'url': return validHttp(f.url || '');
     case 'vcard': {
