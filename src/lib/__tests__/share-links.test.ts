@@ -43,6 +43,9 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("facebook", "https://facebook.com/profile.php?id=123").url).toBe(
       "https://facebook.com/profile.php?id=123"
     );
+    expect(normalizeSocialLink("facebook", "https://m.facebook.com/renderhane").url).toBe(
+      "https://m.facebook.com/renderhane"
+    );
     expect(normalizeSocialLink("whatsapp", "https://wa.me/905551234567?text=Merhaba").url).toBe(
       "https://wa.me/905551234567?text=Merhaba"
     );
@@ -115,6 +118,15 @@ describe("share landing URLs", () => {
     expect(() => buildContactLandingUrl({ firstName: "Ada", lastName: "B".repeat(81) })).toThrow(
       /80 karakter/
     );
+  });
+
+  it("rejects malformed linked-card email domains", () => {
+    expect(() =>
+      buildContactLandingUrl({ firstName: "Ada", email: "person@example.com," })
+    ).toThrow(/e-posta/);
+    expect(
+      buildContactLandingUrl({ firstName: "Ada", email: "person@example.com" })
+    ).toContain("e=person%40example.com");
   });
 
   it("rejects organizations that the landing page cannot preserve", () => {
