@@ -123,6 +123,8 @@ const splitEscaped = (value: string, separator: string): string[] => {
 /** Reverse of {@link buildVCard} — turns a scanned card back into form fields. */
 export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
+  let formattedName: string | undefined;
+  let structuredNameSeen = false;
   // RFC 6350 folding applies to every property; quoted-printable soft breaks
   // apply only when that property explicitly declares the transfer encoding.
   const physical = text.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
@@ -155,18 +157,14 @@ export function parseVCard(text: string): VCardFields {
         splitEscaped(rawValue, ";").map(unescapeValue);
       if ([additional, prefix, suffix].some((part) => part?.trim()))
         throw new Error("Ek ad, unvan veya son ek içeren kişi kartları güvenli biçimde düzenlenemez.");
-      if (first) fields.firstName = first.trim();
-      if (last) fields.lastName = last.trim();
+      fields.firstName = first?.trim() || undefined;
+      fields.lastName = last?.trim() || undefined;
+      structuredNameSeen = true;
     } else if (base === "FN") {
-      if (fields.firstName) {
-        const canonical = [fields.firstName, fields.lastName].filter(Boolean).join(" ");
-        if (value.trim() !== canonical)
-          throw new Error("Biçimlendirilmiş adı farklı kişi kartları güvenli biçimde düzenlenemez.");
-      } else {
-        const [first, ...rest] = value.split(" ");
-        fields.firstName = first;
-        if (rest.length) fields.lastName = rest.join(" ");
-      }
+      const nextFormattedName = value.trim();
+      if (formattedName && nextFormattedName && formattedName !== nextFormattedName)
+        throw new Error("Birden fazla biçimlendirilmiş adı olan kişi kartları güvenli biçimde düzenlenemez.");
+      formattedName ||= nextFormattedName;
     } else if (base === "TEL") {
       const typeParam = /(?:^|;)TYPE=([^;:]+)/i.exec(name)?.[1];
       const types = typeParam ? typeParam.split(",").map((type) => type.trim().toUpperCase()) : [];
@@ -186,10 +184,18 @@ export function parseVCard(text: string): VCardFields {
         throw new Error("Birden fazla e-posta adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
       fields.email ||= value;
     } else if (base === "ORG") {
-      fields.org ||= value;
+      const organization = splitEscaped(rawValue, ";").map(unescapeValue);
+      if (organization.slice(1).some((part) => part.trim()))
+        throw new Error("Birim bilgisi içeren kuruluşlar güvenli biçimde düzenlenemez.");
+      fields.org ||= organization[0]?.trim();
     } else if (base === "TITLE") {
       fields.title ||= value;
     } else if (base === "ADR") {
+      const typeParam = /(?:^|;)TYPE=([^;:]+)/i.exec(name)?.[1];
+      const types = typeParam ? typeParam.split(",").map((type) => type.trim().toUpperCase()) : [];
+      const legacyWork = /(?:^|;)WORK(?:;|$)/i.test(name);
+      if (!(types.length === 1 && types[0] === "WORK") && !legacyWork)
+        throw new Error("Adres türü bilgisi korunamayan kişi kartları güvenli biçimde düzenlenemez.");
       const parts = splitEscaped(rawValue, ";").map(unescapeValue);
       if (parts.some((part, index) => index !== 2 && part.trim()))
         throw new Error("Yapılandırılmış adres içeren kişi kartları güvenli biçimde düzenlenemez.");
@@ -200,9 +206,15 @@ export function parseVCard(text: string): VCardFields {
     } else if (base === "URL" && grouped) {
       const instagram = directInstagramUrl(value);
       const whatsapp = directWhatsAppNumber(value);
-      if (instagram) fields.instagram ||= instagram;
-      else if (whatsapp) fields.whatsapp ||= whatsapp;
-      else {
+      if (instagram) {
+        if (fields.instagram && fields.instagram !== instagram)
+          throw new Error("Birden fazla Instagram adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
+        fields.instagram ||= instagram;
+      } else if (whatsapp) {
+        if (fields.whatsapp && fields.whatsapp !== whatsapp)
+          throw new Error("Birden fazla WhatsApp adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
+        fields.whatsapp ||= whatsapp;
+      } else {
         if (fields.website && value && fields.website !== value)
           throw new Error("Birden fazla web adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
         fields.website ||= value;
@@ -214,6 +226,16 @@ export function parseVCard(text: string): VCardFields {
     } else if (!["BEGIN", "END", "VERSION", "PRODID", "REV", "X-ABLABEL"].includes(base)) {
       throw new Error("Desteklenmeyen kişi kartı alanları güvenli biçimde düzenlenemez.");
     }
+  }
+
+  if (structuredNameSeen) {
+    const canonical = [fields.firstName, fields.lastName].filter(Boolean).join(" ");
+    if (formattedName && formattedName !== canonical)
+      throw new Error("Biçimlendirilmiş adı farklı kişi kartları güvenli biçimde düzenlenemez.");
+  } else if (formattedName) {
+    const [first, ...rest] = formattedName.split(/\s+/);
+    fields.firstName = first;
+    if (rest.length) fields.lastName = rest.join(" ");
   }
 
   if (!fields.address) delete fields.address;
