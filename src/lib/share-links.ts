@@ -43,7 +43,7 @@ const HANDLE_RULES: Partial<Record<SocialPlatform, RegExp>> = {
   instagram: /^(?!\.)(?!.*\.\.)(?!.*\.$)[A-Za-z0-9._]{1,30}$/,
   x: /^[A-Za-z0-9_]{1,15}$/,
   telegram: /^[A-Za-z0-9_]{5,32}$/,
-  tiktok: /^[A-Za-z0-9._]{2,24}$/,
+  tiktok: /^(?!.*\.$)[A-Za-z0-9._]{2,24}$/,
   facebook: /^[A-Za-z0-9.]{1,50}$/,
   youtube: /^[A-Za-z0-9._-]{3,30}$/,
 };
@@ -76,6 +76,12 @@ function removeTrackingParams(url: URL): void {
 
 function cleanHandle(raw: string, platform?: SocialPlatform): string {
   const value = raw.trim().replace(/^@/, "").replace(/\/+$/, "");
+  if (platform === "youtube") {
+    const length = [...value].length;
+    if (length < 3 || length > 30 || !/^[\p{L}\p{N}._·-]+$/u.test(value))
+      throw new Error("Geçerli bir kullanıcı adı girin.");
+    return value;
+  }
   const rule = (platform && HANDLE_RULES[platform]) || /^[A-Za-z0-9._-]{1,100}$/;
   if (!rule.test(value)) throw new Error("Geçerli bir kullanıcı adı girin.");
   return value;
@@ -167,7 +173,12 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       platform !== "youtube" || url.hostname.toLowerCase().replace(/^www\./, "") === "youtube.com"
     );
     if (!isSimpleProfile) return { url: url.href, token: url.href };
-    const segment = segments[0] || "";
+    let segment = segments[0] || "";
+    try {
+      segment = decodeURIComponent(segment);
+    } catch {
+      return { url: url.href, token: url.href };
+    }
     if ((platform === "telegram" && segment.startsWith("+")) ||
         (platform === "youtube" && !segment.startsWith("@")) ||
         (platform === "tiktok" && !segment.startsWith("@")))
