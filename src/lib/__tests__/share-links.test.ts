@@ -51,6 +51,9 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("whatsapp", "https://wa.me/905551234567?text=Merhaba").url).toBe(
       "https://wa.me/905551234567?text=Merhaba"
     );
+    expect(() => normalizeSocialLink("whatsapp", "https://wa.me/90555O?text=Hello")).toThrow(
+      /ülke koduyla/
+    );
     expect(() => normalizeSocialLink("whatsapp", "https://wa.me/90555123456O")).toThrow(
       /ülke koduyla/
     );
