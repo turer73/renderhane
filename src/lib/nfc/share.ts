@@ -55,7 +55,10 @@ export function encodeNfcState(state: NfcShareState): string {
     if (value && value.trim()) fields[key] = value;
   }
   const json = JSON.stringify({ v: VERSION, t: state.type, f: fields });
-  return toBase64Url(new TextEncoder().encode(json));
+  const token = toBase64Url(new TextEncoder().encode(json));
+  if (token.length > MAX_ENCODED)
+    throw new Error("Paylaşım bağlantısı için içerik çok uzun.");
+  return token;
 }
 
 /** Reverse of {@link encodeNfcState}; returns null for anything unrecognisable. */
