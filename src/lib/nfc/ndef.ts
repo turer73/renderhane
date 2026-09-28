@@ -383,6 +383,7 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } | n
 
   if (/^sms:/i.test(uri)) {
     const [number, query = ""] = uri.slice(4).split("?");
+    if (!number || number.includes(",")) return null;
     const params = new URLSearchParams(query);
     const fields: NfcFields = { phone: number };
     if (params.get("body")) fields.body = params.get("body") as string;
