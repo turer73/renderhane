@@ -91,6 +91,13 @@ describe('NFC chip platform', () => {
     expect(checkNfcCapacity(records, 'ntag215').fits).toBe(true);
   });
 
+  it('restores UTF-16 NDEF text without mojibake', () => {
+    const utf16 = Uint8Array.from([0xff, 0xfe, 0x6d, 0x00, 0x65, 0x00, 0x72, 0x00, 0x68, 0x00, 0x61, 0x00, 0x62, 0x00, 0x61, 0x00]);
+    expect(decodeNfcForm([{
+      recordType: 'text', encoding: 'utf-16', data: new DataView(utf16.buffer),
+    }])).toEqual({type: 'text', fields: {text: 'merhaba'}});
+  });
+
   it('restores vCards with MIME casing and charset parameters', () => {
     const raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lovelace;Ada;;;', 'FN:Ada Lovelace', 'END:VCARD'].join('\r\n');
     expect(decodeNfcForm([{
