@@ -175,6 +175,32 @@ describe("buildVCard", () => {
     expect(() => parseVCard(whatsapp)).toThrow(/Birden fazla WhatsApp/);
   });
 
+  it("decodes quoted charset parameters without corrupting names", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0",
+      "N;CHARSET=\"ISO-8859-1\";ENCODING=QUOTED-PRINTABLE:=DCrer;Ada;;;",
+      "FN:Ada Ürer", "END:VCARD"].join("\r\n");
+    expect(parseVCard(card)).toMatchObject({ firstName: "Ada", lastName: "Ürer" });
+  });
+
+  it("keeps duplicate organizations and titles read-only", () => {
+    const organizations = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "ORG:Acme", "ORG:Research", "END:VCARD"].join("\r\n");
+    const titles = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "TITLE:Engineer", "TITLE:Founder", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(organizations)).toThrow(/Birden fazla kuruluş/);
+    expect(() => parseVCard(titles)).toThrow(/Birden fazla unvan/);
+  });
+
+  it("keeps custom URL labels and non-HTTP URLs read-only", () => {
+    const labeled = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://example.com", "item1.X-ABLabel:Portfolio",
+      "END:VCARD"].join("\r\n");
+    const ftp = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "URL:ftp://files.example.com", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(labeled)).toThrow(/Özel bağlantı etiketi/);
+    expect(() => parseVCard(ftp)).toThrow(/HTTP dışındaki/);
+  });
+
   it("folds generated content lines at 75 UTF-8 octets without changing values", () => {
     const original = {
       firstName: "Ü".repeat(40),
