@@ -59,6 +59,16 @@ const unescapeValue = (value: string): string => {
   return result;
 };
 
+const directInstagramUrl = (value: string): string => {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    return host === "instagram.com" && !url.username && !url.password ? value : "";
+  } catch {
+    return "";
+  }
+};
+
 const directWhatsAppNumber = (value: string): string => {
   try {
     const url = new URL(value);
@@ -141,7 +151,10 @@ export function parseVCard(text: string): VCardFields {
     const base = property.replace(/^ITEM\d+\./, "");
 
     if (base === "N") {
-      const [last, first] = splitEscaped(rawValue, ";").map(unescapeValue);
+      const [last, first, additional, prefix, suffix] =
+        splitEscaped(rawValue, ";").map(unescapeValue);
+      if ([additional, prefix, suffix].some((part) => part?.trim()))
+        throw new Error("Ek ad, unvan veya son ek içeren kişi kartları güvenli biçimde düzenlenemez.");
       if (first) fields.firstName = first.trim();
       if (last) fields.lastName = last.trim();
     } else if (base === "FN" && !fields.firstName) {
@@ -168,13 +181,15 @@ export function parseVCard(text: string): VCardFields {
         throw new Error("Birden fazla adres içeren kişi kartları güvenli biçimde düzenlenemez.");
       fields.address ||= address;
     } else if (base === "URL" && grouped) {
-      const instagram = /https?:\/\/(?:www\.)?instagram\.com\//i.test(value) ? value : "";
+      const instagram = directInstagramUrl(value);
       const whatsapp = directWhatsAppNumber(value);
       if (instagram) fields.instagram ||= instagram;
       else if (whatsapp) fields.whatsapp ||= whatsapp;
       else fields.website ||= value;
     } else if (base === "URL") {
       fields.website ||= value;
+    } else if (!["BEGIN", "END", "VERSION", "PRODID", "REV", "X-ABLABEL"].includes(base)) {
+      throw new Error("Desteklenmeyen kişi kartı alanları güvenli biçimde düzenlenemez.");
     }
   }
 
