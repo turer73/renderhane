@@ -236,6 +236,36 @@ describe("describeRecord", () => {
       type: "url",
       fields: { url: "https://renderhane.com" },
     });
+    expect(
+      roundTrip("social", {
+        socialMode: "single",
+        platform: "telegram",
+        socialValue: "@renderhane",
+      })
+    ).toEqual({
+      type: "social",
+      fields: {
+        socialMode: "single",
+        platform: "telegram",
+        socialValue: "https://t.me/renderhane",
+      },
+    });
+    expect(
+      roundTrip("social", {
+        socialMode: "card",
+        profileName: "Renderhane",
+        instagram: "@renderhane",
+        whatsapp: "+905551234567",
+      })
+    ).toEqual({
+      type: "social",
+      fields: {
+        socialMode: "card",
+        profileName: "Renderhane",
+        instagram: "renderhane",
+        whatsapp: "905551234567",
+      },
+    });
     expect(roundTrip("phone", { phone: "+905551234567" })).toEqual({
       type: "phone",
       fields: { phone: "+905551234567" },
