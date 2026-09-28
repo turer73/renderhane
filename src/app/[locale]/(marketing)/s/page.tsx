@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { socialLinksFromParams } from "@/lib/share-links";
 
-export const metadata: Metadata = {
-  title: "Sosyal bağlantılar | Renderhane",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: locale === "en" ? "Social links | Renderhane" : "Sosyal bağlantılar | Renderhane",
+    robots: { index: false, follow: false },
+  };
+}
 
 type Query = Record<string, string | string[] | undefined>;
 
