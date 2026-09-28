@@ -27,7 +27,7 @@ export default async function SocialCardPage({
   const { locale } = await params;
   if (locale !== "tr" && locale !== "en") notFound();
   const query = toParams(await searchParams);
-  const links = socialLinksFromParams(query);
+  const links = socialLinksFromParams(query, locale);
   if (!links.length) notFound();
   const name = (query.get("n") || (locale === "tr" ? "Sosyal bağlantılar" : "Social links")).slice(0, 80);
 
