@@ -10,7 +10,7 @@ export function sanitizePrivateShareText(value: string): string {
 }
 
 export function isPrivateShareRoute(value: string): boolean {
-  return /(?:^|https?:\/\/[^/\s]+)\/[a-z]{2}\/(?:k|s)\/?(?:[?#\s]|$)/i.test(value);
+  return /(?:^|\s|https?:\/\/[^/\s]+)\/[a-z]{2}\/(?:k|s)\/?(?:[?#\s]|$)/i.test(value);
 }
 
 export function scrubSentryEvent<T>(event: T): T {
