@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubSentryEvent } from "./src/lib/sentry-privacy";
 
 // Only initialize when DSN is set so dev/preview builds without Sentry env
 // don't ping a non-existent endpoint.
@@ -7,6 +8,8 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
     tracesSampleRate: 0.1,
+    beforeSend: scrubSentryEvent,
+    beforeSendTransaction: scrubSentryEvent,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
     debug: false,
