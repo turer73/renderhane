@@ -73,7 +73,13 @@ describe('copyable business payloads', () => {
     });
     expect(payload).toContain('N:Ürer;Turgut;;;');
     expect(payload).toContain('FN:Turgut Ürer');
-    expect(payload).toContain('TEL:+905551234567');
+    expect(payload).toContain('TEL;TYPE=CELL:+905551234567');
+  });
+
+  it('rejects invalid dot-atom email addresses in Android contact cards', () => {
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', email: 'a..b@example.com',
+    })).toThrow(/e-posta/);
   });
 
   it('rejects non-Instagram destinations in Android contact cards', () => {
