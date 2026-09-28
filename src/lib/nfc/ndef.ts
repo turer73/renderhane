@@ -591,11 +591,17 @@ export function describeRecord(record: {
       const charset = /(?:^|;)\s*charset\s*=\s*"?([^;"\s]+)"?/i.exec(mediaType || "")?.[1] || "utf-8";
       const raw = toText(record.data, charset);
       const fn = /^FN:(.*)$/m.exec(raw)?.[1]?.trim();
-      const fields: NfcFields = {};
-      for (const [key, value] of Object.entries(parseVCard(raw))) {
-        if (value) fields[key] = value;
+      try {
+        const fields: NfcFields = {};
+        for (const [key, value] of Object.entries(parseVCard(raw))) {
+          if (value) fields[key] = value;
+        }
+        return { kind: "vcard", value: fn || "", raw, form: { type: "vcard", fields } };
+      } catch {
+        // Multi-value or otherwise non-lossless cards stay readable/copyable,
+        // but are not loaded into the single-value editor for rewriting.
+        return { kind: "vcard", value: fn || "", raw };
       }
-      return { kind: "vcard", value: fn || "", raw, form: { type: "vcard", fields } };
     }
     return { kind: "mime", value: mediaType || "", raw: toText(record.data) };
   }
