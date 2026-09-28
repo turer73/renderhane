@@ -287,6 +287,10 @@ describe("describeRecord", () => {
       type: "sms",
       fields: { phone: "+905551234567", body: "selam" },
     });
+    expect(describeRecord({
+      recordType: "url",
+      data: "sms:+12025550123,+12025550124?body=Hello",
+    }).form).toBeUndefined();
     expect(roundTrip("location", { lat: "41.0082", lon: "28.9784" })).toEqual({
       type: "location",
       fields: { lat: "41.0082", lon: "28.9784" },
