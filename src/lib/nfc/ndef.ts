@@ -404,9 +404,11 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
         : null;
     if (playPackage) return { type: "app", fields: { packageName: playPackage } };
 
-    if (host === "renderhane.com" && /^\/(?:tr|en)\/k\/?$/.test(url.pathname)) {
+    const contactRoute = /^\/(tr|en)\/k\/?$/.exec(url.pathname);
+    if (host === "renderhane.com" && contactRoute) {
       const fields: NfcFields = {
         contactMode: "linked",
+        shareLocale: contactRoute[1],
         firstName: url.searchParams.get("n") || "",
       };
       const linkedFields: ReadonlyArray<readonly [string, string]> = [
@@ -423,8 +425,9 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
       return { type: "vcard", fields };
     }
 
-    if (host === "renderhane.com" && /^\/(?:tr|en)\/s\/?$/.test(url.pathname)) {
-      const fields: NfcFields = { socialMode: "card" };
+    const socialRoute = /^\/(tr|en)\/s\/?$/.exec(url.pathname);
+    if (host === "renderhane.com" && socialRoute) {
+      const fields: NfcFields = { socialMode: "card", shareLocale: socialRoute[1] };
       const profileName = url.searchParams.get("n");
       if (profileName) fields.profileName = profileName;
       for (const platform of SOCIAL_PLATFORMS) {
@@ -476,11 +479,22 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
 export function recordsToForm(
   records: DecodedRecord[]
 ): { type: NfcContentType; fields: NfcFields } | null {
-  // Android Application Records intentionally override their Play Store fallback.
-  const app = records.find((record) => record.kind === "app" && record.form);
-  if (app?.form) return app.form;
-  // For every other message, NDEF record order expresses the writer's intent.
-  return records.find((record) => record.form)?.form ?? null;
+  if (records.length === 1) return records[0].form ?? null;
+
+  // The app writer intentionally emits exactly a Play Store fallback plus AAR.
+  if (records.length === 2) {
+    const app = records.find((record) => record.kind === "app" && record.form);
+    const fallback = records.find((record) => record !== app && record.form?.type === "app");
+    if (
+      app?.form &&
+      fallback?.form &&
+      app.form.fields.packageName === fallback.form.fields.packageName
+    ) return app.form;
+  }
+
+  // Any other multi-record message cannot be round-tripped losslessly by the
+  // single-form editor, so keep it readable without offering rewrite state.
+  return null;
 }
 
 function toText(data: unknown, encoding = "utf-8"): string {
