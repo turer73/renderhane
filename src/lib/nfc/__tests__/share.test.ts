@@ -62,6 +62,17 @@ describe("share links", () => {
     });
   });
 
+  it("round-trips social card state through a share URL", () => {
+    const url = buildShareUrl("https://www.renderhane.com", "/tr/araclar/nfc-yaz", {
+      type: "social",
+      fields: { socialMode: "card", instagram: "@renderhane", youtube: "@renderhane" },
+    });
+    expect(readShareHash(url.slice(url.indexOf("#")))).toEqual({
+      type: "social",
+      fields: { socialMode: "card", instagram: "@renderhane", youtube: "@renderhane" },
+    });
+  });
+
   it("returns null for an empty or unrelated hash", () => {
     expect(readShareHash("")).toBeNull();
     expect(readShareHash("#section-2")).toBeNull();

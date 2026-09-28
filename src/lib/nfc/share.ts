@@ -31,6 +31,7 @@ const CONTENT_TYPES: readonly NfcContentType[] = [
   "location",
   "text",
   "app",
+  "social",
 ];
 
 function toBase64Url(bytes: Uint8Array): string {
