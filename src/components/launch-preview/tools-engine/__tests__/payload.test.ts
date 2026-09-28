@@ -1,9 +1,10 @@
 import {beforeAll, describe, expect, it} from 'vitest';
 
 let buildPayload: (typeof import('../core'))['buildPayload'];
+let toEditorNfcForm: (typeof import('../core'))['toEditorNfcForm'];
 beforeAll(async () => {
   Object.assign(globalThis, {window: {}});
-  ({buildPayload} = await import('../core'));
+  ({buildPayload, toEditorNfcForm} = await import('../core'));
 });
 
 describe('copyable business payloads', () => {
@@ -52,6 +53,15 @@ describe('copyable business payloads', () => {
   it('rejects malformed optional business email addresses', () => {
     expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres', invoiceEmail: 'not-an-email'})).toThrow('Geçerli bir e-posta');
     expect(() => buildPayload('vcard', {firstName: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+  });
+
+  it('maps scanned app and geo records to the editor field schema', () => {
+    expect(toEditorNfcForm({type: 'app', fields: {packageName: 'com.renderhane.app'}})).toEqual({
+      type: 'app', fields: {package: 'com.renderhane.app'},
+    });
+    expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:41.0082,28.9784'}})).toEqual({
+      type: 'location', fields: {lat: '41.0082', lon: '28.9784'},
+    });
   });
 
   it('builds a standards-compatible Android vCard with separate name fields', () => {
