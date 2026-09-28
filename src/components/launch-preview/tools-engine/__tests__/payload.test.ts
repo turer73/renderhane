@@ -76,6 +76,17 @@ describe('copyable business payloads', () => {
     expect(payload).toContain('TEL:+905551234567');
   });
 
+  it('preserves extended Android contact fields when rebuilding a scanned card', () => {
+    const payload = buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', title: 'Engineer',
+      address: 'London', instagram: '@renderhane', whatsapp: '+905551234567',
+    });
+    expect(payload).toContain('TITLE:Engineer');
+    expect(payload).toContain('ADR;TYPE=WORK:;;London;;;;');
+    expect(payload).toContain('item1.URL:https://www.instagram.com/renderhane');
+    expect(payload).toContain('item2.URL:https://wa.me/905551234567');
+  });
+
   it('builds iPhone/Android contact and social landing links', () => {
     expect(buildPayload('vcard', {
       contactMode: 'linked',
