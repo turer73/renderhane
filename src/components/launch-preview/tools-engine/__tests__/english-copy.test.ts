@@ -42,6 +42,17 @@ describe("English free-tool copy", () => {
       .toBe("Permanent locking did not finish within 30 seconds. The tag was written, but check its lock status.");
     expect(localizeToolText("Kalıcı kilit zaman aşımına uğradı; kilit durumu doğrulanamadı."))
       .toBe("Permanent locking timed out; the lock status could not be verified.");
+    expect(localizeToolText("NTAG213 · 132 bayt")).toBe("NTAG213 · 132 bytes");
+    expect(localizeToolText("NTAG215 · 492 bayt")).toBe("NTAG215 · 492 bytes");
+    expect(localizeToolText("NTAG216 · 872 bayt")).toBe("NTAG216 · 872 bytes");
+    expect(localizeToolText("NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene."))
+      .toContain("The NFC tag could not be read.");
+    expect(localizeToolText("Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin."))
+      .toBe("Enter a valid 10-digit Turkish tax number or 11-digit Turkish identity number.");
+    expect(localizeToolText("NFC etiketi okunamadı. Etiketi ve telefonun NFC ayarını kontrol et."))
+      .toBe("The NFC tag could not be read. Check the tag and the phone's NFC setting.");
+    expect(localizeToolText("NFC etiketi okunamadı: Adapter offline"))
+      .toBe("The NFC tag could not be read: Adapter offline");
     expect(localizeToolText("Etiketten geri okunan içerik yazılan NDEF ile eşleşmedi; kalıcı kilit uygulanmadı."))
       .toBe("The content read back from the tag did not match the written NDEF; permanent locking was not applied.");
     expect(localizeToolText("Toplu yazım tamamlandı: 3/3 etiket yazıldı; 1 kilitlendi, 2 kilitlenemedi. Son hata: Kilit işlemi tamamlanmadı."))

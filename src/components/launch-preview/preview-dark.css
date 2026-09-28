@@ -103,6 +103,12 @@
 .dark .rh-app .rh-notice.success{background:#12372d;border-color:#255f4c;color:#a7f3d0}
 .dark .rh-app .rh-notice.error{background:#3a1b24;border-color:#6d2d39;color:#fecaca}
 .dark .rh-app .rh-nfc-live-status,.dark .rh-app .rh-compat>div{background:#191335;border-color:#352a63}
+.dark .rh-app .rh-nfc-capacity{background:#191335;border-color:#352a63}
+.dark .rh-app .rh-nfc-meter{background:#302653}
+.dark .rh-app .rh-nfc-capacity[data-state="error"]{background:#3a1b24;border-color:#6d2d39}
+.dark .rh-app .rh-nfc-capacity[data-state="error"] p{color:#fecaca}
+.dark .rh-app .rh-error-dialog{background:#17122e;border-color:#44376c;color:#f7f3ff}
+.dark .rh-app .rh-error-dialog-icon{background:#3a1b24;color:#fecaca}
 .dark .rh-app .rh-phone{background:#171231;border-color:#0d0b18;color:var(--ink);box-shadow:0 0 0 1px #4a4266,10px 15px 30px #0005}
 .dark .rh-app .rh-phone .rh-wave{background:linear-gradient(160deg,#2c2358,#1e1840);color:#b9a8ff}
 .dark .mc-entry{background:linear-gradient(110deg,#221a4a,#191335);border-color:#3d2f7a}

@@ -1,0 +1,56 @@
+import {beforeAll, describe, expect, it} from 'vitest';
+
+let buildPayload: (typeof import('../core'))['buildPayload'];
+beforeAll(async () => {
+  Object.assign(globalThis, {window: {}});
+  ({buildPayload} = await import('../core'));
+});
+
+describe('copyable business payloads', () => {
+  it('builds bank details as plain copyable text without initiating a payment', () => {
+    const payload = buildPayload('bank', {
+      accountName: 'Renderhane',
+      iban: 'TR33 0006 1005 1978 6457 8413 26',
+      bankName: 'Örnek Banka',
+      branch: 'Avcılar',
+      description: 'Sipariş 42',
+    });
+    expect(payload).toBe([
+      'BANKA BİLGİLERİ',
+      'Alıcı: Renderhane',
+      'IBAN: TR330006100519786457841326',
+      'Banka: Örnek Banka',
+      'Şube: Avcılar',
+      'Açıklama: Sipariş 42',
+    ].join('\n'));
+    expect(payload).not.toMatch(/https?:|intent:|bank:/i);
+  });
+
+  it('builds localized invoice details as plain copyable text', () => {
+    const payload = buildPayload('invoice', {
+      title: 'Renderhane',
+      taxOffice: 'Avcılar',
+      taxNumber: '1234567890',
+      address: 'Denizköşkler Mah.\nİstanbul',
+      invoiceEmail: 'info@renderhane.com',
+    }, 'en');
+    expect(payload).toContain('INVOICE DETAILS');
+    expect(payload).toContain('Legal name: Renderhane');
+    expect(payload).toContain('Address: Denizköşkler Mah. İstanbul');
+  });
+
+  it('rejects invalid IBAN and tax identifiers', () => {
+    expect(() => buildPayload('bank', {accountName: 'A', iban: '123'})).toThrow('Geçerli bir IBAN');
+    expect(() => buildPayload('bank', {accountName: 'A', iban: 'TR4700000000000'})).toThrow('Geçerli bir IBAN');
+    expect(() => buildPayload('invoice', {title: 'A', taxNumber: '123', address: 'Adres'})).toThrow('Geçerli bir 10 haneli vergi numarası');
+    expect(() => buildPayload('invoice', {title: 'A', taxNumber: '00000000000', address: 'Adres'})).toThrow('Geçerli bir 10 haneli vergi numarası');
+    expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1111111111', address: 'Adres'})).toThrow('Geçerli bir 10 haneli vergi numarası');
+    expect(buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres'})).toContain('1234567890');
+    expect(buildPayload('invoice', {title: 'A', taxNumber: '10000000146', address: 'Adres'})).toContain('10000000146');
+  });
+
+  it('rejects malformed optional business email addresses', () => {
+    expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres', invoiceEmail: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+    expect(() => buildPayload('vcard', {name: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+  });
+});

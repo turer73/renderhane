@@ -175,6 +175,37 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Fiziksel etiket gerekir", "Physical tag required"],
   ["İçerik türünü seç", "Choose content type"],
   ["İçeriğini hazırla", "Prepare your content"],
+  ["Banka bilgileri", "Bank details"],
+  ["Fatura bilgileri", "Invoice details"],
+  ["Alıcı adı *", "Recipient name *"],
+  ["Ad Soyad / Şirket", "Name / Company"],
+  ["Banka adı", "Bank name"],
+  ["Banka", "Bank"],
+  ["Şube adı / kodu", "Branch name / code"],
+  ["Şube", "Branch"],
+  ["Ödeme açıklaması", "Payment reference"],
+  ["Açıklama", "Reference"],
+  ["Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; ödeme başlatılmaz.", "The details are prepared only as copyable text; no payment is initiated."],
+  ["Unvan / ad soyad *", "Legal name / full name *"],
+  ["Unvan", "Legal name"],
+  ["Şirket veya kişi adı", "Company or individual name"],
+  ["Vergi dairesi", "Tax office"],
+  ["Vergi / T.C. kimlik no *", "Tax / national ID number *"],
+  ["10 veya 11 hane", "10 or 11 digits"],
+  ["Fatura adresi *", "Invoice address *"],
+  ["Fatura e-postası", "Invoice email"],
+  ["Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; fatura oluşturulmaz veya gönderilmez.", "The details are prepared only as copyable text; no invoice is created or sent."],
+  ["Etiket kapasitesi", "Tag capacity"],
+  ["Etiket modelini seç", "Choose tag model"],
+  ["NTAG213 · 132 bayt", "NTAG213 · 132 bytes"],
+  ["NTAG215 · 492 bayt", "NTAG215 · 492 bytes"],
+  ["NTAG216 · 872 bayt", "NTAG216 · 872 bytes"],
+  ["NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene.", "The NFC tag could not be read. Contact may have been lost or the tag may be incompatible; hold it steady near the phone's NFC area and try again."],
+  ["NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.", "The NFC tag could not be read. Hold it steady near the phone's NFC area and try again."],
+  ["Cihaz veya etiket NDEF okumayı desteklemiyor.", "The device or tag does not support NDEF reading."],
+  ["NFC okuma işlemi durduruldu.", "The NFC reading operation was stopped."],
+  ["İçeriği tamamladığında tahmini NDEF boyutu burada görünür.", "The estimated NDEF size will appear here when the content is complete."],
+  ["Tahmini NDEF kullanımı", "Estimated NDEF usage"],
   ["Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.", "Allow overwriting the tag's existing content."],
   ["Yazdıktan sonra etiketi kalıcı olarak kilitle.", "Permanently lock the tag after writing."],
   ["Kalıcı kilit geri alınamaz. İçeriği önce doğrula ve kilitleme bitene kadar etiketi telefondan uzaklaştırma.", "Permanent locking cannot be undone. Verify the content first and keep the tag near the phone until locking finishes."],
@@ -265,6 +296,14 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Paket adı alanını doldurun.", "Complete the package name field."],
   ["Geçerli bir Android paket adı girin (ör. com.firma.uygulama).", "Enter a valid Android package name (for example com.company.app)."],
   ["Metin alanını doldurun.", "Complete the text field."],
+  ["Alıcı adı alanını doldurun.", "Complete the recipient name field."],
+  ["IBAN alanını doldurun.", "Complete the IBAN field."],
+  ["Geçerli bir IBAN girin.", "Enter a valid IBAN."],
+  ["Unvan alanını doldurun.", "Complete the legal name field."],
+  ["Vergi / T.C. kimlik numarası alanını doldurun.", "Complete the tax / national ID number field."],
+  ["Vergi numarası 10, T.C. kimlik numarası 11 haneli olmalı.", "A tax number must have 10 digits and a national ID number must have 11 digits."],
+  ["Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin.", "Enter a valid 10-digit Turkish tax number or 11-digit Turkish identity number."],
+  ["Fatura adresi alanını doldurun.", "Complete the invoice address field."],
   ["Bilinmeyen QR şekli.", "Unknown QR shape."],
   ["Geçersiz QR rengi.", "Invalid QR color."],
   ["Maske geçersiz.", "Invalid QR mask."],
@@ -338,6 +377,16 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.", "NFC permission was denied. Check permissions and try again."],
   ["Cihaz veya etiket bu işlemi desteklemiyor.", "The device or tag does not support this operation."],
   ["NFC işlemi tamamlanmadı:", "NFC operation did not complete:"],
+  ["NFC işlemi tamamlanamadı", "NFC operation could not be completed"],
+  ["NFC işlemi durduruldu.", "The NFC operation was stopped."],
+  ["Başka bir NFC işlemi açık olabilir. Sayfayı önde tutup yeniden dene.", "Another NFC operation may be active. Keep the page in the foreground and try again."],
+  ["NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.", "The NFC tag could not be read. Hold it steady over the phone's NFC area and try again."],
+  ["NFC etiketi okunamadı. Etiketi ve telefonun NFC ayarını kontrol et.", "The NFC tag could not be read. Check the tag and the phone's NFC setting."],
+  ["İçerik geçerli bir NDEF kaydı olarak yazılamadı. Alanları kısaltıp yeniden dene.", "The content could not be written as a valid NDEF record. Shorten the fields and try again."],
+  ["Etikete yazılamadı. Etiket dolu, kilitli/korumalı olabilir veya temas kesilmiş olabilir. Kapasiteyi kontrol et ve etiketi telefonun NFC alanında sabit tut.", "The tag could not be written. It may be full, locked/protected, or contact may have been lost. Check capacity and hold the tag steady over the phone's NFC area."],
+  ["Etikete yazılamadı. Etiket dolu, kilitli/korumalı olabilir veya mevcut içerik üzerine yazmayı engelliyor olabilir. Önce etiketi oku; mevcut içerik varsa “üzerine yaz” seçeneğini aç.", "The tag could not be written. It may be full, locked/protected, or existing content may be blocking the write. Read the tag first; if it has content, enable overwrite."],
+  ["NFC işlemi tamamlanmadı. Etiketi ve telefonun NFC ayarını kontrol et.", "The NFC operation did not complete. Check the tag and the phone's NFC setting."],
+  ["Tamam", "OK"],
   ["NDEF etiketi okunamadı.", "The NDEF tag could not be read."],
   ["NFC erişimi HTTPS veya localhost gerektirir.", "NFC access requires HTTPS or localhost."],
   ["Bu tarayıcı Web NFC NDEF erişimi sunmuyor.", "This browser does not provide Web NFC NDEF access."],
@@ -353,6 +402,11 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
 ];
 
 const DYNAMIC: Array<[RegExp, string]> = [
+  [/^NFC etiketi okunamadı: (.+)$/, "The NFC tag could not be read: $1"],
+  [/^Tahmini NDEF: ([0-9]+) bayt · Kapasiteyi doğrulamak için etiket modelini seç[.]$/, "Estimated NDEF: $1 bytes · Choose the tag model to verify capacity."],
+  [/^Tahmini NDEF: ([0-9]+) [/\/] ([0-9]+) bayt · Sığıyor[.]$/, "Estimated NDEF: $1 / $2 bytes · Fits."],
+  [/^Tahmini NDEF: ([0-9]+) [/\/] ([0-9]+) bayt · ([0-9]+) bayt fazla[.] İçeriği kısalt veya daha büyük bir etiket seç[.]$/, "Estimated NDEF: $1 / $2 bytes · $3 bytes over. Shorten the content or choose a larger tag."],
+  [/^İçerik seçilen etikete sığmıyor: ([0-9]+) [/\/] ([0-9]+) bayt[.] İçeriği kısalt veya NTAG215[/]216 seç[.]$/, "The content does not fit the selected tag: $1 / $2 bytes. Shorten the content or choose NTAG215/216."],
   [/^Bu içerik için ([0-9]+)px küçük kalıyor[.] En az 4 piksel[/]modül gerekiyor; daha büyük çıktı seçin[.]$/, "This content does not fit at $1px. At least 4 pixels per module are required; choose a larger output."],
   [/^Bu içerik için ([0-9]+)px küçük kalıyor[.] Stilli QR için en az 6 piksel[/]modül gerekiyor; daha büyük çıktı seçin[.]$/, "This content does not fit at $1px. At least 6 pixels per module are required for a styled QR; choose a larger output."],
   [/^([0-9]+) × ([0-9]+) px · ([0-9]+) × ([0-9]+) modül · H · 4 modül kenar$/, "$1 × $2 px · $3 × $4 modules · H · 4-module quiet zone"],
@@ -381,8 +435,8 @@ export function localizeToolElement(root: HTMLElement): void {
     if (!parent || parent.closest('[translate="no"]') || parent.closest("textarea,script,style")) continue;
     node.nodeValue = localizeToolText(node.nodeValue ?? "");
   }
-  root.querySelectorAll<HTMLElement>("[placeholder],[aria-label],[title],[alt]").forEach(element => {
-    for (const name of ["placeholder", "aria-label", "title", "alt"]) {
+  root.querySelectorAll<HTMLElement>("[placeholder],[aria-label],[aria-valuetext],[title],[alt]").forEach(element => {
+    for (const name of ["placeholder", "aria-label", "aria-valuetext", "title", "alt"]) {
       const value = element.getAttribute(name);
       if (value) element.setAttribute(name, localizeToolText(value));
     }
