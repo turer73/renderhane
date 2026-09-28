@@ -94,8 +94,8 @@ describe('NFC chip platform', () => {
   it('restores UTF-16 NDEF text without mojibake', () => {
     const utf16 = Uint8Array.from([0xff, 0xfe, 0x6d, 0x00, 0x65, 0x00, 0x72, 0x00, 0x68, 0x00, 0x61, 0x00, 0x62, 0x00, 0x61, 0x00]);
     expect(decodeNfcForm([{
-      recordType: 'text', encoding: 'utf-16', data: new DataView(utf16.buffer),
-    }])).toEqual({type: 'text', fields: {text: 'merhaba'}});
+      recordType: 'text', encoding: 'utf-16', lang: 'en', data: new DataView(utf16.buffer),
+    }])).toEqual({type: 'text', fields: {text: 'merhaba', lang: 'en'}});
   });
 
   it('restores vCards with MIME casing and charset parameters', () => {
