@@ -5,6 +5,7 @@ import {
   createCompactNfcRecord,
   createWebNfcAdapter,
   decodeCompactNfcRecord,
+  decodeNfcForm,
   decodeNfcRecord,
   estimateNdefStorageBytes,
   formatCompactNfcDetails,
@@ -88,6 +89,22 @@ describe('NFC chip platform', () => {
     expect(check.estimatedBytes).toBeGreaterThan(132);
     expect(check.fits).toBe(false);
     expect(checkNfcCapacity(records, 'ntag215').fits).toBe(true);
+  });
+
+  it('restores direct and linked social scans into the editable form', () => {
+    const record = (url: string) => ({
+      recordType: 'url',
+      data: new DataView(new TextEncoder().encode(url).buffer),
+    });
+
+    expect(decodeNfcForm([record('https://www.instagram.com/renderhane/')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'single', platform: 'instagram', socialValue: 'https://www.instagram.com/renderhane/'},
+    });
+    expect(decodeNfcForm([record('https://renderhane.com/tr/s?n=Renderhane&ig=%40renderhane')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'card', profileName: 'Renderhane', instagram: '@renderhane'},
+    });
   });
 
   it('turns Android Web NFC IO failures into actionable Turkish messages', () => {
