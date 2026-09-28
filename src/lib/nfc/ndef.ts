@@ -427,6 +427,7 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
       "wa.me": "whatsapp",
       "api.whatsapp.com": "whatsapp",
       "whatsapp.com": "whatsapp",
+      "chat.whatsapp.com": "whatsapp",
       "t.me": "telegram",
       "telegram.me": "telegram",
       "tiktok.com": "tiktok",
