@@ -298,7 +298,15 @@ describe("describeRecord", () => {
     });
     expect(roundTrip("text", { text: "merhaba" })).toEqual({
       type: "text",
-      fields: { text: "merhaba" },
+      fields: { text: "merhaba", lang: "tr" },
+    });
+    expect(describeRecord({
+      recordType: "text",
+      lang: "en",
+      data: "hello",
+    }).form).toEqual({
+      type: "text",
+      fields: { text: "hello", lang: "en" },
     });
   });
 
@@ -325,6 +333,15 @@ describe("describeRecord", () => {
       type: "social",
       fields: { socialMode: "card", shareLocale: "en" },
     });
+  });
+
+  it("keeps mailto records with unsupported headers read-only", () => {
+    const record = describeRecord({
+      recordType: "url",
+      data: "mailto:ada@example.com?cc=work@example.com&subject=Hello",
+    });
+    expect(record.kind).toBe("url");
+    expect(record.form).toBeUndefined();
   });
 
   it("classifies only exact Play Store destinations as apps", () => {
@@ -372,7 +389,7 @@ describe("describeRecord", () => {
         lastName: "Kaya",
         phone: "+905551234567",
         org: "Renderhane",
-        instagram: "renderhane",
+        instagram: "https://www.instagram.com/renderhane",
         whatsapp: "905551234567",
       }).map((r) => describeRecord(r))
     );
