@@ -264,7 +264,7 @@ describe("describeRecord", () => {
         socialMode: "card",
         shareLocale: "tr",
         profileName: "Renderhane",
-        instagram: "renderhane",
+        instagram: "https://www.instagram.com/renderhane",
         whatsapp: "905551234567",
       },
     });
