@@ -159,11 +159,12 @@ function requireField(f: Fields, key: string, label: string): string { const val
 /** Payloads for ordinary static QR codes, not redirects or dynamic analytics. */
 export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 'tr'): string {
   const phone = (): string => { const v = requireField(f, 'phone', 'Telefon').replace(/[\s()-]/g, ''); if (!/^\+?[0-9]{5,15}$/.test(v)) throw Error('Telefon numarasını ülke koduyla girin.'); return v; };
+  const email = (value: string): string => { const normalized = value.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw Error('Geçerli bir e-posta adresi girin.'); return normalized; };
   switch (type) {
     case 'url': return validHttp(f.url || '');
     case 'vcard': {
       const name = requireField(f, 'name', 'Ad soyad');
-      return ['BEGIN:VCARD', 'VERSION:3.0', `FN:${vcardEscape(name)}`, `N:;${vcardEscape(name)};;;`, f.phone ? `TEL:${phone()}` : '', f.email ? `EMAIL:${vcardEscape(f.email)}` : '', f.org ? `ORG:${vcardEscape(f.org)}` : '', f.website ? `URL:${validHttp(f.website)}` : '', 'END:VCARD'].filter(Boolean).join('\r\n');
+      return ['BEGIN:VCARD', 'VERSION:3.0', `FN:${vcardEscape(name)}`, `N:;${vcardEscape(name)};;;`, f.phone ? `TEL:${phone()}` : '', f.email ? `EMAIL:${vcardEscape(email(f.email))}` : '', f.org ? `ORG:${vcardEscape(f.org)}` : '', f.website ? `URL:${validHttp(f.website)}` : '', 'END:VCARD'].filter(Boolean).join('\r\n');
     }
     case 'bank': {
       const accountName = plainLine(requireField(f, 'accountName', 'Alıcı adı'));
@@ -176,7 +177,8 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
       const taxNumber = requireField(f, 'taxNumber', 'Vergi / T.C. kimlik numarası').replace(/\s/g, '');
       if (!validTurkishTaxNumber(taxNumber) && !validTurkishIdentityNumber(taxNumber)) throw Error('Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin.');
       const address = plainLine(requireField(f, 'address', 'Fatura adresi'));
-      return [locale === 'en' ? 'INVOICE DETAILS' : 'FATURA BİLGİLERİ', `${locale === 'en' ? 'Legal name' : 'Unvan'}: ${title}`, f.taxOffice ? `${locale === 'en' ? 'Tax office' : 'Vergi dairesi'}: ${plainLine(f.taxOffice)}` : '', `${locale === 'en' ? 'Tax/ID no' : 'Vergi/T.C. no'}: ${taxNumber}`, `${locale === 'en' ? 'Address' : 'Adres'}: ${address}`, f.invoiceEmail ? `${locale === 'en' ? 'Email' : 'E-posta'}: ${plainLine(f.invoiceEmail)}` : ''].filter(Boolean).join('\n');
+      const invoiceEmail = f.invoiceEmail ? email(f.invoiceEmail) : '';
+      return [locale === 'en' ? 'INVOICE DETAILS' : 'FATURA BİLGİLERİ', `${locale === 'en' ? 'Legal name' : 'Unvan'}: ${title}`, f.taxOffice ? `${locale === 'en' ? 'Tax office' : 'Vergi dairesi'}: ${plainLine(f.taxOffice)}` : '', `${locale === 'en' ? 'Tax/ID no' : 'Vergi/T.C. no'}: ${taxNumber}`, `${locale === 'en' ? 'Address' : 'Adres'}: ${address}`, invoiceEmail ? `${locale === 'en' ? 'Email' : 'E-posta'}: ${invoiceEmail}` : ''].filter(Boolean).join('\n');
     }
     case 'wifi': {
       const ssid = requireField(f, 'ssid', 'Ağ adı'); const enc = f.encryption || 'WPA';
@@ -186,9 +188,9 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
     }
     case 'phone': return `tel:${phone()}`;
     case 'email': {
-      const email = requireField(f, 'email', 'E-posta'); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Geçerli bir e-posta adresi girin.');
+      const address = email(requireField(f, 'email', 'E-posta'));
       const p = new URLSearchParams(); if (f.subject) p.set('subject', f.subject); if (f.body) p.set('body', f.body);
-      return `mailto:${email}${p.size ? '?' + p.toString().replace(/\+/g, '%20') : ''}`;
+      return `mailto:${address}${p.size ? '?' + p.toString().replace(/\+/g, '%20') : ''}`;
     }
     case 'sms': return `sms:${phone()}${f.body ? '?body=' + encodeURIComponent(f.body) : ''}`;
     case 'location': {

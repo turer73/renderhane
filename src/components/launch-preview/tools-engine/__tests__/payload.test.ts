@@ -48,4 +48,9 @@ describe('copyable business payloads', () => {
     expect(buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres'})).toContain('1234567890');
     expect(buildPayload('invoice', {title: 'A', taxNumber: '10000000146', address: 'Adres'})).toContain('10000000146');
   });
+
+  it('rejects malformed optional business email addresses', () => {
+    expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres', invoiceEmail: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+    expect(() => buildPayload('vcard', {name: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+  });
 });

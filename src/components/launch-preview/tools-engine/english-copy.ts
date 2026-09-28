@@ -381,6 +381,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["NFC işlemi durduruldu.", "The NFC operation was stopped."],
   ["Başka bir NFC işlemi açık olabilir. Sayfayı önde tutup yeniden dene.", "Another NFC operation may be active. Keep the page in the foreground and try again."],
   ["NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.", "The NFC tag could not be read. Hold it steady over the phone's NFC area and try again."],
+  ["NFC etiketi okunamadı. Etiketi ve telefonun NFC ayarını kontrol et.", "The NFC tag could not be read. Check the tag and the phone's NFC setting."],
   ["İçerik geçerli bir NDEF kaydı olarak yazılamadı. Alanları kısaltıp yeniden dene.", "The content could not be written as a valid NDEF record. Shorten the fields and try again."],
   ["Etikete yazılamadı. Etiket dolu, kilitli/korumalı olabilir veya temas kesilmiş olabilir. Kapasiteyi kontrol et ve etiketi telefonun NFC alanında sabit tut.", "The tag could not be written. It may be full, locked/protected, or contact may have been lost. Check capacity and hold the tag steady over the phone's NFC area."],
   ["Etikete yazılamadı. Etiket dolu, kilitli/korumalı olabilir veya mevcut içerik üzerine yazmayı engelliyor olabilir. Önce etiketi oku; mevcut içerik varsa “üzerine yaz” seçeneğini aç.", "The tag could not be written. It may be full, locked/protected, or existing content may be blocking the write. Read the tag first; if it has content, enable overwrite."],
@@ -401,6 +402,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
 ];
 
 const DYNAMIC: Array<[RegExp, string]> = [
+  [/^NFC etiketi okunamadı: (.+)$/, "The NFC tag could not be read: $1"],
   [/^Tahmini NDEF: ([0-9]+) bayt · Kapasiteyi doğrulamak için etiket modelini seç[.]$/, "Estimated NDEF: $1 bytes · Choose the tag model to verify capacity."],
   [/^Tahmini NDEF: ([0-9]+) [/\/] ([0-9]+) bayt · Sığıyor[.]$/, "Estimated NDEF: $1 / $2 bytes · Fits."],
   [/^Tahmini NDEF: ([0-9]+) [/\/] ([0-9]+) bayt · ([0-9]+) bayt fazla[.] İçeriği kısalt veya daha büyük bir etiket seç[.]$/, "Estimated NDEF: $1 / $2 bytes · $3 bytes over. Shorten the content or choose a larger tag."],
