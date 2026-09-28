@@ -540,6 +540,7 @@ export function describeRecord(record: {
   data?: unknown;
 }): DecodedRecord {
   const { recordType, mediaType } = record;
+  const mediaTypeEssence = (mediaType || "").split(";", 1)[0].trim().toLowerCase();
 
   if (recordType === "url" || recordType === "absolute-url") {
     const value = toText(record.data);
@@ -553,7 +554,7 @@ export function describeRecord(record: {
     return { kind: "empty", value: "" };
   }
   if (recordType === "mime") {
-    if (mediaType === WSC_MIME) {
+    if (mediaTypeEssence === WSC_MIME) {
       const bytes =
         record.data instanceof Uint8Array
           ? record.data
@@ -578,7 +579,7 @@ export function describeRecord(record: {
         },
       };
     }
-    if (mediaType === VCARD_MIME || mediaType === "text/x-vcard") {
+    if (mediaTypeEssence === VCARD_MIME || mediaTypeEssence === "text/x-vcard") {
       const raw = toText(record.data);
       const fn = /^FN:(.*)$/m.exec(raw)?.[1]?.trim();
       const fields: NfcFields = {};
