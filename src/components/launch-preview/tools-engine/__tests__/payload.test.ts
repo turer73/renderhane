@@ -102,6 +102,9 @@ describe('copyable business payloads', () => {
     expect(() => buildPayload('vcard', {
       contactMode: 'android', firstName: 'Ada', whatsapp: '+90 555 O23 45 67',
     })).toThrow(/WhatsApp numarasını/);
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', whatsapp: '05551234567',
+    })).toThrow(/WhatsApp numarasını/);
   });
 
   it('preserves extended Android contact fields when rebuilding a scanned card', () => {
