@@ -31,13 +31,19 @@ describe("Sentry privacy scrubbing", () => {
       request: {
         url: "https://www.renderhane.com/tr/k?n=Ada&e=ada%40example.com",
         query_string: "n=Ada&e=ada%40example.com",
+        headers: {
+          Referer: "https://www.renderhane.com/tr/k?n=Ada&e=ada%40example.com",
+        },
       },
       transaction: "GET /tr/s?i=renderhane",
       breadcrumbs: [{ data: { from: "/tr/k?n=Ada", to: "/tr/" } }],
       spans: [{ description: "GET https://www.renderhane.com/en/s?i=renderhane" }],
     };
     expect(scrubSentryEvent(event)).toEqual({
-      request: { url: "https://www.renderhane.com/tr/k" },
+      request: {
+        url: "https://www.renderhane.com/tr/k",
+        headers: { Referer: "https://www.renderhane.com/tr/k" },
+      },
       transaction: "GET /tr/s",
       breadcrumbs: [{ data: { from: "/tr/k", to: "/tr/" } }],
       spans: [{ description: "GET https://www.renderhane.com/en/s" }],
