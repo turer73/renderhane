@@ -66,6 +66,12 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("tiktok", "https://vm.tiktok.com/ZAbCd123/").url).toBe(
       "https://vm.tiktok.com/ZAbCd123/"
     );
+    expect(normalizeSocialLink("youtube", "https://m.youtube.com/watch?v=abc123").url).toBe(
+      "https://m.youtube.com/watch?v=abc123"
+    );
+    expect(normalizeSocialLink("instagram", "http://instagram.com/p/example").url).toBe(
+      "https://instagram.com/p/example"
+    );
   });
 
   it("uses platform-specific handle rules", () => {
@@ -89,6 +95,8 @@ describe("public contact field validation", () => {
     expect(normalizeContactPhone("*21*905551234567#")).toBeNull();
     expect(normalizeContactEmail("person@example.com")).toBe("person@example.com");
     expect(normalizeContactEmail("person@example.com,")).toBeNull();
+    expect(normalizeContactEmail(".person@example.com")).toBeNull();
+    expect(normalizeContactEmail("a..b@example.com")).toBeNull();
   });
 });
 
