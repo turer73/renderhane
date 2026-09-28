@@ -86,7 +86,7 @@ export function parseVCard(text: string): VCardFields {
       fields.firstName = first;
       if (rest.length) fields.lastName = rest.join(" ");
     } else if (base === "TEL") {
-      fields.phone ||= value;
+      fields.phone ||= value.replace(/^tel:/i, "");
     } else if (base === "EMAIL") {
       fields.email ||= value;
     } else if (base === "ORG") {
