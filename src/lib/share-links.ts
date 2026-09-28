@@ -59,6 +59,12 @@ function exactHost(url: URL, hosts: readonly string[]): void {
   if (!hosts.includes(host)) throw new Error("Seçilen sosyal ağa ait resmi bağlantıyı girin.");
 }
 
+function removeTrackingParams(url: URL): void {
+  for (const key of [...url.searchParams.keys()]) {
+    if (/^(utm_|fbclid$|gclid$|ref$)/i.test(key)) url.searchParams.delete(key);
+  }
+}
+
 function cleanHandle(raw: string): string {
   const value = raw.trim().replace(/^@/, "").replace(/\/+$/, "");
   if (!HANDLE.test(value)) throw new Error("Geçerli bir kullanıcı adı girin.");
@@ -75,9 +81,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
 
   if (platform === "website") {
     const url = parseHttpUrl(value);
-    url.searchParams.forEach((_, key) => {
-      if (/^(utm_|fbclid$|gclid$)/i.test(key)) url.searchParams.delete(key);
-    });
+    removeTrackingParams(url);
     return { url: url.href, token: url.href };
   }
 
@@ -99,6 +103,10 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       const url = parseHttpUrl(value);
       exactHost(url, ["linkedin.com"]);
       path = url.pathname.replace(/^\/+|\/+$/g, "");
+      if (!/^(in|company)\/[A-Za-z0-9._%-]{1,100}$/.test(path)) {
+        removeTrackingParams(url);
+        return { url: url.href, token: url.href };
+      }
     }
     if (!/^(in|company)\/[A-Za-z0-9._%-]{1,100}$/.test(path))
       path = `in/${cleanHandle(path)}`;
@@ -122,10 +130,22 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
   if (/^https?:\/\//i.test(value)) {
     const url = parseHttpUrl(value);
     exactHost(url, rule.hosts);
-    handle = rule.fromPath(url.pathname.replace(/^\/+|\/+$/g, "").split("/")[0] || "");
+    removeTrackingParams(url);
+    const path = url.pathname.replace(/^\/+|\/+$/g, "");
+    const segments = path.split("/").filter(Boolean);
+    const isSimpleProfile = segments.length === 1 && !url.search && (
+      platform !== "youtube" || url.hostname.toLowerCase().replace(/^www\./, "") === "youtube.com"
+    );
+    if (!isSimpleProfile) return { url: url.href, token: url.href };
+    handle = rule.fromPath(segments[0] || "");
   }
   handle = cleanHandle(handle);
   return { url: `${rule.prefix}${handle}`, token: handle };
+}
+
+/** Routes containing third-party contact data must never initialize analytics. */
+export function isPrivateSharePath(pathname: string): boolean {
+  return /^\/[a-z]{2}\/(?:k|s)\/?$/.test(pathname);
 }
 
 export function buildSocialLandingUrl(fields: ShareFields, locale: "tr" | "en" = "tr"): string {

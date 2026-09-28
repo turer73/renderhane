@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { isPrivateSharePath } from "@/lib/share-links";
 
 const CONSENT_KEY = "cookie-consent-v2";
 const LEGACY_CONSENT_KEY = "cookie-consent";
@@ -91,16 +92,17 @@ function ensureGtag() {
     };
 }
 
-function applyConsent(consent: CookieConsent) {
+function applyConsent(consent: CookieConsent, analyticsAllowed = true) {
+  const effectiveConsent = analyticsAllowed ? consent : ESSENTIAL_ONLY;
   ensureGtag();
   window.gtag?.("consent", "update", {
-    analytics_storage: consent.analytics ? "granted" : "denied",
-    ad_storage: consent.advertising ? "granted" : "denied",
-    ad_user_data: consent.advertising ? "granted" : "denied",
-    ad_personalization: consent.advertising ? "granted" : "denied",
+    analytics_storage: effectiveConsent.analytics ? "granted" : "denied",
+    ad_storage: effectiveConsent.advertising ? "granted" : "denied",
+    ad_user_data: effectiveConsent.advertising ? "granted" : "denied",
+    ad_personalization: effectiveConsent.advertising ? "granted" : "denied",
   });
 
-  if (consent.analytics) {
+  if (effectiveConsent.analytics) {
     if (GA_ID && !document.getElementById(GA_SCRIPT_ID)) {
       const script = document.createElement("script");
       script.id = GA_SCRIPT_ID;
@@ -129,6 +131,8 @@ function applyConsent(consent: CookieConsent) {
 export function CookieBanner() {
   const t = useTranslations("cookieBanner");
   const params = useParams();
+  const pathname = usePathname();
+  const analyticsAllowed = !isPrivateSharePath(pathname || "");
   const locale = (params.locale as string) || "tr";
   const [visible, setVisible] = useState(false);
   const [customizing, setCustomizing] = useState(false);
@@ -141,7 +145,7 @@ export function CookieBanner() {
     if (consent) {
       setAnalytics(consent.analytics);
       setAdvertising(consent.advertising);
-      applyConsent(consent);
+      applyConsent(consent, analyticsAllowed);
     } else {
       setVisible(true);
     }
@@ -156,7 +160,7 @@ export function CookieBanner() {
 
     window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
     return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
-  }, []);
+  }, [analyticsAllowed]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function save(consent: CookieConsent) {
@@ -164,7 +168,7 @@ export function CookieBanner() {
     localStorage.removeItem(LEGACY_CONSENT_KEY);
     setAnalytics(consent.analytics);
     setAdvertising(consent.advertising);
-    applyConsent(consent);
+    applyConsent(consent, analyticsAllowed);
     window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_EVENT, { detail: consent }));
     setVisible(false);
     setCustomizing(false);

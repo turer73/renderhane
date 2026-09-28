@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVCard } from "../vcard";
+import { buildVCard, parseVCard } from "../vcard";
 
 describe("buildVCard", () => {
   it("uses vCard 3.0 name components and CRLF separators", () => {
@@ -14,5 +14,16 @@ describe("buildVCard", () => {
     const card = buildVCard({ firstName: "Turgut\r\nURL:https://evil.example" });
     expect(card).not.toContain("\r\nURL:https://evil.example");
     expect(card).toContain("Turgut\\nURL:https://evil.example");
+  });
+
+  it("round-trips escaped names, organizations, addresses, and newlines", () => {
+    const original = {
+      firstName: "Tur;gut",
+      lastName: "Urer, Jr.",
+      org: "Acme, Inc.",
+      address: "Hasan; Celebi, Sokak",
+      title: "Kurucu\nTasarimci",
+    };
+    expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 });

@@ -23,6 +23,42 @@ const escapeValue = (value: string): string => value
   .replace(/,/g, "\\,")
   .trim();
 
+const unescapeValue = (value: string): string => {
+  let result = "";
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index];
+    if (char !== "\\" || index === value.length - 1) {
+      result += char;
+      continue;
+    }
+    const escaped = value[++index];
+    result += escaped === "n" || escaped === "N" ? "\n" : escaped;
+  }
+  return result;
+};
+
+const splitEscaped = (value: string, separator: string): string[] => {
+  const parts: string[] = [];
+  let current = "";
+  let escaped = false;
+  for (const char of value) {
+    if (escaped) {
+      current += `\\${char}`;
+      escaped = false;
+    } else if (char === "\\") {
+      escaped = true;
+    } else if (char === separator) {
+      parts.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (escaped) current += "\\";
+  parts.push(current);
+  return parts;
+};
+
 /** Reverse of {@link buildVCard} — turns a scanned card back into form fields. */
 export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
@@ -32,11 +68,12 @@ export function parseVCard(text: string): VCardFields {
     const sep = line.indexOf(":");
     if (sep < 0) continue;
     const name = line.slice(0, sep);
-    const value = line.slice(sep + 1).trim();
+    const rawValue = line.slice(sep + 1).trim();
+    const value = unescapeValue(rawValue);
     const base = name.split(";")[0].toUpperCase();
 
     if (base === "N") {
-      const [last, first] = value.split(";");
+      const [last, first] = splitEscaped(rawValue, ";").map(unescapeValue);
       if (first) fields.firstName = first.trim();
       if (last) fields.lastName = last.trim();
     } else if (base === "FN" && !fields.firstName) {
@@ -52,7 +89,7 @@ export function parseVCard(text: string): VCardFields {
     } else if (base === "TITLE") {
       fields.title ||= value;
     } else if (base === "ADR") {
-      const parts = value.split(";");
+      const parts = splitEscaped(rawValue, ";").map(unescapeValue);
       fields.address ||= parts[2]?.trim() || "";
     } else if (base === "URL") {
       fields.website ||= value;

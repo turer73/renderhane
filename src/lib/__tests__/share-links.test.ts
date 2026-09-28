@@ -4,6 +4,7 @@ import {
   buildSocialLandingUrl,
   buildSocialPayload,
   normalizeSocialLink,
+  isPrivateSharePath,
   socialLinksFromParams,
 } from "../share-links";
 
@@ -27,6 +28,24 @@ describe("social link normalization", () => {
     expect(() =>
       normalizeSocialLink("instagram", "https://instagram.com.example.org/renderhane")
     ).toThrow(/resmi bağlantı/);
+  });
+
+  it("preserves official URLs that cannot be converted to a profile losslessly", () => {
+    expect(normalizeSocialLink("youtube", "https://youtube.com/channel/UC123").url).toBe(
+      "https://youtube.com/channel/UC123"
+    );
+    expect(normalizeSocialLink("youtube", "https://youtu.be/abc123").url).toBe(
+      "https://youtu.be/abc123"
+    );
+    expect(normalizeSocialLink("facebook", "https://facebook.com/profile.php?id=123").url).toBe(
+      "https://facebook.com/profile.php?id=123"
+    );
+  });
+
+  it("marks contact and social share routes as analytics-free", () => {
+    expect(isPrivateSharePath("/tr/k")).toBe(true);
+    expect(isPrivateSharePath("/en/s/")).toBe(true);
+    expect(isPrivateSharePath("/tr/araclar/nfc-yaz")).toBe(false);
   });
 });
 
