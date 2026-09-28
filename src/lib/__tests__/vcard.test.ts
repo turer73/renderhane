@@ -27,6 +27,19 @@ describe("buildVCard", () => {
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 
+  it("recognizes grouped email, phone, and labeled social URLs", () => {
+    const grouped = [
+      "BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.EMAIL;TYPE=INTERNET:ada@example.com",
+      "item2.TEL;TYPE=CELL:+905551234567",
+      "item3.URL:https://www.instagram.com/renderhane",
+      "END:VCARD",
+    ].join("\r\n");
+    expect(parseVCard(grouped)).toMatchObject({
+      email: "ada@example.com", phone: "+905551234567", instagram: "renderhane",
+    });
+  });
+
   it("unfolds standards-compliant continuation lines before parsing", () => {
     const folded = [
       "BEGIN:VCARD",
