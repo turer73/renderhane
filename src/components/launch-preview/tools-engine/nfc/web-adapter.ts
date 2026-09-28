@@ -112,7 +112,10 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
 export function decodeNfcForm(
   records: readonly NfcReadRecord[],
 ): {type: NfcContentType; fields: NfcFields} | null {
-  return recordsToForm(records.map(record => describeRecord(record)));
+  return recordsToForm(records.map(record => describeRecord({
+    ...record,
+    data: record.recordType === 'text' ? decodeNfcRecord(record) : record.data,
+  })));
 }
 
 export function decodeNfcRecord(record: NfcReadRecord): string {
