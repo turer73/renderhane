@@ -35,6 +35,7 @@ export default async function ContactCardPage({
     website = "";
   }
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
+  const mailto = encodeURIComponent(email).replace(/%40/gi, "@");
   const download = new URLSearchParams({ n: firstName });
   if (lastName) download.set("s", lastName);
   if (phone) download.set("p", phone);
@@ -54,8 +55,8 @@ export default async function ContactCardPage({
         </header>
         <div className="grid gap-3 p-6 sm:p-8">
           {phone && <a className="rounded-xl border border-border px-4 py-3 hover:border-primary" href={`tel:${phone}`}>{phone}</a>}
-          {email && <a className="rounded-xl border border-border px-4 py-3 hover:border-primary" href={`mailto:${email}`}>{email}</a>}
-          {website && <a className="rounded-xl border border-border px-4 py-3 hover:border-primary" href={website} target="_blank" rel="noopener noreferrer nofollow">{website}</a>}
+          {email && <a className="rounded-xl border border-border px-4 py-3 hover:border-primary" href={`mailto:${mailto}`}>{email}</a>}
+          {website && <a className="break-all rounded-xl border border-border px-4 py-3 hover:border-primary" href={website} target="_blank" rel="noopener noreferrer nofollow">{website}</a>}
           <a
             className="mt-3 rounded-xl bg-primary px-5 py-4 text-center font-semibold text-primary-foreground"
             href={`/api/contact-card?${download.toString()}`}
