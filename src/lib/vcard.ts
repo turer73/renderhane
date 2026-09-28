@@ -73,7 +73,9 @@ export function parseVCard(text: string): VCardFields {
     const name = line.slice(0, sep);
     const rawValue = line.slice(sep + 1).trim();
     const value = unescapeValue(rawValue);
-    const base = name.split(";")[0].toUpperCase();
+    const property = name.split(";")[0].toUpperCase();
+    const grouped = /^ITEM\d+\./.test(property);
+    const base = property.replace(/^ITEM\d+\./, "");
 
     if (base === "N") {
       const [last, first] = splitEscaped(rawValue, ";").map(unescapeValue);
@@ -94,13 +96,14 @@ export function parseVCard(text: string): VCardFields {
     } else if (base === "ADR") {
       const parts = splitEscaped(rawValue, ";").map(unescapeValue);
       fields.address ||= parts[2]?.trim() || "";
-    } else if (base === "URL") {
-      fields.website ||= value;
-    } else if (/^ITEM\d+\.URL$/.test(base)) {
+    } else if (base === "URL" && grouped) {
       const instagram = /instagram\.com\/([^/?#]+)/i.exec(value)?.[1];
       const whatsapp = /wa\.me\/(\d+)/i.exec(value)?.[1];
       if (instagram) fields.instagram ||= instagram;
-      if (whatsapp) fields.whatsapp ||= whatsapp;
+      else if (whatsapp) fields.whatsapp ||= whatsapp;
+      else fields.website ||= value;
+    } else if (base === "URL") {
+      fields.website ||= value;
     }
   }
 
