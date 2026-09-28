@@ -45,6 +45,10 @@ describe("English free-tool copy", () => {
     expect(localizeToolText("NTAG213 · 132 bayt")).toBe("NTAG213 · 132 bytes");
     expect(localizeToolText("NTAG215 · 492 bayt")).toBe("NTAG215 · 492 bytes");
     expect(localizeToolText("NTAG216 · 872 bayt")).toBe("NTAG216 · 872 bytes");
+    expect(localizeToolText("Tahmini NDEF: 156 / 132 bayt · 24 bayt fazla. Renderhane sıkıştırılmış biçimi 104 bayt ve bu etikete sığıyor."))
+      .toBe("Estimated NDEF: 156 / 132 bytes · 24 bytes over. Renderhane compact uses 104 bytes and fits this tag.");
+    expect(localizeToolText("İçerik seçilen etikete sığmıyor: 156 / 132 bayt. Renderhane sıkıştırılmış biçimini seçersen 104 bayt olarak sığar."))
+      .toBe("The content does not fit the selected tag: 156 / 132 bytes. Choose Renderhane compact to fit it in 104 bytes.");
     expect(localizeToolText("NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene."))
       .toContain("The NFC tag could not be read.");
     expect(localizeToolText("Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin."))

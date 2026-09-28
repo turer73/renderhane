@@ -177,6 +177,22 @@
 .rh-app .rh-notice{font-size:11px;color:#665782;border:1px solid #e8dff8;background:#faf7ff;padding:12px 14px;line-height:1.7;border-radius:10px;margin-top:15px}
 .rh-app .rh-notice.error{background:#fff6f6;border-color:#f1d5d5;color:#a53535}
 .rh-app .rh-notice.success{background:#f0faf5;border-color:#d4eede;color:#27735a}
+.rh-app .rh-nfc-storage{margin:18px 0 0;padding:0;border:0;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.rh-app .rh-nfc-storage legend{grid-column:1/-1;margin-bottom:7px;font-size:12px;font-weight:700;color:var(--text)}
+.rh-app .rh-nfc-storage label{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);cursor:pointer}
+.rh-app .rh-nfc-storage label:has(input:checked){border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.rh-app .rh-nfc-storage input{margin-top:3px;accent-color:var(--primary)}
+.rh-app .rh-nfc-storage span{display:grid;gap:3px}
+.rh-app .rh-nfc-storage strong{font-size:12px}
+.rh-app .rh-nfc-storage small{font-size:10px;line-height:1.45;color:var(--muted)}
+.rh-app .rh-nfc-storage .rh-nfc-storage-note{grid-column:1/-1;margin:0;font-size:10px;line-height:1.5;color:var(--muted)}
+.rh-app .rh-nfc-storage:disabled label{cursor:not-allowed;opacity:.62}
+.rh-app .rh-nfc-read-result{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:grid;gap:10px}
+.rh-app .rh-nfc-read-result>div{display:grid;gap:2px}
+.rh-app .rh-nfc-read-result strong{font-size:13px}
+.rh-app .rh-nfc-read-result small{font-size:10px;color:var(--muted)}
+.rh-app .rh-nfc-read-result pre{margin:0;padding:12px;border-radius:9px;background:#f6f4fa;color:var(--text);font:500 11px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.rh-app .rh-nfc-read-result .rh-btn{justify-self:start}
 .rh-app .rh-benefits{display:grid;grid-template-columns:repeat(4,1fr);margin:32px 0;gap:27px}
 .rh-app .rh-benefit{border-right:1px solid var(--line);padding-right:20px}
 .rh-app .rh-benefit:last-child{border:0}
@@ -993,6 +1009,7 @@ to{opacity:1;transform:translateY(0)}
 .rh-app .rh-mobile-upload { display:none; }
 @media(max-width:680px){
  .rh-app .rh-nfc-capacity-head{grid-template-columns:1fr;gap:8px}
+ .rh-app .rh-nfc-storage{grid-template-columns:1fr}
  .rh-app .rh-nfc-bulk{grid-template-columns:1fr}
  .rh-app .rh-nfc-bulk-setup{grid-template-columns:1fr 82px}
  .rh-app .rh-nfc-bulk-setup .rh-btn{grid-column:1/-1}
