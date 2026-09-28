@@ -64,7 +64,8 @@ const splitEscaped = (value: string, separator: string): string[] => {
 /** Reverse of {@link buildVCard} — turns a scanned card back into form fields. */
 export function parseVCard(text: string): VCardFields {
   const fields: VCardFields = {};
-  const lines = text.split(/\r?\n/);
+  // RFC 6350 folding: a CRLF followed by space or tab continues the same content line.
+  const lines = text.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
 
   for (const line of lines) {
     const sep = line.indexOf(":");
