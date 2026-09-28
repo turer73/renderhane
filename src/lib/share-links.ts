@@ -40,7 +40,7 @@ const BY_KEY = Object.fromEntries(SOCIAL_PLATFORMS.map((platform) => [platform.k
 >;
 
 const HANDLE_RULES: Partial<Record<SocialPlatform, RegExp>> = {
-  instagram: /^[A-Za-z0-9._]{1,30}$/,
+  instagram: /^(?!\.)(?!.*\.\.)(?!.*\.$)[A-Za-z0-9._]{1,30}$/,
   x: /^[A-Za-z0-9_]{1,15}$/,
   telegram: /^[A-Za-z0-9_]{5,32}$/,
   tiktok: /^[A-Za-z0-9._]{2,24}$/,
