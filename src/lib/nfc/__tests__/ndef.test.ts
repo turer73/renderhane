@@ -264,7 +264,7 @@ describe("describeRecord", () => {
         socialMode: "card",
         shareLocale: "tr",
         profileName: "Renderhane",
-        instagram: "https://www.instagram.com/renderhane",
+        instagram: "renderhane",
         whatsapp: "905551234567",
       },
     });
@@ -400,7 +400,7 @@ describe("describeRecord", () => {
         lastName: "Kaya",
         phone: "+905551234567",
         org: "Renderhane",
-        instagram: "renderhane",
+        instagram: "https://www.instagram.com/renderhane",
         whatsapp: "905551234567",
       },
     });
