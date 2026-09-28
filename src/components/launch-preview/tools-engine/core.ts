@@ -196,12 +196,15 @@ function buildBusinessDetails(type: 'bank' | 'invoice', f: Fields, locale: ToolL
 }
 /** Payloads for ordinary static QR codes, not redirects or dynamic analytics. */
 export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 'tr'): string {
+  const payloadLocale: ToolLocale = f.shareLocale === 'en' || f.shareLocale === 'tr'
+    ? f.shareLocale
+    : locale;
   const phone = (): string => { const v = requireField(f, 'phone', 'Telefon').replace(/[\s()-]/g, ''); if (!/^\+?[0-9]{5,15}$/.test(v)) throw Error('Telefon numarasını ülke koduyla girin.'); return v; };
   const email = (value: string): string => { const normalized = normalizeContactEmail(value); if (!normalized) throw Error('Geçerli bir e-posta adresi girin.'); return normalized; };
   switch (type) {
     case 'url': return validHttp(f.url || '');
     case 'vcard': {
-      if ((f.contactMode || 'android') === 'linked') return buildContactLandingUrl(f, locale);
+      if ((f.contactMode || 'android') === 'linked') return buildContactLandingUrl(f, payloadLocale);
       const firstName = requireField(f, 'firstName', 'Ad');
       const lastName = (f.lastName || '').trim();
       const instagram = f.instagram?.trim()
@@ -225,7 +228,7 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
         whatsapp,
       });
     }
-    case 'social': return buildSocialPayload(f, locale);
+    case 'social': return buildSocialPayload(f, payloadLocale);
     case 'bank': return formatCompactNfcDetails(buildBusinessDetails('bank', f, locale));
     case 'invoice': return formatCompactNfcDetails(buildBusinessDetails('invoice', f, locale));
     case 'wifi': {
