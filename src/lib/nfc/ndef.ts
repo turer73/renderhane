@@ -362,7 +362,10 @@ export interface DecodedRecord {
 
 /** Maps a URI record back to the content type that would have produced it. */
 function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } | null {
-  if (/^tel:/i.test(uri)) return { type: "phone", fields: { phone: uri.slice(4) } };
+  if (/^tel:/i.test(uri)) {
+    const phone = uri.slice(4);
+    return phone && !/[;,]/.test(phone) ? { type: "phone", fields: { phone } } : null;
+  }
 
   if (/^mailto:/i.test(uri)) {
     const [encodedAddress, query = ""] = uri.slice(7).split("?");
@@ -397,18 +400,27 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } | n
     const recognizedMap =
       (host === "google.com" && url.pathname === "/maps") ||
       host === "maps.google.com";
-    if (maps && recognizedMap) {
+    const mapParams = [...url.searchParams.keys()];
+    if (maps && recognizedMap && mapParams.every((key) => key === "q") && !url.hash) {
       return { type: "location", fields: { lat: maps[1], lon: maps[2] } };
     }
 
+    const playParams = [...url.searchParams.keys()];
     const playPackage =
-      host === "play.google.com" && url.pathname === "/store/apps/details"
+      url.protocol === "https:" &&
+      !url.port &&
+      host === "play.google.com" &&
+      url.pathname === "/store/apps/details" &&
+      playParams.length === 1 &&
+      playParams[0] === "id" &&
+      !url.hash
         ? url.searchParams.get("id")
         : null;
     if (playPackage) return { type: "app", fields: { packageName: playPackage } };
 
+    const productionAuthority = url.protocol === "https:" && !url.port && host === "renderhane.com";
     const contactRoute = /^\/(tr|en)\/k\/?$/.exec(url.pathname);
-    if (host === "renderhane.com" && contactRoute) {
+    if (productionAuthority && contactRoute) {
       const fields: NfcFields = {
         contactMode: "linked",
         shareLocale: contactRoute[1],
@@ -429,7 +441,7 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } | n
     }
 
     const socialRoute = /^\/(tr|en)\/s\/?$/.exec(url.pathname);
-    if (host === "renderhane.com" && socialRoute) {
+    if (productionAuthority && socialRoute) {
       const fields: NfcFields = { socialMode: "card", shareLocale: socialRoute[1] };
       const profileName = url.searchParams.get("n");
       if (profileName) fields.profileName = profileName;
