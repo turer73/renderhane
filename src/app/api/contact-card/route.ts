@@ -3,6 +3,7 @@ import { buildVCard } from "@/lib/vcard";
 import {
   normalizeContactEmail,
   normalizeContactPhone,
+  normalizeContactWebsite,
 } from "@/lib/share-links";
 
 const clean = (value: string | null, max: number): string =>
@@ -22,13 +23,8 @@ export function GET(request: NextRequest): NextResponse {
   if (emailValue && !email)
     return new NextResponse("Invalid contact email", { status: 400 });
   const org = clean(query.get("o"), 120);
-  let website = clean(query.get("u"), 1000);
-  try {
-    const parsed = website ? new URL(website) : null;
-    if (parsed && (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password)) website = "";
-  } catch {
-    website = "";
-  }
+  const websiteValue = clean(query.get("u"), 1000);
+  const website = websiteValue ? normalizeContactWebsite(websiteValue) || "" : "";
   const card = buildVCard({ firstName, lastName, phone, email, org, website });
   const safeName = `${firstName}-${lastName || "contact"}`.replace(/[^A-Za-z0-9_-]+/g, "-").slice(0, 80);
   return new NextResponse(card, {
