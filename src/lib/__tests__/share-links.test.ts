@@ -34,6 +34,9 @@ describe("social link normalization", () => {
     expect(() =>
       normalizeSocialLink("instagram", "https://instagram.com.example.org/renderhane")
     ).toThrow(/resmi bağlantı/);
+    expect(() => normalizeSocialLink("instagram", "https://instagram.com/")).toThrow(
+      /profil veya paylaşım/
+    );
   });
 
   it("preserves official URLs that cannot be converted to a profile losslessly", () => {
