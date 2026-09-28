@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { WORKSHOP_LAYERS, WORKSHOP_MAX_BODY, type WorkshopLayer, type WorkshopRevision } from "@/lib/relief/workshop";
 import { startWorkshopPolling } from "@/lib/relief/workshop-polling";
+import { isWorkshopReadOnly, WORKSHOP_READ_ONLY_MESSAGE } from "@/lib/relief/workshop-lifecycle";
 
 const API = "/api/relief/workshop";
 const labels: Record<WorkshopLayer, string> = {
@@ -16,6 +17,7 @@ const labels: Record<WorkshopLayer, string> = {
 };
 const states = { queued: "Sırada", running: "Geometri doğrulanıyor", completed: "Dijital işlem bitti", failed: "İşlem başarısız" };
 const errorLabels: Record<string, string> = {
+  workshop_read_only: WORKSHOP_READ_ONLY_MESSAGE,
   pilot_storage_byte_limit: "Pilotun 8 GB saklama sınırına ulaşıldı. Kanıtları yedekleyip operatör bakımı yapın.",
   output_storage_limit: "Çıktı/disk güvenlik sınırına ulaşıldı. Kayıtlı kanıtlar otomatik silinmedi.",
   invalid_workshop_input: "Girdi sınırları karşılanmadı. PNG bit derinliğini, ortak canvas boyutunu, maskeleri, dosya boyutunu ve reçete aralığını kontrol edin.",
@@ -36,9 +38,12 @@ const errorLabels: Record<string, string> = {
   retry_unavailable: "Bu revizyon şu anda tekrar denenemiyor. Durumu yenileyin veya yeni bir revizyon oluşturun.",
 };
 const genericError = "Atölye isteği güvenle tamamlanamadı. Kayıtlı revizyonlar değiştirilmedi; bağlantıyı kontrol edip yeniden deneyin.";
-export const LEGACY_CUT_CONTOUR_WARNING = "Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; kesim konturu olan yeni bir revizyon oluşturun.";
+export const LEGACY_CUT_CONTOUR_WARNING = "Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; üretim için kullanmayın.";
 
 export function workshopErrorMessage(code: unknown) {
+  if (isWorkshopReadOnly() && (code === "engine_changed_create_revision" || code === "retry_unavailable")) {
+    return "Bu eski revizyon yeniden işlenemez. Arşiv modunda yeni revizyon ve tekrar deneme kapalıdır; mevcut kayıt değiştirilmedi.";
+  }
   return typeof code === "string" ? errorLabels[code] ?? genericError : genericError;
 }
 
@@ -83,6 +88,7 @@ async function asBase64(file: File): Promise<string> {
 }
 
 export function ReliefWorkshop({ configured }: { configured: boolean }) {
+  const readOnly = isWorkshopReadOnly();
   const [revisions, setRevisions] = useState<WorkshopRevision[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [online, setOnline] = useState(false);
@@ -135,6 +141,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) { setError(WORKSHOP_READ_ONLY_MESSAGE); return; }
     if (busy || !acknowledged) return;
     setBusy(true); setError(null); setNotice(null);
     try {
@@ -180,6 +187,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
   }
 
   async function retry(id: string) {
+    if (readOnly) { setError(WORKSHOP_READ_ONLY_MESSAGE); return; }
     setBusy(true); setError(null);
     try {
       const res = await fetch(`${API}/${id}/retry`, { method: "POST" });
@@ -204,27 +212,29 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-300">Kapalı mühendislik pilotu · Relief Pro</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Test Atölyesi</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Gerçek mm ölçüsü, değişmez kaynaklar ve ölçülebilir dijital kanıt. Dome veya AI GLB dönüştürücüsü değildir.</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-300">{readOnly ? "Salt okunur · Eski mühendislik pilotu" : "Kapalı mühendislik pilotu · Relief Pro"}</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{readOnly ? "Relief Pro Arşivi" : "Test Atölyesi"}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{readOnly ? "Eski revizyonlar, önizlemeler ve dosyalar. Bu ekran yeni üretim başlatmaz." : "Gerçek mm ölçüsü, değişmez kaynaklar ve ölçülebilir dijital kanıt. Dome veya AI GLB dönüştürücüsü değildir."}</p>
         </div>
         <span role="status" className="rounded-full border px-3 py-1.5 text-xs">
           {!configured ? "Worker yapılandırılmadı" : loading ? "Bağlantı kontrol ediliyor…" : online ? "Worker bağlı" : "Worker çevrimdışı"}
         </span>
       </header>
 
+      {readOnly && <p role="status" className="rounded-xl border p-4 text-sm">{WORKSHOP_READ_ONLY_MESSAGE} Önceden kuyruğa alınmış işler bu değişiklikle iptal edilmez.</p>}
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
         Dijital geçiş, üretim onayı değildir. Yerel eşleşme yalnız aynı koordinattaki kararlı semantik ID çiftiyle doğrulanır;
         nihai GLB’den bağımsız ID türetimi hâlâ ayrı kapıdır. Optik derinlik yardımı fiziksel Z değildir.
         P1S / A1 mini baskısı ve gerçek UV/RIP ölçümleri olmadan bu paketler yalnız test adayıdır.
       </div>
-      {!configured && <p role="status" className="rounded-xl border p-4 text-sm">Atölye arayüzü hazır; dosya işlemek için kalıcı worker, sunucu bağlantısı ve erişim anahtarı yapılandırılmalı. Hiçbir dosya gönderilmiyor.</p>}
+      {!configured && <p role="status" className="rounded-xl border p-4 text-sm">{readOnly ? "Arşiv bağlantısı yapılandırılmadığı için kayıtlar şu anda yüklenemiyor. Bu, kayıtların silindiği anlamına gelmez. Hiçbir dosya gönderilmiyor." : "Atölye arayüzü hazır; dosya işlemek için kalıcı worker, sunucu bağlantısı ve erişim anahtarı yapılandırılmalı. Hiçbir dosya gönderilmiyor."}</p>}
       {error && <p role="alert" className="break-words rounded-lg border border-red-500/40 bg-red-500/5 p-3 text-sm">{error}</p>}
       {connectionError && <p role="alert" className="rounded-lg border border-amber-500/40 p-3 text-sm">{connectionError}</p>}
       {notice && <p role="status" className="rounded-lg border border-indigo-500/30 p-3 text-sm">{notice}</p>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <section className="space-y-5 rounded-2xl border bg-card p-5">
+          {!readOnly && <>
           <h2 className="text-lg font-semibold">1. Kaynak ve reçete</h2>
           <form ref={formRef} onSubmit={submit} className="space-y-4">
             <fieldset disabled={busy || !configured} className="space-y-4 disabled:opacity-60">
@@ -262,10 +272,11 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
               <Button type="submit" disabled={busy || !acknowledged || !online} className="w-full">{busy ? "Kaydediliyor…" : "Revizyon oluştur ve doğrula"}</Button>
             </fieldset>
           </form>
-          <div className="border-t pt-4">
+          </>}
+          <div className={readOnly ? "" : "border-t pt-4"}>
             <h2 className="text-sm font-semibold">Kayıtlı revizyonlar</h2>
             <p className="my-2 text-xs text-muted-foreground">Aynı dosyalar + reçete + motor tek revizyondur. Yenilemek yeni üretim başlatmaz.</p>
-            {!revisions.length ? <p className="py-3 text-sm text-muted-foreground">{loading ? "Yükleniyor…" : "Henüz revizyon yok."}</p> :
+            {!revisions.length ? <p className="py-3 text-sm text-muted-foreground">{loading ? "Yükleniyor…" : !configured || connectionError ? "Kayıtlar yüklenemedi." : "Henüz revizyon yok."}</p> :
               <ul className="max-h-80 space-y-2 overflow-y-auto">
                 {revisions.map((revision) => <li key={revision.id}>
                   <button type="button" aria-pressed={selectedId === revision.id} onClick={() => setSelectedId(revision.id)} className={`w-full rounded-lg border p-3 text-left text-sm ${selectedId === revision.id ? "border-indigo-500 bg-indigo-500/5" : "hover:bg-muted"}`}>
@@ -278,9 +289,9 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
         </section>
 
         <section className="min-w-0 space-y-5 rounded-2xl border bg-card p-5">
-          <h2 className="text-lg font-semibold">2. Önizleme ve kanıt</h2>
+          <h2 className="text-lg font-semibold">{readOnly ? "Önizleme ve kanıt" : "2. Önizleme ve kanıt"}</h2>
           {!selected ? <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed p-8 text-center">
-            <p className="font-medium">İlk dijital numuneyi oluşturun</p>
+            <p className="font-medium">{readOnly ? "İncelemek için kayıtlı bir revizyon seçin" : "İlk dijital numuneyi oluşturun"}</p>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">Final GLB + ayrı artwork katmanlarının ortografik derinliği, silueti ve ölçüm raporları burada görünür.</p>
           </div> : <>
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -290,7 +301,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
             {selected.state === "queued" || selected.state === "running" ? <p role="status" className="rounded-lg bg-muted p-6 text-sm">{online ? "Worker sırayla geometri üretimi, bağımsız export kontrolü ve projeksiyon ölçümünü çalıştırıyor." : "İş diskte kayıtlı. Worker bağlantısı geri geldiğinde kuyruk devam edebilir."} Bu işlem birkaç dakika sürebilir.</p> : null}
             {selected.error && <div role="alert" className="space-y-3 rounded-lg border border-red-500/30 p-4 text-sm">
               <p>{workshopErrorMessage(selected.error)}</p>
-              {selected.attempts < 3 && <Button variant="outline" disabled={busy || !online} onClick={() => retry(selected.id)}>Aynı revizyonu tekrar dene</Button>}
+              {!readOnly && selected.attempts < 3 && <Button variant="outline" disabled={busy || !online} onClick={() => retry(selected.id)}>Aynı revizyonu tekrar dene</Button>}
             </div>}
             {result && <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -348,7 +359,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
                 <Button asChild><a href={artifactUrl(selected.id, "evidence")}>Test ve ölçüm paketini indir</a></Button>
                 {[["model-glb", "GLB"], ["model-stl", "STL"], ["model-3mf", "3MF"], ["uv-appearance-artwork", "Optik derinlik UV PNG"], ["uv-appearance-ticket", "Optik derinlik raporu"], ["registration", "Kayıt JSON"], ["layer-coverage", "Kapsam JSON"], ["semantic-registration", "Semantik kayıt JSON"], ["semantic-overlay", "Semantik overlay PNG"], ["semantic-difference", "Semantik fark PNG"], ["cut-contour", "Kesim konturu SVG"]].filter(([name]) => result.artifacts[name]).map(([name, label]) => <Button asChild variant="outline" key={name}><a href={artifactUrl(selected.id, name)}>{label}</a></Button>)}
               </div>
-              {result.artifact_contract_status === "legacy_missing_cut_contour" ? <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">Bu eski revizyonda kesim konturu SVG’si bulunmuyor. Bu kayıt üretim adayı değildir; kesim konturu olan yeni bir revizyon oluşturun.</p> : <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>}
+              {result.artifact_contract_status === "legacy_missing_cut_contour" ? <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">{LEGACY_CUT_CONTOUR_WARNING}</p> : <p className="text-xs text-muted-foreground">Kesim konturu SVG, değişmez üretim adayındaki artwork/cut-contour.svg ile aynı dosyadır. Final GLB + ayrı artwork katmanları birlikte indirilir; GLB/STL/3MF dosyaları generic geometridir ve yazıcı/filament profili içermez.</p>}
               <details className="rounded-lg border p-3 text-xs">
                 <summary className="cursor-pointer font-medium">Revizyon ve dosya parmak izleri</summary>
                 <p className="mt-3 break-all">Reçete/kaynak/motor SHA-256: {selected.spec_hash}</p>
@@ -357,7 +368,7 @@ export function ReliefWorkshop({ configured }: { configured: boolean }) {
             </>}
           </>}
           <div className="border-t pt-4 text-sm">
-            <h2 className="font-semibold">3. Fiziksel numune kapısı</h2>
+            <h2 className="font-semibold">{readOnly ? "Fiziksel numune kaydı" : "3. Fiziksel numune kapısı"}</h2>
             <p className="mt-2 text-muted-foreground">Pakette P1S / A1 mini × 0,6 / 1,0 / 1,4 / 1,8 mm ölçüm CSV’leri bulunur. Kumpas ölçüleri, düz arka yüz, çarpılma, fotoğraf referansları ve gerçek UV kaçıklığı kaydedilmelidir.</p>
             <p className="mt-2 text-xs text-muted-foreground">Bu sürüm fiziksel onay düğmesi sunmaz. Doldurulan şablonlar mevcut fiziksel benchmark aracıyla incelenir; nihai insan onayı ayrıdır.</p>
           </div>

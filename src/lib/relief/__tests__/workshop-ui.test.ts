@@ -1,10 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ReliefWorkshop, readWorkshopUiJson, workshopErrorMessage } from "@/components/relief/relief-workshop";
 import { WORKSHOP_REQUIRED_ARTIFACTS } from "../workshop";
+import * as lifecycle from "../workshop-lifecycle";
 
 describe("workshop initial UI truth", () => {
+  // Retain coverage of the preserved legacy form, in addition to the archive UI.
+  beforeEach(() => { vi.spyOn(lifecycle, "isWorkshopReadOnly").mockReturnValue(false); });
+  afterEach(() => { vi.restoreAllMocks(); });
   it("does not claim a configured or completed worker when configuration is absent", () => {
     const html = renderToStaticMarkup(createElement(ReliefWorkshop, { configured: false }));
     expect(html).toContain("Test Atölyesi");
