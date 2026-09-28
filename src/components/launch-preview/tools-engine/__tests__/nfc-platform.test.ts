@@ -105,6 +105,13 @@ describe('NFC chip platform', () => {
       type: 'social',
       fields: {socialMode: 'card', profileName: 'Renderhane', instagram: '@renderhane'},
     });
+    expect(decodeNfcForm([record('https://renderhane.com/tr/k?n=Turgut&s=%C3%9Crer&p=%2B905551234567&e=turgut%40example.com')])).toEqual({
+      type: 'vcard',
+      fields: {
+        contactMode: 'linked', firstName: 'Turgut', lastName: 'Ürer',
+        phone: '+905551234567', email: 'turgut@example.com',
+      },
+    });
   });
 
   it('turns Android Web NFC IO failures into actionable Turkish messages', () => {
