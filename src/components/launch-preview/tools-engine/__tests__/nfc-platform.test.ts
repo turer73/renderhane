@@ -5,6 +5,7 @@ import {
   createWebNfcAdapter,
   decodeNfcRecord,
   estimateNdefStorageBytes,
+  nfcReadErrorMessage,
   nfcWriteErrorMessage,
   profilesForForumType,
   profilesForTransport,
@@ -35,6 +36,8 @@ describe('NFC chip platform', () => {
     expect(nfcWriteErrorMessage(error, false)).toContain('mevcut içerik');
     expect(nfcWriteErrorMessage(error, false)).not.toContain('null');
     expect(nfcWriteErrorMessage(error, true)).toContain('Kapasiteyi kontrol et');
+    expect(nfcReadErrorMessage(new DOMException('Cannot decode record', 'DataError'))).toContain('okunamadı');
+    expect(nfcReadErrorMessage(new DOMException('Cannot decode record', 'DataError'))).not.toContain('yazılamadı');
   });
 
   it('covers every NFC Forum tag type and keeps proprietary cards out of generic web writes', () => {

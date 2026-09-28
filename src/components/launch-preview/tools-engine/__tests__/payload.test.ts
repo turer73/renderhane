@@ -41,6 +41,7 @@ describe('copyable business payloads', () => {
 
   it('rejects invalid IBAN and tax identifiers', () => {
     expect(() => buildPayload('bank', {accountName: 'A', iban: '123'})).toThrow('Geçerli bir IBAN');
+    expect(() => buildPayload('bank', {accountName: 'A', iban: 'TR4700000000000'})).toThrow('Geçerli bir IBAN');
     expect(() => buildPayload('invoice', {title: 'A', taxNumber: '123', address: 'Adres'})).toThrow('10, T.C. kimlik numarası 11');
   });
 });

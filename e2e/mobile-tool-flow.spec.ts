@@ -152,6 +152,7 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
     await expect(page.locator('.rh-nfc-capacity')).toContainText(/bayt fazla/);
     await expect(page.locator('[data-action="nfc-write"]')).toBeDisabled();
+    await expect(page.locator('[data-action="nfc-bulk-start"]')).toBeDisabled();
 
     await page.locator('#rh-nfc-capacity').selectOption('ntag215');
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
@@ -179,6 +180,26 @@ test.describe('public mobile tool flows', () => {
     await expect(dialog).not.toContainText('null');
     await dialog.getByRole('button', {name: 'Tamam'}).click();
     await expect(dialog).not.toBeVisible();
+  });
+
+  test('NFC scan errors use read guidance instead of write guidance', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> {}
+        async scan(): Promise<void> { throw new DOMException('Cannot decode record', 'DataError'); }
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.getByRole('button', {name: /^Etiketi oku$/}).click();
+
+    const dialog = page.locator('#rh-nfc-error-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('NFC etiketi okunamadı');
+    await expect(dialog).not.toContainText('yazılamadı');
   });
 
   test('NFC lock timeout preserves bulk progress and blocks type changes while busy', async ({page}) => {

@@ -42,6 +42,9 @@ describe("English free-tool copy", () => {
       .toBe("Permanent locking did not finish within 30 seconds. The tag was written, but check its lock status.");
     expect(localizeToolText("Kalıcı kilit zaman aşımına uğradı; kilit durumu doğrulanamadı."))
       .toBe("Permanent locking timed out; the lock status could not be verified.");
+    expect(localizeToolText("NTAG213 · 144 bayt")).toBe("NTAG213 · 144 bytes");
+    expect(localizeToolText("NTAG215 · 504 bayt")).toBe("NTAG215 · 504 bytes");
+    expect(localizeToolText("NTAG216 · 888 bayt")).toBe("NTAG216 · 888 bytes");
     expect(localizeToolText("Etiketten geri okunan içerik yazılan NDEF ile eşleşmedi; kalıcı kilit uygulanmadı."))
       .toBe("The content read back from the tag did not match the written NDEF; permanent locking was not applied.");
     expect(localizeToolText("Toplu yazım tamamlandı: 3/3 etiket yazıldı; 1 kilitlendi, 2 kilitlenemedi. Son hata: Kilit işlemi tamamlanmadı."))

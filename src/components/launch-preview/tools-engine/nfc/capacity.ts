@@ -87,3 +87,17 @@ export function nfcWriteErrorMessage(error: unknown, overwrite: boolean): string
   }
   return detail ? `NFC işlemi tamamlanmadı: ${detail}` : 'NFC işlemi tamamlanmadı. Etiketi ve telefonun NFC ayarını kontrol et.';
 }
+
+export function nfcReadErrorMessage(error: unknown): string {
+  const name = error instanceof Error ? error.name : '';
+  const detail = error instanceof Error ? error.message : '';
+  if (name === 'NotAllowedError') return 'NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.';
+  if (name === 'NotSupportedError') return 'Cihaz veya etiket NDEF okumayı desteklemiyor.';
+  if (name === 'AbortError') return 'NFC okuma işlemi durduruldu.';
+  if (name === 'InvalidStateError') return 'Başka bir NFC işlemi açık olabilir. Sayfayı önde tutup yeniden dene.';
+  if (name === 'NotReadableError' || name === 'DataError') return 'NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.';
+  if (name === 'NetworkError' || /(?:i[\s./-]*o|input[\s./-]*output).*error|null/i.test(detail)) {
+    return 'NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene.';
+  }
+  return detail ? `NFC etiketi okunamadı: ${detail}` : 'NFC etiketi okunamadı. Etiketi ve telefonun NFC ayarını kontrol et.';
+}
