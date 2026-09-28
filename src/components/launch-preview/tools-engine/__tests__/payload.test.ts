@@ -121,5 +121,16 @@ describe('copyable business payloads', () => {
       instagram: '@renderhane',
       whatsapp: '+905551234567',
     })).toContain('/tr/s?');
+    expect(buildPayload('vcard', {
+      contactMode: 'linked',
+      shareLocale: 'en',
+      firstName: 'Ada',
+    }, 'tr')).toContain('/en/k?');
+    expect(buildPayload('social', {
+      socialMode: 'card',
+      shareLocale: 'en',
+      instagram: '@renderhane',
+      whatsapp: '+905551234567',
+    }, 'tr')).toContain('/en/s?');
   });
 });
