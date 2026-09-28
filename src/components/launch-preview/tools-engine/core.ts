@@ -7,7 +7,7 @@ import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
-import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload} from '@/lib/share-links';
+import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload, normalizeSocialLink} from '@/lib/share-links';
 import {buildVCard} from '@/lib/vcard';
 import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
@@ -129,7 +129,6 @@ function icon(name: string, extra = ''): string { return `<svg class="rh-icon ${
 function btn(label: string, action: string, primary = false, ico = 'arrow', extra = ''): string { return `<button type="button" class="rh-btn ${primary ? 'rh-btn-primary' : ''}" data-action="${action}" ${extra}>${ico ? icon(ico) : ''}${label}</button>`; }
 function validHttp(v: string): string { const raw = v.trim(); if (!raw) throw Error('Web adresini girin.'); let u: URL; try { u = new URL(raw); } catch { throw Error('http:// veya https:// ile başlayan geçerli bir adres girin.'); } if (!['http:', 'https:'].includes(u.protocol) || !u.hostname || u.username || u.password) throw Error('Yalnızca kimlik bilgisi içermeyen HTTP/HTTPS adresleri destekleniyor.'); return u.href; }
 const wifiEscape = (v: string): string => v.replace(/[\\;,:"']/g, c => '\\' + c);
-const vcardEscape = (v: string): string => v.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
 const plainLine = (v: string): string => v.replace(/\s*\r?\n\s*/g, ' ').trim();
 function validIban(value: string): boolean {
   if (!/^[A-Z]{2}[0-9]{2}[0-9A-Z]{11,30}$/.test(value)) return false;
@@ -205,6 +204,9 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
       if ((f.contactMode || 'android') === 'linked') return buildContactLandingUrl(f, locale);
       const firstName = requireField(f, 'firstName', 'Ad');
       const lastName = (f.lastName || '').trim();
+      const instagram = f.instagram?.trim()
+        ? normalizeSocialLink('instagram', f.instagram).url
+        : undefined;
       const whatsapp = f.whatsapp?.trim() || undefined;
       if (whatsapp) {
         if (!/^\+?[\d\s()-]+$/.test(whatsapp) || !/^\d{7,15}$/.test(whatsapp.replace(/\D/g, '')))
@@ -219,7 +221,7 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
         title: f.title?.trim() || undefined,
         address: f.address?.trim() || undefined,
         website: f.website ? validHttp(f.website) : undefined,
-        instagram: f.instagram?.trim() || undefined,
+        instagram,
         whatsapp,
       });
     }
