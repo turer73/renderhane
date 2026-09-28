@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import {
+  normalizeContactEmail,
+  normalizeContactPhone,
+} from "@/lib/share-links";
 
 export async function generateMetadata({
   params,
@@ -31,8 +35,12 @@ export default async function ContactCardPage({
   const firstName = one(query.n, 80);
   if (!firstName) notFound();
   const lastName = one(query.s, 80);
-  const phone = one(query.p, 30);
-  const email = one(query.e, 200);
+  const phoneValue = one(query.p, 30);
+  const phone = phoneValue ? normalizeContactPhone(phoneValue) : "";
+  if (phoneValue && !phone) notFound();
+  const emailValue = one(query.e, 200);
+  const email = emailValue ? normalizeContactEmail(emailValue) : "";
+  if (emailValue && !email) notFound();
   const org = one(query.o, 120);
   let website = one(query.u, 1000);
   try {
