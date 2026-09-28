@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   normalizeContactEmail,
   normalizeContactPhone,
+  normalizeContactWebsite,
 } from "@/lib/share-links";
 
 export async function generateMetadata({
@@ -42,13 +43,8 @@ export default async function ContactCardPage({
   const email = emailValue ? normalizeContactEmail(emailValue) || "" : "";
   if (emailValue && !email) notFound();
   const org = one(query.o, 120);
-  let website = one(query.u, 1000);
-  try {
-    const parsed = website ? new URL(website) : null;
-    if (parsed && (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password)) website = "";
-  } catch {
-    website = "";
-  }
+  const websiteValue = one(query.u, 1000);
+  const website = websiteValue ? normalizeContactWebsite(websiteValue) || "" : "";
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
   const mailto = encodeURIComponent(email).replace(/%40/gi, "@");
   const download = new URLSearchParams({ n: firstName });
