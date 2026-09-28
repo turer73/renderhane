@@ -36,10 +36,10 @@ export default async function ContactCardPage({
   if (!firstName) notFound();
   const lastName = one(query.s, 80);
   const phoneValue = one(query.p, 30);
-  const phone = phoneValue ? normalizeContactPhone(phoneValue) : "";
+  const phone = phoneValue ? normalizeContactPhone(phoneValue) || "" : "";
   if (phoneValue && !phone) notFound();
   const emailValue = one(query.e, 200);
-  const email = emailValue ? normalizeContactEmail(emailValue) : "";
+  const email = emailValue ? normalizeContactEmail(emailValue) || "" : "";
   if (emailValue && !email) notFound();
   const org = one(query.o, 120);
   let website = one(query.u, 1000);
