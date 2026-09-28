@@ -59,6 +59,7 @@ function parseHttpUrl(raw: string): URL {
   }
   if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password)
     throw new Error("Yalnızca güvenli HTTP/HTTPS bağlantıları destekleniyor.");
+  if (url.protocol === "http:") url.protocol = "https:";
   return url;
 }
 
@@ -147,7 +148,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
     tiktok: { hosts: ["tiktok.com", "vm.tiktok.com", "vt.tiktok.com"], prefix: "https://www.tiktok.com/@", fromPath: (path) => path.replace(/^@/, "") },
     x: { hosts: ["x.com", "twitter.com"], prefix: "https://x.com/", fromPath: (path) => path },
     facebook: { hosts: ["facebook.com", "m.facebook.com", "fb.com"], prefix: "https://www.facebook.com/", fromPath: (path) => path },
-    youtube: { hosts: ["youtube.com", "youtu.be"], prefix: "https://www.youtube.com/@", fromPath: (path) => path.replace(/^@/, "") },
+    youtube: { hosts: ["youtube.com", "m.youtube.com", "youtu.be"], prefix: "https://www.youtube.com/@", fromPath: (path) => path.replace(/^@/, "") },
   };
   const rule = rules[platform];
   let handle = value;
@@ -225,7 +226,13 @@ export function normalizeContactPhone(raw: string): string | null {
 
 export function normalizeContactEmail(raw: string): string | null {
   const email = raw.trim();
-  return /^[^\s@]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/.test(email)
+  const at = email.lastIndexOf("@");
+  if (at <= 0 || at === email.length - 1) return null;
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (local.length > 64 || local.startsWith(".") || local.endsWith(".") || local.includes("..")) return null;
+  if (!/^[A-Za-z0-9!#$%&'*+/=?^_\x60{|}~.-]+$/.test(local)) return null;
+  return /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/.test(domain)
     ? email
     : null;
 }
