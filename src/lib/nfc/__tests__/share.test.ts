@@ -33,8 +33,11 @@ describe("encodeNfcState / decodeNfcState", () => {
     expect(decodeNfcState(token)?.fields).toEqual({ url: "a.com" });
   });
 
-  it("refuses oversized tokens", () => {
+  it("refuses oversized tokens consistently when encoding and decoding", () => {
     expect(decodeNfcState("A".repeat(4000))).toBeNull();
+    expect(() =>
+      encodeNfcState({ type: "social", fields: { instagram: "https://example.com/" + "a".repeat(4000) } })
+    ).toThrow(/çok uzun/);
   });
 });
 
