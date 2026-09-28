@@ -7,6 +7,7 @@ import {
   isPrivateSharePath,
   normalizeContactEmail,
   normalizeContactPhone,
+  normalizeContactWebsite,
   socialLinksFromParams,
 } from "../share-links";
 
@@ -86,6 +87,9 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("tiktok", "@render_hane").url).toBe(
       "https://www.tiktok.com/@render_hane"
     );
+    expect(normalizeSocialLink("linkedin", "in/jane-doe").url).toBe(
+      "https://www.linkedin.com/in/jane-doe"
+    );
   });
 
   it("marks contact and social share routes as analytics-free", () => {
@@ -103,6 +107,7 @@ describe("public contact field validation", () => {
     expect(normalizeContactEmail("person@example.com,")).toBeNull();
     expect(normalizeContactEmail(".person@example.com")).toBeNull();
     expect(normalizeContactEmail("a..b@example.com")).toBeNull();
+    expect(normalizeContactWebsite("http://example.com/path")).toBe("https://example.com/path");
   });
 });
 
