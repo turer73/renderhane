@@ -25,6 +25,26 @@ const escapeValue = (value: string): string => value
 
 const safeUriValue = (value: string): string => value.replace(/[\r\n]/g, "").trim();
 
+const foldContentLine = (line: string): string[] => {
+  const encoder = new TextEncoder();
+  const folded: string[] = [];
+  let current = "";
+  let bytes = 0;
+  for (const character of line) {
+    const size = encoder.encode(character).length;
+    if (current && bytes + size > 75) {
+      folded.push(current);
+      current = ` ${character}`;
+      bytes = 1 + size;
+    } else {
+      current += character;
+      bytes += size;
+    }
+  }
+  folded.push(current);
+  return folded;
+};
+
 const unescapeValue = (value: string): string => {
   let result = "";
   for (let index = 0; index < value.length; index++) {
@@ -118,8 +138,13 @@ export function parseVCard(text: string): VCardFields {
       fields.firstName = first;
       if (rest.length) fields.lastName = rest.join(" ");
     } else if (base === "TEL") {
-      fields.phone ||= value.replace(/^tel:/i, "");
+      const phone = value.replace(/^tel:/i, "");
+      if (fields.phone && phone && fields.phone !== phone)
+        throw new Error("Birden fazla telefon numarası içeren kişi kartları güvenli biçimde düzenlenemez.");
+      fields.phone ||= phone;
     } else if (base === "EMAIL") {
+      if (fields.email && value && fields.email !== value)
+        throw new Error("Birden fazla e-posta adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
       fields.email ||= value;
     } else if (base === "ORG") {
       fields.org ||= value;
@@ -182,5 +207,5 @@ export function buildVCard(fields: VCardFields): string {
     }
   }
   lines.push("END:VCARD");
-  return lines.join("\r\n");
+  return lines.flatMap(foldContentLine).join("\r\n");
 }
