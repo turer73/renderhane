@@ -23,7 +23,8 @@ export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {typ
     return {type: 'app', fields: {package: form.fields.package || form.fields.packageName || ''}};
   }
   if (form.type === 'url') {
-    const geo = /^geo:(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:[?;].*)?$/i.exec(form.fields.url || '');
+    const number = String.raw\`[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?\`;
+    const geo = new RegExp(\`^geo:(\${number}),(\${number})(?:[?;].*)?$\`, 'i').exec(form.fields.url || '');
     if (geo) return {type: 'location', fields: {lat: geo[1], lon: geo[2]}};
   }
   return {type: form.type, fields: {...form.fields}};
@@ -799,7 +800,10 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (mode === 'compact' && nfcCompactEligible())
       return [createCompactNfcRecord(buildBusinessDetails(s.nfcType as 'bank' | 'invoice', s.nfc, locale))];
     if (s.nfcType === 'vcard' && (s.nfc.contactMode || 'android') === 'android') return [{recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload)}];
-    if (s.nfcType === 'text' || s.nfcType === 'bank' || s.nfcType === 'invoice') return [{recordType: 'text', lang: locale, data: payload}];
+    if (s.nfcType === 'text' || s.nfcType === 'bank' || s.nfcType === 'invoice') {
+      const lang = s.nfc.lang === 'en' || s.nfc.lang === 'tr' ? s.nfc.lang : locale;
+      return [{recordType: 'text', lang, data: payload}];
+    }
     if (s.nfcType === 'app') return [{recordType: 'url', data: payload}, {recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package)}];
     return [{recordType: 'url', data: payload}];
   }
