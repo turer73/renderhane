@@ -262,7 +262,7 @@ describe("describeRecord", () => {
       fields: {
         socialMode: "card",
         profileName: "Renderhane",
-        instagram: "renderhane",
+        instagram: "https://www.instagram.com/renderhane",
         whatsapp: "905551234567",
       },
     });
@@ -356,6 +356,21 @@ describe("describeRecord", () => {
         whatsapp: "905551234567",
       },
     });
+  });
+
+  it("keeps multi-value vCards readable without offering lossy rewriting", () => {
+    const raw = [
+      "BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "TEL:+905551111111", "TEL:+905552222222", "END:VCARD",
+    ].join("\r\n");
+    const record = describeRecord({
+      recordType: "mime",
+      mediaType: VCARD_MIME,
+      data: new TextEncoder().encode(raw),
+    });
+    expect(record).toMatchObject({ kind: "vcard", value: "Ada Lovelace", raw });
+    expect(record.form).toBeUndefined();
+    expect(recordsToForm([record])).toBeNull();
   });
 
   it("has nothing to load from an empty tag", () => {
