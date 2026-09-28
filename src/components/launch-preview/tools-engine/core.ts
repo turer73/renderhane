@@ -24,32 +24,7 @@ export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {typ
   }
   if (form.type === 'url') {
     const number = '[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?';
-    const geo = new RegExp(`^geo:(${number}),(${number})(?:[?;].*)?/**
- * Renderhane UI / framework-independent TypeScript, mounted through a React bridge when needed.
- * No API request is made unless a host explicitly supplies an adapter.
- * Inputs stay in memory. Demo image composites are not live AI outputs.
- */
-import './vendor/qr-core.js';
-import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
-import {createManualComposer, type ManualComposer} from './composer';
-import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
-import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload, normalizeContactEmail, normalizeSocialLink} from '@/lib/share-links';
-import {buildVCard} from '@/lib/vcard';
-import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
-
-export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
-export type ToolLocale = 'tr' | 'en';
-export type ContentType = 'url' | 'vcard' | 'social' | 'bank' | 'invoice' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
-type NfcStorageMode = 'standard' | 'compact';
-const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode';
-export type Fields = Record<string, string>;
-/** Adapts the shared NDEF decoder schema to this editor's field names. */
-export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {type: ContentType; fields: Fields} {
-  if (form.type === 'app') {
-    return {type: 'app', fields: {package: form.fields.package || form.fields.packageName || ''}};
-  }
-  if (form.type === 'url') {
-, 'i').exec(form.fields.url || '');
+    const geo = new RegExp(`^geo:(${number}),(${number})(?:[?;].*)?$`, 'i').exec(form.fields.url || '');
     if (geo) return {type: 'location', fields: {lat: geo[1], lon: geo[2]}};
   }
   return {type: form.type, fields: {...form.fields}};
