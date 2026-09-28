@@ -240,6 +240,11 @@ export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" 
   if (fields.org?.trim()) params.set("o", fields.org.trim());
   if ((fields.org?.trim().length || 0) > 120)
     throw new Error("Kurum / marka en fazla 120 karakter olabilir.");
-  if (fields.website?.trim()) params.set("u", parseHttpUrl(fields.website).href);
+  if (fields.website?.trim()) {
+    const website = parseHttpUrl(fields.website).href;
+    if (website.length > 1000)
+      throw new Error("Web adresi en fazla 1000 karakter olabilir.");
+    params.set("u", website);
+  }
   return `${ORIGIN}/${locale}/k?${params.toString()}`;
 }
