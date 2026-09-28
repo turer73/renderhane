@@ -138,6 +138,15 @@ describe("share landing URLs", () => {
     ).toContain("e=person%40example.com");
   });
 
+  it("rejects contact websites that expand beyond the landing-page limit", () => {
+    expect(() =>
+      buildContactLandingUrl({
+        firstName: "Ada",
+        website: `https://example.com/${"ü".repeat(400)}`,
+      })
+    ).toThrow(/1000 karakter/);
+  });
+
   it("rejects organizations that the landing page cannot preserve", () => {
     expect(() => buildContactLandingUrl({ firstName: "Ada", org: "A".repeat(121) })).toThrow(
       /120 karakter/
