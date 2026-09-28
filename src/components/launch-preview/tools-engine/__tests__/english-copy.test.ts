@@ -47,6 +47,8 @@ describe("English free-tool copy", () => {
     expect(localizeToolText("NTAG216 · 872 bayt")).toBe("NTAG216 · 872 bytes");
     expect(localizeToolText("NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene."))
       .toContain("The NFC tag could not be read.");
+    expect(localizeToolText("Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin."))
+      .toBe("Enter a valid 10-digit Turkish tax number or 11-digit Turkish identity number.");
     expect(localizeToolText("Etiketten geri okunan içerik yazılan NDEF ile eşleşmedi; kalıcı kilit uygulanmadı."))
       .toBe("The content read back from the tag did not match the written NDEF; permanent locking was not applied.");
     expect(localizeToolText("Toplu yazım tamamlandı: 3/3 etiket yazıldı; 1 kilitlendi, 2 kilitlenemedi. Son hata: Kilit işlemi tamamlanmadı."))

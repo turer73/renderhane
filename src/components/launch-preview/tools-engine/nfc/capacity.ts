@@ -43,14 +43,12 @@ function typeLength(record: NfcRecordInput): number {
  * compression.
  */
 export function estimateNdefStorageBytes(records: readonly NfcRecordInput[]): number {
-  const messageBytes = records.reduce((total, record) => {
+  return records.reduce((total, record) => {
     const payload = payloadLength(record);
     const id = record.id ? encoder.encode(record.id).length : 0;
     const header = 1 + 1 + (payload <= 0xff ? 1 : 4) + (id ? 1 : 0);
     return total + header + typeLength(record) + id + payload;
   }, 0);
-  const tlvHeader = messageBytes <= 0xfe ? 2 : 4;
-  return messageBytes + tlvHeader + 1;
 }
 
 export function getNfcCapacityProfile(id: NfcCapacityProfileId): NfcCapacityProfile {

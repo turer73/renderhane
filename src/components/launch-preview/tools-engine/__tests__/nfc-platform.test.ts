@@ -16,8 +16,8 @@ import {
 describe('NFC chip platform', () => {
   it('estimates Type 2 NDEF storage and blocks an oversized NTAG213 vCard', () => {
     const url = [{recordType: 'url', data: 'https://renderhane.com'}];
-    expect(estimateNdefStorageBytes(url)).toBe(30);
-    expect(checkNfcCapacity(url, 'ntag213')).toMatchObject({estimatedBytes: 30, capacityBytes: 132, remainingBytes: 102, fits: true});
+    expect(estimateNdefStorageBytes(url)).toBe(27);
+    expect(checkNfcCapacity(url, 'ntag213')).toMatchObject({estimatedBytes: 27, capacityBytes: 132, remainingBytes: 105, fits: true});
 
     const vcard = new TextEncoder().encode([
       'BEGIN:VCARD', 'VERSION:3.0', 'FN:Turgut Ürer', 'N:;Turgut Ürer;;;',

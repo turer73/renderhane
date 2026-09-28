@@ -302,6 +302,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Unvan alanını doldurun.", "Complete the legal name field."],
   ["Vergi / T.C. kimlik numarası alanını doldurun.", "Complete the tax / national ID number field."],
   ["Vergi numarası 10, T.C. kimlik numarası 11 haneli olmalı.", "A tax number must have 10 digits and a national ID number must have 11 digits."],
+  ["Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin.", "Enter a valid 10-digit Turkish tax number or 11-digit Turkish identity number."],
   ["Fatura adresi alanını doldurun.", "Complete the invoice address field."],
   ["Bilinmeyen QR şekli.", "Unknown QR shape."],
   ["Geçersiz QR rengi.", "Invalid QR color."],

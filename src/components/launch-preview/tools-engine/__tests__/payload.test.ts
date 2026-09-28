@@ -44,6 +44,8 @@ describe('copyable business payloads', () => {
     expect(() => buildPayload('bank', {accountName: 'A', iban: 'TR4700000000000'})).toThrow('Geçerli bir IBAN');
     expect(() => buildPayload('invoice', {title: 'A', taxNumber: '123', address: 'Adres'})).toThrow('Geçerli bir 10 haneli vergi numarası');
     expect(() => buildPayload('invoice', {title: 'A', taxNumber: '00000000000', address: 'Adres'})).toThrow('Geçerli bir 10 haneli vergi numarası');
+    expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1111111111', address: 'Adres'})).toThrow('Geçerli bir 10 haneli vergi numarası');
+    expect(buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres'})).toContain('1234567890');
     expect(buildPayload('invoice', {title: 'A', taxNumber: '10000000146', address: 'Adres'})).toContain('10000000146');
   });
 });

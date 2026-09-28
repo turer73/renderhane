@@ -144,6 +144,17 @@ function validTurkishIdentityNumber(value: string): boolean {
   return ((oddSum * 7 - evenSum) % 10 + 10) % 10 === digits[9]
     && digits.slice(0, 10).reduce((sum, digit) => sum + digit, 0) % 10 === digits[10];
 }
+function validTurkishTaxNumber(value: string): boolean {
+  if (!/^[0-9]{10}$/.test(value)) return false;
+  const digits = Array.from(value, Number);
+  const sum = digits.slice(0, 9).reduce((total, digit, index) => {
+    const adjusted = (digit + 9 - index) % 10;
+    if (adjusted === 0) return total;
+    const weighted = (adjusted * (2 ** (9 - index))) % 9;
+    return total + (weighted === 0 ? 9 : weighted);
+  }, 0);
+  return (10 - (sum % 10)) % 10 === digits[9];
+}
 function requireField(f: Fields, key: string, label: string): string { const value = (f[key] || '').trim(); if (!value) throw Error(label + ' alanını doldurun.'); return value; }
 /** Payloads for ordinary static QR codes, not redirects or dynamic analytics. */
 export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 'tr'): string {
@@ -163,7 +174,7 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
     case 'invoice': {
       const title = plainLine(requireField(f, 'title', 'Unvan'));
       const taxNumber = requireField(f, 'taxNumber', 'Vergi / T.C. kimlik numarası').replace(/\s/g, '');
-      if (!/^[0-9]{10}$/.test(taxNumber) && !validTurkishIdentityNumber(taxNumber)) throw Error('Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin.');
+      if (!validTurkishTaxNumber(taxNumber) && !validTurkishIdentityNumber(taxNumber)) throw Error('Geçerli bir 10 haneli vergi numarası veya 11 haneli T.C. kimlik numarası girin.');
       const address = plainLine(requireField(f, 'address', 'Fatura adresi'));
       return [locale === 'en' ? 'INVOICE DETAILS' : 'FATURA BİLGİLERİ', `${locale === 'en' ? 'Legal name' : 'Unvan'}: ${title}`, f.taxOffice ? `${locale === 'en' ? 'Tax office' : 'Vergi dairesi'}: ${plainLine(f.taxOffice)}` : '', `${locale === 'en' ? 'Tax/ID no' : 'Vergi/T.C. no'}: ${taxNumber}`, `${locale === 'en' ? 'Address' : 'Adres'}: ${address}`, f.invoiceEmail ? `${locale === 'en' ? 'Email' : 'E-posta'}: ${plainLine(f.invoiceEmail)}` : ''].filter(Boolean).join('\n');
     }
