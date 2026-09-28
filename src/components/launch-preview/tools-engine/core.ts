@@ -13,6 +13,7 @@ export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' 
 export type ToolLocale = 'tr' | 'en';
 export type ContentType = 'url' | 'vcard' | 'bank' | 'invoice' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
 type NfcStorageMode = 'standard' | 'compact';
+const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode';
 export type Fields = Record<string, string>;
 export interface ImageResult { url: string; remaining?: number }
 export interface SceneResult { url: string; label: string }
@@ -267,6 +268,14 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   const historyEnabled = !options.onNavigate;
   const asset = (name: string): string => options.assets?.[name] || `${options.assetBase ?? './assets'}/${name}`;
   const fromHash = (): Page => { const p = win.location.hash.replace(/^#\/?/, '') as Page; return pages.includes(p) ? p : (options.initialPage || 'home'); };
+  const rememberedNfcStorageMode = (): NfcStorageMode => {
+    try { return win.localStorage.getItem(NFC_STORAGE_MODE_KEY) === 'compact' ? 'compact' : 'standard'; }
+    catch { return 'standard'; }
+  };
+  const rememberNfcStorageMode = (mode: NfcStorageMode): void => {
+    try { win.localStorage.setItem(NFC_STORAGE_MODE_KEY, mode); }
+    catch { /* Storage can be unavailable in private or file-based previews. */ }
+  };
   const s = {
     page: options.initialPage || fromHash(), menu: false, tools: false, hero: -1, tab: 'compare',
     file: null as File | null, fileUrl: null as string | null, result: null as string | null,
@@ -277,7 +286,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     qrSvg: '', qrPayload: '', qrColor: '#0b0f2d', qrSize: 1024, qrStyle: 'square' as QrStyle, qrError: '', nfcOverwrite: false,
     nfcLockAfterWrite: false, nfcBulkActive: false, nfcBulkTarget: 10, nfcBulkWritten: 0, nfcBulkLocked: 0, nfcBulkLockFailed: 0,
     nfcBulkRecords: null as readonly NfcRecordInput[] | null,
-    nfcCapacityProfile: 'ntag213' as NfcCapacityProfileId, nfcStorageMode: 'standard' as NfcStorageMode,
+    nfcCapacityProfile: 'ntag213' as NfcCapacityProfileId, nfcStorageMode: rememberedNfcStorageMode(),
     nfcMessage: '', nfcError: '', nfcLastReadText: '', nfcBusy: false,
     brief: {brand:'',url:'',usage:'Ürün ambalajı',size:'',style:'Çiçek & Ornament',notes:''} as Fields,
     ideas: {qr: {category:'all',expanded:false,selected:null}, nfc: {category:'all',expanded:false,selected:null}} as Record<IdeaChannel, InspirationState>,
@@ -408,7 +417,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (support.canReadNdef) return esc(l('NDEF okuma hazır; bu sürücü etikete yazmayı desteklemiyor.', 'NDEF reading is ready; this adapter does not support tag writing.'));
     return esc(support.reason || l('Bu sürücü NDEF okuma veya yazma sunmuyor.', 'This adapter does not provide NDEF reading or writing.'));
   }
-  function nfcCompactEligible(): boolean { return s.nfcType === 'bank' || s.nfcType === 'invoice'; }
+  function nfcCompactEligible(): boolean { return s.nfcType === 'vcard' || s.nfcType === 'bank' || s.nfcType === 'invoice'; }
   function currentNfcCapacity(mode: NfcStorageMode = s.nfcStorageMode): ReturnType<typeof checkNfcCapacity> | null {
     if (s.nfcType === 'wifi') return null;
     try { return checkNfcCapacity(nfcRecords(buildPayload(s.nfcType, s.nfc, locale), mode), s.nfcCapacityProfile); }
@@ -416,7 +425,22 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function nfcStorageControl(): string {
     if (!nfcCompactEligible()) return '';
-    return `<fieldset class="rh-nfc-storage" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}><legend>${l('Depolama biçimi', 'Storage format')}</legend><label><input type="radio" name="rh-nfc-storage" value="standard" ${s.nfcStorageMode === 'standard' ? 'checked' : ''}/><span><strong>${l('Standart metin', 'Standard text')}</strong><small>${l('Tüm uyumlu NFC okuyucularında doğrudan görünür ve kopyalanır.', 'Visible and copyable in all compatible NFC readers.')}</small></span></label><label><input type="radio" name="rh-nfc-storage" value="compact" ${s.nfcStorageMode === 'compact' ? 'checked' : ''}/><span><strong>${l('Renderhane sıkıştırılmış', 'Renderhane compact')}</strong><small>${l('Daha az yer kaplar; içeriği açmak ve kopyalamak için bu araçla oku.', 'Uses less space; read it with this tool to open and copy the content.')}</small></span></label><p class="rh-nfc-storage-note">${l('Sıkıştırma şifreleme değildir; etikete erişen biri bu araçla bilgileri okuyabilir.', 'Compression is not encryption; anyone with access to the tag can read the details with this tool.')}</p></fieldset>`;
+    const compactRecommended = s.nfcStorageMode === 'standard'
+      && currentNfcCapacity('standard')?.fits === false
+      && currentNfcCapacity('compact')?.fits === true;
+    const contact = s.nfcType === 'vcard';
+    const standardTitle = contact ? l('Standart vCard', 'Standard vCard') : l('Standart metin', 'Standard text');
+    const standardHelp = contact
+      ? l('Telefonun kişi uygulaması tarafından doğrudan açılır.', 'Opens directly in the phone contacts app.')
+      : l('Tüm uyumlu NFC okuyucularında doğrudan görünür ve kopyalanır.', 'Visible and copyable in all compatible NFC readers.');
+    const compactTitle = contact ? l('Sıkıştırılmış kişi kartı', 'Compact contact card') : l('Renderhane sıkıştırılmış', 'Renderhane compact');
+    const compactHelp = contact
+      ? l('Tüm alanları daha az baytla saklar; bu araçla okuyup vCard metnini kopyala.', 'Keeps every field in fewer bytes; read it here and copy the vCard text.')
+      : l('Daha az yer kaplar; içeriği açmak ve kopyalamak için bu araçla oku.', 'Uses less space; read it with this tool to open and copy the content.');
+    const note = contact
+      ? l('Sıkıştırılmış kişi kartı standart kişi uygulamasında doğrudan açılmaz. Bilgiler korunur ve bu araçta yeniden vCard olarak oluşturulur.', 'The compact contact card does not open directly in a standard contacts app. All details are preserved and rebuilt as a vCard in this tool.')
+      : l('Sıkıştırma şifreleme değildir; etikete erişen biri bu araçla bilgileri okuyabilir.', 'Compression is not encryption; anyone with access to the tag can read the details with this tool.');
+    return `<fieldset class="rh-nfc-storage" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}><legend>${l('Depolama biçimi', 'Storage format')}</legend><label><input type="radio" name="rh-nfc-storage" value="standard" ${s.nfcStorageMode === 'standard' ? 'checked' : ''}/><span><strong>${standardTitle}</strong><small>${standardHelp}</small></span></label><label class="${compactRecommended ? 'rh-nfc-storage-recommended' : ''}"><input type="radio" name="rh-nfc-storage" value="compact" ${s.nfcStorageMode === 'compact' ? 'checked' : ''}/><span><strong>${compactTitle}</strong><small>${compactHelp}</small>${compactRecommended ? `<em>${l('Seçilen etikete sığması için bunu seç', 'Choose this to fit the selected tag')}</em>` : ''}</span></label><p class="rh-nfc-storage-note">${note}</p></fieldset>`;
   }
   function nfcCapacityError(check: ReturnType<typeof checkNfcCapacity>): string {
     const compact = s.nfcStorageMode === 'standard' && nfcCompactEligible() ? currentNfcCapacity('compact') : null;
@@ -619,6 +643,11 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function updateNfcPreview(): void { const el = $('#rh-nfc-preview'); if (!el) return; try { el.textContent = s.nfcType === 'wifi' ? l('WiFi içeriği · yazım bu sürümde kapalı', 'WiFi content · writing is disabled in this version') : buildPayload(s.nfcType, s.nfc, locale); } catch { el.textContent = l('İçeriğini tamamla.', 'Complete your content.'); } }
   function updateNfcCapacityUi(): void {
+    const storageElement = $('.rh-nfc-storage');
+    if (storageElement) {
+      storageElement.outerHTML = nfcStorageControl();
+      if (en) localizeToolElement($('.rh-nfc-storage')!);
+    }
     const capacityElement = $('.rh-nfc-capacity');
     if (capacityElement) {
       capacityElement.outerHTML = nfcCapacityControl();
@@ -669,9 +698,16 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const blob = kind === 'svg' ? new Blob([artifact.svg], { type: 'image/svg+xml;charset=utf-8' }) : qrValidated.png;
     downloadBlob(blob, `renderhane-qr-${s.qrType}-${artifact.style}.${kind}`);
   }
+  function compactVCardDetails(payload: string): CompactNfcDetails {
+    const lines = payload.split(/\r?\n/);
+    const value = (prefix: string): string => lines.find(line => line.startsWith(prefix))?.slice(prefix.length) || '';
+    const name = value('FN:');
+    if (!name) throw Error('Kişi adı bulunamadı.');
+    return {kind: 'vcard', locale, fields: [name, value('TEL:'), value('EMAIL:'), value('ORG:'), value('URL:')]};
+  }
   function nfcRecords(payload: string, mode: NfcStorageMode = s.nfcStorageMode): NfcRecordInput[] {
     if (mode === 'compact' && nfcCompactEligible())
-      return [createCompactNfcRecord(buildBusinessDetails(s.nfcType as 'bank' | 'invoice', s.nfc, locale))];
+      return [createCompactNfcRecord(s.nfcType === 'vcard' ? compactVCardDetails(payload) : buildBusinessDetails(s.nfcType as 'bank' | 'invoice', s.nfc, locale))];
     if (s.nfcType === 'vcard') return [{recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload)}];
     if (s.nfcType === 'text' || s.nfcType === 'bank' || s.nfcType === 'invoice') return [{recordType: 'text', lang: locale, data: payload}];
     if (s.nfcType === 'app') return [{recordType: 'url', data: payload}, {recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package)}];
@@ -925,7 +961,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (target.dataset.view) { s.tab = target.dataset.view; const el = $('#rh-canvas'); if (el) setLocalizedHtml(el, compareCanvas()); return; }
     if (target.dataset.bg) { s.bgColor = target.dataset.bg; const el = $('#rh-canvas'); if (el) setLocalizedHtml(el, compareCanvas()); $$('[data-bg]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bg === s.bgColor))); return; }
     if (target.dataset.preset !== undefined) { s.scenePreset = Number(target.dataset.preset); s.prompt = scenePrompts[s.scenePreset]; const prompt = $<HTMLTextAreaElement>('#rh-prompt'); if (prompt) prompt.value = s.prompt; $$('[data-preset]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.preset) === s.scenePreset))); $$('.rh-scene').forEach((e, i) => e.setAttribute('data-active', String(i === s.scenePreset))); return; }
-    if (target.dataset.qrType || target.dataset.nfcType) { const kind = target.dataset.qrType ? 'qr' : 'nfc'; const type = (target.dataset.qrType || target.dataset.nfcType) as ContentType; if (!Object.hasOwn(contentLabels, type)) return; if (kind === 'nfc') { stopNfc(); s.nfcBulkActive = false; s.nfcBulkRecords = null; s.nfcLastReadText = ''; if (type !== 'bank' && type !== 'invoice') s.nfcStorageMode = 'standard'; } s[`${kind}Type`] = type; render(); $(`#rh-${kind}-fields input, #rh-${kind}-fields textarea`)?.focus({ preventScroll: true }); return; }
+    if (target.dataset.qrType || target.dataset.nfcType) { const kind = target.dataset.qrType ? 'qr' : 'nfc'; const type = (target.dataset.qrType || target.dataset.nfcType) as ContentType; if (!Object.hasOwn(contentLabels, type)) return; if (kind === 'nfc') { stopNfc(); s.nfcBulkActive = false; s.nfcBulkRecords = null; s.nfcLastReadText = ''; s.nfcStorageMode = type === 'vcard' || type === 'bank' || type === 'invoice' ? rememberedNfcStorageMode() : 'standard'; } s[`${kind}Type`] = type; render(); $(`#rh-${kind}-fields input, #rh-${kind}-fields textarea`)?.focus({ preventScroll: true }); return; }
     if (target.dataset.qrStyle) {
       if (!isQrStyle(target.dataset.qrStyle)) return;
       s.qrStyle = target.dataset.qrStyle;
@@ -979,7 +1015,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (el.id === 'rh-nfc-overwrite' && !s.nfcBusy) s.nfcOverwrite = (el as HTMLInputElement).checked;
     if (el.id === 'rh-nfc-lock' && !s.nfcBusy) s.nfcLockAfterWrite = (el as HTMLInputElement).checked;
     if (el.id === 'rh-nfc-capacity' && !s.nfcBusy && NFC_CAPACITY_PROFILES.some(profile => profile.id === el.value)) { s.nfcCapacityProfile = el.value as NfcCapacityProfileId; render(); }
-    if (el.name === 'rh-nfc-storage' && !s.nfcBusy && (el.value === 'standard' || el.value === 'compact')) { s.nfcStorageMode = el.value; s.nfcLastReadText = ''; render(); }
+    if (el.name === 'rh-nfc-storage' && !s.nfcBusy && (el.value === 'standard' || el.value === 'compact')) { s.nfcStorageMode = el.value; rememberNfcStorageMode(s.nfcStorageMode); s.nfcLastReadText = ''; render(); }
     if (el.id === 'rh-nfc-bulk-count') s.nfcBulkTarget = Math.max(2, Math.min(100, Math.trunc(Number(el.value)) || 2));
   }
   function onSubmit(event: SubmitEvent): void {

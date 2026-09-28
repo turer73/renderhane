@@ -40,6 +40,28 @@ describe('NFC chip platform', () => {
     expect(formatCompactNfcDetails(decoded!)).toBe(text);
   });
 
+  it('stores every contact field in a compact record and rebuilds a copyable vCard', () => {
+    const details = {
+      kind: 'vcard' as const,
+      locale: 'tr' as const,
+      fields: ['Turgut Ürer', '+905551234567', 'turgut.urer@gmail.com', 'Renderhane', 'https://renderhane.com/'],
+    };
+    const compact = [createCompactNfcRecord(details)];
+    expect(checkNfcCapacity(compact, 'ntag213').fits).toBe(true);
+
+    const stored = compact[0]!.data as Uint8Array;
+    const decoded = decodeCompactNfcRecord({
+      recordType: compact[0]!.recordType,
+      data: new DataView(stored.buffer, stored.byteOffset, stored.byteLength),
+    });
+    expect(decoded).toEqual(details);
+    expect(formatCompactNfcDetails(decoded!)).toBe([
+      'BEGIN:VCARD', 'VERSION:3.0', 'FN:Turgut Ürer', 'N:;Turgut Ürer;;;',
+      'TEL:+905551234567', 'EMAIL:turgut.urer@gmail.com', 'ORG:Renderhane',
+      'URL:https://renderhane.com/', 'END:VCARD',
+    ].join('\r\n'));
+  });
+
   it('rejects truncated Renderhane compact records without treating them as text', () => {
     expect(() => decodeCompactNfcRecord({
       recordType: 'renderhane.com:c',

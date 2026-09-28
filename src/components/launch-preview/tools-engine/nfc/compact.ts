@@ -2,7 +2,7 @@ import type {NfcReadRecord, NfcRecordInput} from './types';
 
 export const RENDERHANE_COMPACT_RECORD_TYPE = 'renderhane.com:c';
 
-export type CompactNfcKind = 'bank' | 'invoice';
+export type CompactNfcKind = 'bank' | 'invoice' | 'vcard';
 export type CompactNfcLocale = 'tr' | 'en';
 
 export interface CompactNfcDetails {
@@ -13,7 +13,7 @@ export interface CompactNfcDetails {
 }
 
 const VERSION = 1;
-const FIELD_COUNTS: Record<CompactNfcKind, number> = {bank: 5, invoice: 5};
+const FIELD_COUNTS: Record<CompactNfcKind, number> = {bank: 5, invoice: 5, vcard: 5};
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', {fatal: true});
 
@@ -42,7 +42,7 @@ function readVarint(bytes: Uint8Array, offset: number): {value: number; offset: 
 export function encodeCompactNfcDetails(details: CompactNfcDetails): Uint8Array {
   const expected = FIELD_COUNTS[details.kind];
   if (details.fields.length !== expected) throw new Error('Sıkıştırılmış NFC alan şeması geçersiz.');
-  const kind = details.kind === 'bank' ? 1 : 2;
+  const kind = details.kind === 'bank' ? 1 : details.kind === 'invoice' ? 2 : 3;
   const flags = kind | (details.locale === 'en' ? 0x80 : 0);
   const output: number[] = [VERSION, flags];
   for (const field of details.fields) {
@@ -65,7 +65,7 @@ export function decodeCompactNfcRecord(record: NfcReadRecord): CompactNfcDetails
   const bytes = new Uint8Array(record.data.buffer, record.data.byteOffset, record.data.byteLength);
   if (bytes.length < 2 || bytes[0] !== VERSION) throw new Error('Renderhane sıkıştırılmış NFC sürümü desteklenmiyor.');
   const kindBits = bytes[1]! & 0x7f;
-  const kind: CompactNfcKind = kindBits === 1 ? 'bank' : kindBits === 2 ? 'invoice' : (() => { throw new Error('Renderhane sıkıştırılmış NFC türü geçersiz.'); })();
+  const kind: CompactNfcKind = kindBits === 1 ? 'bank' : kindBits === 2 ? 'invoice' : kindBits === 3 ? 'vcard' : (() => { throw new Error('Renderhane sıkıştırılmış NFC türü geçersiz.'); })();
   const locale: CompactNfcLocale = (bytes[1]! & 0x80) !== 0 ? 'en' : 'tr';
   const fields: string[] = [];
   let offset = 2;
@@ -82,6 +82,20 @@ export function decodeCompactNfcRecord(record: NfcReadRecord): CompactNfcDetails
 
 export function formatCompactNfcDetails(details: CompactNfcDetails): string {
   const en = details.locale === 'en';
+  if (details.kind === 'vcard') {
+    const [name, phone, email, org, website] = details.fields;
+    return [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${name}`,
+      `N:;${name};;;`,
+      phone ? `TEL:${phone}` : '',
+      email ? `EMAIL:${email}` : '',
+      org ? `ORG:${org}` : '',
+      website ? `URL:${website}` : '',
+      'END:VCARD',
+    ].filter(Boolean).join('\r\n');
+  }
   if (details.kind === 'bank') {
     const [accountName, iban, bankName, branch, description] = details.fields;
     return [

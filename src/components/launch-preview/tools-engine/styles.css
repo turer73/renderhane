@@ -305,6 +305,8 @@
 .rh-app .rh-nfc-meter{height:8px;margin-top:12px;overflow:hidden;border-radius:999px;background:#e9e4f2}
 .rh-app .rh-nfc-meter span{display:block;height:100%;border-radius:inherit;background:#7259d9;transition:width .2s ease}
 .rh-app .rh-nfc-capacity p{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.55}
+.rh-app .rh-nfc-storage label.rh-nfc-storage-recommended{border-color:#d59438;background:#fff9ed;box-shadow:0 0 0 1px #d59438}
+.rh-app .rh-nfc-storage-recommended em{width:max-content;margin-top:3px;padding:3px 6px;border-radius:999px;background:#9a5b00;color:#fff;font-size:9px;font-style:normal;font-weight:700}
 .rh-app .rh-nfc-capacity[data-state="success"] .rh-nfc-meter span{background:#2a8b69}
 .rh-app .rh-nfc-capacity[data-state="error"]{border-color:#e1a4aa;background:#fff7f7}
 .rh-app .rh-nfc-capacity[data-state="error"] .rh-nfc-meter span{background:#b8404d}
