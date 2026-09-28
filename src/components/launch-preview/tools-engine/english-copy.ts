@@ -293,6 +293,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Yalnızca kimlik bilgisi içermeyen HTTP/HTTPS adresleri destekleniyor.", "Only HTTP/HTTPS addresses without embedded credentials are supported."],
   ["Telefon alanını doldurun.", "Complete the phone field."],
   ["Telefon numarasını ülke koduyla girin.", "Enter the phone number with its country code."],
+  ["Ad alanını doldurun.", "Complete the first name field."],
   ["Ad soyad alanını doldurun.", "Complete the full name field."],
   ["Ağ adı alanını doldurun.", "Complete the network name field."],
   ["Geçersiz şifreleme seçeneği.", "Invalid encryption option."],
