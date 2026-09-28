@@ -27,6 +27,20 @@ describe("buildVCard", () => {
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 
+  it("does not join an unencoded value that legitimately ends with equals", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "URL:https://example.com/?token=", "EMAIL:ada@example.com", "END:VCARD"].join("\r\n");
+    expect(parseVCard(card)).toMatchObject({
+      website: "https://example.com/?token=", email: "ada@example.com",
+    });
+  });
+
+  it("preserves complete Instagram destinations when restoring", () => {
+    const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "item1.URL:https://www.instagram.com/p/example", "END:VCARD"].join("\r\n");
+    expect(parseVCard(card).instagram).toBe("https://www.instagram.com/p/example");
+  });
+
   it("decodes quoted-printable UTF-8 values and soft line breaks", () => {
     const card = ["BEGIN:VCARD", "VERSION:3.0",
       "N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:=C3=9Crer;Tur=",
@@ -57,7 +71,7 @@ describe("buildVCard", () => {
       "END:VCARD",
     ].join("\r\n");
     expect(parseVCard(grouped)).toMatchObject({
-      email: "ada@example.com", phone: "+905551234567", instagram: "renderhane",
+      email: "ada@example.com", phone: "+905551234567", instagram: "https://www.instagram.com/renderhane",
     });
   });
 
