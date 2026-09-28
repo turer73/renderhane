@@ -60,6 +60,9 @@ describe("social link normalization", () => {
     expect(normalizeSocialLink("whatsapp", "https://www.whatsapp.com/channel/example").url).toBe(
       "https://www.whatsapp.com/channel/example"
     );
+    expect(normalizeSocialLink("whatsapp", "https://chat.whatsapp.com/AbCdEf123").url).toBe(
+      "https://chat.whatsapp.com/AbCdEf123"
+    );
     expect(normalizeSocialLink("website", "https://example.com/#/contact").url).toBe(
       "https://example.com/#/contact"
     );
