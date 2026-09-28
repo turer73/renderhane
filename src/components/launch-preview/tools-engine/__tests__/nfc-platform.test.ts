@@ -101,7 +101,7 @@ describe('NFC chip platform', () => {
       type: 'social',
       fields: {socialMode: 'single', platform: 'instagram', socialValue: 'https://www.instagram.com/renderhane/'},
     });
-    expect(decodeNfcForm([record('https://renderhane.com/tr/s?n=Renderhane&ig=%40renderhane')])).toEqual({
+    expect(decodeNfcForm([record('https://renderhane.com/tr/s?n=Renderhane&i=%40renderhane')])).toEqual({
       type: 'social',
       fields: {socialMode: 'card', profileName: 'Renderhane', instagram: '@renderhane'},
     });
