@@ -7,7 +7,7 @@ import './vendor/qr-core.js';
 import {IDEA_CATEGORIES, getInspirationIdea, renderInspiration, validateIdeaUrl, type IdeaChannel, type InspirationState} from './inspiration';
 import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
-import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload, normalizeSocialLink} from '@/lib/share-links';
+import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload, normalizeContactEmail, normalizeSocialLink} from '@/lib/share-links';
 import {buildVCard} from '@/lib/vcard';
 import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
@@ -173,7 +173,7 @@ function validTurkishTaxNumber(value: string): boolean {
 }
 function requireField(f: Fields, key: string, label: string): string { const value = (f[key] || '').trim(); if (!value) throw Error(label + ' alanını doldurun.'); return value; }
 function buildBusinessDetails(type: 'bank' | 'invoice', f: Fields, locale: ToolLocale): CompactNfcDetails {
-  const email = (value: string): string => { const normalized = value.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw Error('Geçerli bir e-posta adresi girin.'); return normalized; };
+  const email = (value: string): string => { const normalized = normalizeContactEmail(value); if (!normalized) throw Error('Geçerli bir e-posta adresi girin.'); return normalized; };
   if (type === 'bank') {
     const accountName = plainLine(requireField(f, 'accountName', 'Alıcı adı'));
     const iban = requireField(f, 'iban', 'IBAN').replace(/\s/g, '').toUpperCase();
