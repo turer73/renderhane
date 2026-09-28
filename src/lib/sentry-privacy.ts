@@ -13,7 +13,7 @@ export function isPrivateShareRoute(value: string): boolean {
   return /(?:^|\s|https?:\/\/[^/\s]+)(?:\/[a-z]{2}\/(?:k|s)\/?|\/api\/contact-card\/?)(?:[?#\s]|$)/i.test(value);
 }
 
-export function scrubSentryEvent<T>(event: T): T {
+export function scrubSentryEvent<T>(event: T): T | null {
   const mutable = event as {
     request?: {
       url?: string;
@@ -28,6 +28,9 @@ export function scrubSentryEvent<T>(event: T): T {
   const privateRequest =
     isPrivateShareRoute(mutable.request?.url || "") ||
     isPrivateShareRoute(mutable.transaction || "");
+  // Private landing-page events can repeat the full URL in arbitrary root
+  // fields. Dropping them is safer than trying to maintain a partial allowlist.
+  if (privateRequest) return null;
   if (mutable.request?.url)
     mutable.request.url = sanitizePrivateShareText(mutable.request.url);
   if (privateRequest && mutable.request)
