@@ -10,7 +10,11 @@
  */
 
 import { buildVCard, parseVCard, type VCardFields } from "@/lib/vcard";
-import { buildSocialPayload } from "@/lib/share-links";
+import {
+  buildSocialPayload,
+  SOCIAL_PLATFORMS,
+  type SocialPlatform,
+} from "@/lib/share-links";
 
 export type NfcContentType =
   | "url"
@@ -384,6 +388,49 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
 
   const play = /play\.google\.com\/store\/apps\/details\?id=([^&\s]+)/i.exec(uri);
   if (play) return { type: "app", fields: { packageName: play[1] } };
+
+  try {
+    const url = new URL(uri);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "renderhane.com" && /^\/(?:tr|en)\/s\/?$/.test(url.pathname)) {
+      const fields: NfcFields = { socialMode: "card" };
+      const profileName = url.searchParams.get("n");
+      if (profileName) fields.profileName = profileName;
+      for (const platform of SOCIAL_PLATFORMS) {
+        const value = url.searchParams.get(platform.key);
+        if (value) fields[platform.id] = value;
+      }
+      return { type: "social", fields };
+    }
+
+    const socialHosts: Record<string, SocialPlatform> = {
+      "instagram.com": "instagram",
+      "wa.me": "whatsapp",
+      "api.whatsapp.com": "whatsapp",
+      "whatsapp.com": "whatsapp",
+      "t.me": "telegram",
+      "telegram.me": "telegram",
+      "tiktok.com": "tiktok",
+      "vm.tiktok.com": "tiktok",
+      "vt.tiktok.com": "tiktok",
+      "x.com": "x",
+      "twitter.com": "x",
+      "facebook.com": "facebook",
+      "fb.com": "facebook",
+      "linkedin.com": "linkedin",
+      "youtube.com": "youtube",
+      "youtu.be": "youtube",
+    };
+    const platform = socialHosts[host];
+    if (platform) {
+      return {
+        type: "social",
+        fields: { socialMode: "single", platform, socialValue: uri },
+      };
+    }
+  } catch {
+    // Keep malformed or unsupported URI records editable as generic URLs.
+  }
 
   return { type: "url", fields: { url: uri } };
 }
