@@ -288,6 +288,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Çıktı indirilemedi. Sunucu CORS ve indirme izinlerini kontrol edin.", "The output could not be downloaded. Check the server's CORS and download permissions."],
   ["Canvas desteklenmiyor.", "Canvas is not supported."],
   ["İndirme başarısız.", "Download failed."],
+  ["Web adresi en fazla 1000 karakter olabilir.", "The website address can be at most 1000 characters."],
   ["Web adresini girin.", "Enter a web address."],
   ["http:// veya https:// ile başlayan geçerli bir adres girin.", "Enter a valid address beginning with http:// or https://."],
   ["Yalnızca kimlik bilgisi içermeyen HTTP/HTTPS adresleri destekleniyor.", "Only HTTP/HTTPS addresses without embedded credentials are supported."],
