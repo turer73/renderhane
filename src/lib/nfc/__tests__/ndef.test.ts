@@ -288,6 +288,14 @@ describe("describeRecord", () => {
     });
   });
 
+  it("restores the first decodable record when a tag also has descriptive text", () => {
+    const form = recordsToForm([
+      describeRecord({recordType: "url", data: "https://renderhane.com"}),
+      describeRecord({recordType: "text", data: "Renderhane ana sayfası"}),
+    ]);
+    expect(form).toEqual({type: "url", fields: {url: "https://renderhane.com"}});
+  });
+
   it("prefers the Android app record over its Play Store fallback URL", () => {
     const form = recordsToForm(
       buildNdefRecords("app", { packageName: "com.renderhane.app" }).map((r) => describeRecord(r))
