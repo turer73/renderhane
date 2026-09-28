@@ -27,6 +27,12 @@ describe("buildVCard", () => {
     expect(parseVCard(buildVCard(original))).toMatchObject(original);
   });
 
+  it("normalizes URI-valued telephone properties for editing", () => {
+    const card = ["BEGIN:VCARD", "VERSION:4.0", "FN:Ada Lovelace",
+      "TEL;VALUE=uri:tel:+905551234567", "END:VCARD"].join("\r\n");
+    expect(parseVCard(card).phone).toBe("+905551234567");
+  });
+
   it("preserves every populated structured address component", () => {
     const card = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
       "ADR:;;123 Main St;London;;SW1;UK", "END:VCARD"].join("\r\n");
