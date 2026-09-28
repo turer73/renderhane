@@ -253,6 +253,7 @@ describe("describeRecord", () => {
     expect(
       roundTrip("social", {
         socialMode: "card",
+        shareLocale: "tr",
         profileName: "Renderhane",
         instagram: "@renderhane",
         whatsapp: "+905551234567",
@@ -300,12 +301,29 @@ describe("describeRecord", () => {
     });
   });
 
-  it("restores the first decodable record when a tag also has descriptive text", () => {
+  it("keeps unsupported multi-record messages read-only", () => {
     const form = recordsToForm([
       describeRecord({recordType: "url", data: "https://renderhane.com"}),
       describeRecord({recordType: "text", data: "Renderhane ana sayfası"}),
     ]);
-    expect(form).toEqual({type: "url", fields: {url: "https://renderhane.com"}});
+    expect(form).toBeNull();
+  });
+
+  it("retains the locale of linked contact and social landing pages", () => {
+    expect(describeRecord({
+      recordType: "url",
+      data: "https://www.renderhane.com/en/k?n=Ada",
+    }).form).toMatchObject({
+      type: "vcard",
+      fields: { contactMode: "linked", shareLocale: "en", firstName: "Ada" },
+    });
+    expect(describeRecord({
+      recordType: "url",
+      data: "https://www.renderhane.com/en/s?i=renderhane&w=905551234567",
+    }).form).toMatchObject({
+      type: "social",
+      fields: { socialMode: "card", shareLocale: "en" },
+    });
   });
 
   it("classifies only exact Play Store destinations as apps", () => {
