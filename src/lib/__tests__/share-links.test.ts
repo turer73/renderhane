@@ -66,6 +66,9 @@ describe("social link normalization", () => {
   it("uses platform-specific handle rules", () => {
     expect(() => normalizeSocialLink("instagram", "bad-name")).toThrow(/kullanıcı adı/);
     expect(() => normalizeSocialLink("x", "a".repeat(16))).toThrow(/kullanıcı adı/);
+    expect(normalizeSocialLink("tiktok", "@render_hane").url).toBe(
+      "https://www.tiktok.com/@render_hane"
+    );
   });
 
   it("marks contact and social share routes as analytics-free", () => {
