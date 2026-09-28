@@ -83,6 +83,11 @@ describe("social link normalization", () => {
 
   it("uses platform-specific handle rules", () => {
     expect(() => normalizeSocialLink("instagram", "bad-name")).toThrow(/kullanıcı adı/);
+    for (const handle of [".person", "person.", "a..b"])
+      expect(() => normalizeSocialLink("instagram", handle)).toThrow(/kullanıcı adı/);
+    expect(normalizeSocialLink("instagram", "render.hane").url).toBe(
+      "https://www.instagram.com/render.hane"
+    );
     expect(() => normalizeSocialLink("x", "a".repeat(16))).toThrow(/kullanıcı adı/);
     expect(normalizeSocialLink("tiktok", "@render_hane").url).toBe(
       "https://www.tiktok.com/@render_hane"
