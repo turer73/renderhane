@@ -278,12 +278,34 @@
 .rh-app .rh-nfc-workspace{grid-template-columns:1.1fr 1fr}
 .rh-app .rh-nfc-workspace .rh-content-types{grid-template-columns:repeat(8,1fr)}
 .rh-app .rh-device-preview{position:relative;min-height:375px;display:flex;align-items:flex-end;justify-content:center;padding-top:12px;background:radial-gradient(ellipse at 55% 70%,#f0ebff 0%,#fff 65%);overflow:hidden}
-.rh-app .rh-phone{width:210px;height:356px;border:6px solid #202129;box-shadow:0 0 0 1px #a3a2af,10px 15px 30px #25195212;border-radius:32px;background:#fff;position:relative;text-align:center;padding:55px 19px 18px;flex-shrink:0}
+.rh-app .rh-phone{width:210px;height:356px;border:6px solid #202129;box-shadow:0 0 0 1px #a3a2af,10px 15px 30px #25195212;border-radius:32px;background:#0f1018;color:#f8f7ff;position:relative;text-align:left;padding:35px 9px 9px;flex-shrink:0;overflow:hidden}
 .rh-app .rh-phone-camera{position:absolute;width:10px;height:10px;border-radius:50%;background:#171b22;left:calc(50% - 5px);top:13px;box-shadow:inset 0 0 0 3px #292e34}
-.rh-app .rh-phone-status{position:absolute;top:12px;left:18px;font-size:9px;font-weight:600}
-.rh-app .rh-phone>img{height:58px;width:65px;object-fit:contain;margin:6px auto 18px}
-.rh-app .rh-phone h3{font-size:16px;letter-spacing:-.4px}
-.rh-app .rh-phone p{font-size:10px;color:var(--muted);margin-top:8px;overflow-wrap:anywhere;max-height:72px;overflow:hidden;white-space:pre-wrap}
+.rh-app .rh-phone-status{position:absolute;top:12px;left:18px;font-size:9px;font-weight:600;color:#fff}
+.rh-app #rh-nfc-preview{height:100%}
+.rh-app .rh-contact-preview{height:100%;display:flex;flex-direction:column;gap:7px}
+.rh-app .rh-contact-hero,.rh-app .rh-contact-details{background:#1a1b24;border:1px solid #2a2b38;border-radius:17px}
+.rh-app .rh-contact-hero{padding:12px 10px 10px}
+.rh-app .rh-contact-identity{display:flex;align-items:center;gap:9px;min-width:0}
+.rh-app .rh-contact-avatar{width:37px;height:37px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(135deg,#a78bfa,#6d42ee);color:#fff;font-size:13px;font-weight:800;box-shadow:inset 0 0 0 2px #ffffff24}
+.rh-app .rh-contact-identity>div{min-width:0}
+.rh-app .rh-contact-identity .rh-contact-name{font-size:15px;line-height:1.12;letter-spacing:-.35px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-app .rh-contact-identity .rh-contact-phone{font-size:9px;line-height:1.4;color:#cac7d7;margin:4px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-app .rh-contact-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px}
+.rh-app .rh-contact-action{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;color:#b9a8ff}
+.rh-app .rh-contact-action .rh-icon{width:25px;height:25px;padding:6px;border-radius:50%;background:#292a35;box-sizing:content-box;stroke-width:1.8}
+.rh-app .rh-contact-action small{font-size:6px;color:#aaa7b6;white-space:nowrap}
+.rh-app .rh-contact-details{padding:2px 10px}
+.rh-app .rh-contact-detail{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #30313c;min-width:0}
+.rh-app .rh-contact-detail:last-child{border-bottom:0}
+.rh-app .rh-contact-detail>span{display:block;min-width:0;flex:1}
+.rh-app .rh-contact-detail small{display:block;font-size:7px;color:#9693a4;margin-bottom:2px}
+.rh-app .rh-contact-detail strong{display:block;font-size:9px;line-height:1.25;color:#f5f3fb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-app .rh-contact-detail>.rh-icon{width:13px;height:13px;color:#c5c1d3;flex:0 0 auto}
+.rh-app .rh-contact-caption{display:block;margin:auto 5px 1px;color:#817d91;font-size:6px;line-height:1.35;text-align:center}
+.rh-app .rh-nfc-generic-preview{height:100%;text-align:center;padding:20px 10px 0}
+.rh-app .rh-nfc-generic-preview>img{height:58px;width:65px;object-fit:contain;margin:6px auto 18px}
+.rh-app .rh-nfc-generic-preview h3{font-size:16px;letter-spacing:-.4px;color:#fff}
+.rh-app .rh-nfc-generic-preview p{font-size:10px;color:#b7b3c5;margin-top:8px;overflow-wrap:anywhere;max-height:72px;overflow:hidden;white-space:pre-wrap}
 .rh-app .rh-phone .rh-wave{height:90px;background:linear-gradient(160deg,#f2edff,#e6e0fa);position:absolute;bottom:0;left:0;right:0;border-radius:45% 80% 24px 24px;display:flex;align-items:center;justify-content:center;color:#aaa0ce;font-size:9px}
 .rh-app .rh-nfc-tag{height:108px;width:108px;border-radius:50%;background:#fff;box-shadow:0 8px 25px #0b0f2d12,inset 0 0 0 1px #e8e7ee,inset 0 0 0 5px #fbfbfd;position:relative;margin:0 -12px 25px -12px;z-index:2;display:flex;align-items:center;justify-content:center;transform:rotate(-10deg)}
 .rh-app .rh-nfc-tag img{width:52px;height:52px}

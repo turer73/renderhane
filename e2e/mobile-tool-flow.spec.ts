@@ -139,7 +139,7 @@ test.describe('public mobile tool flows', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   });
 
-  test('NFC stores a full contact card compactly on NTAG213 and restores vCard text', async ({page}) => {
+  test('NFC writes contact cards as standard vCard records that Android Contacts can open', async ({page}) => {
     await page.addInitScript(() => {
       const state = window as Window & {NDEFReader?: typeof FakeNDEFReader; __contactRecords?: Array<{recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array}>};
       class FakeNDEFReader {
@@ -150,7 +150,7 @@ test.describe('public mobile tool flows', () => {
         }
         async scan(): Promise<void> {
           queueMicrotask(() => this.onreading?.({
-            serialNumber: 'compact-contact-test',
+            serialNumber: 'standard-contact-test',
             message: {
               records: (state.__contactRecords || []).map(record => {
                 const bytes = typeof record.data === 'string' ? new TextEncoder().encode(record.data) : record.data;
@@ -170,18 +170,30 @@ test.describe('public mobile tool flows', () => {
     await page.locator('#rh-nfc-org').fill('Renderhane');
     await page.locator('#rh-nfc-website').fill('https://renderhane.com');
 
+    await expect(page.locator('.rh-contact-name')).toHaveText('Turgut Ürer');
+    await expect(page.locator('.rh-contact-phone')).toHaveText('+905551234567');
+    await expect(page.locator('.rh-contact-details')).toContainText('turgut.urer@gmail.com');
+    await expect(page.locator('.rh-contact-details')).toContainText('Renderhane');
+    await expect(page.locator('.rh-contact-details')).toContainText('https://renderhane.com');
+    await expect(page.locator('.rh-contact-preview')).toBeVisible();
+
     await expect(page.locator('#rh-nfc-capacity')).toHaveValue('ntag213');
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
-    await expect(page.locator('.rh-nfc-storage-recommended')).toContainText('Seçilen etikete sığması için bunu seç');
+    await expect(page.locator('.rh-nfc-capacity')).toContainText('NTAG215 seç.');
+    await expect(page.locator('.rh-nfc-storage')).toHaveCount(0);
+    await expect(page.locator('[data-action="nfc-write"]')).toBeDisabled();
 
-    await page.locator('.rh-nfc-storage input[value="compact"]').check();
+    await page.locator('#rh-nfc-capacity').selectOption('ntag215');
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
     await expect(page.locator('[data-action="nfc-write"]')).toBeEnabled();
     await page.locator('[data-action="nfc-write"]').click();
     await expect(page.locator('#rh-nfc-status')).toContainText('Etiket yazıldı.');
 
-    const recordType = await page.evaluate(() => (window as Window & {__contactRecords?: Array<{recordType: string}>}).__contactRecords?.[0]?.recordType);
-    expect(recordType).toBe('renderhane.com:c');
+    const record = await page.evaluate(() => {
+      const value = (window as Window & {__contactRecords?: Array<{recordType: string; mediaType?: string}>}).__contactRecords?.[0];
+      return value && {recordType: value.recordType, mediaType: value.mediaType};
+    });
+    expect(record).toEqual({recordType: 'mime', mediaType: 'text/vcard'});
 
     await page.locator('[data-action="nfc-scan"]').click();
     await expect(page.locator('.rh-nfc-read-result')).toContainText('BEGIN:VCARD');
@@ -191,11 +203,11 @@ test.describe('public mobile tool flows', () => {
 
     await page.locator('[data-nfc-type="url"]').click();
     await page.locator('[data-nfc-type="vcard"]').click();
-    await expect(page.locator('.rh-nfc-storage input[value="compact"]')).toBeChecked();
+    await expect(page.locator('.rh-nfc-storage')).toHaveCount(0);
 
     await page.reload();
     await page.locator('[data-nfc-type="vcard"]').click();
-    await expect(page.locator('.rh-nfc-storage input[value="compact"]')).toBeChecked();
+    await expect(page.locator('.rh-nfc-storage')).toHaveCount(0);
   });
 
   test('NFC offers a compact NTAG213 business record and restores copyable text', async ({page}) => {
