@@ -203,7 +203,9 @@ test.describe('public mobile tool flows', () => {
 
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
     await expect(page.locator('.rh-nfc-capacity')).toContainText('sıkıştırılmış biçimi');
-    await page.locator('input[name="rh-nfc-storage"][value="compact"]').check();
+    await expect(page.locator('.rh-nfc-storage-recommended')).toContainText('NTAG213 için bunu seç');
+    await page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]').check();
+    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
     await expect(page.locator('[data-action="nfc-write"]')).toBeEnabled();
 
@@ -214,6 +216,10 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rh-nfc-read-result')).toContainText('IBAN: TR200000000000000000000001');
     await expect(page.locator('[data-action="nfc-copy-read"]')).toBeVisible();
     expect(await page.locator('.rh-nfc-storage').evaluate(element => element.getBoundingClientRect().right <= innerWidth + 1)).toBe(true);
+
+    await page.reload();
+    await page.locator('[data-nfc-type="bank"]').click();
+    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
   });
 
   test('NFC IO failure opens an actionable error dialog without leaking null', async ({page}) => {
