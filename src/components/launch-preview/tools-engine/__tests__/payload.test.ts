@@ -76,6 +76,12 @@ describe('copyable business payloads', () => {
     expect(payload).toContain('TEL:+905551234567');
   });
 
+  it('rejects non-Instagram destinations in Android contact cards', () => {
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', instagram: 'https://x.com/renderhane',
+    })).toThrow(/resmi bağlantı/);
+  });
+
   it('rejects malformed WhatsApp values in Android contact cards', () => {
     expect(() => buildPayload('vcard', {
       contactMode: 'android', firstName: 'Ada', whatsapp: '+90 555 O23 45 67',
