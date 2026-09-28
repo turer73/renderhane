@@ -133,12 +133,12 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       const url = parseHttpUrl(value);
       exactHost(url, ["linkedin.com"]);
       path = url.pathname.replace(/^\/+|\/+$/g, "");
-      if (!/^(in|company)\/[A-Za-z0-9._%-]{1,100}$/.test(path)) {
+      if (!/^(in|company)\/[A-Za-z0-9._%\-]{1,100}$/.test(path)) {
         removeTrackingParams(url);
         return { url: url.href, token: url.href };
       }
     }
-    if (!/^(in|company)\/[A-Za-z0-9._%-]{1,100}$/.test(path))
+    if (!/^(in|company)\/[A-Za-z0-9._%\-]{1,100}$/.test(path))
       path = `in/${cleanHandle(path, platform)}`;
     return { url: `https://www.linkedin.com/${path}`, token: path };
   }
@@ -224,6 +224,15 @@ export function socialLinksFromParams(
   return links;
 }
 
+export function normalizeContactWebsite(raw: string): string | null {
+  try {
+    const url = parseHttpUrl(raw);
+    return url.href.length <= 1000 ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export function normalizeContactPhone(raw: string): string | null {
   const phone = raw.trim().replace(/[\s()-]/g, "");
   return /^\+?\d{5,15}$/.test(phone) ? phone : null;
@@ -264,9 +273,8 @@ export function buildContactLandingUrl(fields: ShareFields, locale: "tr" | "en" 
   if ((fields.org?.trim().length || 0) > 120)
     throw new Error("Kurum / marka en fazla 120 karakter olabilir.");
   if (fields.website?.trim()) {
-    const website = parseHttpUrl(fields.website).href;
-    if (website.length > 1000)
-      throw new Error("Web adresi en fazla 1000 karakter olabilir.");
+    const website = normalizeContactWebsite(fields.website);
+    if (!website) throw new Error("Web adresi en fazla 1000 karakter olabilir.");
     params.set("u", website);
   }
   return `${ORIGIN}/${locale}/k?${params.toString()}`;
