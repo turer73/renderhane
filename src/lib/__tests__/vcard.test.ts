@@ -92,6 +92,27 @@ describe("buildVCard", () => {
     });
   });
 
+  it("declines to edit cards with additional phone or email values", () => {
+    const phones = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "TEL:+905551111111", "TEL:+905552222222", "END:VCARD"].join("\r\n");
+    const emails = ["BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "EMAIL:ada@example.com", "EMAIL:work@example.com", "END:VCARD"].join("\r\n");
+    expect(() => parseVCard(phones)).toThrow(/Birden fazla telefon/);
+    expect(() => parseVCard(emails)).toThrow(/Birden fazla e-posta/);
+  });
+
+  it("folds generated content lines at 75 UTF-8 octets without changing values", () => {
+    const original = {
+      firstName: "Ü".repeat(40),
+      lastName: "Ç".repeat(40),
+      org: "Renderhane ".repeat(12).trim(),
+    };
+    const card = buildVCard(original);
+    const encoder = new TextEncoder();
+    expect(card.split("\r\n").every((line) => encoder.encode(line).length <= 75)).toBe(true);
+    expect(parseVCard(card)).toMatchObject(original);
+  });
+
   it("preserves URI punctuation in website values", () => {
     const website = "https://example.com/a,b;c#/contact";
     const card = buildVCard({ firstName: "Ada", website });
