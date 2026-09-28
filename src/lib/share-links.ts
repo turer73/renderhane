@@ -14,18 +14,20 @@ export type ShareFields = Record<string, string | undefined>;
 export const SOCIAL_PLATFORMS: ReadonlyArray<{
   id: SocialPlatform;
   label: string;
+  labelEn: string;
   key: string;
   placeholder: string;
+  placeholderEn: string;
 }> = [
-  { id: "instagram", label: "Instagram", key: "i", placeholder: "@kullanici" },
-  { id: "whatsapp", label: "WhatsApp", key: "w", placeholder: "+905551234567" },
-  { id: "telegram", label: "Telegram", key: "t", placeholder: "@kullanici" },
-  { id: "tiktok", label: "TikTok", key: "k", placeholder: "@kullanici" },
-  { id: "x", label: "X", key: "x", placeholder: "@kullanici" },
-  { id: "facebook", label: "Facebook", key: "f", placeholder: "kullanici" },
-  { id: "linkedin", label: "LinkedIn", key: "l", placeholder: "in/kullanici veya company/marka" },
-  { id: "youtube", label: "YouTube", key: "y", placeholder: "@kanal" },
-  { id: "website", label: "Web sitesi", key: "u", placeholder: "https://…" },
+  { id: "instagram", label: "Instagram", labelEn: "Instagram", key: "i", placeholder: "@kullanici", placeholderEn: "@username" },
+  { id: "whatsapp", label: "WhatsApp", labelEn: "WhatsApp", key: "w", placeholder: "+905551234567", placeholderEn: "+905551234567" },
+  { id: "telegram", label: "Telegram", labelEn: "Telegram", key: "t", placeholder: "@kullanici", placeholderEn: "@username" },
+  { id: "tiktok", label: "TikTok", labelEn: "TikTok", key: "k", placeholder: "@kullanici", placeholderEn: "@username" },
+  { id: "x", label: "X", labelEn: "X", key: "x", placeholder: "@kullanici", placeholderEn: "@username" },
+  { id: "facebook", label: "Facebook", labelEn: "Facebook", key: "f", placeholder: "kullanici", placeholderEn: "username" },
+  { id: "linkedin", label: "LinkedIn", labelEn: "LinkedIn", key: "l", placeholder: "in/kullanici veya company/marka", placeholderEn: "in/username or company/brand" },
+  { id: "youtube", label: "YouTube", labelEn: "YouTube", key: "y", placeholder: "@kanal", placeholderEn: "@channel" },
+  { id: "website", label: "Web sitesi", labelEn: "Website", key: "u", placeholder: "https://…", placeholderEn: "https://…" },
 ];
 
 const BY_ID = Object.fromEntries(SOCIAL_PLATFORMS.map((platform) => [platform.id, platform])) as Record<
@@ -100,11 +102,15 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
       removeTrackingParams(url);
       const host = url.hostname.toLowerCase().replace(/^www\./, "");
       phone = host === "wa.me" ? url.pathname : url.searchParams.get("phone") || "";
-      const digits = phone.replace(/\D/g, "");
-      const isPlainPhoneUrl = /^\d{7,15}$/.test(digits) && (
-        (host === "wa.me" && !url.search) ||
-        (host !== "wa.me" && [...url.searchParams.keys()].every((key) => key === "phone"))
-      );
+      const rawPhone = phone.replace(/^\/+|\/+$/g, "");
+      const phoneOnlyUrl =
+        (host === "wa.me" && url.pathname.split("/").filter(Boolean).length === 1 && !url.search) ||
+        (host !== "wa.me" && url.searchParams.has("phone") &&
+          [...url.searchParams.keys()].every((key) => key === "phone"));
+      if (phoneOnlyUrl && !/^\+?[\d\s()-]+$/.test(rawPhone))
+        throw new Error("WhatsApp numarasını ülke koduyla girin.");
+      const digits = rawPhone.replace(/\D/g, "");
+      const isPlainPhoneUrl = phoneOnlyUrl && /^\d{7,15}$/.test(digits);
       if (!isPlainPhoneUrl) return { url: url.href, token: url.href };
       return { url: `https://wa.me/${digits}`, token: digits };
     }
@@ -191,13 +197,20 @@ export function buildSocialPayload(fields: ShareFields, locale: "tr" | "en" = "t
   return normalizeSocialLink(platform, fields.socialValue || "").url;
 }
 
-export function socialLinksFromParams(params: URLSearchParams): Array<{ platform: SocialPlatform; label: string; url: string }> {
+export function socialLinksFromParams(
+  params: URLSearchParams,
+  locale: "tr" | "en" = "tr"
+): Array<{ platform: SocialPlatform; label: string; url: string }> {
   const links: Array<{ platform: SocialPlatform; label: string; url: string }> = [];
   for (const [key, token] of params) {
     const platform = BY_KEY[key];
     if (!platform || !token) continue;
     try {
-      links.push({ platform: platform.id, label: platform.label, url: normalizeSocialLink(platform.id, token).url });
+      links.push({
+        platform: platform.id,
+        label: locale === "en" ? platform.labelEn : platform.label,
+        url: normalizeSocialLink(platform.id, token).url,
+      });
     } catch {
       // Ignore invalid public query values instead of rendering unsafe links.
     }
