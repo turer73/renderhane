@@ -434,11 +434,19 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       && currentNfcCapacity('compact')?.fits === true;
     return `<fieldset class="rh-nfc-storage" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}><legend>${l('Depolama biçimi', 'Storage format')}</legend><label><input type="radio" name="rh-nfc-storage" value="standard" ${s.nfcStorageMode === 'standard' ? 'checked' : ''}/><span><strong>${l('Standart metin', 'Standard text')}</strong><small>${l('Tüm uyumlu NFC okuyucularında doğrudan görünür ve kopyalanır.', 'Visible and copyable in all compatible NFC readers.')}</small></span></label><label class="${compactRecommended ? 'rh-nfc-storage-recommended' : ''}"><input type="radio" name="rh-nfc-storage" value="compact" ${s.nfcStorageMode === 'compact' ? 'checked' : ''}/><span><strong>${l('Renderhane sıkıştırılmış', 'Renderhane compact')}</strong><small>${l('Daha az yer kaplar; içeriği açmak ve kopyalamak için bu araçla oku.', 'Uses less space; read it with this tool to open and copy the content.')}</small>${compactRecommended ? `<em>${l('Seçilen etikete sığması için bunu seç', 'Choose this to fit the selected tag')}</em>` : ''}</span></label><p class="rh-nfc-storage-note">${l('Sıkıştırma şifreleme değildir; etikete erişen biri bu araçla bilgileri okuyabilir.', 'Compression is not encryption; anyone with access to the tag can read the details with this tool.')}</p></fieldset>`;
   }
+  function nfcCapacityAdvice(estimatedBytes: number): string {
+    const recommended = NFC_CAPACITY_PROFILES.find(profile =>
+      profile.capacityBytes !== null && profile.capacityBytes >= estimatedBytes
+    );
+    return recommended
+      ? `${recommended.id.toUpperCase()} seç.`
+      : 'İçeriği kısalt; NTAG216 kapasitesi de yeterli değil.';
+  }
   function nfcCapacityError(check: ReturnType<typeof checkNfcCapacity>): string {
     const compact = s.nfcStorageMode === 'standard' && nfcCompactEligible() ? currentNfcCapacity('compact') : null;
     if (compact?.fits)
       return `İçerik seçilen etikete sığmıyor: ${check.estimatedBytes} / ${check.capacityBytes} bayt. Renderhane sıkıştırılmış biçimini seçersen ${compact.estimatedBytes} bayt olarak sığar.`;
-    return `İçerik seçilen etikete sığmıyor: ${check.estimatedBytes} / ${check.capacityBytes} bayt. İçeriği kısalt veya NTAG215/216 seç.`;
+    return `İçerik seçilen etikete sığmıyor: ${check.estimatedBytes} / ${check.capacityBytes} bayt. ${nfcCapacityAdvice(check.estimatedBytes)}`;
   }
   function nfcCapacityControl(): string {
     const check = currentNfcCapacity();
@@ -454,7 +462,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
           ? `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · Sığıyor.`
           : compactCheck?.fits
             ? `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. Renderhane sıkıştırılmış biçimi ${compactCheck.estimatedBytes} bayt ve bu etikete sığıyor.`
-            : `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. ${s.nfcType === 'vcard' ? 'İçeriği kısalt veya NTAG215/216 seç.' : 'İçeriği kısalt veya daha büyük bir etiket seç.'}`;
+            : `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. ${s.nfcType === 'vcard' ? nfcCapacityAdvice(check.estimatedBytes) : 'İçeriği kısalt veya daha büyük bir etiket seç.'}`;
     const meterMax = check?.capacityBytes ?? Math.max(check?.estimatedBytes ?? 1, 1);
     const meterValue = Math.min(check?.estimatedBytes ?? 0, meterMax);
     return `<div class="rh-nfc-capacity" data-state="${state}"><div class="rh-nfc-capacity-head"><label for="rh-nfc-capacity">Etiket kapasitesi</label><select class="rh-select" id="rh-nfc-capacity" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}>${NFC_CAPACITY_PROFILES.map(profile => `<option value="${profile.id}" ${profile.id === selected.id ? 'selected' : ''}>${profile.label}</option>`).join('')}</select></div><div class="rh-nfc-meter" role="meter" aria-label="Tahmini NDEF kullanımı" aria-valuemin="0" aria-valuemax="${meterMax}" aria-valuenow="${meterValue}" aria-valuetext="${esc(text)}"><span style="width:${ratio}%"></span></div><p>${esc(text)}</p></div>`;
