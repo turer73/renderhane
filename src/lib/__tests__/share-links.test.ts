@@ -22,6 +22,10 @@ describe("social link normalization", () => {
     expect(() => normalizeSocialLink("whatsapp", "+90 555 O23 45 67")).toThrow(
       /ülke koduyla/
     );
+    expect(() => normalizeSocialLink("whatsapp", "05551234567")).toThrow(/ülke koduyla/);
+    expect(() => normalizeSocialLink("whatsapp", "https://wa.me/05551234567")).toThrow(
+      /ülke koduyla/
+    );
     expect(normalizeSocialLink("tiktok", "@renderhane").url).toBe(
       "https://www.tiktok.com/@renderhane"
     );
