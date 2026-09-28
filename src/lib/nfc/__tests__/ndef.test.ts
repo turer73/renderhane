@@ -300,6 +300,11 @@ describe("describeRecord", () => {
       type: "url",
       fields: { url: deceptiveMap },
     });
+    const parameterizedMap = "https://www.google.com/maps?q=41.0,29.0&z=18";
+    expect(describeRecord({ recordType: "url", data: parameterizedMap }).form).toEqual({
+      type: "url",
+      fields: { url: parameterizedMap },
+    });
     expect(roundTrip("text", { text: "merhaba" })).toEqual({
       type: "text",
       fields: { text: "merhaba", lang: "tr" },
@@ -337,6 +342,11 @@ describe("describeRecord", () => {
       type: "social",
       fields: { socialMode: "card", shareLocale: "en" },
     });
+    const alternateAuthority = "https://renderhane.com:8443/tr/k?n=Ada";
+    expect(describeRecord({ recordType: "url", data: alternateAuthority }).form).toEqual({
+      type: "url",
+      fields: { url: alternateAuthority },
+    });
   });
 
   it("keeps mailto records with unsupported headers read-only", () => {
@@ -346,6 +356,10 @@ describe("describeRecord", () => {
     });
     expect(record.kind).toBe("url");
     expect(record.form).toBeUndefined();
+    expect(describeRecord({
+      recordType: "url",
+      data: "tel:+12025550123;ext=456",
+    }).form).toBeUndefined();
   });
 
   it("classifies only exact Play Store destinations as apps", () => {
@@ -360,6 +374,12 @@ describe("describeRecord", () => {
     expect(describeRecord({ recordType: "url", data: wrapped }).form).toEqual({
       type: "url",
       fields: { url: wrapped },
+    });
+    const attributed =
+      "https://play.google.com/store/apps/details?id=com.acme&referrer=utm_source%3Dnfc";
+    expect(describeRecord({ recordType: "url", data: attributed }).form).toEqual({
+      type: "url",
+      fields: { url: attributed },
     });
   });
 
