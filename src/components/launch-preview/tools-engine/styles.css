@@ -282,6 +282,24 @@
 .rh-app .rh-nfc-live-status .rh-icon-tile{flex-shrink:0}
 .rh-app .rh-nfc-lock-toggle{margin-top:12px}
 .rh-app .rh-nfc-lock-help{margin:6px 0 0 30px;line-height:1.55}
+.rh-app .rh-nfc-capacity{margin:18px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rh-app .rh-nfc-capacity-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,240px);gap:14px;align-items:center}
+.rh-app .rh-nfc-capacity-head label{font-size:12px;font-weight:650}
+.rh-app .rh-nfc-capacity-head .rh-select{height:42px}
+.rh-app .rh-nfc-meter{height:8px;margin-top:12px;overflow:hidden;border-radius:999px;background:#e9e4f2}
+.rh-app .rh-nfc-meter span{display:block;height:100%;border-radius:inherit;background:#7259d9;transition:width .2s ease}
+.rh-app .rh-nfc-capacity p{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.55}
+.rh-app .rh-nfc-capacity[data-state="success"] .rh-nfc-meter span{background:#2a8b69}
+.rh-app .rh-nfc-capacity[data-state="error"]{border-color:#e1a4aa;background:#fff7f7}
+.rh-app .rh-nfc-capacity[data-state="error"] .rh-nfc-meter span{background:#b8404d}
+.rh-app .rh-nfc-capacity[data-state="error"] p{color:#9a303b;font-weight:600}
+.rh-app .rh-error-dialog{width:min(430px,calc(100vw - 32px));margin:auto;padding:26px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:0 24px 80px #120d2c4d;text-align:center}
+.rh-app .rh-error-dialog::backdrop{background:#0b0820a8;backdrop-filter:blur(3px)}
+.rh-app .rh-error-dialog-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 14px;border-radius:50%;background:#fff0f1;color:#a83240}
+.rh-app .rh-error-dialog-icon .rh-icon{width:24px;height:24px}
+.rh-app .rh-error-dialog h2{font-size:20px;line-height:1.2}
+.rh-app .rh-error-dialog p{margin:12px 0 20px;color:var(--muted);font-size:13px;line-height:1.65}
+.rh-app .rh-error-dialog .rh-btn{min-width:130px;justify-content:center}
 .rh-app .rh-nfc-bulk{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,auto);gap:16px;align-items:center;margin-top:18px;padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .rh-app .rh-nfc-bulk>div>strong{font-size:13px}
 .rh-app .rh-nfc-bulk p{font-size:11px;color:var(--muted);margin-top:3px}
@@ -974,6 +992,7 @@ to{opacity:1;transform:translateY(0)}
 .rh-app .rh-workspace .rh-compare-front { background:#eeeae4; }
 .rh-app .rh-mobile-upload { display:none; }
 @media(max-width:680px){
+ .rh-app .rh-nfc-capacity-head{grid-template-columns:1fr;gap:8px}
  .rh-app .rh-nfc-bulk{grid-template-columns:1fr}
  .rh-app .rh-nfc-bulk-setup{grid-template-columns:1fr 82px}
  .rh-app .rh-nfc-bulk-setup .rh-btn{grid-column:1/-1}

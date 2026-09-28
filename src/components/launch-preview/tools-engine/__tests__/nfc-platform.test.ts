@@ -1,8 +1,11 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
   NFC_CHIP_PROFILES,
+  checkNfcCapacity,
   createWebNfcAdapter,
   decodeNfcRecord,
+  estimateNdefStorageBytes,
+  nfcWriteErrorMessage,
   profilesForForumType,
   profilesForTransport,
   supportsGenericWebNdef,
@@ -10,6 +13,30 @@ import {
 } from '../nfc';
 
 describe('NFC chip platform', () => {
+  it('estimates Type 2 NDEF storage and blocks an oversized NTAG213 vCard', () => {
+    const url = [{recordType: 'url', data: 'https://renderhane.com'}];
+    expect(estimateNdefStorageBytes(url)).toBe(30);
+    expect(checkNfcCapacity(url, 'ntag213')).toMatchObject({estimatedBytes: 30, capacityBytes: 144, remainingBytes: 114, fits: true});
+
+    const vcard = new TextEncoder().encode([
+      'BEGIN:VCARD', 'VERSION:3.0', 'FN:Turgut Ürer', 'N:;Turgut Ürer;;;',
+      'TEL:+905551234567', 'EMAIL:turgut.urer@gmail.com', 'ORG:Renderhane',
+      'URL:https://renderhane.com', 'END:VCARD',
+    ].join('\r\n'));
+    const records = [{recordType: 'mime', mediaType: 'text/vcard', data: vcard}];
+    const check = checkNfcCapacity(records, 'ntag213');
+    expect(check.estimatedBytes).toBeGreaterThan(144);
+    expect(check.fits).toBe(false);
+    expect(checkNfcCapacity(records, 'ntag215').fits).toBe(true);
+  });
+
+  it('turns Android Web NFC IO failures into actionable Turkish messages', () => {
+    const error = new DOMException('Failed to write due to an IO error: null', 'NetworkError');
+    expect(nfcWriteErrorMessage(error, false)).toContain('mevcut içerik');
+    expect(nfcWriteErrorMessage(error, false)).not.toContain('null');
+    expect(nfcWriteErrorMessage(error, true)).toContain('Kapasiteyi kontrol et');
+  });
+
   it('covers every NFC Forum tag type and keeps proprietary cards out of generic web writes', () => {
     for (const type of [1, 2, 3, 4, 5] as const) {
       const profiles = profilesForForumType(type);

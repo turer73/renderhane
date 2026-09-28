@@ -139,6 +139,48 @@ test.describe('public mobile tool flows', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   });
 
+  test('NFC shows NTAG213 capacity before writing a large contact card', async ({page}) => {
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.locator('[data-nfc-type="vcard"]').click();
+    await page.locator('#rh-nfc-name').fill('Turgut Ürer');
+    await page.locator('#rh-nfc-phone').fill('+905551234567');
+    await page.locator('#rh-nfc-email').fill('turgut.urer@gmail.com');
+    await page.locator('#rh-nfc-org').fill('Renderhane');
+    await page.locator('#rh-nfc-website').fill('https://renderhane.com');
+
+    await expect(page.locator('#rh-nfc-capacity')).toHaveValue('ntag213');
+    await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
+    await expect(page.locator('.rh-nfc-capacity')).toContainText(/bayt fazla/);
+    await expect(page.locator('[data-action="nfc-write"]')).toBeDisabled();
+
+    await page.locator('#rh-nfc-capacity').selectOption('ntag215');
+    await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
+    await expect(page.locator('.rh-nfc-capacity')).toContainText('Sığıyor');
+  });
+
+  test('NFC IO failure opens an actionable error dialog without leaking null', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: typeof FakeNDEFReader};
+      class FakeNDEFReader {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> { throw new DOMException('Failed to write due to an IO error: null', 'NetworkError'); }
+        async scan(): Promise<void> {}
+      }
+      Object.defineProperty(state, 'NDEFReader', {configurable: true, value: FakeNDEFReader});
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.getByRole('button', {name: /^Etikete yaz$/}).click();
+
+    const dialog = page.locator('#rh-nfc-error-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Etikete yazılamadı');
+    await expect(dialog).toContainText('üzerine yaz');
+    await expect(dialog).not.toContainText('null');
+    await dialog.getByRole('button', {name: 'Tamam'}).click();
+    await expect(dialog).not.toBeVisible();
+  });
+
   test('NFC lock timeout preserves bulk progress and blocks type changes while busy', async ({page}) => {
     await page.addInitScript(() => {
       const state = window as Window & {NDEFReader?: typeof FakeNDEFReader};
