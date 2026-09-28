@@ -158,7 +158,11 @@ export function parseVCard(text: string): VCardFields {
       if (first) fields.firstName = first.trim();
       if (last) fields.lastName = last.trim();
     } else if (base === "FN") {
-      if (!fields.firstName) {
+      if (fields.firstName) {
+        const canonical = [fields.firstName, fields.lastName].filter(Boolean).join(" ");
+        if (value.trim() !== canonical)
+          throw new Error("Biçimlendirilmiş adı farklı kişi kartları güvenli biçimde düzenlenemez.");
+      } else {
         const [first, ...rest] = value.split(" ");
         fields.firstName = first;
         if (rest.length) fields.lastName = rest.join(" ");
@@ -174,6 +178,10 @@ export function parseVCard(text: string): VCardFields {
         throw new Error("Birden fazla telefon numarası içeren kişi kartları güvenli biçimde düzenlenemez.");
       fields.phone ||= phone;
     } else if (base === "EMAIL") {
+      const emailType = /(?:^|;)TYPE=([^;:]+)/i.exec(name)?.[1];
+      const legacyEmailType = /(?:^|;)(WORK|HOME|INTERNET)(?:;|$)/i.exec(name)?.[1];
+      if (emailType || legacyEmailType)
+        throw new Error("E-posta türü bilgisi içeren kişi kartları güvenli biçimde düzenlenemez.");
       if (fields.email && value && fields.email !== value)
         throw new Error("Birden fazla e-posta adresi içeren kişi kartları güvenli biçimde düzenlenemez.");
       fields.email ||= value;
