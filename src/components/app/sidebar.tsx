@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   FolderOpen,
   Shield,
+  FlaskConical,
   LogOut,
   Sparkles,
   ArrowLeft,
@@ -106,6 +107,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     },
     ...(isAdminUser
       ? [
+          { href: `/${locale}/app/admin/models`, label: "Model Laboratuvarı", icon: FlaskConical },
           {
             href: `/${locale}/app/relief`,
             label: "Relief Pro Atölyesi",
@@ -122,6 +124,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   ];
 
   const adminNavItems = [
+    { href: `/${locale}/app/admin/models`, label: "Model Laboratuvarı", icon: FlaskConical },
     {
       href: `/${locale}/app/relief`,
       label: "Relief Pro Atölyesi",
@@ -145,6 +148,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
 
   function isActive(href: string) {
     if (href === "#") return false;
+    if (href === `/${locale}/app/admin`) return pathname === href;
     return pathname.startsWith(href);
   }
 

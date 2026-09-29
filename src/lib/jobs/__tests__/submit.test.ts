@@ -144,6 +144,27 @@ describe("submitJob credit ordering", () => {
     });
   });
 
+  it("submits Meshy 7.1 to its exact endpoint with an 80-credit reservation", async () => {
+    const result = await submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      modelKey: "meshy-v71",
+      tier: "premium",
+      imageUrl: "https://cdn.example/source.png",
+      skipBgRemove: true,
+    });
+
+    expect(result.creditCost).toBe(80);
+    expect(mocks.reserveCredits).toHaveBeenCalledWith("user-1", 80, expect.any(String));
+    expect(mocks.submit).toHaveBeenCalledWith(
+      "meshy/v7.1/image-to-3d",
+      { ...MODELS["meshy-v71"].defaultParams, image_url: "https://cdn.example/source.png" },
+      expect.stringMatching(/^https:\/\/example\.com\/api\/webhook\/fal\?jobId=job-1&txId=tx-1&sig=/),
+    );
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+    expect(mocks.events.indexOf("reserve:80")).toBeLessThan(mocks.events.indexOf("submit"));
+  });
+
   it("reserves before paid 3D preprocessing and charges enhancement per image", async () => {
     const result = await submitJob({
       userId: "user-1",

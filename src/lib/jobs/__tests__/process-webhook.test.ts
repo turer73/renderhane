@@ -131,6 +131,25 @@ describe("processWebhookEvent atomic transitions", () => {
     expect(projectUpdate.secondEq).toHaveBeenCalledWith("user_id", "user-1");
   });
 
+  it("saves the Meshy 7.1 GLB rather than its thumbnail or texture", async () => {
+    const payload = {
+      thumbnail: { url: "https://provider.example/preview.png" },
+      texture_urls: [{ base_color: { url: "https://provider.example/texture.png" } }],
+      model_glb: { url: "https://provider.example/model.glb" },
+      model_urls: { glb: { url: "https://provider.example/model.glb" } },
+    };
+    await processWebhookEvent({
+      jobId: "job-meshy-71", txId: null,
+      body: { status: "OK", payload },
+    });
+    expect(mocks.completeJobOutputAndSpend).toHaveBeenCalledWith({
+      jobId: "job-meshy-71",
+      falUrl: "https://provider.example/model.glb",
+      metadata: payload,
+    });
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+  });
+
   it("does not enrich a late success after an atomic refund", async () => {
     mocks.completeJobOutputAndSpend.mockResolvedValue({
       disposition: "terminal_conflict",

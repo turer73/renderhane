@@ -17,6 +17,7 @@ import {
   Gift,
   KeyRound,
   Shield,
+  FlaskConical,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -158,6 +159,10 @@ export function WorkspaceSidebar({
       icon: Shield,
       href: `/${locale}/app/admin`,
       adminOnly: true,
+    },
+    {
+      id: "model-lab", labelTr: "Model Laboratuvarı", labelEn: "Model Lab",
+      icon: FlaskConical, href: `/${locale}/app/admin/models`, adminOnly: true,
     },
   ];
 

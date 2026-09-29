@@ -286,6 +286,43 @@ describe('2026-07 fal katalog güncellemesi', () => {
   });
 });
 
+describe('Meshy 7.1 image-to-3D', () => {
+  it('registers a separate, public premium option with cost-controlled inputs', () => {
+    const model = MODELS['meshy-v71'];
+    expect(model.id).toBe('meshy/v7.1/image-to-3d');
+    expect(model.tier).toBe('premium');
+    expect(model.creditCost).toBe(80);
+    expect(model.imageParamKey).toBe('image_url');
+    expect(isModelBlockedForUser(model, false)).toBe(false);
+    expect(model.defaultParams).toEqual({
+      model_type: 'standard',
+      geometry_resolution: 'standard',
+      should_texture: true,
+      should_remesh: true,
+      topology: 'triangle',
+      target_polycount: 30000,
+      enable_pbr: false,
+      enable_rigging: false,
+      enable_animation: false,
+      enable_safety_checker: true,
+    });
+  });
+
+  it('keeps Meshy 7 and existing 3D defaults and pricing unchanged', () => {
+    expect(TOOL_MODELS['3d-model']).toContain('meshy-v71');
+    expect(TOOL_MODELS['3d-model']).toContain('meshy-v7');
+    expect(TOOL_MODELS['3d-model'][0]).toBe('triposr');
+    expect(TOOL_CREDITS['3d-model']).toBe(4);
+    expect(MODELS['meshy-v7'].id).toBe('meshy/v7/image-to-3d');
+    expect(MODELS['meshy-v7'].creditCost).toBe(80);
+    expect(MODELS['meshy-v7'].defaultParams).toEqual({
+      should_texture: true,
+      topology: 'triangle',
+      target_polycount: 30000,
+    });
+  });
+});
+
 describe('constants', () => {
   it('TOOLS_WITH_PROMPT includes all prompt-based tools', () => {
     expect(TOOLS_WITH_PROMPT).toContain('scene');
