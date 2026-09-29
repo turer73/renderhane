@@ -31,4 +31,12 @@ describe("model lab browser recovery", () => {
     expect(readLabRun("admin-a")).toBeNull();
     expect(saveLabRun("admin-a", run)).toBe(false);
   });
+  it("does not accept a write that cannot be read back", () => {
+    vi.stubGlobal("localStorage", { setItem: vi.fn(), getItem: () => null });
+    expect(saveLabRun("admin-a", run)).toBe(false);
+  });
+  it("does not accept storage that fails during read-back", () => {
+    vi.stubGlobal("localStorage", { setItem: vi.fn(), getItem: () => { throw new Error("blocked"); } });
+    expect(saveLabRun("admin-a", run)).toBe(false);
+  });
 });

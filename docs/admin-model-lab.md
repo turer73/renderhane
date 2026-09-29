@@ -25,6 +25,9 @@ Admin Renderhane kredisi harcamaz. **Sağlayıcı çağrıları gerçek ücretli
 - POST `/api/admin/models/test/status`: `{ receipt }`. Yeniden admin doğrulaması, aynı-origin, alındı sahipliği/imzası/süresi ve rate limit kontrol edilir. Keyfi provider request id sorgulanamaz.
 - Üretim isteği otomatik tekrarlanmaz. Kabul alındısı olan hata yanıtta aynı iş izlenir. Alındısız bağlantı kopmasında durum **belirsiz** tutulur; yeni denemeden önce sağlayıcı geçmişini insan kontrol eder.
 - Son deneme kullanıcıya özgü, sürümlenmiş tarayıcı kaydında tutulur. Girdi metni ve kaynak adresleri kaydedilmez. Sonuç bağlantıları ve takip alındısı hassas kabul edilmelidir; paylaşılan tarayıcıda çıktı geçmişinin tutulduğu bilinmelidir.
+- Ücretli istekten önce belirsiz-deneme kaydı yazılıp geri okunarak doğrulanır. Tarayıcı depolaması kapalı/doluysa veya kayıt geri okunamıyorsa gönderim yapılmaz. Kabul alındısı sonradan kaydedilemezse ilk belirsiz kayıt tekrar üretimi kilitlemeye devam eder.
+- Sağlayıcının `COMPLETED` yanıtındaki `error`/`error_type` terminal başarısızlık sayılır; sonuç indirme ya da sonsuz tekrar takibi yapılmaz.
+- MiniMax ses modellerinin gerekli `voice_setting` alanı normal üretimdeki kanonik ses oluşturucudan türetilir; laboratuvardaki sabit ayarlar gönderim öncesinde gösterilir.
 - Takibi bırakmak üretimi iptal etmez; ücret iadesi yapmaz. Takip hataları otomatik yeni iş veya iade oluşturmaz. Birden fazla sekme/cihaz arasında küresel tek-iş kilidi veya kalıcı idempotency deposu yoktur; paralel denemeler ayrı ücretlendirilebilir.
 - Çıktılar bu laboratuvarda R2/proje galerisine arşivlenmez. Sağlayıcı bağlantıları süreli olabilir. Desteklenen çıktı alanı bulunamadığında başarı dosyası uydurulmaz; sağlayıcı geçmişi kontrol edilir.
 
@@ -32,16 +35,18 @@ Admin Renderhane kredisi harcamaz. **Sağlayıcı çağrıları gerçek ücretli
 
 Katalog/alan kontrolleri; yetkisiz kullanıcı, yanlış origin, eksik harcama onayı, rate limit, imza kurcalama, diğer kullanıcıya ait/süresi dolmuş alındı, belirsiz gönderim, tanınmayan durum ve güvensiz çıktı URL'leri test edilir. Yerel tarayıcı kontrolü gerçek bileşen + sahte taşıma kullanır: gerçek ücretli API denemesi değildir.
 
-Canlı sürüm kabulü ayrıca gerekir: doğru admin hesabıyla menü/sayfa erişimi, ortam yapılandırması ve kullanıcının model/ücret onayından sonra tek ücretli üretim. Bu değişiklik push, PR, merge, deploy, canlı admin ataması veya fiziksel üretim onayı içermez.
+Canlı sürüm kabulü ayrıca gerekir: doğru admin hesabıyla menü/sayfa erişimi, ortam yapılandırması ve kullanıcının model/ücret onayından sonra tek ücretli üretim. Yerel testler canlı admin ataması, ücretli üretim veya fiziksel üretim onayı vermez. Kullanıcının ayrıca onayladığı merge/deploy işlemi PR #118 üzerinde ayrı yayın kanıtlarıyla izlenir.
 
 Model çıktısı dijital bir denemedir; özellikle GLB üretimi fiziksel ölçülü/üretime hazır dosya garantisi değildir. Relief Pro'nun kapalı bırakılan akışı bu çalışma kapsamında yeniden etkinleştirilmez.
 
 ## Yerel kontrol sonucu — 29 Eylül 2026
 
-- `npm test`: 59 dosya, 642 test geçti (önceki Meshy 7.1 testleri dahil).
+- İlk doğrulamada `npm test`: 59 dosya, 642 test geçti. PR inceleme düzeltmeleri sonrasında: 60 dosya, 653 test geçti (önceki Meshy 7.1 testleri dahil).
 - `npm run type-check`, `npm run lint`, `npm run build`, `git diff --check`: geçti.
 - Gerçek panel bileşeni ve sahte API ile: model arama, Meshy 7.1 seçimi, ücret onayı, 502 yanıtındaki kabul alındısından takip, devam eden işin yenilemede tek status isteğiyle geri alınması ve alındısız bağlantı kopmasında tekrar gönderimin kilitlenmesi doğrulandı.
 - 320, 390, 768 ve 1366 px kontrollerinde yatay taşma yok; tarayıcı hata kaydı boş.
+- PR #118 incelemesindeki dört bulgu düzeltildi: terminal sağlayıcı hatası, MiniMax ses ayarları, takip kaydı olmadan ücretli gönderim ve TR/EN yerelleştirme. Dil anahtarı eşliği ve tüm katalog alanlarının çeviri kapsamı için regresyon testleri eklendi.
+- Güncel gerçek panelde (sahte taşıma): TR/EN depolama hatasında **0 gönderim**; EN belirsiz gönderimde ilk sefer 1, yenilemeden sonra **0 yeni gönderim** ve kilit korunması; EN 390 px genişlikte taşmasız görünüm doğrulandı.
 - Mevcut Vite yapılandırma biçimi ve yerel `metadataBase` uyarıları kaldı; bunlar build/test başarısızlığı oluşturmadı.
 - Bağımsız güvenlik incelemesinde engelleyici bulgu yok. İstek gövdesi sınırı okuma sonrası da kontrol edilir; chunked aşırı büyük gövdeler için akış sırasında kesme ilave sertleştirme olarak açık.
-- Canlı auth, gerçek ücretli üretim, sağlayıcı çıktı kalitesi ve tüm 68 endpoint'in güncel çalışırlığı doğrulanmış değildir. Yayın yapılmadı.
+- Bu yerel kontrol kaydı canlı auth, gerçek ücretli üretim, sağlayıcı çıktı kalitesi veya tüm 68 endpoint'in güncel çalışırlığını kanıtlamaz. Yayın sonucu PR #118 kayıtlarından ayrıca doğrulanmalıdır.

@@ -49,6 +49,7 @@ interface Stats {
 
 export function AdminDashboard() {
   const t = useTranslations("admin");
+  const tLab = useTranslations("modelLab");
   const locale = useLocale();
 
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -150,8 +151,8 @@ export function AdminDashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
       <Link href={`/${locale}/app/admin/models`} className="block rounded-xl border border-primary/30 bg-primary/5 p-5 transition-colors hover:bg-primary/10">
-        <h2 className="font-semibold">Model Laboratuvarı →</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Tüm kayıtlı modelleri ara ve admin olarak dene. Renderhane kredisi düşmez; sağlayıcı kullanımı ücretlidir.</p>
+        <h2 className="font-semibold">{t("lab")} →</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{tLab("dashboardDescription")}</p>
       </Link>
 
       {/* Stats Cards */}

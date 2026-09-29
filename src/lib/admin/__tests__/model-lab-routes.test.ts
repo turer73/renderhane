@@ -164,6 +164,26 @@ describe("admin model lab routes", () => {
     expect(mocks.result).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { error: "Voice input was rejected", error_type: "UserError" },
+    { error: "Model rejected the input" },
+    { error_type: "UserError" },
+  ])("treats Fal COMPLETED plus error metadata as terminal without fetching a result: %j", async (failure) => {
+    mocks.status.mockResolvedValueOnce({
+      status: "COMPLETED",
+      ...failure,
+    });
+    const response = await status(request("https://renderhane.test/api/admin/models/test/status", { receipt: receipt() }));
+    expect(response.status).toBe(200);
+    expect(await json(response)).toEqual({
+      status: "FAILED",
+      error: "Sağlayıcı işi tamamlayamadı.",
+      terminal: true,
+    });
+    expect(mocks.result).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
   it("supports the existing GLB, mesh and generic output contracts without traversing arbitrary links", async () => {
     mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
     mocks.result.mockResolvedValueOnce({ glb: { url: "https://cdn.example/a.glb" }, mesh: { url: "https://cdn.example/a.obj" }, output: { url: "https://cdn.example/result.zip" }, unrelated: { url: "https://cdn.example/private" } });

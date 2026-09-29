@@ -59,6 +59,12 @@ function normalizedStatus(value: unknown): "IN_QUEUE" | "IN_PROGRESS" | "COMPLET
   if (value === "FAILED" || value === "CANCELLED") return "FAILED";
   return null;
 }
+function completedProviderFailure(status: Record<string, unknown>): boolean {
+  const error = status.error;
+  const errorType = status.error_type;
+  return (typeof error === "string" && error.trim().length > 0) ||
+    (typeof errorType === "string" && errorType.trim().length > 0);
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -74,8 +80,14 @@ export async function POST(request: NextRequest) {
   const limited = await rateLimit(`labstatus:${user.id}`, RATE_LIMITS.general);
   if (!limited.success) return response({ error: "Çok fazla durum sorgusu gönderildi. Lütfen bekleyin." }, 429);
   try {
-    const state = normalizedStatus((await getAIProvider().status(claims.endpoint, claims.requestId)).status);
+    const providerStatus = await getAIProvider().status(claims.endpoint, claims.requestId);
+    const state = normalizedStatus(providerStatus.status);
     if (!state) return response({ error: "Sağlayıcı tanınmayan bir durum bildirdi. Aynı makbuzla yeniden deneyin.", retryable: true, receipt }, 502);
+    // fal queues may report a terminal model rejection as COMPLETED together
+    // with error/error_type; never fetch or present a result in that case.
+    if (state === "COMPLETED" && completedProviderFailure(providerStatus)) {
+      return response({ status: "FAILED", error: "Sağlayıcı işi tamamlayamadı.", terminal: true }, 200);
+    }
     if (state === "COMPLETED") {
       try { return response({ status: state, outputs: extractLabOutputs(await getAIProvider().result<unknown>(claims.endpoint, claims.requestId)) }, 200); }
       catch { return response({ error: "İş tamamlandı ancak sonuçlar henüz okunamadı. Aynı makbuzla yeniden deneyin.", retryable: true, receipt }, 502); }

@@ -1,5 +1,6 @@
 import { MODELS, TOOL_MODELS, TOOLS_TEXT_ONLY, type ToolType } from "@/lib/fal/models";
 import { imageUrlSchema } from "@/lib/validations/job-submit";
+import { buildMinimaxInput, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 
 export type LabField = {
   key: string;
@@ -42,6 +43,11 @@ const CATEGORY_BY_TOOL: Partial<Record<ToolType, LabModel["category"]>> = {
 const MAX_TEXT_LENGTH = 5_000;
 const MAX_URL_LENGTH = 4_096;
 const MAX_IMAGE_URLS = 4;
+const MINIMAX_SPEECH_MODELS = new Set([
+  "minimax-speech-02-hd",
+  "minimax-speech-28-hd",
+  "minimax-28-turbo",
+]);
 
 function labelFor(key: string): string {
   const labels: Record<string, string> = {
@@ -180,6 +186,17 @@ function deriveCategory(modelKey: string, endpoint: string): string {
 
 const configuredKeys = new Set(Object.values(TOOL_MODELS).flat());
 
+function deriveDefaults(modelKey: string, defaults: Record<string, unknown>): Record<string, unknown> {
+  if (!MINIMAX_SPEECH_MODELS.has(modelKey)) return defaults;
+
+  const textKey = modelKey === "minimax-speech-02-hd" ? "text" : "prompt";
+  const canonical = buildMinimaxInput("", { voiceId: DEFAULT_SRT_VOICE }, textKey);
+  return {
+    ...structuredClone(defaults),
+    voice_setting: canonical.voice_setting,
+  };
+}
+
 export const LAB_CATALOG: LabModel[] = Object.entries(MODELS).map(([key, model]) => ({
   key,
   endpoint: model.id,
@@ -187,7 +204,7 @@ export const LAB_CATALOG: LabModel[] = Object.entries(MODELS).map(([key, model])
   category: deriveCategory(key, model.id),
   status: model.adminOnly ? "lab" : configuredKeys.has(key) ? "active" : "legacy",
   fields: deriveFields(key),
-  defaults: model.defaultParams,
+  defaults: deriveDefaults(key, model.defaultParams),
   creditCost: model.creditCost,
   docsUrl: `https://fal.ai/models/${model.id}/api`,
 }));

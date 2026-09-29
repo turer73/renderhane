@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
+import { buildMinimaxInput, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 import { buildLabInput, LAB_CATALOG } from "../model-lab-catalog";
 
 describe("LAB_CATALOG", () => {
@@ -9,9 +10,18 @@ describe("LAB_CATALOG", () => {
 
     for (const row of LAB_CATALOG) {
       const source = MODELS[row.key];
+      const expectedDefaults = structuredClone(source.defaultParams);
+      if (["minimax-speech-02-hd", "minimax-speech-28-hd", "minimax-28-turbo"].includes(row.key)) {
+        const textKey = row.key === "minimax-speech-02-hd" ? "text" : "prompt";
+        expectedDefaults.voice_setting = buildMinimaxInput(
+          "",
+          { voiceId: DEFAULT_SRT_VOICE },
+          textKey
+        ).voice_setting;
+      }
       expect(row.endpoint).toBe(source.id);
       expect(row.name).toBe(source.displayName.en);
-      expect(row.defaults).toEqual(source.defaultParams);
+      expect(row.defaults).toEqual(expectedDefaults);
       expect(row.creditCost).toBe(source.creditCost);
       expect(row.docsUrl).toBe(`https://fal.ai/models/${source.id}/api`);
       expect(["3d", "image", "video", "audio", "avatar", "tools"]).toContain(row.category);
@@ -97,6 +107,34 @@ describe("LAB_CATALOG", () => {
 
     expect(buildLabInput("tripo-p1", { image_url: "https://cdn.example.com/object.png" }))
       .toEqual({ image_url: "https://cdn.example.com/object.png" });
+  });
+
+  it("adds the canonical required MiniMax voice_setting for every registered MiniMax speech model", () => {
+    const cases = [
+      { key: "minimax-speech-02-hd", textKey: "text" },
+      { key: "minimax-speech-28-hd", textKey: "prompt" },
+      { key: "minimax-28-turbo", textKey: "prompt" },
+    ] as const;
+
+    for (const { key, textKey } of cases) {
+      const text = "Merhaba dünya";
+      const registryDefaults = structuredClone(MODELS[key].defaultParams);
+      const input = buildLabInput(key, { [textKey]: text });
+      const canonical = buildMinimaxInput(text, { voiceId: DEFAULT_SRT_VOICE }, textKey);
+      const catalogDefaults = LAB_CATALOG.find((model) => model.key === key)!.defaults;
+      expect(catalogDefaults.voice_setting).toEqual(canonical.voice_setting);
+      expect(input).toMatchObject(canonical);
+      expect(input).toMatchObject({
+        [textKey]: text,
+        voice_setting: {
+          voice_id: DEFAULT_SRT_VOICE,
+          speed: 1,
+          emotion: "neutral",
+        },
+      });
+      expect(input).toMatchObject(catalogDefaults);
+      expect(MODELS[key].defaultParams).toEqual(registryDefaults);
+    }
   });
 
   it("adds required audio and mask URLs for avatar and inpainting models", () => {

@@ -38,5 +38,9 @@ export function readLabRun(userId: string): LabRun | null {
   try { return parseLabRun(localStorage.getItem(prefix + userId)); } catch { return null; }
 }
 export function saveLabRun(userId: string, run: LabRun): boolean {
-  try { localStorage.setItem(prefix + userId, JSON.stringify(run)); return true; } catch { return false; }
+  try {
+    const raw = JSON.stringify(run);
+    localStorage.setItem(prefix + userId, raw);
+    return localStorage.getItem(prefix + userId) === raw;
+  } catch { return false; }
 }
