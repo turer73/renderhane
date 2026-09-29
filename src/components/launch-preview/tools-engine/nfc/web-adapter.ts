@@ -1,3 +1,4 @@
+import {describeRecord, recordsToForm, type NfcContentType, type NfcFields} from '@/lib/nfc/ndef';
 import type {
   NfcAdapter,
   NfcAdapterSupport,
@@ -105,6 +106,16 @@ export function createWebNfcAdapter(win: WebNfcWindow): NfcAdapter {
       });
     },
   };
+}
+
+/** Restores the editable form represented by records returned from a real NFC scan. */
+export function decodeNfcForm(
+  records: readonly NfcReadRecord[],
+): {type: NfcContentType; fields: NfcFields} | null {
+  return recordsToForm(records.map(record => describeRecord({
+    ...record,
+    data: record.recordType === 'text' ? decodeNfcRecord(record) : record.data,
+  })));
 }
 
 export function decodeNfcRecord(record: NfcReadRecord): string {

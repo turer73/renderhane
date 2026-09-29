@@ -28,13 +28,28 @@ describe("encodeNfcState / decodeNfcState", () => {
     expect(decodeNfcState(btoa(JSON.stringify({ v: 1, t: "url", f: ["x"] })))).toBeNull();
   });
 
+  it("migrates legacy vCard names into split editor fields", () => {
+    const token = btoa(JSON.stringify({
+      v: 1,
+      t: "vcard",
+      f: { name: "Ada Lovelace", phone: "+905551234567" },
+    }));
+    expect(decodeNfcState(token)).toEqual({
+      type: "vcard",
+      fields: { firstName: "Ada", lastName: "Lovelace", phone: "+905551234567" },
+    });
+  });
+
   it("ignores non-string field values instead of trusting them", () => {
     const token = btoa(JSON.stringify({ v: 1, t: "url", f: { url: "a.com", evil: { x: 1 } } }));
     expect(decodeNfcState(token)?.fields).toEqual({ url: "a.com" });
   });
 
-  it("refuses oversized tokens", () => {
+  it("refuses oversized tokens consistently when encoding and decoding", () => {
     expect(decodeNfcState("A".repeat(4000))).toBeNull();
+    expect(() =>
+      encodeNfcState({ type: "social", fields: { instagram: "https://example.com/" + "a".repeat(4000) } })
+    ).toThrow(/çok uzun/);
   });
 });
 
@@ -60,6 +75,24 @@ describe("share links", () => {
       type: "phone",
       fields: { phone: "+905551234567" },
     });
+  });
+
+  it("round-trips social card state through a share URL", () => {
+    const url = buildShareUrl("https://www.renderhane.com", "/tr/araclar/nfc-yaz", {
+      type: "social",
+      fields: { socialMode: "card", instagram: "@renderhane", youtube: "@renderhane" },
+    });
+    expect(readShareHash(url.slice(url.indexOf("#")))).toEqual({
+      type: "social",
+      fields: { socialMode: "card", instagram: "@renderhane", youtube: "@renderhane" },
+    });
+  });
+
+  it("rejects a complete handoff URL that cannot fit the H-level QR budget", () => {
+    expect(() => buildShareUrl("https://www.renderhane.com", "/tr/araclar/nfc-yaz", {
+      type: "social",
+      fields: { instagram: "https://example.com/" + "a".repeat(1500) },
+    })).toThrow(/çok uzun/);
   });
 
   it("returns null for an empty or unrelated hash", () => {

@@ -52,6 +52,8 @@ describe("isNfcInputValid", () => {
     expect(isNfcInputValid("location", { lat: "41.0" })).toBe(false);
     expect(isNfcInputValid("location", { lat: "41.0", lon: "28.9" })).toBe(true);
     expect(isNfcInputValid("vcard", { firstName: "   " })).toBe(false);
+    expect(isNfcInputValid("social", { socialMode: "single", platform: "instagram", socialValue: "@renderhane" })).toBe(true);
+    expect(isNfcInputValid("social", { socialMode: "single", platform: "instagram", socialValue: "" })).toBe(false);
   });
 });
 
@@ -65,6 +67,15 @@ describe("buildNdefRecords", () => {
     expect(records).toHaveLength(1);
     expect(records[0].recordType).toBe("url");
     expect(records[0].data).toBe("https://renderhane.com");
+  });
+
+  it("writes validated social destinations as one cross-platform URI record", () => {
+    const records = buildNdefRecords("social", {
+      socialMode: "single",
+      platform: "telegram",
+      socialValue: "@renderhane",
+    });
+    expect(records).toEqual([{ recordType: "url", data: "https://t.me/renderhane" }]);
   });
 
   it("builds tel/mailto/sms/maps URIs", () => {
@@ -225,6 +236,38 @@ describe("describeRecord", () => {
       type: "url",
       fields: { url: "https://renderhane.com" },
     });
+    expect(
+      roundTrip("social", {
+        socialMode: "single",
+        platform: "telegram",
+        socialValue: "@renderhane",
+      })
+    ).toEqual({
+      type: "social",
+      fields: {
+        socialMode: "single",
+        platform: "telegram",
+        socialValue: "https://t.me/renderhane",
+      },
+    });
+    expect(
+      roundTrip("social", {
+        socialMode: "card",
+        shareLocale: "tr",
+        profileName: "Renderhane",
+        instagram: "@renderhane",
+        whatsapp: "+905551234567",
+      })
+    ).toEqual({
+      type: "social",
+      fields: {
+        socialMode: "card",
+        shareLocale: "tr",
+        profileName: "Renderhane",
+        instagram: "renderhane",
+        whatsapp: "905551234567",
+      },
+    });
     expect(roundTrip("phone", { phone: "+905551234567" })).toEqual({
       type: "phone",
       fields: { phone: "+905551234567" },
@@ -233,17 +276,110 @@ describe("describeRecord", () => {
       type: "email",
       fields: { email: "a@b.com", subject: "Merhaba Dünya" },
     });
+    expect(describeRecord({
+      recordType: "url",
+      data: "mailto:person%2Bsales@example.com",
+    }).form).toEqual({
+      type: "email",
+      fields: { email: "person+sales@example.com" },
+    });
     expect(roundTrip("sms", { phone: "+905551234567", body: "selam" })).toEqual({
       type: "sms",
       fields: { phone: "+905551234567", body: "selam" },
     });
+    expect(describeRecord({
+      recordType: "url",
+      data: "sms:+12025550123,+12025550124?body=Hello",
+    }).form).toBeUndefined();
     expect(roundTrip("location", { lat: "41.0082", lon: "28.9784" })).toEqual({
       type: "location",
       fields: { lat: "41.0082", lon: "28.9784" },
     });
+    const deceptiveMap = "https://maps.example.com/search?q=41.0,28.9&source=custom";
+    expect(describeRecord({ recordType: "url", data: deceptiveMap }).form).toEqual({
+      type: "url",
+      fields: { url: deceptiveMap },
+    });
+    const parameterizedMap = "https://www.google.com/maps?q=41.0,29.0&z=18";
+    expect(describeRecord({ recordType: "url", data: parameterizedMap }).form).toEqual({
+      type: "url",
+      fields: { url: parameterizedMap },
+    });
     expect(roundTrip("text", { text: "merhaba" })).toEqual({
       type: "text",
-      fields: { text: "merhaba" },
+      fields: { text: "merhaba", lang: "tr" },
+    });
+    expect(describeRecord({
+      recordType: "text",
+      lang: "en",
+      data: "hello",
+    }).form).toEqual({
+      type: "text",
+      fields: { text: "hello", lang: "en" },
+    });
+  });
+
+  it("keeps unsupported multi-record messages read-only", () => {
+    const form = recordsToForm([
+      describeRecord({recordType: "url", data: "https://renderhane.com"}),
+      describeRecord({recordType: "text", data: "Renderhane ana sayfası"}),
+    ]);
+    expect(form).toBeNull();
+  });
+
+  it("retains the locale of linked contact and social landing pages", () => {
+    expect(describeRecord({
+      recordType: "url",
+      data: "https://www.renderhane.com/en/k?n=Ada",
+    }).form).toMatchObject({
+      type: "vcard",
+      fields: { contactMode: "linked", shareLocale: "en", firstName: "Ada" },
+    });
+    expect(describeRecord({
+      recordType: "url",
+      data: "https://www.renderhane.com/en/s?i=renderhane&w=905551234567",
+    }).form).toMatchObject({
+      type: "social",
+      fields: { socialMode: "card", shareLocale: "en" },
+    });
+    const alternateAuthority = "https://renderhane.com:8443/tr/k?n=Ada";
+    expect(describeRecord({ recordType: "url", data: alternateAuthority }).form).toEqual({
+      type: "url",
+      fields: { url: alternateAuthority },
+    });
+  });
+
+  it("keeps mailto records with unsupported headers read-only", () => {
+    const record = describeRecord({
+      recordType: "url",
+      data: "mailto:ada@example.com?cc=work@example.com&subject=Hello",
+    });
+    expect(record.kind).toBe("url");
+    expect(record.form).toBeUndefined();
+    expect(describeRecord({
+      recordType: "url",
+      data: "tel:+12025550123;ext=456",
+    }).form).toBeUndefined();
+  });
+
+  it("classifies only exact Play Store destinations as apps", () => {
+    expect(
+      describeRecord({
+        recordType: "url",
+        data: "https://play.google.com/store/apps/details?id=com.renderhane.app",
+      }).form
+    ).toEqual({ type: "app", fields: { packageName: "com.renderhane.app" } });
+    const wrapped =
+      "https://example.com/go?to=https://play.google.com/store/apps/details?id=com.acme";
+    expect(describeRecord({ recordType: "url", data: wrapped }).form).toEqual({
+      type: "url",
+      fields: { url: wrapped },
+    });
+    const attributed =
+      "https://play.google.com/store/apps/details?id=com.acme&referrer=utm_source%3Dnfc";
+    expect(describeRecord({ recordType: "url", data: attributed }).form).toEqual({
+      type: "url",
+      fields: { url: attributed },
     });
   });
 
@@ -277,7 +413,7 @@ describe("describeRecord", () => {
         lastName: "Kaya",
         phone: "+905551234567",
         org: "Renderhane",
-        instagram: "renderhane",
+        instagram: "https://www.instagram.com/renderhane",
         whatsapp: "905551234567",
       }).map((r) => describeRecord(r))
     );
@@ -288,10 +424,25 @@ describe("describeRecord", () => {
         lastName: "Kaya",
         phone: "+905551234567",
         org: "Renderhane",
-        instagram: "renderhane",
+        instagram: "https://www.instagram.com/renderhane",
         whatsapp: "905551234567",
       },
     });
+  });
+
+  it("keeps multi-value vCards readable without offering lossy rewriting", () => {
+    const raw = [
+      "BEGIN:VCARD", "VERSION:3.0", "FN:Ada Lovelace",
+      "TEL:+905551111111", "TEL:+905552222222", "END:VCARD",
+    ].join("\r\n");
+    const record = describeRecord({
+      recordType: "mime",
+      mediaType: VCARD_MIME,
+      data: new TextEncoder().encode(raw),
+    });
+    expect(record).toMatchObject({ kind: "vcard", value: "Ada Lovelace", raw });
+    expect(record.form).toBeUndefined();
+    expect(recordsToForm([record])).toBeNull();
   });
 
   it("has nothing to load from an empty tag", () => {

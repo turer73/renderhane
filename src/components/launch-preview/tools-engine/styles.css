@@ -174,7 +174,7 @@
 .rh-app .rh-file-card img{height:48px;width:53px;object-fit:contain;border-radius:6px}
 .rh-app .rh-file-card strong{font-size:11px;display:block}
 .rh-app .rh-file-card small{display:block;font-size:9px;color:var(--muted);overflow-wrap:anywhere}
-.rh-app .rh-notice{font-size:11px;color:#665782;border:1px solid #e8dff8;background:#faf7ff;padding:12px 14px;line-height:1.7;border-radius:10px;margin-top:15px}
+.rh-app .rh-notice{font-size:11px;color:#665782;border:1px solid #e8dff8;background:#faf7ff;padding:12px 14px;line-height:1.7;border-radius:10px;margin-top:15px;overflow-wrap:anywhere;word-break:break-word}
 .rh-app .rh-notice.error{background:#fff6f6;border-color:#f1d5d5;color:#a53535}
 .rh-app .rh-notice.success{background:#f0faf5;border-color:#d4eede;color:#27735a}
 .rh-app .rh-nfc-storage{margin:18px 0 0;padding:0;border:0;display:grid;grid-template-columns:1fr 1fr;gap:9px}

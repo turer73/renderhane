@@ -18,8 +18,10 @@ export interface NfcShareState {
 
 const VERSION = 1;
 const HASH_KEY = "d";
-/** Well past any realistic tag payload, short enough to stay a scannable QR. */
+/** Decoder safety limit; retained so existing handoff links remain readable. */
 const MAX_ENCODED = 3000;
+/** Conservative byte budget below QR version 40 / error-correction H capacity. */
+const MAX_QR_HANDOFF_BYTES = 1200;
 
 const CONTENT_TYPES: readonly NfcContentType[] = [
   "url",
@@ -31,6 +33,7 @@ const CONTENT_TYPES: readonly NfcContentType[] = [
   "location",
   "text",
   "app",
+  "social",
 ];
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -54,7 +57,10 @@ export function encodeNfcState(state: NfcShareState): string {
     if (value && value.trim()) fields[key] = value;
   }
   const json = JSON.stringify({ v: VERSION, t: state.type, f: fields });
-  return toBase64Url(new TextEncoder().encode(json));
+  const token = toBase64Url(new TextEncoder().encode(json));
+  if (token.length > MAX_ENCODED)
+    throw new Error("Paylaşım bağlantısı için içerik çok uzun.");
+  return token;
 }
 
 /** Reverse of {@link encodeNfcState}; returns null for anything unrecognisable. */
@@ -70,6 +76,12 @@ export function decodeNfcState(token: string): NfcShareState | null {
     const fields: NfcFields = {};
     for (const [key, value] of Object.entries(parsed.f as Record<string, unknown>)) {
       if (typeof value === "string") fields[key] = value;
+    }
+    if (parsed.t === "vcard" && fields.name && !fields.firstName) {
+      const [firstName, ...lastName] = fields.name.trim().split(/\s+/);
+      if (firstName) fields.firstName = firstName;
+      if (lastName.length) fields.lastName = lastName.join(" ");
+      delete fields.name;
     }
     return { type: parsed.t as NfcContentType, fields };
   } catch {
@@ -87,5 +99,8 @@ export function readShareHash(hash: string): NfcShareState | null {
 
 /** Absolute link that reopens this tool with the same content prefilled. */
 export function buildShareUrl(origin: string, path: string, state: NfcShareState): string {
-  return `${origin}${path}#${HASH_KEY}=${encodeNfcState(state)}`;
+  const url = `${origin}${path}#${HASH_KEY}=${encodeNfcState(state)}`;
+  if (new TextEncoder().encode(url).length > MAX_QR_HANDOFF_BYTES)
+    throw new Error("Paylaşım bağlantısı için içerik çok uzun.");
+  return url;
 }

@@ -2,6 +2,7 @@ import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 import { updateSession } from "./lib/supabase/middleware";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPrivateSharePath } from "./lib/share-links";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -65,6 +66,7 @@ export async function proxy(request: NextRequest) {
 
   // Use a precise regex to detect embed routes (prevents path traversal)
   const isEmbed = /^\/[a-z]{2}\/embed\//.test(request.nextUrl.pathname);
+  const privateShare = isPrivateSharePath(request.nextUrl.pathname);
 
   // Security headers — full CSP
   // Three.js needs 'unsafe-eval' (shader compilation) and blob: (texture fetch + workers)
@@ -82,18 +84,20 @@ export async function proxy(request: NextRequest) {
     "object-src 'none'",
     "base-uri 'self'",
     `frame-ancestors ${isEmbed ? "'self'" : "'none'"}`,
-    "report-uri https://csp.3d-labx.com/csp-report",
+    ...(privateShare ? [] : ["report-uri https://csp.3d-labx.com/csp-report"]),
   ].join("; ");
 
-  // Report-To header (modern browsers)
-  response.headers.set(
-    "Report-To",
-    JSON.stringify({
-      group: "csp-endpoint",
-      max_age: 86400,
-      endpoints: [{ url: "https://csp.3d-labx.com/csp-report" }],
-    })
-  );
+  // Private contact/social links must not expose their query string in browser CSP reports.
+  if (!privateShare) {
+    response.headers.set(
+      "Report-To",
+      JSON.stringify({
+        group: "csp-endpoint",
+        max_age: 86400,
+        endpoints: [{ url: "https://csp.3d-labx.com/csp-report" }],
+      })
+    );
+  }
 
   response.headers.set("Content-Security-Policy", cspDirectives);
   response.headers.set("X-Frame-Options", isEmbed ? "SAMEORIGIN" : "DENY");

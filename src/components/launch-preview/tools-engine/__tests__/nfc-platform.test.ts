@@ -5,6 +5,7 @@ import {
   createCompactNfcRecord,
   createWebNfcAdapter,
   decodeCompactNfcRecord,
+  decodeNfcForm,
   decodeNfcRecord,
   estimateNdefStorageBytes,
   formatCompactNfcDetails,
@@ -88,6 +89,55 @@ describe('NFC chip platform', () => {
     expect(check.estimatedBytes).toBeGreaterThan(132);
     expect(check.fits).toBe(false);
     expect(checkNfcCapacity(records, 'ntag215').fits).toBe(true);
+  });
+
+  it('restores UTF-16 NDEF text without mojibake', () => {
+    const utf16 = Uint8Array.from([0xff, 0xfe, 0x6d, 0x00, 0x65, 0x00, 0x72, 0x00, 0x68, 0x00, 0x61, 0x00, 0x62, 0x00, 0x61, 0x00]);
+    expect(decodeNfcForm([{
+      recordType: 'text', encoding: 'utf-16', lang: 'en', data: new DataView(utf16.buffer),
+    }])).toEqual({type: 'text', fields: {text: 'merhaba', lang: 'en'}});
+  });
+
+  it('restores vCards with MIME casing and charset parameters', () => {
+    const raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lovelace;Ada;;;', 'FN:Ada Lovelace', 'END:VCARD'].join('\r\n');
+    expect(decodeNfcForm([{
+      recordType: 'mime', mediaType: 'Text/VCard; Charset=UTF-8',
+      data: new DataView(new TextEncoder().encode(raw).buffer),
+    }])).toEqual({type: 'vcard', fields: {firstName: 'Ada', lastName: 'Lovelace'}});
+
+    const latin1Raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:;Ürer;;;', 'FN:Ürer', 'END:VCARD'].join('\r\n');
+    const latin1 = Uint8Array.from([...latin1Raw].map(character => character.charCodeAt(0)));
+    expect(decodeNfcForm([{
+      recordType: 'mime', mediaType: 'text/vcard; charset=iso-8859-1',
+      data: new DataView(latin1.buffer),
+    }])).toEqual({type: 'vcard', fields: {firstName: 'Ürer'}});
+  });
+
+  it('restores direct and linked social scans into the editable form', () => {
+    const record = (url: string) => ({
+      recordType: 'url',
+      data: new DataView(new TextEncoder().encode(url).buffer),
+    });
+
+    expect(decodeNfcForm([record('https://www.instagram.com/renderhane/')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'single', platform: 'instagram', socialValue: 'https://www.instagram.com/renderhane/'},
+    });
+    expect(decodeNfcForm([record('https://m.youtube.com/watch?v=abc123')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'single', platform: 'youtube', socialValue: 'https://m.youtube.com/watch?v=abc123'},
+    });
+    expect(decodeNfcForm([record('https://renderhane.com/tr/s?n=Renderhane&i=%40renderhane')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'card', shareLocale: 'tr', profileName: 'Renderhane', instagram: '@renderhane'},
+    });
+    expect(decodeNfcForm([record('https://renderhane.com/tr/k?n=Turgut&s=%C3%9Crer&p=%2B905551234567&e=turgut%40example.com')])).toEqual({
+      type: 'vcard',
+      fields: {
+        contactMode: 'linked', shareLocale: 'tr', firstName: 'Turgut', lastName: 'Ürer',
+        phone: '+905551234567', email: 'turgut@example.com',
+      },
+    });
   });
 
   it('turns Android Web NFC IO failures into actionable Turkish messages', () => {

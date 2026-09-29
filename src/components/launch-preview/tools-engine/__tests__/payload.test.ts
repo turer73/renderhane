@@ -1,9 +1,10 @@
 import {beforeAll, describe, expect, it} from 'vitest';
 
 let buildPayload: (typeof import('../core'))['buildPayload'];
+let toEditorNfcForm: (typeof import('../core'))['toEditorNfcForm'];
 beforeAll(async () => {
   Object.assign(globalThis, {window: {}});
-  ({buildPayload} = await import('../core'));
+  ({buildPayload, toEditorNfcForm} = await import('../core'));
 });
 
 describe('copyable business payloads', () => {
@@ -51,6 +52,98 @@ describe('copyable business payloads', () => {
 
   it('rejects malformed optional business email addresses', () => {
     expect(() => buildPayload('invoice', {title: 'A', taxNumber: '1234567890', address: 'Adres', invoiceEmail: 'not-an-email'})).toThrow('Geçerli bir e-posta');
-    expect(() => buildPayload('vcard', {name: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+    expect(() => buildPayload('vcard', {firstName: 'A', email: 'not-an-email'})).toThrow('Geçerli bir e-posta');
+  });
+
+  it('maps scanned app and geo records to the editor field schema', () => {
+    expect(toEditorNfcForm({type: 'app', fields: {packageName: 'com.renderhane.app'}})).toEqual({
+      type: 'app', fields: {package: 'com.renderhane.app'},
+    });
+    expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:41.0082,28.9784'}})).toEqual({
+      type: 'location', fields: {lat: '41.0082', lon: '28.9784', geoSuffix: ''},
+    });
+    expect(toEditorNfcForm({type: 'url', fields: {url: 'geo:1e-7,-2.5E+3'}})).toEqual({
+      type: 'location', fields: {lat: '1e-7', lon: '-2.5E+3', geoSuffix: ''},
+    });
+    const parameterized = toEditorNfcForm({
+      type: 'url', fields: {url: 'geo:41.0,29.0;u=25'},
+    });
+    expect(parameterized).toEqual({
+      type: 'location', fields: {lat: '41.0', lon: '29.0', geoSuffix: ';u=25'},
+    });
+    expect(buildPayload(parameterized.type, parameterized.fields)).toBe('geo:41,29;u=25');
+  });
+
+  it('builds a standards-compatible Android vCard with separate name fields', () => {
+    const payload = buildPayload('vcard', {
+      contactMode: 'android',
+      firstName: 'Turgut',
+      lastName: 'Ürer',
+      phone: '+90 555 123 45 67',
+    });
+    expect(payload).toContain('N:Ürer;Turgut;;;');
+    expect(payload).toContain('FN:Turgut Ürer');
+    expect(payload).toContain('TEL;TYPE=CELL:+905551234567');
+  });
+
+  it('rejects invalid dot-atom email addresses in Android contact cards', () => {
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', email: 'a..b@example.com',
+    })).toThrow(/e-posta/);
+  });
+
+  it('rejects non-Instagram destinations in Android contact cards', () => {
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', instagram: 'https://x.com/renderhane',
+    })).toThrow(/resmi bağlantı/);
+  });
+
+  it('rejects malformed WhatsApp values in Android contact cards', () => {
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', whatsapp: '+90 555 O23 45 67',
+    })).toThrow(/WhatsApp numarasını/);
+    expect(() => buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', whatsapp: '05551234567',
+    })).toThrow(/WhatsApp numarasını/);
+  });
+
+  it('preserves extended Android contact fields when rebuilding a scanned card', () => {
+    const payload = buildPayload('vcard', {
+      contactMode: 'android', firstName: 'Ada', title: 'Engineer',
+      address: 'London', instagram: '@renderhane', whatsapp: '+905551234567',
+    });
+    expect(payload).toContain('TITLE:Engineer');
+    expect(payload).toContain('ADR;TYPE=WORK:;;London;;;;');
+    expect(payload).toContain('item1.URL:https://www.instagram.com/renderhane');
+    expect(payload).toContain('item2.URL:https://wa.me/905551234567');
+  });
+
+  it('builds iPhone/Android contact and social landing links', () => {
+    expect(buildPayload('vcard', {
+      contactMode: 'linked',
+      firstName: 'Turgut',
+      lastName: 'Ürer',
+    })).toContain('/tr/k?');
+    expect(buildPayload('social', {
+      socialMode: 'single',
+      platform: 'instagram',
+      socialValue: '@renderhane',
+    })).toBe('https://www.instagram.com/renderhane');
+    expect(buildPayload('social', {
+      socialMode: 'card',
+      instagram: '@renderhane',
+      whatsapp: '+905551234567',
+    })).toContain('/tr/s?');
+    expect(buildPayload('vcard', {
+      contactMode: 'linked',
+      shareLocale: 'en',
+      firstName: 'Ada',
+    }, 'tr')).toContain('/en/k?');
+    expect(buildPayload('social', {
+      socialMode: 'card',
+      shareLocale: 'en',
+      instagram: '@renderhane',
+      whatsapp: '+905551234567',
+    }, 'tr')).toContain('/en/s?');
   });
 });
