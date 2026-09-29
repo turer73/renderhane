@@ -192,6 +192,37 @@ describe("admin model lab routes", () => {
     ] });
   });
 
+  it("extracts a safe F5-TTS audio_url string", async () => {
+    mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
+    mocks.result.mockResolvedValueOnce({ audio_url: "https://cdn.example/f5-output.wav" });
+    expect(await json(await status(request("https://renderhane.test/api/admin/models/test/status", { receipt: receipt() })))).toEqual({
+      status: "COMPLETED",
+      outputs: [{ url: "https://cdn.example/f5-output.wav", kind: "audio" }],
+    });
+  });
+
+  it("extracts a safe F5-TTS audio_url object", async () => {
+    mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
+    mocks.result.mockResolvedValueOnce({ audio_url: { url: "https://cdn.example/f5-output.wav" } });
+    expect(await json(await status(request("https://renderhane.test/api/admin/models/test/status", { receipt: receipt() })))).toEqual({
+      status: "COMPLETED",
+      outputs: [{ url: "https://cdn.example/f5-output.wav", kind: "audio" }],
+    });
+  });
+
+  it("rejects unsafe F5-TTS audio_url and deduplicates duplicate audio fields", async () => {
+    mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
+    mocks.result.mockResolvedValueOnce({
+      audio_url: { url: "https://127.0.0.1/private.wav" },
+      audio: { url: "https://cdn.example/f5-output.wav" },
+      result_url: "https://cdn.example/f5-output.wav",
+    });
+    expect(await json(await status(request("https://renderhane.test/api/admin/models/test/status", { receipt: receipt() })))).toEqual({
+      status: "COMPLETED",
+      outputs: [{ url: "https://cdn.example/f5-output.wav", kind: "audio" }],
+    });
+  });
+
   it.each(["https://169.254.169.254/a", "https://[::ffff:127.0.0.1]/a", "https://host.local./a", "https://host.internal/a", "https://localhost./a", "https://user:pass@cdn.example/a"])("rejects unsafe result address %s", async (url) => {
     mocks.status.mockResolvedValueOnce({ status: "COMPLETED" }); mocks.result.mockResolvedValueOnce({ result_url: url });
     expect(await json(await status(request("https://renderhane.test/api/admin/models/test/status", { receipt: receipt() })))).toEqual({ status: "COMPLETED", outputs: [] });

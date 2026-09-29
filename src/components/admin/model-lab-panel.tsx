@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Box, ExternalLink, FlaskConical, Loader2, Play, Search, ShieldCheck, TriangleAlert } from "lucide-react";
 import { LAB_CATALOG, buildLabInput } from "@/lib/admin/model-lab-catalog";
 import { readLabRun, saveLabRun, type LabRun } from "@/lib/admin/model-lab-session";
+import { labResponseErrorKey, LocalizedLabError } from "@/lib/admin/model-lab-errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,15 +66,15 @@ function LabWorkbench({ userId }: { userId: string }) {
         });
         const data = await response.json();
         if (disposed) return;
-        if (!response.ok) throw new Error(data.error || t("statusReadError"));
-        if (!["IN_QUEUE", "IN_PROGRESS", "COMPLETED", "FAILED"].includes(data.status)) throw new Error(t("unknownProviderStatus"));
-        const next: LabRun = { ...activeRun, status: data.status, outputs: data.outputs ?? [], error: data.error };
+        if (!response.ok) throw new LocalizedLabError(t(labResponseErrorKey(response.status, "status")));
+        if (!["IN_QUEUE", "IN_PROGRESS", "COMPLETED", "FAILED"].includes(data.status)) throw new LocalizedLabError(t("unknownProviderStatus"));
+        const next: LabRun = { ...activeRun, status: data.status, outputs: data.outputs ?? [], error: data.status === "FAILED" ? t("providerFailed") : undefined };
         setRun(next);
         setStorageError(!saveLabRun(userId, next));
         setPollError("");
         if (data.status === "IN_QUEUE" || data.status === "IN_PROGRESS") timer = setTimeout(poll, 5000);
       } catch (cause) {
-        if (!disposed) setPollError(cause instanceof Error ? cause.message : t("statusReadError"));
+        if (!disposed) setPollError(cause instanceof LocalizedLabError ? cause.message : t("statusReadError"));
       }
     }
     void poll();
@@ -89,7 +90,7 @@ function LabWorkbench({ userId }: { userId: string }) {
   async function submit() {
     if (submitLock.current || blocked || !consent) return;
     try { buildLabInput(model.key, values); }
-    catch (cause) { setError(t("invalidFields") + (cause instanceof Error ? " " + t("technicalDetail", { detail: cause.message }) : "")); return; }
+    catch { setError(t("invalidRequest")); return; }
     submitLock.current = true;
     setSubmitting(true); setError(""); setPollError(""); setConsent(false);
     // Save before sending: closing a tab or losing the acknowledgement must
@@ -115,13 +116,13 @@ function LabWorkbench({ userId }: { userId: string }) {
         return;
       }
       if (!response.ok) {
-        if (data.submissionUncertain || response.status >= 500 && response.status !== 503) throw new Error(data.error || t("uncertain"));
-        remember({ ...attempt, status: "FAILED", error: data.error || t("requestRejected") });
+        if (data.submissionUncertain || response.status >= 500 && response.status !== 503) throw new LocalizedLabError(t("uncertain"));
+        remember({ ...attempt, status: "FAILED", error: t(labResponseErrorKey(response.status, "submit")) });
         return;
       }
-      throw new Error(t("missingReceipt"));
+      throw new LocalizedLabError(t("missingReceipt"));
     } catch (cause) {
-      remember({ ...attempt, error: cause instanceof Error ? cause.message : t("uncertain") });
+      remember({ ...attempt, error: cause instanceof LocalizedLabError ? cause.message : t("uncertain") });
     } finally { submitLock.current = false; setSubmitting(false); }
   }
 

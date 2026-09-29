@@ -699,6 +699,12 @@
     "labError": "Deneme başarısız"
   },
   "modelLab": {
+    "accessDenied": "İsteğe izin verilmedi. Admin oturumunu ve iş takibi yapıyorsanız makbuzu kontrol edin. Mevcut işi yeniden göndermeyin.",
+    "rateLimited": "Çok fazla istek gönderildi. Yeniden kontrol etmeden önce bekleyin; durum kontrolü yeni üretim başlatmaz.",
+    "tooLarge": "İstek çok büyük. Metni veya kaynak adresi listesini kısaltın.",
+    "invalidRequest": "Gerekli alanları ve herkese açık HTTPS kaynak adreslerini kontrol edin. Metin en fazla 5.000 karakter, görsel listesi en fazla dört adres olabilir.",
+    "configurationMissing": "Model laboratuvarı yapılandırması kullanılamıyor. Yeniden denemeden önce yöneticiden kontrol etmesini isteyin.",
+    "providerFailed": "Sağlayıcı bu işi tamamlayamadı. Yeni ücretli deneme başlatmadan önce ayrıntılar için sağlayıcı geçmişini kontrol edin.",
     "dashboardDescription": "Tüm kayıtlı modelleri ara ve admin olarak dene. Renderhane kredisi düşmez; sağlayıcı kullanımı ücretlidir.",
     "technicalDetail": "Teknik ayrıntı: {detail}",
     "requestRejected": "İstek kabul edilmedi.",

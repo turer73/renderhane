@@ -46,7 +46,8 @@ function extractLabOutputs(payload: unknown): LabOutput[] {
   if (!ownRecord(payload)) return [];
   const outputs: LabOutput[] = [];
   const add = (value: unknown, kind: OutputKind) => { if (outputs.length < MAX_OUTPUTS && isPublicHttpsUrl(value) && !outputs.some((entry) => entry.url === value)) outputs.push({ url: value, kind }); };
-  add(urlAt(payload.model_mesh), "glb"); add(urlAt(payload.model_glb), "glb"); add(urlAt(payload.video), "video"); add(urlAt(payload.image), "image"); add(urlAt(payload.audio), "audio");
+  add(urlAt(payload.model_mesh), "glb"); add(urlAt(payload.model_glb), "glb"); add(urlAt(payload.video), "video"); add(urlAt(payload.image), "image");
+  add(payload.audio_url, "audio"); add(urlAt(payload.audio_url), "audio"); add(urlAt(payload.audio), "audio");
   add(urlAt(payload.glb), "glb"); add(urlAt(payload.mesh), "file"); add(urlAt(payload.output), "file");
   if (Array.isArray(payload.images)) for (const image of payload.images.slice(0, MAX_OUTPUTS)) add(urlAt(image), "image");
   add(payload.result_url, "file");

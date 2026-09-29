@@ -699,6 +699,12 @@
     "labError": "Probe failed"
   },
   "modelLab": {
+    "accessDenied": "The request is not authorized. Check your admin session and, when tracking a job, its receipt. Do not resend an existing job.",
+    "rateLimited": "Too many requests. Wait before checking again; this does not start a new generation.",
+    "tooLarge": "The request is too large. Shorten the text or source URL list.",
+    "invalidRequest": "Check the required fields and public HTTPS source URLs. Text is limited to 5,000 characters and image lists to four URLs.",
+    "configurationMissing": "The model lab configuration is unavailable. Ask an administrator to check it before trying again.",
+    "providerFailed": "The provider could not complete this job. Check provider history for details before starting another paid probe.",
     "dashboardDescription": "Search all registered models and try them as an admin. No Renderhane credits are deducted; provider usage is billed.",
     "technicalDetail": "Technical detail: {detail}",
     "requestRejected": "The request was not accepted.",

@@ -42,12 +42,13 @@ Model çıktısı dijital bir denemedir; özellikle GLB üretimi fiziksel ölç�
 
 ## Yerel kontrol sonucu — 29 Eylül 2026
 
-- İlk doğrulamada `npm test`: 59 dosya, 642 test geçti. PR inceleme ve ses ayarı düzeltmeleri sonrasında: 60 dosya, 654 test geçti (önceki Meshy 7.1 testleri dahil).
+- İlk doğrulamada `npm test`: 59 dosya, 642 test geçti. PR inceleme, ses çıktısı ve yerelleştirilmiş hata düzeltmeleri sonrasında: 61 dosya, 669 test geçti (önceki Meshy 7.1 testleri dahil).
 - `npm run type-check`, `npm run lint`, `npm run build`, `git diff --check`: geçti.
 - Gerçek panel bileşeni ve sahte API ile: model arama, Meshy 7.1 seçimi, ücret onayı, 502 yanıtındaki kabul alındısından takip, devam eden işin yenilemede tek status isteğiyle geri alınması ve alındısız bağlantı kopmasında tekrar gönderimin kilitlenmesi doğrulandı.
 - 320, 390, 768 ve 1366 px kontrollerinde yatay taşma yok; tarayıcı hata kaydı boş.
 - PR #118 incelemesindeki dört bulgu düzeltildi: terminal sağlayıcı hatası, MiniMax ses ayarları, takip kaydı olmadan ücretli gönderim ve TR/EN yerelleştirme. Dil anahtarı eşliği ve tüm katalog alanlarının çeviri kapsamı için regresyon testleri eklendi.
 - Güncel gerçek panelde (sahte taşıma): TR/EN depolama hatasında **0 gönderim**; EN belirsiz gönderimde ilk sefer 1, yenilemeden sonra **0 yeni gönderim** ve kilit korunması; EN 390 px genişlikte taşmasız görünüm doğrulandı.
+- F5-TTS `audio_url` metin/nesne biçimleri ses çıktısı olarak tanınır; güvenli HTTPS ve yinelenen URL kontrolleri korunur. HTTP hata anlamları dil bağımsız anahtarlara çevrilir; EN panelde Türkçe 502/429 yanıtı kullanıcıya İngilizce takip açıklaması verir, yeni üretim göndermez.
 - Mevcut Vite yapılandırma biçimi ve yerel `metadataBase` uyarıları kaldı; bunlar build/test başarısızlığı oluşturmadı.
 - Bağımsız güvenlik incelemesinde engelleyici bulgu yok. İstek gövdesi sınırı okuma sonrası da kontrol edilir; chunked aşırı büyük gövdeler için akış sırasında kesme ilave sertleştirme olarak açık.
 - Bu yerel kontrol kaydı canlı auth, gerçek ücretli üretim, sağlayıcı çıktı kalitesi veya tüm 68 endpoint'in güncel çalışırlığını kanıtlamaz. Yayın sonucu PR #118 kayıtlarından ayrıca doğrulanmalıdır.
