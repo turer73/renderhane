@@ -21,6 +21,7 @@ import {
   Gift,
   KeyRound,
   Shield,
+  FlaskConical,
   LogOut,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -216,6 +217,12 @@ export function WorkspaceHeader({
             {isAdmin && (
               <>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={`/${locale}/app/admin/models`} className="flex items-center gap-2 cursor-pointer">
+                    <FlaskConical className="h-4 w-4" />
+                    {isTr ? "Model Laboratuvarı" : "Model Lab"}
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
                     href={`/${locale}/app/admin`}

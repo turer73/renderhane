@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   reserveCredits: vi.fn(),
   refundCredits: vi.fn(),
   subscribe: vi.fn(),
+  routeRequest: vi.fn(),
   createAdminClient: vi.fn(),
   completeJobOutputAndSpend: vi.fn(),
   failJobAndRefund: vi.fn(),
@@ -35,14 +36,7 @@ vi.mock("@/lib/auth/admin-check", () => ({
 }));
 
 vi.mock("@/lib/fal/smart-router", () => ({
-  routeRequest: () => ({
-    model: {
-      id: "fal-ai/test-scene",
-      creditCost: 8,
-      displayName: { en: "Test Scene" },
-    },
-    input: { prompt: "studio scene" },
-  }),
+  routeRequest: mocks.routeRequest,
 }));
 
 vi.mock("@/lib/jobs/webhook-transitions", () => ({
@@ -130,6 +124,14 @@ describe("submitJobSync atomic terminal transitions", () => {
     mocks.createAdminClient.mockReturnValue(createSupabaseMock());
     mocks.reserveCredits.mockResolvedValue("tx-sync-1");
     mocks.refundCredits.mockResolvedValue(undefined);
+    mocks.routeRequest.mockReturnValue({
+      model: {
+        id: "fal-ai/test-scene",
+        creditCost: 8,
+        displayName: { en: "Test Scene" },
+      },
+      input: { prompt: "studio scene" },
+    });
     process.env.FAL_WEBHOOK_SECRET = "test-secret";
     process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
     mocks.subscribe.mockImplementation(async (endpointId, _input, options) => {
@@ -201,6 +203,42 @@ describe("submitJobSync atomic terminal transitions", () => {
       input_params: { prompt: "studio scene" },
       status: "processing",
     });
+  });
+
+  it("extracts a Meshy 7.1 GLB before thumbnail and texture URLs", async () => {
+    const { routeRequest } = await vi.importActual<typeof import("@/lib/fal/smart-router")>("@/lib/fal/smart-router");
+    mocks.routeRequest.mockImplementation(routeRequest);
+    const payload = {
+      thumbnail: { url: "https://fal.media/preview.png" },
+      texture_urls: [{ base_color: { url: "https://fal.media/texture.png" } }],
+      model_glb: { url: "https://fal.media/model.glb" },
+      model_urls: { glb: { url: "https://fal.media/model.glb" } },
+    };
+    mocks.subscribe.mockImplementationOnce(async (_endpointId, _input, options) => {
+      await options?.onEnqueue?.("fal-meshy-71");
+      return { requestId: "fal-meshy-71", data: payload };
+    });
+    mocks.completeJobOutputAndSpend.mockResolvedValueOnce({
+      ...successfulCompletion,
+      outputType: "glb",
+      r2Url: "https://assets.example/model.glb",
+    });
+
+    const result = await submitJobSync({
+      userId: "user-1", tool: "3d-model", modelKey: "meshy-v71",
+      imageUrl: "https://cdn.example/source.png",
+    });
+    expect(result.output?.url).toBe("https://assets.example/model.glb");
+    expect(result.creditCost).toBe(80);
+    expect(mocks.subscribe).toHaveBeenCalledWith(
+      "meshy/v7.1/image-to-3d",
+      expect.objectContaining({ image_url: "https://cdn.example/source.png", should_texture: true }),
+      expect.any(Object),
+    );
+    expect(mocks.completeJobOutputAndSpend).toHaveBeenCalledWith({
+      jobId: "job-sync-1", falUrl: "https://fal.media/model.glb", metadata: payload,
+    });
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
   });
 
   it("atomically fails and refunds when an accepted provider result has no output", async () => {

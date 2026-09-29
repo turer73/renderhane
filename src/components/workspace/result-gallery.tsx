@@ -203,6 +203,7 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "bytedance/seedance-2.5/text-to-video": "Seedance 2.5",
   "alibaba/happy-horse/v1.1/text-to-video": "Happy Horse",
   "meshy/v7/image-to-3d": "Meshy 7",
+  "meshy/v7.1/image-to-3d": "Meshy 7.1",
   "tripo3d/h3.1/image-to-3d": "Tripo H3.1",
   "fal-ai/minimax/speech-2.8-turbo": "MiniMax 2.8 Turbo",
   "fal-ai/elevenlabs/tts/eleven-v3": "ElevenLabs v3",

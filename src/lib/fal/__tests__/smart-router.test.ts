@@ -238,6 +238,36 @@ describe('routeRequest', () => {
     expect(flare.input.quality).toBe('medium');
   });
 
+  it('honors explicit Meshy 7.1 selection instead of the premium-tier default', () => {
+    const result = routeRequest({
+      tool: '3d-model', tier: 'premium', modelKey: 'meshy-v71',
+      imageUrl: 'https://cdn.example/source.png',
+    });
+    expect(result.modelKey).toBe('meshy-v71');
+    expect(result.model.id).toBe('meshy/v7.1/image-to-3d');
+    expect(result.input).toEqual({
+      ...result.model.defaultParams,
+      image_url: 'https://cdn.example/source.png',
+    });
+    expect(result.input).not.toHaveProperty('input');
+  });
+
+  it('uses a single image from the array input for Meshy 7.1', () => {
+    const result = routeRequest({
+      tool: '3d-model', modelKey: 'meshy-v71',
+      imageUrls: ['https://cdn.example/source.png'],
+    });
+    expect(result.input.image_url).toBe('https://cdn.example/source.png');
+    expect(result.input).not.toHaveProperty('image_urls');
+  });
+
+  it('rejects paid Meshy 7.1 feature overrides', () => {
+    expect(() => routeRequest({
+      tool: '3d-model', modelKey: 'meshy-v71', imageUrl: 'https://cdn.example/source.png',
+      extraParams: { geometry_resolution: '4k', enable_rigging: true },
+    })).toThrow('extraParams are not supported');
+  });
+
   it('routes logo to recraft-v4', () => {
     const { modelKey } = routeRequest({ tool: 'logo', prompt: 'Renderhane logo' });
     expect(modelKey).toBe('recraft-v4');

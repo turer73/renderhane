@@ -66,6 +66,7 @@ const AI_MODELS_3D = [
   { id: "tripo-2.5", name: "Tripo 2.5", credits: 30, time: "~30 sn", tier: "fast" },
   { id: "meshy-6", name: "Meshy 6", credits: 55, time: "~2 dk", tier: "standard" },
   { id: "meshy-v7", name: "Meshy 7 — Premium", credits: 80, time: "~3 dk", tier: "premium" },
+  { id: "meshy-v71", name: "Meshy 7.1 — Premium", credits: 80, time: "~3 dk", tier: "premium" },
   { id: "hunyuan3d-v3", name: "Hunyuan3D V3", credits: 28, time: "~3 dk", tier: "standard" },
   { id: "rodin", name: "Rodin Premium", credits: 35, time: "~2 dk", tier: "premium" },
 ];
@@ -265,6 +266,7 @@ const MODEL_TO_TIER: Record<string, string> = {
   "tripo-2.5": "fast",
   "meshy-6": "standard",
   "meshy-v7": "premium",
+  "meshy-v71": "premium",
   "hunyuan3d-v3": "standard",
   "rodin": "premium",
 };
@@ -277,6 +279,7 @@ const MODEL_TO_KEY: Record<string, string> = {
   "tripo-2.5": "tripo-v25-mv",
   "meshy-6": "meshy-6-image",
   "meshy-v7": "meshy-v7",
+  "meshy-v71": "meshy-v71",
   "hunyuan3d-v3": "hunyuan3d-v3",
   "rodin": "hyper3d-rodin",
 };
