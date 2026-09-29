@@ -28,6 +28,7 @@ Admin Renderhane kredisi harcamaz. **Sağlayıcı çağrıları gerçek ücretli
 - Ücretli istekten önce belirsiz-deneme kaydı yazılıp geri okunarak doğrulanır. Tarayıcı depolaması kapalı/doluysa veya kayıt geri okunamıyorsa gönderim yapılmaz. Kabul alındısı sonradan kaydedilemezse ilk belirsiz kayıt tekrar üretimi kilitlemeye devam eder.
 - Sağlayıcının `COMPLETED` yanıtındaki `error`/`error_type` terminal başarısızlık sayılır; sonuç indirme ya da sonsuz tekrar takibi yapılmaz.
 - MiniMax ses modellerinin gerekli `voice_setting` alanı normal üretimdeki kanonik ses oluşturucudan türetilir; laboratuvardaki sabit ayarlar gönderim öncesinde gösterilir.
+- xAI ses denemeleri de mevcut `buildXaiInput` / `DEFAULT_XAI_VOICE` ayarını açıkça gösterip gönderir. Bu, sağlayıcının kendi varsayılan sesinden bağımsız sözleşme tutarlılığıdır; canlı üretim sonucu kanıtı değildir.
 - Takibi bırakmak üretimi iptal etmez; ücret iadesi yapmaz. Takip hataları otomatik yeni iş veya iade oluşturmaz. Birden fazla sekme/cihaz arasında küresel tek-iş kilidi veya kalıcı idempotency deposu yoktur; paralel denemeler ayrı ücretlendirilebilir.
 - Çıktılar bu laboratuvarda R2/proje galerisine arşivlenmez. Sağlayıcı bağlantıları süreli olabilir. Desteklenen çıktı alanı bulunamadığında başarı dosyası uydurulmaz; sağlayıcı geçmişi kontrol edilir.
 
@@ -41,7 +42,7 @@ Model çıktısı dijital bir denemedir; özellikle GLB üretimi fiziksel ölç�
 
 ## Yerel kontrol sonucu — 29 Eylül 2026
 
-- İlk doğrulamada `npm test`: 59 dosya, 642 test geçti. PR inceleme düzeltmeleri sonrasında: 60 dosya, 653 test geçti (önceki Meshy 7.1 testleri dahil).
+- İlk doğrulamada `npm test`: 59 dosya, 642 test geçti. PR inceleme ve ses ayarı düzeltmeleri sonrasında: 60 dosya, 654 test geçti (önceki Meshy 7.1 testleri dahil).
 - `npm run type-check`, `npm run lint`, `npm run build`, `git diff --check`: geçti.
 - Gerçek panel bileşeni ve sahte API ile: model arama, Meshy 7.1 seçimi, ücret onayı, 502 yanıtındaki kabul alındısından takip, devam eden işin yenilemede tek status isteğiyle geri alınması ve alındısız bağlantı kopmasında tekrar gönderimin kilitlenmesi doğrulandı.
 - 320, 390, 768 ve 1366 px kontrollerinde yatay taşma yok; tarayıcı hata kaydı boş.

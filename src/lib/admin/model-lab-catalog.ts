@@ -1,6 +1,11 @@
 import { MODELS, TOOL_MODELS, TOOLS_TEXT_ONLY, type ToolType } from "@/lib/fal/models";
 import { imageUrlSchema } from "@/lib/validations/job-submit";
-import { buildMinimaxInput, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
+import {
+  buildMinimaxInput,
+  buildXaiInput,
+  DEFAULT_SRT_VOICE,
+  DEFAULT_XAI_VOICE,
+} from "@/lib/voiceover/voices";
 
 export type LabField = {
   key: string;
@@ -187,6 +192,10 @@ function deriveCategory(modelKey: string, endpoint: string): string {
 const configuredKeys = new Set(Object.values(TOOL_MODELS).flat());
 
 function deriveDefaults(modelKey: string, defaults: Record<string, unknown>): Record<string, unknown> {
+  if (modelKey === "xai-tts") {
+    const canonical = buildXaiInput("", { voiceId: DEFAULT_XAI_VOICE });
+    return { ...structuredClone(defaults), voice: canonical.voice };
+  }
   if (!MINIMAX_SPEECH_MODELS.has(modelKey)) return defaults;
 
   const textKey = modelKey === "minimax-speech-02-hd" ? "text" : "prompt";

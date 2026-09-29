@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { MODELS, TOOL_MODELS } from "@/lib/fal/models";
-import { buildMinimaxInput, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
+import {
+  buildMinimaxInput,
+  buildXaiInput,
+  DEFAULT_SRT_VOICE,
+  DEFAULT_XAI_VOICE,
+} from "@/lib/voiceover/voices";
 import { buildLabInput, LAB_CATALOG } from "../model-lab-catalog";
 
 describe("LAB_CATALOG", () => {
@@ -18,6 +23,9 @@ describe("LAB_CATALOG", () => {
           { voiceId: DEFAULT_SRT_VOICE },
           textKey
         ).voice_setting;
+      }
+      if (row.key === "xai-tts") {
+        expectedDefaults.voice = buildXaiInput("", { voiceId: DEFAULT_XAI_VOICE }).voice;
       }
       expect(row.endpoint).toBe(source.id);
       expect(row.name).toBe(source.displayName.en);
@@ -135,6 +143,18 @@ describe("LAB_CATALOG", () => {
       expect(input).toMatchObject(catalogDefaults);
       expect(MODELS[key].defaultParams).toEqual(registryDefaults);
     }
+  });
+
+  it("shows and submits the canonical xAI voice without mutating registry defaults", () => {
+    const registryDefaults = structuredClone(MODELS["xai-tts"].defaultParams);
+    const catalogDefaults = LAB_CATALOG.find((model) => model.key === "xai-tts")!.defaults;
+    const input = buildLabInput("xai-tts", { text: "Merhaba dünya" });
+    const canonical = buildXaiInput("Merhaba dünya", { voiceId: DEFAULT_XAI_VOICE });
+
+    expect(catalogDefaults).toMatchObject({ voice: canonical.voice, language: "tr" });
+    expect(input).toMatchObject(canonical);
+    expect(input.voice).toBe(catalogDefaults.voice);
+    expect(MODELS["xai-tts"].defaultParams).toEqual(registryDefaults);
   });
 
   it("adds required audio and mask URLs for avatar and inpainting models", () => {
