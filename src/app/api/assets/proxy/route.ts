@@ -22,6 +22,18 @@ function getAllowedOrigin(origin: string | null): string {
 
 const ALLOWED_HOSTS = ["assets.renderhane.com"];
 
+// Never relay arbitrary HTML/JavaScript as an application-origin document.
+const MEDIA_TYPES = new Set([
+  "image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/bmp", "image/tiff",
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/mp4", "audio/flac", "audio/webm",
+  "video/mp4", "video/webm", "video/quicktime", "video/ogg",
+]);
+const DOWNLOAD_TYPES = new Set([
+  "application/octet-stream", "binary/octet-stream", "model/gltf-binary", "model/gltf+json",
+  "application/json", "application/zip", "application/x-zip-compressed", "model/stl", "application/sla",
+  "image/svg+xml",
+]);
+
 function isFalMedia(hostname: string): boolean {
   return hostname === "fal.media" || hostname.endsWith(".fal.media");
 }
@@ -55,7 +67,7 @@ export async function GET(request: NextRequest) {
   }
 
   // SSRF hardening: only https (allowed hosts are https; blocks file:/gopher:/etc.)
-  if (parsed.protocol !== "https:") {
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || (parsed.port && parsed.port !== "443")) {
     return NextResponse.json(
       { error: "Only https URLs are allowed" },
       { status: 400 }
@@ -92,14 +104,24 @@ export async function GET(request: NextRequest) {
   }
 
   // Stream the response back with proper headers
-  const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+  const contentType = (upstream.headers.get("content-type") || "application/octet-stream").split(";", 1)[0].trim().toLowerCase();
+  if (!MEDIA_TYPES.has(contentType) && !DOWNLOAD_TYPES.has(contentType)) {
+    await upstream.body?.cancel();
+    return NextResponse.json({ error: "Unsupported asset content type" }, { status: 415, headers: { "Cache-Control": "no-store" } });
+  }
   const contentLength = upstream.headers.get("content-length");
 
   const headers: Record<string, string> = {
     "Content-Type": contentType,
-    "Cache-Control": "public, max-age=31536000, immutable",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "sandbox; default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     "Access-Control-Allow-Origin": getAllowedOrigin(request.headers.get("origin")),
   };
+
+  if (DOWNLOAD_TYPES.has(contentType)) {
+    headers["Content-Disposition"] = 'attachment; filename="asset"';
+  }
 
   if (contentLength) {
     headers["Content-Length"] = contentLength;

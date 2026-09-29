@@ -165,6 +165,19 @@ describe("submitJob credit ordering", () => {
     expect(mocks.events.indexOf("reserve:80")).toBeLessThan(mocks.events.indexOf("submit"));
   });
 
+  it('rejects model/tool tampering before consuming a free allowance, reserving or calling a provider', async () => {
+    const supabase = createSupabaseMock();
+    supabase.rpc.mockResolvedValue({ data: true, error: null });
+    mocks.createAdminClient.mockReturnValue(supabase);
+    await expect(submitJob({ userId: 'user-1', tool: 'bg-remove', modelKey: 'wan-i2v', imageUrl: 'https://cdn.example/input.png' }))
+      .rejects.toThrow('Model is not available for this tool');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
   it("reserves before paid 3D preprocessing and charges enhancement per image", async () => {
     const result = await submitJob({
       userId: "user-1",

@@ -117,6 +117,20 @@ const successfulCompletion = {
 };
 
 describe("submitJobSync atomic terminal transitions", () => {
+  it('uses the real router to reject cross-tool selection before financial/provider side effects', async () => {
+    const realRouter = await vi.importActual<typeof import('@/lib/fal/smart-router')>('@/lib/fal/smart-router');
+    mocks.routeRequest.mockImplementationOnce(realRouter.routeRequest);
+    const supabase = createSupabaseMock();
+    supabase.rpc.mockResolvedValue({ data: true, error: null });
+    mocks.createAdminClient.mockReturnValue(supabase);
+    await expect(submitJobSync({ userId: 'user-1', tool: 'bg-remove', modelKey: 'wan-i2v', imageUrl: 'https://cdn.example/input.png' }))
+      .rejects.toThrow('Model is not available for this tool');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.jobUpdates.length = 0;

@@ -1,9 +1,10 @@
 import { MODELS, TOOLS_TEXT_ONLY, type ModelConfig, type ToolType, type ModelTier } from "./models";
+import { assertModelForTool } from "./model-selection";
 
 interface RouteRequest {
   tool: ToolType;
   tier?: ModelTier;
-  /** Explicit model key from MODELS — when set, skips tier-based selection. */
+  /** Explicit key allowed for this tool — when set, skips tier-based selection. */
   modelKey?: string;
   imageUrl?: string;
   /** Multiple image URLs for multi-view models (e.g. 3D) */
@@ -73,13 +74,13 @@ function validateExtraParams(
 }
 
 export function routeRequest(request: RouteRequest): RouteResult {
+  assertModelForTool(request.tool, request.modelKey);
   const { tool, tier = "standard", imageUrl, imageUrls, prompt, extraParams } = request;
   const safeExtraParams = validateExtraParams(tool, extraParams);
 
   const imageCount = imageUrls?.length ?? (imageUrl ? 1 : 0);
-  const modelKey = request.modelKey && MODELS[request.modelKey]
-    ? request.modelKey
-    : selectModel(tool, tier, imageCount, safeExtraParams);
+  const modelKey = request.modelKey ?? selectModel(tool, tier, imageCount, safeExtraParams);
+  assertModelForTool(tool, modelKey);
   const model = MODELS[modelKey];
 
   const input: Record<string, unknown> = {
