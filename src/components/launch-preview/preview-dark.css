@@ -111,6 +111,7 @@
 .dark .rh-app .rh-nfc-storage label:has(input:checked){border-color:#9e8cff;box-shadow:0 0 0 1px #9e8cff}
 .dark .rh-app .rh-nfc-storage label.rh-nfc-storage-recommended{border-color:#d8a654;background:#2a2118;box-shadow:0 0 0 1px #d8a654}
 .dark .rh-app .rh-nfc-read-result pre{background:#100b24;color:#f4f0ff}
+.dark .rh-app .rh-nfc-read-fields li{background:#100b24;border-color:#352a63;color:#f4f0ff}
 .dark .rh-app .rh-error-dialog{background:#17122e;border-color:#44376c;color:#f7f3ff}
 .dark .rh-app .rh-error-dialog-icon{background:#3a1b24;color:#fecaca}
 .dark .rh-app .rh-phone{background:#0f1018;border-color:#080910;color:#f8f7ff;box-shadow:0 0 0 1px #4a4266,10px 15px 30px #0005}

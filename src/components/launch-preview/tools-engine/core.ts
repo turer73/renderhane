@@ -9,12 +9,16 @@ import {createManualComposer, type ManualComposer} from './composer';
 import {englishInspiration, localizeToolElement, localizeToolText} from './english-copy';
 import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload, normalizeContactEmail, normalizeSocialLink} from '@/lib/share-links';
 import {buildVCard} from '@/lib/vcard';
+import {WSC_MIME, buildWifiWscPayload, readWscCredentials, type WifiEncryption} from '@/lib/nfc/ndef';
+import {buildBusinessLandingUrl, businessEntries, businessFormFields, businessFromLandingUrl, businessFromText, formatBusinessText, formatIbanForDisplay, type BusinessDetails} from '@/lib/nfc/business-card';
 import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
 export type ToolLocale = 'tr' | 'en';
 export type ContentType = 'url' | 'vcard' | 'social' | 'bank' | 'invoice' | 'wifi' | 'phone' | 'email' | 'sms' | 'location' | 'text' | 'app';
-type NfcStorageMode = 'standard' | 'compact';
+/** Bank/invoice only: `link` opens a copy-per-field page on any phone that taps the tag. */
+type NfcStorageMode = 'link' | 'standard' | 'compact';
+const isNfcStorageMode = (value: unknown): value is NfcStorageMode => value === 'link' || value === 'standard' || value === 'compact';
 const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode';
 export type Fields = Record<string, string>;
 /** Adapts the shared NDEF decoder schema to this editor's field names. */
@@ -31,6 +35,23 @@ export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {typ
     };
   }
   return {type: form.type, fields: {...form.fields}};
+}
+
+/** Bank/invoice details from a single-record tag in any of the three storage formats. */
+export function readBusinessTag(records: readonly NfcReadRecord[]): {details: BusinessDetails; mode: NfcStorageMode} | null {
+  if (records.length !== 1) return null;
+  const record = records[0]!;
+  const compact = decodeCompactNfcRecord(record);
+  if (compact) return compact.kind === 'vcard' ? null : {details: compact as BusinessDetails, mode: 'compact'};
+  if (record.recordType === 'url' || record.recordType === 'absolute-url') {
+    const details = businessFromLandingUrl(decodeNfcRecord(record));
+    return details ? {details, mode: 'link'} : null;
+  }
+  if (record.recordType === 'text') {
+    const details = businessFromText(decodeNfcRecord(record));
+    return details ? {details, mode: 'standard'} : null;
+  }
+  return null;
 }
 
 export interface ImageResult { url: string; remaining?: number }
@@ -314,8 +335,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   const asset = (name: string): string => options.assets?.[name] || `${options.assetBase ?? './assets'}/${name}`;
   const fromHash = (): Page => { const p = win.location.hash.replace(/^#\/?/, '') as Page; return pages.includes(p) ? p : (options.initialPage || 'home'); };
   const rememberedNfcStorageMode = (): NfcStorageMode => {
-    try { return win.localStorage.getItem(NFC_STORAGE_MODE_KEY) === 'compact' ? 'compact' : 'standard'; }
-    catch { return 'standard'; }
+    try { const stored = win.localStorage.getItem(NFC_STORAGE_MODE_KEY); return isNfcStorageMode(stored) ? stored : 'link'; }
+    catch { return 'link'; }
   };
   const rememberNfcStorageMode = (mode: NfcStorageMode): void => {
     try { win.localStorage.setItem(NFC_STORAGE_MODE_KEY, mode); }
@@ -333,6 +354,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     nfcBulkRecords: null as readonly NfcRecordInput[] | null,
     nfcCapacityProfile: 'ntag213' as NfcCapacityProfileId, nfcStorageMode: rememberedNfcStorageMode(),
     nfcMessage: '', nfcError: '', nfcLastReadText: '', nfcBusy: false,
+    /** Labelled bank/invoice rows of the last read, each with its own copy button. */
+    nfcReadFields: null as Array<{key: string; label: string; value: string}> | null,
     brief: {brand:'',url:'',usage:'Ürün ambalajı',size:'',style:'Çiçek & Ornament',notes:''} as Fields,
     ideas: {qr: {category:'all',expanded:false,selected:null}, nfc: {category:'all',expanded:false,selected:null}} as Record<IdeaChannel, InspirationState>,
   };
@@ -478,9 +501,9 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         }
         return mode + input('profileName', l('Kart başlığı', 'Card title'), l('Adınız veya markanız', 'Your name or brand')) + `<div class="rh-two-fields">${SOCIAL_PLATFORMS.map(item => input(item.id, en ? item.labelEn : item.label, en ? item.placeholderEn : item.placeholder, item.id === 'website' ? 'url' : 'text')).join('')}</div><p class="rh-helper">${l('En az iki bağlantı gir. Bilgiler veritabanına kaydedilmez; URL içinde taşınır ve bağlantıyı bilen kişi tarafından görülebilir.', 'Enter at least two links. The data is not saved to the database; it travels in the URL and can be seen by anyone who has the link.')}</p>` + socialValidationMarkup(kind);
       }
-      case 'bank': return input('accountName', 'Alıcı adı *', 'Ad Soyad / Şirket') + input('iban', 'IBAN *', 'TR33 0006 1005 1978 6457 8413 26') + `<div class="rh-two-fields">${input('bankName', 'Banka', 'Banka adı')}${input('branch', 'Şube', 'Şube adı / kodu')}</div>` + input('description', 'Açıklama', 'Ödeme açıklaması') + `<p class="rh-helper">Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; ödeme başlatılmaz.</p>`;
+      case 'bank': return input('accountName', 'Alıcı adı *', 'Ad Soyad / Şirket') + input('iban', 'IBAN *', 'TR33 0006 1005 1978 6457 8413 26') + `<div class="rh-two-fields">${input('bankName', 'Banka', 'Banka adı')}${input('branch', 'Şube', 'Şube adı / kodu')}</div>` + input('description', 'Açıklama', 'Ödeme açıklaması') + `<p class="rh-helper">${kind === 'nfc' ? l('Etiketi okutan telefonda her bilgi ayrı “Kopyala” düğmesiyle açılır; banka uygulamasına yapıştırılabilir. Ödeme başlatılmaz.', 'On the phone that taps the tag, each detail opens with its own “Copy” button to paste into a banking app. No payment is started.') : 'Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; ödeme başlatılmaz.'}</p>`;
       case 'invoice': return input('title', 'Unvan / ad soyad *', 'Şirket veya kişi adı') + `<div class="rh-two-fields">${input('taxOffice', 'Vergi dairesi', 'Vergi dairesi')}${input('taxNumber', 'Vergi / T.C. kimlik no *', '10 veya 11 hane', 'text')}</div>` + area('address', 'Fatura adresi *') + input('invoiceEmail', 'Fatura e-postası', 'fatura@firma.com', 'email') + `<p class="rh-helper">Bilgiler yalnızca kopyalanabilir metin olarak hazırlanır; fatura oluşturulmaz veya gönderilmez.</p>`;
-      case 'wifi': return input('ssid', 'Ağ adı (SSID) *', 'Misafir ağı') + input('password', 'Ağ şifresi', 'Paylaşılacak WiFi şifresi', 'password') + `<div class="rh-field"><label for="rh-${kind}-encryption">Şifreleme</label><select class="rh-select" data-field="encryption" data-kind="${kind}" id="rh-${kind}-encryption"${disabled}>${['WPA', 'WEP', 'nopass'].map(e => `<option value="${e}" ${(f.encryption || 'WPA') === e ? 'selected' : ''}>${e === 'nopass' ? 'Şifresiz ağ' : e}</option>`).join('')}</select></div><p class="rh-helper">${kind === 'qr' ? 'QR, ağ şifresini içerir. Yalnızca paylaşmak istediğin bir misafir ağını kullan.' : 'WiFi için özel WSC/NDEF kodlaması gerekir. Bu bağımsız sürümde WiFi yazımı kapalıdır; QR aracını kullanabilirsin.'}</p>`;
+      case 'wifi': return input('ssid', 'Ağ adı (SSID) *', 'Misafir ağı') + input('password', 'Ağ şifresi', 'Paylaşılacak WiFi şifresi', 'password') + `<div class="rh-field"><label for="rh-${kind}-encryption">Şifreleme</label><select class="rh-select" data-field="encryption" data-kind="${kind}" id="rh-${kind}-encryption"${disabled}>${['WPA', 'WEP', 'nopass'].map(e => `<option value="${e}" ${(f.encryption || 'WPA') === e ? 'selected' : ''}>${e === 'nopass' ? 'Şifresiz ağ' : e}</option>`).join('')}</select></div><p class="rh-helper">${kind === 'qr' ? 'QR, ağ şifresini içerir. Yalnızca paylaşmak istediğin bir misafir ağını kullan.' : 'Android telefon etikete dokununca bu ağa bağlanmayı önerir. iPhone NFC etiketinden WiFi’ye bağlanamaz; iPhone için QR aracını kullan. Etiketi okutan herkes şifreyi alabilir; yalnızca misafir ağı yaz.'}</p>`;
       case 'phone': return input('phone', 'Telefon numarası *', '+905551234567', 'tel');
       case 'email': return input('email', 'E-posta adresi *', 'ad@firma.com', 'email') + input('subject', 'Konu', 'Merhaba') + area('body', 'Mesaj');
       case 'sms': return input('phone', 'Telefon numarası *', '+905551234567', 'tel') + area('body', 'Mesaj');
@@ -507,7 +530,6 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   // so contact cards must always stay as standards-compatible text/vcard.
   function nfcCompactEligible(): boolean { return s.nfcType === 'bank' || s.nfcType === 'invoice'; }
   function currentNfcCapacity(mode: NfcStorageMode = s.nfcStorageMode): ReturnType<typeof checkNfcCapacity> | null {
-    if (s.nfcType === 'wifi') return null;
     try { return checkNfcCapacity(nfcRecords(buildPayload(s.nfcType, s.nfc, locale), mode), s.nfcCapacityProfile); }
     catch { return null; }
   }
@@ -516,7 +538,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const compactRecommended = s.nfcStorageMode === 'standard'
       && currentNfcCapacity('standard')?.fits === false
       && currentNfcCapacity('compact')?.fits === true;
-    return `<fieldset class="rh-nfc-storage" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}><legend>${l('Depolama biçimi', 'Storage format')}</legend><label><input type="radio" name="rh-nfc-storage" value="standard" ${s.nfcStorageMode === 'standard' ? 'checked' : ''}/><span><strong>${l('Standart metin', 'Standard text')}</strong><small>${l('Tüm uyumlu NFC okuyucularında doğrudan görünür ve kopyalanır.', 'Visible and copyable in all compatible NFC readers.')}</small></span></label><label class="${compactRecommended ? 'rh-nfc-storage-recommended' : ''}"><input type="radio" name="rh-nfc-storage" value="compact" ${s.nfcStorageMode === 'compact' ? 'checked' : ''}/><span><strong>${l('Renderhane sıkıştırılmış', 'Renderhane compact')}</strong><small>${l('Daha az yer kaplar; içeriği açmak ve kopyalamak için bu araçla oku.', 'Uses less space; read it with this tool to open and copy the content.')}</small>${compactRecommended ? `<em>${l('Seçilen etikete sığması için bunu seç', 'Choose this to fit the selected tag')}</em>` : ''}</span></label><p class="rh-nfc-storage-note">${l('Sıkıştırma şifreleme değildir; etikete erişen biri bu araçla bilgileri okuyabilir.', 'Compression is not encryption; anyone with access to the tag can read the details with this tool.')}</p></fieldset>`;
+    return `<fieldset class="rh-nfc-storage" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}><legend>${l('Depolama biçimi', 'Storage format')}</legend><label><input type="radio" name="rh-nfc-storage" value="link" ${s.nfcStorageMode === 'link' ? 'checked' : ''}/><span><strong>${l('Kopyalanabilir sayfa (önerilen)', 'Copyable page (recommended)')}</strong><small>${l('iPhone ve Android’de her bilgi ayrı “Kopyala” düğmesiyle açılır.', 'Opens on iPhone and Android with a “Copy” button for each detail.')}</small></span></label><label><input type="radio" name="rh-nfc-storage" value="standard" ${s.nfcStorageMode === 'standard' ? 'checked' : ''}/><span><strong>${l('Standart metin', 'Standard text')}</strong><small>${l('NFC okuyucu uygulamalarında tek metin olarak görünür; iPhone düz metni açmaz.', 'Shows as one block of text in NFC reader apps; iPhones do not open plain text.')}</small></span></label><label class="${compactRecommended ? 'rh-nfc-storage-recommended' : ''}"><input type="radio" name="rh-nfc-storage" value="compact" ${s.nfcStorageMode === 'compact' ? 'checked' : ''}/><span><strong>${l('Renderhane sıkıştırılmış', 'Renderhane compact')}</strong><small>${l('Daha az yer kaplar; içeriği açmak ve kopyalamak için bu araçla oku.', 'Uses less space; read it with this tool to open and copy the content.')}</small>${compactRecommended ? `<em>${l('Seçilen etikete sığması için bunu seç', 'Choose this to fit the selected tag')}</em>` : ''}</span></label><p class="rh-nfc-storage-note">${l('Sayfa bağlantısında bilgiler # bölümünde taşınır; sunucuya gönderilmez ve kaydedilmez. Hiçbir biçim şifreleme değildir; etiketi okutan herkes bilgileri görebilir.', 'With the page link, the details travel after # and are never sent to or stored on the server. No format is encryption; anyone who taps the tag can see the details.')}</p></fieldset>`;
   }
   function nfcCapacityAdvice(estimatedBytes: number): string {
     const recommended = NFC_CAPACITY_PROFILES.find(profile =>
@@ -527,14 +549,17 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       : 'İçeriği kısalt; NTAG216 kapasitesi de yeterli değil.';
   }
   function nfcCapacityError(check: ReturnType<typeof checkNfcCapacity>): string {
-    const compact = s.nfcStorageMode === 'standard' && nfcCompactEligible() ? currentNfcCapacity('compact') : null;
+    const compact = s.nfcStorageMode !== 'compact' && nfcCompactEligible() ? currentNfcCapacity('compact') : null;
+    // The page link is what gives tapping phones copy buttons, so offer a bigger tag before compact.
+    if (compact?.fits && s.nfcStorageMode === 'link')
+      return `İçerik seçilen etikete sığmıyor: ${check.estimatedBytes} / ${check.capacityBytes} bayt. ${nfcCapacityAdvice(check.estimatedBytes)} Ya da açıklama gibi alanları kısalt. Renderhane sıkıştırılmış biçimi ${compact.estimatedBytes} bayt ile sığar ama yalnız bu araçla okunur.`;
     if (compact?.fits)
       return `İçerik seçilen etikete sığmıyor: ${check.estimatedBytes} / ${check.capacityBytes} bayt. Renderhane sıkıştırılmış biçimini seçersen ${compact.estimatedBytes} bayt olarak sığar.`;
     return `İçerik seçilen etikete sığmıyor: ${check.estimatedBytes} / ${check.capacityBytes} bayt. ${nfcCapacityAdvice(check.estimatedBytes)}`;
   }
   function nfcCapacityControl(): string {
     const check = currentNfcCapacity();
-    const compactCheck = s.nfcStorageMode === 'standard' && nfcCompactEligible() ? currentNfcCapacity('compact') : null;
+    const compactCheck = s.nfcStorageMode !== 'compact' && nfcCompactEligible() ? currentNfcCapacity('compact') : null;
     const selected = NFC_CAPACITY_PROFILES.find(profile => profile.id === s.nfcCapacityProfile) ?? NFC_CAPACITY_PROFILES[0];
     const ratio = check?.capacityBytes ? Math.min(100, Math.round(check.estimatedBytes / check.capacityBytes * 100)) : 0;
     const state = check?.fits === false ? 'error' : check?.fits === true ? 'success' : 'unknown';
@@ -544,9 +569,11 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         ? `Tahmini NDEF: ${check.estimatedBytes} bayt · Kapasiteyi doğrulamak için etiket modelini seç.`
         : check.fits
           ? `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · Sığıyor.`
-          : compactCheck?.fits
-            ? `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. Renderhane sıkıştırılmış biçimi ${compactCheck.estimatedBytes} bayt ve bu etikete sığıyor.`
-            : `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. ${s.nfcType === 'vcard' ? nfcCapacityAdvice(check.estimatedBytes) : 'İçeriği kısalt veya daha büyük bir etiket seç.'}`;
+          : compactCheck?.fits && s.nfcStorageMode === 'link'
+            ? `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. ${nfcCapacityAdvice(check.estimatedBytes)} Ya da alanları kısalt; sıkıştırılmış biçim sığar ama yalnız bu araçla okunur.`
+            : compactCheck?.fits
+              ? `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. Renderhane sıkıştırılmış biçimi ${compactCheck.estimatedBytes} bayt ve bu etikete sığıyor.`
+              : `Tahmini NDEF: ${check.estimatedBytes} / ${check.capacityBytes} bayt · ${Math.abs(check.remainingBytes!)} bayt fazla. ${s.nfcType === 'vcard' || nfcCompactEligible() ? nfcCapacityAdvice(check.estimatedBytes) : 'İçeriği kısalt veya daha büyük bir etiket seç.'}`;
     const meterMax = check?.capacityBytes ?? Math.max(check?.estimatedBytes ?? 1, 1);
     const meterValue = Math.min(check?.estimatedBytes ?? 0, meterMax);
     return `<div class="rh-nfc-capacity" data-state="${state}"><div class="rh-nfc-capacity-head"><label for="rh-nfc-capacity">Etiket kapasitesi</label><select class="rh-select" id="rh-nfc-capacity" ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}>${NFC_CAPACITY_PROFILES.map(profile => `<option value="${profile.id}" ${profile.id === selected.id ? 'selected' : ''}>${profile.label}</option>`).join('')}</select></div><div class="rh-nfc-meter" role="meter" aria-label="Tahmini NDEF kullanımı" aria-valuemin="0" aria-valuemax="${meterMax}" aria-valuenow="${meterValue}" aria-valuetext="${esc(text)}"><span style="width:${ratio}%"></span></div><p>${esc(text)}</p></div>`;
@@ -572,7 +599,8 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       return `<div class="rh-contact-preview"><section class="rh-contact-hero"><div class="rh-contact-identity"><span class="rh-contact-avatar">${esc(initials)}</span><div><h3 class="rh-contact-name">${esc(name)}</h3><p class="rh-contact-phone">${esc(phone)}</p></div></div><div class="rh-contact-actions">${action('call', l('Ara', 'Call'))}${action('message', l('Mesaj', 'Message'))}${action('mail', l('E-posta', 'Email'))}${action('link', l('Web', 'Web'))}</div></section><section class="rh-contact-details">${detail(l('E-posta', 'Email'), emailAddress, 'mail')}${detail(l('Kurum', 'Organization'), organization, 'user')}${detail(l('Web sitesi', 'Website'), website, 'link')}</section><small class="rh-contact-caption">${caption}</small></div>`;
     }
     let payload = l('İçeriğini hazırlamaya başla.', 'Start preparing your content.');
-    try { payload = s.nfcType === 'wifi' ? l('WiFi içeriği · yazım bu sürümde kapalı', 'WiFi content · writing is disabled in this version') : buildPayload(s.nfcType, s.nfc, locale); } catch { /* Keep the empty-state copy while fields are incomplete. */ }
+    // WiFi shows only the network name; the password stays out of the preview.
+    try { payload = buildPayload(s.nfcType, s.nfc, locale); if (s.nfcType === 'wifi') payload = `WiFi · ${s.nfc.ssid.trim()}`; } catch { /* Keep the empty-state copy while fields are incomplete. */ }
     return `<div class="rh-nfc-generic-preview"><img src="${asset('logo.svg')}" alt=""/><h3>${l('Dokun, bağlantı kur.', 'Tap to connect.')}</h3><p>${esc(payload)}</p><div class="rh-wave">${l('Temsili telefon önizlemesi', 'Illustrative phone preview')}</div></div>`;
   }
   function nfcView(): string {
@@ -589,9 +617,9 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const bulkProgress = `${s.nfcBulkWritten}/${s.nfcBulkTarget}`;
     const bulkControls = s.nfcBulkActive
       ? `<div class="rh-nfc-bulk-progress"><strong>Toplu yazım · ${bulkProgress}</strong><p>Önceki etiketi uzaklaştır, sıradaki etiketi yaklaştır ve düğmeye bas. Oturum başındaki içerik sabittir; alan değişiklikleri sonraki oturuma uygulanır.</p><div class="rh-toolbar"><button class="rh-btn rh-btn-primary" data-action="nfc-bulk-next" ${s.nfcBusy ? 'disabled' : ''}>${icon('nfc')}Sıradaki etiketi yaz</button><button class="rh-btn" data-action="nfc-bulk-end" ${s.nfcBusy ? 'disabled' : ''}>Toplu yazımı bitir</button></div></div>`
-      : `<div class="rh-nfc-bulk-setup"><label for="rh-nfc-bulk-count">Etiket adedi</label><input class="rh-input" id="rh-nfc-bulk-count" type="number" min="2" max="100" inputmode="numeric" value="${s.nfcBulkTarget}"/><button class="rh-btn" data-action="nfc-bulk-start" ${!canWrite || s.nfcBusy || s.nfcType === 'wifi' || capacityBlocked ? 'disabled' : ''}>${icon('copy')}Toplu yazımı başlat</button></div>`;
-    const readResult = s.nfcLastReadText ? `<section class="rh-nfc-read-result" aria-labelledby="rh-nfc-read-title"><div><strong id="rh-nfc-read-title">${l('Okunan içerik', 'Read content')}</strong><small>${l('Sıkıştırılmış kayıtlar burada normal metne çevrilir.', 'Compact records are converted back to plain text here.')}</small></div><pre translate="no">${esc(s.nfcLastReadText)}</pre><button class="rh-btn" data-action="nfc-copy-read">${icon('copy')}${l('Okunanı kopyala', 'Copy read content')}</button></section>` : '';
-    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div>${nfcStorageControl()}${nfcCapacityControl()}<label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''} ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><label class="rh-toggle rh-nfc-lock-toggle"><input type="checkbox" id="rh-nfc-lock" ${s.nfcLockAfterWrite ? 'checked' : ''} ${!canLock || s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}/>Yazdıktan sonra etiketi kalıcı olarak kilitle.</label><p class="rh-helper rh-nfc-lock-help">${canLock ? 'Kalıcı kilit geri alınamaz. İçeriği önce doğrula ve kilitleme bitene kadar etiketi telefondan uzaklaştırma.' : 'Bu cihaz veya NFC sürücüsü kalıcı kilitleme sunmuyor.'}</p><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!canWrite || s.nfcBusy || s.nfcBulkActive || s.nfcType === 'wifi' || capacityBlocked ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!canRead || s.nfcBusy || s.nfcBulkActive ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-nfc-bulk"><div><strong>Toplu yazım</strong><p>Aynı içeriği 2–100 etikete, her etiketi ayrı ayrı onaylayarak yaz.</p></div>${bulkControls}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${nfcStatus(support)}</div>${readResult}<p class="rh-helper">WiFi/WSC yazımı için mevcut projedeki NDEF modülü kullanılmalıdır. Web NFC yalnız uyumlu NDEF etiketlerinde çalışır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><div id="rh-nfc-preview">${nfcPreviewContent()}</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${capabilityTitle}</strong><p>${esc(capabilityHint)}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'Kalıcı kilit isteğe bağlı', 'Yalnız desteklenen etiketlerde ve açık onaydan sonra uygulanır.'], ['copy', 'Kontrollü toplu yazım', 'Her yeni etiket ayrı işlemle yazılır ve sayaçta izlenir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Başarı mesajı ancak cihaz onayından sonra gelir.']])}${ideaSection('nfc')}<dialog class="rh-error-dialog" id="rh-nfc-error-dialog" aria-labelledby="rh-nfc-error-title"><div class="rh-error-dialog-icon">${icon('info')}</div><h2 id="rh-nfc-error-title">NFC işlemi tamamlanamadı</h2><p>${esc(s.nfcError)}</p><button type="button" class="rh-btn rh-btn-primary" data-action="nfc-error-close">Tamam</button></dialog></main>`;
+      : `<div class="rh-nfc-bulk-setup"><label for="rh-nfc-bulk-count">Etiket adedi</label><input class="rh-input" id="rh-nfc-bulk-count" type="number" min="2" max="100" inputmode="numeric" value="${s.nfcBulkTarget}"/><button class="rh-btn" data-action="nfc-bulk-start" ${!canWrite || s.nfcBusy || capacityBlocked ? 'disabled' : ''}>${icon('copy')}Toplu yazımı başlat</button></div>`;
+    const readResult = s.nfcLastReadText ? `<section class="rh-nfc-read-result" aria-labelledby="rh-nfc-read-title"><div><strong id="rh-nfc-read-title">${l('Okunan içerik', 'Read content')}</strong><small>${s.nfcReadFields ? l('Her bilgiyi yanındaki düğmeyle kopyalayıp banka uygulamasına yapıştır.', 'Copy each detail with its button and paste it into your banking app.') : l('Sıkıştırılmış kayıtlar burada normal metne çevrilir.', 'Compact records are converted back to plain text here.')}</small></div>${s.nfcReadFields ? `<ul class="rh-nfc-read-fields">${s.nfcReadFields.map((field, index) => `<li><span><small>${esc(field.label)}</small><strong translate="no">${esc(field.key === 'iban' ? formatIbanForDisplay(field.value) : field.value)}</strong></span><button class="rh-btn" type="button" data-action="nfc-copy-field" data-index="${index}" aria-label="${esc(field.label)} ${l('kopyala', 'copy')}">${icon('copy')}${l('Kopyala', 'Copy')}</button></li>`).join('')}</ul>` : `<pre translate="no">${esc(s.nfcLastReadText)}</pre>`}<button class="rh-btn" data-action="nfc-copy-read">${icon('copy')}${s.nfcReadFields ? l('Tümünü kopyala', 'Copy all') : l('Okunanı kopyala', 'Copy read content')}</button></section>` : '';
+    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Bir dokunuşla <span class="rh-highlight">bağlantı kur.</span>', 'NFC etiketine web adresi veya iletişim bilgisi yaz. Önce içeriği hazırla, sonra uyumlu telefonla etikete aktar.', ['Uygulama kurmadan', 'Uyumlu Android + Chrome', 'Fiziksel etiket gerekir'])}<div class="rh-workspace rh-nfc-workspace"><section class="rh-panel rh-qr-content"><div class="rh-number-title"><span>1</span>İçerik türünü seç</div>${typeTabs('nfc')}<div class="rh-section-label">2. İçeriğini hazırla</div><div id="rh-nfc-fields">${fields('nfc')}</div>${nfcStorageControl()}${nfcCapacityControl()}<label class="rh-toggle"><input type="checkbox" id="rh-nfc-overwrite" ${s.nfcOverwrite ? 'checked' : ''} ${s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}/>Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.</label><label class="rh-toggle rh-nfc-lock-toggle"><input type="checkbox" id="rh-nfc-lock" ${s.nfcLockAfterWrite ? 'checked' : ''} ${!canLock || s.nfcBulkActive || s.nfcBusy ? 'disabled' : ''}/>Yazdıktan sonra etiketi kalıcı olarak kilitle.</label><p class="rh-helper rh-nfc-lock-help">${canLock ? 'Kalıcı kilit geri alınamaz. İçeriği önce doğrula ve kilitleme bitene kadar etiketi telefondan uzaklaştırma.' : 'Bu cihaz veya NFC sürücüsü kalıcı kilitleme sunmuyor.'}</p><div class="rh-toolbar" style="margin-top:22px"><button class="rh-btn rh-btn-primary" data-action="nfc-write" ${!canWrite || s.nfcBusy || s.nfcBulkActive || capacityBlocked ? 'disabled' : ''}>${icon('nfc')}Etikete yaz</button><button class="rh-btn" data-action="nfc-scan" ${!canRead || s.nfcBusy || s.nfcBulkActive ? 'disabled' : ''}>${icon('scan')}Etiketi oku</button>${btn('İçeriği kopyala', 'nfc-copy', false, 'copy')}${s.nfcBusy ? btn('Durdur', 'nfc-stop', false, 'close') : ''}</div><div class="rh-nfc-bulk"><div><strong>Toplu yazım</strong><p>Aynı içeriği 2–100 etikete, her etiketi ayrı ayrı onaylayarak yaz.</p></div>${bulkControls}</div><div class="rh-notice ${s.nfcMessage ? '' : 'success'}" id="rh-nfc-status" role="status">${nfcStatus(support)}</div>${readResult}<p class="rh-helper">Web NFC yalnız uyumlu NDEF etiketlerinde çalışır.</p></section><aside class="rh-nfc-right"><div class="rh-device-preview"><div class="rh-phone" aria-label="Temsili Android önizlemesi"><span class="rh-phone-camera"></span><span class="rh-phone-status">9:41</span><div id="rh-nfc-preview">${nfcPreviewContent()}</div></div><div class="rh-nfc-tag"><img src="${asset('logo.svg')}" alt="Renderhane etiket tasarım örneği"/></div></div><div class="rh-nfc-live-status"><div class="rh-icon-tile">${icon(ready ? 'nfc' : 'info')}</div><div><strong>${capabilityTitle}</strong><p>${esc(capabilityHint)}</p></div></div><div class="rh-compat"><div>${icon('phone')}<section><strong>Android + Chrome</strong><p>Web NFC ve cihaz NFC donanımı gerekli. İşlem için izin istenir.</p></section></div><div>${icon('info')}<section><strong>iPhone tarayıcısı</strong><p>Buradan etikete yazma sunulmaz. Etiket okuma cihaz ve içerikle değişir.</p></section></div></div></aside></div>${benefits([['link', 'İçeriği açıkça gör', 'Yazmadan önce bağlantıyı ve iletişim bilgilerini kontrol et.'], ['lock', 'Kalıcı kilit isteğe bağlı', 'Yalnız desteklenen etiketlerde ve açık onaydan sonra uygulanır.'], ['copy', 'Kontrollü toplu yazım', 'Her yeni etiket ayrı işlemle yazılır ve sayaçta izlenir.'], ['nfc', 'Gerçek donanım bağlantısı', 'Başarı mesajı ancak cihaz onayından sonra gelir.']])}${ideaSection('nfc')}<dialog class="rh-error-dialog" id="rh-nfc-error-dialog" aria-labelledby="rh-nfc-error-title"><div class="rh-error-dialog-icon">${icon('info')}</div><h2 id="rh-nfc-error-title">NFC işlemi tamamlanamadı</h2><p>${esc(s.nfcError)}</p><button type="button" class="rh-btn rh-btn-primary" data-action="nfc-error-close">Tamam</button></dialog></main>`;
   }
   function render(focus = false): void {
     if (disposed) return;
@@ -760,9 +788,9 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     const canWrite = support.available && support.canWriteNdef && support.canReadNdef;
     const capacityBlocked = currentNfcCapacity()?.fits === false;
     const write = $<HTMLButtonElement>('[data-action="nfc-write"]');
-    if (write) write.disabled = !canWrite || s.nfcBusy || s.nfcBulkActive || s.nfcType === 'wifi' || capacityBlocked;
+    if (write) write.disabled = !canWrite || s.nfcBusy || s.nfcBulkActive || capacityBlocked;
     const bulk = $<HTMLButtonElement>('[data-action="nfc-bulk-start"]');
-    if (bulk) bulk.disabled = !canWrite || s.nfcBusy || s.nfcType === 'wifi' || capacityBlocked;
+    if (bulk) bulk.disabled = !canWrite || s.nfcBusy || capacityBlocked;
   }
   async function removeBackground(): Promise<void> {
     if (!s.file) { s.tab = 'result'; render(); toast('Hazır örnek çıktı gösteriliyor. Bu işlem AI çağrısı değildir.'); return; }
@@ -804,6 +832,10 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function nfcRecords(payload: string, mode: NfcStorageMode = s.nfcStorageMode): NfcRecordInput[] {
     if (mode === 'compact' && nfcCompactEligible())
       return [createCompactNfcRecord(buildBusinessDetails(s.nfcType as 'bank' | 'invoice', s.nfc, locale))];
+    if (mode === 'link' && nfcCompactEligible())
+      return [{recordType: 'url', data: buildBusinessLandingUrl(buildBusinessDetails(s.nfcType as 'bank' | 'invoice', s.nfc, locale) as BusinessDetails)}];
+    // Android joins the network straight from a WSC tap; `payload` has already validated the fields.
+    if (s.nfcType === 'wifi') return [{recordType: 'mime', mediaType: WSC_MIME, data: buildWifiWscPayload({ssid: s.nfc.ssid.trim(), password: s.nfc.password || '', encryption: (s.nfc.encryption || 'WPA') as WifiEncryption})}];
     if (s.nfcType === 'vcard' && (s.nfc.contactMode || 'android') === 'android') return [{recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(payload)}];
     if (s.nfcType === 'text' || s.nfcType === 'bank' || s.nfcType === 'invoice') {
       const lang = s.nfc.lang === 'en' || s.nfc.lang === 'tr' ? s.nfc.lang : locale;
@@ -827,7 +859,6 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function startNfcBulk(): void {
     const support = nfcAdapter.support();
     if (!support.available || !support.canWriteNdef || !support.canReadNdef) { toast(support.reason || 'Güvenli NDEF yazımı için okuma ve yazma desteği gerekir.'); return; }
-    if (s.nfcType === 'wifi') { toast('WiFi/WSC yazımı bu sürümde kapalı.'); return; }
     let records: readonly NfcRecordInput[];
     try { records = nfcRecords(buildPayload(s.nfcType, s.nfc, locale)); } catch (error) { toast(error instanceof Error ? error.message : 'İçeriği kontrol edin.'); return; }
     const capacity = checkNfcCapacity(records, s.nfcCapacityProfile);
@@ -865,7 +896,6 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (!support.available) { toast(support.reason || 'NFC donanımı ve uyumlu bir sürücü gerekir.'); return; }
     if (writing && (!support.canWriteNdef || !support.canReadNdef)) { toast(support.reason || 'Güvenli NDEF yazımı için okuma ve yazma desteği gerekir.'); return; }
     if (mode === 'scan' && !support.canReadNdef) { toast(support.reason || 'Bu NFC sürücüsü NDEF okumayı desteklemiyor.'); return; }
-    if (writing && s.nfcType === 'wifi') { toast('WiFi/WSC yazımı bu sürümde kapalı.'); return; }
     if (mode === 'bulk-write' && !s.nfcBulkActive) return;
     const lockRequested = writing && s.nfcLockAfterWrite;
     if (lockRequested && (!support.canReadNdef || !support.canLock || !nfcAdapter.makeReadOnly)) { toast('Kalıcı kilit için NDEF okuma, yazma ve kilitleme desteği gerekir.'); return; }
@@ -987,17 +1017,22 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       } else {
         const result = await nfcAdapter.scan({signal: controller.signal});
         if (disposed || controller.signal.aborted) return;
+        const business = readBusinessTag(result.records);
         const parts = result.records.map(record => {
           const compact = decodeCompactNfcRecord(record);
-          return compact ? formatCompactNfcDetails(compact) : decodeNfcRecord(record);
+          return compact ? formatCompactNfcDetails(compact) : wifiSummary(record) ?? decodeNfcRecord(record);
         });
-        const decodedForm = decodeNfcForm(result.records);
-        const form = decodedForm ? toEditorNfcForm(decodedForm) : null;
+        const decodedForm = business ? null : decodeNfcForm(result.records);
+        const form = business
+          ? {type: business.details.kind, fields: businessFormFields(business.details)}
+          : decodedForm ? toEditorNfcForm(decodedForm) : null;
         if (form) {
           s.nfcType = form.type;
           s.nfc = form.fields;
         }
-        s.nfcLastReadText = parts.join('\n\n');
+        if (business) s.nfcStorageMode = business.mode;
+        s.nfcReadFields = business ? businessEntries(business.details, locale) : null;
+        s.nfcLastReadText = business ? formatBusinessText({...business.details, locale}) : parts.join('\n\n');
         s.nfcMessage = form
           ? l('Etiket okundu ve düzenleme alanına aktarıldı.', 'Tag read and loaded into the editor.')
           : l('Etiket okundu.', 'Tag read.');
@@ -1022,6 +1057,21 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       await win.navigator.clipboard.writeText(s.nfcLastReadText);
       toast(l('Okunan içerik panoya kopyalandı.', 'Read content copied to the clipboard.'));
     } catch (error) { toast(error instanceof Error ? error.message : 'Okunan içerik kopyalanamadı.'); }
+  }
+  async function copyReadField(index: number): Promise<void> {
+    const field = s.nfcLastReadText ? s.nfcReadFields?.[index] : undefined;
+    try {
+      if (!field) throw Error('Önce bir NFC etiketi oku.');
+      if (!win.navigator.clipboard?.writeText) throw Error('Panoya erişim için HTTPS veya localhost gerekir.');
+      await win.navigator.clipboard.writeText(field.value);
+      toast(`${field.label} ${l('panoya kopyalandı.', 'copied to the clipboard.')}`);
+    } catch (error) { toast(error instanceof Error ? error.message : 'Okunan içerik kopyalanamadı.'); }
+  }
+  function wifiSummary(record: NfcReadRecord): string | null {
+    if (record.recordType !== 'mime' || !record.data || (record.mediaType || '').split(';', 1)[0]!.trim().toLowerCase() !== WSC_MIME) return null;
+    // The password is restored into the editor's masked field, not printed here.
+    const {ssid, encryption} = readWscCredentials(new Uint8Array(record.data.buffer, record.data.byteOffset, record.data.byteLength));
+    return `WiFi\n${l('Ağ', 'Network')}: ${ssid}\n${l('Şifreleme', 'Security')}: ${encryption === 'nopass' ? l('Şifresiz', 'Open') : encryption}`;
   }
   function onClick(event: Event): void {
     const target = (event.target as Element).closest<HTMLElement>('[data-page],[data-action],[data-anchor],[data-hero],[data-view],[data-bg],[data-preset],[data-qr-type],[data-nfc-type],[data-qr-style],[data-download-scene],[data-idea-filter],[data-idea],[data-idea-close],[data-idea-more]');
@@ -1107,6 +1157,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       case 'nfc-bulk-end': endNfcBulk(); break;
       case 'nfc-copy': void copyNfc(); break;
       case 'nfc-copy-read': void copyReadNfc(); break;
+      case 'nfc-copy-field': void copyReadField(Number(target.dataset.index)); break;
       case 'nfc-stop': cancelNfc('İşlem durduruldu; etiket yazıldıysa kilit durumu doğrulanamadı.'); break;
       case 'nfc-error-close': { s.nfcError = ''; $<HTMLDialogElement>('#rh-nfc-error-dialog')?.close(); break; }
     }
@@ -1127,7 +1178,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     if (el.id === 'rh-nfc-overwrite' && !s.nfcBusy) s.nfcOverwrite = (el as HTMLInputElement).checked;
     if (el.id === 'rh-nfc-lock' && !s.nfcBusy) s.nfcLockAfterWrite = (el as HTMLInputElement).checked;
     if (el.id === 'rh-nfc-capacity' && !s.nfcBusy && NFC_CAPACITY_PROFILES.some(profile => profile.id === el.value)) { s.nfcCapacityProfile = el.value as NfcCapacityProfileId; render(); }
-    if (el.name === 'rh-nfc-storage' && !s.nfcBusy && (el.value === 'standard' || el.value === 'compact')) { s.nfcStorageMode = el.value; rememberNfcStorageMode(s.nfcStorageMode); s.nfcLastReadText = ''; render(); }
+    if (el.name === 'rh-nfc-storage' && !s.nfcBusy && isNfcStorageMode(el.value)) { s.nfcStorageMode = el.value; rememberNfcStorageMode(s.nfcStorageMode); s.nfcLastReadText = ''; render(); }
     if (el.id === 'rh-nfc-bulk-count') s.nfcBulkTarget = Math.max(2, Math.min(100, Math.trunc(Number(el.value)) || 2));
   }
   function onSubmit(event: SubmitEvent): void {

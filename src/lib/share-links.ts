@@ -47,7 +47,7 @@ const HANDLE_RULES: Partial<Record<SocialPlatform, RegExp>> = {
   facebook: /^[A-Za-z0-9.]{1,50}$/,
   youtube: /^[A-Za-z0-9._-]{3,30}$/,
 };
-const ORIGIN = "https://www.renderhane.com";
+export const ORIGIN = "https://www.renderhane.com";
 
 function parseHttpUrl(raw: string): URL {
   const value = raw.trim();
@@ -193,7 +193,7 @@ export function normalizeSocialLink(platform: SocialPlatform, raw: string): { ur
 
 /** Routes containing third-party contact data must never initialize analytics. */
 export function isPrivateSharePath(pathname: string): boolean {
-  return /^\/[a-z]{2}\/(?:k|s)\/?$/.test(pathname);
+  return /^\/[a-z]{2}\/(?:k|s|b)\/?$/.test(pathname);
 }
 
 export function buildSocialLandingUrl(fields: ShareFields, locale: "tr" | "en" = "tr"): string {

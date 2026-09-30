@@ -2,9 +2,44 @@ import {beforeAll, describe, expect, it} from 'vitest';
 
 let buildPayload: (typeof import('../core'))['buildPayload'];
 let toEditorNfcForm: (typeof import('../core'))['toEditorNfcForm'];
+let readBusinessTag: (typeof import('../core'))['readBusinessTag'];
 beforeAll(async () => {
   Object.assign(globalThis, {window: {}});
-  ({buildPayload, toEditorNfcForm} = await import('../core'));
+  ({buildPayload, toEditorNfcForm, readBusinessTag} = await import('../core'));
+});
+
+describe('reading bank tags back', () => {
+  const details = {
+    kind: 'bank' as const,
+    locale: 'tr' as const,
+    fields: ['Örnek Alıcı', 'TR330006100519786457841326', 'Örnek Banka', '', 'Sipariş 42'],
+  };
+  const view = (value: string | Uint8Array) => {
+    const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  };
+
+  it('restores the same fields from link, text and compact tags', async () => {
+    const {buildBusinessLandingUrl, formatBusinessText} = await import('@/lib/nfc/business-card');
+    const {createCompactNfcRecord} = await import('../nfc');
+    const compact = createCompactNfcRecord(details).data as Uint8Array;
+
+    expect(readBusinessTag([{recordType: 'url', data: view(buildBusinessLandingUrl(details))}]))
+      .toEqual({details, mode: 'link'});
+    expect(readBusinessTag([{recordType: 'text', lang: 'tr', data: view(formatBusinessText(details))}]))
+      .toEqual({details, mode: 'standard'});
+    expect(readBusinessTag([{recordType: 'renderhane.com:c', data: view(compact)}]))
+      .toEqual({details, mode: 'compact'});
+  });
+
+  it('leaves ordinary links, text and multi-record tags alone', () => {
+    expect(readBusinessTag([{recordType: 'url', data: view('https://www.renderhane.com/tr/araclar/nfc-yaz')}])).toBeNull();
+    expect(readBusinessTag([{recordType: 'text', data: view('merhaba')}])).toBeNull();
+    expect(readBusinessTag([
+      {recordType: 'text', data: view('BANKA BİLGİLERİ\nAlıcı: A\nIBAN: TR330006100519786457841326')},
+      {recordType: 'text', data: view('ek')},
+    ])).toBeNull();
+  });
 });
 
 describe('copyable business payloads', () => {

@@ -114,6 +114,7 @@ describe("social link normalization", () => {
   it("marks contact and social share routes as analytics-free", () => {
     expect(isPrivateSharePath("/tr/k")).toBe(true);
     expect(isPrivateSharePath("/en/s/")).toBe(true);
+    expect(isPrivateSharePath("/tr/b")).toBe(true);
     expect(isPrivateSharePath("/tr/araclar/nfc-yaz")).toBe(false);
   });
 });
