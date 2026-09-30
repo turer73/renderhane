@@ -76,7 +76,13 @@ export function checkNfcCapacity(records: readonly NfcRecordInput[], profileId: 
 export function nfcWriteErrorMessage(error: unknown, overwrite: boolean): string {
   const name = error instanceof Error ? error.name : '';
   const detail = error instanceof Error ? error.message : '';
-  if (name === 'NotAllowedError') return 'NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.';
+  if (name === 'NotAllowedError') {
+    // Web NFC also rejects with NotAllowedError when overwrite is off and the
+    // tag already holds an NDEF message; only a permission-worded rejection is a denial.
+    if (/overwrite/i.test(detail) || (!overwrite && !/permission/i.test(detail)))
+      return 'Etikette zaten içerik var ve üzerine yazma kapalı. “Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.” seçeneğini açıp yeniden dene.';
+    return 'NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.';
+  }
   if (name === 'NotSupportedError') return 'Cihaz veya etiket bu işlemi desteklemiyor.';
   if (name === 'AbortError') return 'NFC işlemi durduruldu.';
   if (name === 'InvalidStateError') return 'Başka bir NFC işlemi açık olabilir. Sayfayı önde tutup yeniden dene.';

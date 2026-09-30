@@ -386,6 +386,7 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Etiket okunamadı. Biçim veya yakınlığı kontrol et.", "The tag could not be read. Check its format and distance."],
   ["Bilinmeyen hata", "Unknown error"],
   ["NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.", "NFC permission was denied. Check permissions and try again."],
+  ["Etikette zaten içerik var ve üzerine yazma kapalı. “Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.” seçeneğini açıp yeniden dene.", "The tag already has content and overwriting is off. Enable “Allow overwriting the tag's existing content.” and try again."],
   ["Cihaz veya etiket bu işlemi desteklemiyor.", "The device or tag does not support this operation."],
   ["NFC işlemi tamamlanmadı:", "NFC operation did not complete:"],
   ["NFC işlemi tamamlanamadı", "NFC operation could not be completed"],

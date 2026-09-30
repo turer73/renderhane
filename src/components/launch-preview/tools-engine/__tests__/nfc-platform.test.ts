@@ -1,4 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
+import {localizeToolText} from '../english-copy';
 import {
   NFC_CHIP_PROFILES,
   checkNfcCapacity,
@@ -147,6 +148,21 @@ describe('NFC chip platform', () => {
     expect(nfcWriteErrorMessage(error, true)).toContain('Kapasiteyi kontrol et');
     expect(nfcReadErrorMessage(new DOMException('Cannot decode record', 'DataError'))).toContain('okunamadı');
     expect(nfcReadErrorMessage(new DOMException('Cannot decode record', 'DataError'))).not.toContain('yazılamadı');
+  });
+
+  it('does not report a blocked overwrite as a denied NFC permission', () => {
+    const blocked = new DOMException('NDEFWriteOptions#overwrite does not allow overwrite.', 'NotAllowedError');
+    expect(nfcWriteErrorMessage(blocked, false)).toContain('üzerine yazma kapalı');
+    expect(nfcWriteErrorMessage(blocked, false)).not.toContain('izni verilmedi');
+    expect(nfcWriteErrorMessage(new DOMException('', 'NotAllowedError'), false)).toContain('üzerine yazma kapalı');
+    expect(localizeToolText(nfcWriteErrorMessage(blocked, false))).toBe(
+      "The tag already has content and overwriting is off. Enable “Allow overwriting the tag's existing content.” and try again.",
+    );
+
+    const denied = new DOMException('NFC permission request denied.', 'NotAllowedError');
+    expect(nfcWriteErrorMessage(denied, false)).toContain('izni verilmedi');
+    expect(nfcWriteErrorMessage(denied, true)).toContain('izni verilmedi');
+    expect(nfcWriteErrorMessage(new DOMException('', 'NotAllowedError'), true)).toContain('izni verilmedi');
   });
 
   it('covers every NFC Forum tag type and keeps proprietary cards out of generic web writes', () => {
