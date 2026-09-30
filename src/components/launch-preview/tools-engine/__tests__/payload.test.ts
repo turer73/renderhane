@@ -10,6 +10,26 @@ beforeAll(async () => {
   ({buildPayload, toEditorNfcForm, readBusinessTag, readCompactContactTag, buildNfcLocationUrl} = await import('../core'));
 });
 
+describe('WiFi keys', () => {
+  const wifi = (encryption: string, password: string) => buildPayload('wifi', {ssid: 'Misafir', encryption, password});
+
+  it('rejects keys phones cannot join with', () => {
+    expect(() => wifi('WPA', '1234567')).toThrow('WPA şifresi 8–63 karakter olmalı.');
+    expect(() => wifi('WPA', 'x'.repeat(64))).toThrow('WPA şifresi 8–63 karakter olmalı.');
+    expect(() => wifi('WEP', '1234')).toThrow(/WEP anahtarı/);
+    expect(() => wifi('WEP', '0123456789abcdef')).toThrow(/WEP anahtarı/);
+  });
+
+  it('accepts standard WPA and WEP keys', () => {
+    expect(wifi('WPA', '12345678')).toContain('P:12345678;');
+    expect(wifi('WPA', 'x'.repeat(63))).toContain('T:WPA;');
+    expect(wifi('WPA', 'a'.repeat(64))).toContain('T:WPA;'); // 64 hex digits = raw PSK
+    for (const key of ['abcde', 'abcdefghijklm', '0123456789', '0123456789abcdef0123456789'])
+      expect(wifi('WEP', key)).toContain('T:WEP;');
+    expect(buildPayload('wifi', {ssid: 'Açık', encryption: 'nopass'})).toContain('T:nopass;');
+  });
+});
+
 describe('NFC location tags', () => {
   it('writes a Google Maps link that iPhones open, and reads it back as a location', async () => {
     const url = buildNfcLocationUrl({lat: ' 41.0082 ', lon: '28.9784'});

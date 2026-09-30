@@ -299,6 +299,8 @@ const COPY: Array<[string, string]> = [  ["Önce sana ait veya paylaşma iznin o
   ["Ağ adı alanını doldurun.", "Complete the network name field."],
   ["Geçersiz şifreleme seçeneği.", "Invalid encryption option."],
   ["WiFi şifresini girin.", "Enter the WiFi password."],
+  ["WPA şifresi 8–63 karakter olmalı.", "A WPA password must be 8–63 characters."],
+  ["WEP anahtarı 5 veya 13 karakter ya da 10 veya 26 onaltılık hane olmalı.", "A WEP key must be 5 or 13 characters, or 10 or 26 hex digits."],
   ["E-posta alanını doldurun.", "Complete the email field."],
   ["Geçerli bir e-posta adresi girin.", "Enter a valid email address."],
   ["Enlem alanını doldurun.", "Complete the latitude field."],

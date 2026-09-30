@@ -275,6 +275,10 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
       const ssid = requireField(f, 'ssid', 'Ağ adı'); const enc = f.encryption || 'WPA';
       if (!['WPA', 'WEP', 'nopass'].includes(enc)) throw Error('Geçersiz şifreleme seçeneği.');
       if (enc !== 'nopass' && !f.password) throw Error('WiFi şifresini girin.');
+      // Phones silently fail to join with a key the standard rejects, so catch it here.
+      const key = f.password || '';
+      if (enc === 'WPA' && !(key.length >= 8 && key.length <= 63) && !/^[0-9a-f]{64}$/i.test(key)) throw Error('WPA şifresi 8–63 karakter olmalı.');
+      if (enc === 'WEP' && ![5, 13].includes(key.length) && !/^(?:[0-9a-f]{10}|[0-9a-f]{26})$/i.test(key)) throw Error('WEP anahtarı 5 veya 13 karakter ya da 10 veya 26 onaltılık hane olmalı.');
       return `WIFI:T:${enc};S:${wifiEscape(ssid)};P:${wifiEscape(f.password || '')};H:${f.hidden === 'true' ? 'true' : 'false'};;`;
     }
     case 'phone': return `tel:${phone()}`;
@@ -1078,10 +1082,13 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
         }
         if (business) s.nfcStorageMode = business.mode;
         s.nfcReadFields = business ? businessEntries(business.details, locale) : null;
-        s.nfcLastReadText = business ? formatBusinessText({...business.details, locale}) : parts.join('\n\n');
-        s.nfcMessage = form
-          ? l('Etiket okundu ve düzenleme alanına aktarıldı.', 'Tag read and loaded into the editor.')
-          : l('Etiket okundu.', 'Tag read.');
+        const empty = result.records.every(record => record.recordType === 'empty');
+        s.nfcLastReadText = business ? formatBusinessText({...business.details, locale}) : empty ? '' : parts.join('\n\n');
+        s.nfcMessage = empty
+          ? l('Etiket boş; üzerinde kayıt yok. İçeriği hazırlayıp “Etikete yaz” ile yazabilirsin.', 'The tag is empty; it holds no records. Prepare your content and use “Write to tag”.')
+          : form
+            ? l('Etiket okundu ve düzenleme alanına aktarıldı.', 'Tag read and loaded into the editor.')
+            : l('Etiket okundu.', 'Tag read.');
         stopNfc();
         render();
       }

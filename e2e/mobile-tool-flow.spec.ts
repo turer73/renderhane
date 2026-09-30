@@ -415,6 +415,24 @@ test.describe('public mobile tool flows', () => {
     await expect(page.getByRole('heading', {name: 'Bilgiler okunamadı'})).toBeVisible();
   });
 
+  test('NFC says so when a scanned tag is empty', async ({page}) => {
+    await page.addInitScript(() => {
+      const state = window as Window & {NDEFReader?: unknown};
+      state.NDEFReader = class {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(): Promise<void> {}
+        async scan(): Promise<void> {
+          queueMicrotask(() => this.onreading?.({message: {records: [{recordType: 'empty', data: null}]}} as unknown as Event));
+        }
+      };
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.locator('[data-action="nfc-scan"]').click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiket boş; üzerinde kayıt yok.');
+    await expect(page.locator('.rh-nfc-read-result')).toHaveCount(0);
+  });
+
   test('NFC writes locations as a Google Maps link that iPhones open', async ({page}) => {
     await page.addInitScript(() => {
       type FakeRecord = {recordType: string; data: string | Uint8Array};
