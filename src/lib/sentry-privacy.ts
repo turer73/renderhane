@@ -1,5 +1,5 @@
 const PRIVATE_SHARE_URL =
-  /((?:https?:\/\/[^/\s]+)?(?:\/[a-z]{2}\/(?:k|s)\/?|\/api\/contact-card\/?))(?:\?[^#\s]*)?(?:#[^\s]*)?/gi;
+  /((?:https?:\/\/[^/\s]+)?(?:\/[a-z]{2}\/(?:k|s|b)\/?|\/api\/contact-card\/?))(?:\?[^#\s]*)?(?:#[^\s]*)?/gi;
 
 /**
  * Removes query strings and fragments from contact/social share routes before
@@ -10,7 +10,7 @@ export function sanitizePrivateShareText(value: string): string {
 }
 
 export function isPrivateShareRoute(value: string): boolean {
-  return /(?:^|\s|https?:\/\/[^/\s]+)(?:\/[a-z]{2}\/(?:k|s)\/?|\/api\/contact-card\/?)(?:[?#\s]|$)/i.test(value);
+  return /(?:^|\s|https?:\/\/[^/\s]+)(?:\/[a-z]{2}\/(?:k|s|b)\/?|\/api\/contact-card\/?)(?:[?#\s]|$)/i.test(value);
 }
 
 export function scrubSentryEvent<T>(event: T): T | null {

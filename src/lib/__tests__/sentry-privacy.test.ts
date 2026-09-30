@@ -15,6 +15,7 @@ describe("Sentry privacy scrubbing", () => {
     expect(sanitizePrivateShareText("/en/s/?i=renderhane")).toBe("/en/s/");
     expect(isPrivateShareRoute("/tr/k")).toBe(true);
     expect(isPrivateShareRoute("GET /en/s?i=renderhane")).toBe(true);
+    expect(isPrivateShareRoute("https://www.renderhane.com/tr/b#i=TR33")).toBe(true);
     expect(isPrivateShareRoute("/api/contact-card?n=Ada")).toBe(true);
     expect(
       sanitizePrivateShareText(
