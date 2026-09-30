@@ -295,6 +295,16 @@ export function buildPayload(type: ContentType, f: Fields, locale: ToolLocale = 
     case 'text': return requireField(f, 'text', 'Metin');
   }
 }
+/**
+ * NFC location link. iPhones ignore `geo:` URIs on tags but open this link
+ * (Google Maps app or web); Android hands it to Maps. Same format that
+ * lib/nfc/ndef.ts reads back into the location editor. `geo:` parameters
+ * (e.g. `;u=25`) have no Maps-link equivalent and are not written.
+ */
+export function buildNfcLocationUrl(f: Fields): string {
+  buildPayload('location', f);
+  return `https://www.google.com/maps?q=${Number(f.lat.trim())},${Number(f.lon.trim())}`;
+}
 /** Produces only a local design brief; no QR, order or quote is created. */
 export function buildArtisticBrief(fields: Fields): string {
   const brand = requireField(fields,'brand','Marka / proje adı');
@@ -525,7 +535,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       case 'phone': return input('phone', 'Telefon numarası *', '+905551234567', 'tel');
       case 'email': return input('email', 'E-posta adresi *', 'ad@firma.com', 'email') + input('subject', 'Konu', 'Merhaba') + area('body', 'Mesaj');
       case 'sms': return input('phone', 'Telefon numarası *', '+905551234567', 'tel') + area('body', 'Mesaj');
-      case 'location': return `<div class="rh-two-fields">${input('lat', 'Enlem *', '41.0082', 'text')}${input('lon', 'Boylam *', '28.9784', 'text')}</div><p class="rh-helper">Ondalık ayırıcı olarak nokta kullan.</p>`;
+      case 'location': return `<div class="rh-two-fields">${input('lat', 'Enlem *', '41.0082', 'text')}${input('lon', 'Boylam *', '28.9784', 'text')}</div><p class="rh-helper">Ondalık ayırıcı olarak nokta kullan.${kind === 'nfc' ? ' ' + l('Etiket Google Haritalar bağlantısı olarak yazılır; iPhone ve Android’de haritada açılır.', 'The tag stores a Google Maps link, which opens on the map on iPhone and Android.') : ''}</p>`;
       case 'text': return area('text', 'Metin *');
       case 'app': return input('package', 'Android paket adı *', 'com.firma.uygulama') + `<p class="rh-helper">Google Play bağlantısı ve Android uygulama kaydı yazılır.</p>`;
     }
@@ -618,7 +628,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     }
     let payload = l('İçeriğini hazırlamaya başla.', 'Start preparing your content.');
     // WiFi shows only the network name; the password stays out of the preview.
-    try { payload = buildPayload(s.nfcType, s.nfc, locale); if (s.nfcType === 'wifi') payload = `WiFi · ${s.nfc.ssid.trim()}`; } catch { /* Keep the empty-state copy while fields are incomplete. */ }
+    try { payload = s.nfcType === 'location' ? buildNfcLocationUrl(s.nfc) : buildPayload(s.nfcType, s.nfc, locale); if (s.nfcType === 'wifi') payload = `WiFi · ${s.nfc.ssid.trim()}`; } catch { /* Keep the empty-state copy while fields are incomplete. */ }
     return `<div class="rh-nfc-generic-preview"><img src="${asset('logo.svg')}" alt=""/><h3>${l('Dokun, bağlantı kur.', 'Tap to connect.')}</h3><p>${esc(payload)}</p><div class="rh-wave">${l('Temsili telefon önizlemesi', 'Illustrative phone preview')}</div></div>`;
   }
   function nfcView(): string {
@@ -875,6 +885,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
       const lang = s.nfc.lang === 'en' || s.nfc.lang === 'tr' ? s.nfc.lang : locale;
       return [{recordType: 'text', lang, data: payload}];
     }
+    if (s.nfcType === 'location') return [{recordType: 'url', data: buildNfcLocationUrl(s.nfc)}];
     if (s.nfcType === 'app') return [{recordType: 'url', data: payload}, {recordType: 'android.com:pkg', data: new TextEncoder().encode(s.nfc.package)}];
     return [{recordType: 'url', data: payload}];
   }
@@ -1082,7 +1093,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     }
   }
   async function copyNfc(): Promise<void> {
-    try { if (!win.navigator.clipboard?.writeText) throw Error('Panoya erişim için HTTPS veya localhost gerekir.'); const text = buildPayload(s.nfcType, s.nfc, locale); if (s.nfcType === 'wifi') throw Error('WiFi şifresini kopyalamak yerine QR aracını kullan.'); await win.navigator.clipboard.writeText(text); toast('İçerik panoya kopyalandı.'); }
+    try { if (!win.navigator.clipboard?.writeText) throw Error('Panoya erişim için HTTPS veya localhost gerekir.'); const text = s.nfcType === 'location' ? buildNfcLocationUrl(s.nfc) : buildPayload(s.nfcType, s.nfc, locale); if (s.nfcType === 'wifi') throw Error('WiFi şifresini kopyalamak yerine QR aracını kullan.'); await win.navigator.clipboard.writeText(text); toast('İçerik panoya kopyalandı.'); }
     catch (error) { toast(error instanceof Error ? error.message : 'Kopyalama için HTTPS veya localhost gerekir.'); }
   }
   async function copyReadNfc(): Promise<void> {

@@ -4,9 +4,24 @@ let buildPayload: (typeof import('../core'))['buildPayload'];
 let toEditorNfcForm: (typeof import('../core'))['toEditorNfcForm'];
 let readBusinessTag: (typeof import('../core'))['readBusinessTag'];
 let readCompactContactTag: (typeof import('../core'))['readCompactContactTag'];
+let buildNfcLocationUrl: (typeof import('../core'))['buildNfcLocationUrl'];
 beforeAll(async () => {
   Object.assign(globalThis, {window: {}});
-  ({buildPayload, toEditorNfcForm, readBusinessTag, readCompactContactTag} = await import('../core'));
+  ({buildPayload, toEditorNfcForm, readBusinessTag, readCompactContactTag, buildNfcLocationUrl} = await import('../core'));
+});
+
+describe('NFC location tags', () => {
+  it('writes a Google Maps link that iPhones open, and reads it back as a location', async () => {
+    const url = buildNfcLocationUrl({lat: ' 41.0082 ', lon: '28.9784'});
+    expect(url).toBe('https://www.google.com/maps?q=41.0082,28.9784');
+    expect(buildNfcLocationUrl({lat: '41.0', lon: '29.0', geoSuffix: ';u=25'})).toBe('https://www.google.com/maps?q=41,29');
+    expect(() => buildNfcLocationUrl({lat: '91', lon: '0'})).toThrow(/aralığında/);
+
+    const {decodeNfcForm} = await import('../nfc');
+    const bytes = new TextEncoder().encode(url);
+    const form = decodeNfcForm([{recordType: 'url', data: new DataView(bytes.buffer)}]);
+    expect(form && toEditorNfcForm(form)).toEqual({type: 'location', fields: {lat: '41.0082', lon: '28.9784'}});
+  });
 });
 
 describe('reading older compact contact tags', () => {

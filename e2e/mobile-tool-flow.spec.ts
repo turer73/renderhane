@@ -415,6 +415,39 @@ test.describe('public mobile tool flows', () => {
     await expect(page.getByRole('heading', {name: 'Bilgiler okunamadı'})).toBeVisible();
   });
 
+  test('NFC writes locations as a Google Maps link that iPhones open', async ({page}) => {
+    await page.addInitScript(() => {
+      type FakeRecord = {recordType: string; data: string | Uint8Array};
+      const state = window as Window & {NDEFReader?: unknown; __nfcRecords?: FakeRecord[]};
+      state.NDEFReader = class {
+        onreading: ((event: Event) => void) | null = null;
+        onreadingerror: (() => void) | null = null;
+        async write(message: {records: FakeRecord[]}): Promise<void> { state.__nfcRecords = message.records; }
+        async scan(): Promise<void> {
+          queueMicrotask(() => this.onreading?.({message: {records: (state.__nfcRecords || []).map(record => {
+            const bytes = typeof record.data === 'string' ? new TextEncoder().encode(record.data) : record.data;
+            return {...record, data: new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)};
+          })}} as unknown as Event));
+        }
+      };
+    });
+    await page.goto('/tr/araclar/nfc-yaz');
+    await page.locator('[data-nfc-type="location"]').click();
+    await page.locator('#rh-nfc-lat').fill('41.0082');
+    await page.locator('#rh-nfc-lon').fill('28.9784');
+    await expect(page.locator('#rh-nfc-preview')).toContainText('https://www.google.com/maps?q=41.0082,28.9784');
+
+    await page.locator('[data-action="nfc-write"]').click();
+    await expect(page.locator('#rh-nfc-status')).toContainText('Etiket yazıldı.');
+    const written = await page.evaluate(() => (window as Window & {__nfcRecords?: Array<{recordType: string; data: string}>}).__nfcRecords);
+    expect(written).toEqual([{recordType: 'url', data: 'https://www.google.com/maps?q=41.0082,28.9784'}]);
+
+    await page.locator('[data-nfc-type="url"]').click();
+    await page.locator('[data-action="nfc-scan"]').click();
+    await expect(page.locator('#rh-nfc-lat')).toHaveValue('41.0082');
+    await expect(page.locator('#rh-nfc-lon')).toHaveValue('28.9784');
+  });
+
   test('NFC writes WiFi as a WSC record and reads it back without printing the password', async ({page}) => {
     await page.addInitScript(() => {
       type FakeRecord = {recordType: string; mediaType?: string; lang?: string; data: string | Uint8Array};
