@@ -285,7 +285,19 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'error');
     await expect(page.locator('.rh-nfc-capacity')).toContainText('NTAG215 seç.');
     await expect(page.locator('.rh-nfc-storage-recommended')).toHaveCount(0);
+
+    // Picking compact warns in a dialog; backing out returns to the copyable page.
+    const compactDialog = page.locator('#rh-nfc-compact-dialog');
     await page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]').check();
+    await expect(compactDialog).toBeVisible();
+    await expect(compactDialog).toContainText('Bu etiket telefonlarda açılmaz, yalnız bu araçla okunur');
+    await compactDialog.getByRole('button', {name: 'Kopyalanabilir sayfaya dön'}).click();
+    await expect(compactDialog).not.toBeVisible();
+    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="link"]')).toBeChecked();
+
+    await page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]').check();
+    await compactDialog.getByRole('button', {name: 'Anladım, sıkıştırılmış kullan'}).click();
+    await expect(compactDialog).not.toBeVisible();
     await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
     await expect(page.locator('.rh-nfc-capacity')).toHaveAttribute('data-state', 'success');
     await expect(page.locator('[data-action="nfc-write"]')).toBeEnabled();
@@ -300,13 +312,14 @@ test.describe('public mobile tool flows', () => {
     await expect(page.locator('[data-action="nfc-copy-read"]')).toBeVisible();
     expect(await page.locator('.rh-nfc-storage').evaluate(element => element.getBoundingClientRect().right <= innerWidth + 1)).toBe(true);
 
+    // Compact is never carried over to the next tag.
     await page.locator('[data-nfc-type="url"]').click();
     await page.locator('[data-nfc-type="bank"]').click();
-    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
+    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="link"]')).toBeChecked();
 
     await page.reload();
     await page.locator('[data-nfc-type="bank"]').click();
-    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="compact"]')).toBeChecked();
+    await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="link"]')).toBeChecked();
   });
 
   test('NFC bank page link opens a copy button for every detail', async ({page, context}) => {

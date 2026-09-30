@@ -345,6 +345,7 @@
 .rh-app .rh-error-dialog h2{font-size:20px;line-height:1.2}
 .rh-app .rh-error-dialog p{margin:12px 0 20px;color:var(--muted);font-size:13px;line-height:1.65}
 .rh-app .rh-error-dialog .rh-btn{min-width:130px;justify-content:center}
+.rh-app .rh-dialog-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .rh-app .rh-nfc-bulk{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,auto);gap:16px;align-items:center;margin-top:18px;padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .rh-app .rh-nfc-bulk>div>strong{font-size:13px}
 .rh-app .rh-nfc-bulk p{font-size:11px;color:var(--muted);margin-top:3px}

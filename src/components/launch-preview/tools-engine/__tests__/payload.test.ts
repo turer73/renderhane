@@ -3,9 +3,25 @@ import {beforeAll, describe, expect, it} from 'vitest';
 let buildPayload: (typeof import('../core'))['buildPayload'];
 let toEditorNfcForm: (typeof import('../core'))['toEditorNfcForm'];
 let readBusinessTag: (typeof import('../core'))['readBusinessTag'];
+let readCompactContactTag: (typeof import('../core'))['readCompactContactTag'];
 beforeAll(async () => {
   Object.assign(globalThis, {window: {}});
-  ({buildPayload, toEditorNfcForm, readBusinessTag} = await import('../core'));
+  ({buildPayload, toEditorNfcForm, readBusinessTag, readCompactContactTag} = await import('../core'));
+});
+
+describe('reading older compact contact tags', () => {
+  it('restores the vCard editor fields', async () => {
+    const {createCompactNfcRecord} = await import('../nfc');
+    const data = createCompactNfcRecord({kind: 'vcard', locale: 'tr', fields: ['Turgut Ürer', '+905551234567', '', 'Renderhane', '']}).data as Uint8Array;
+    const record = {recordType: 'renderhane.com:c', data: new DataView(data.buffer, data.byteOffset, data.byteLength)};
+    expect(readCompactContactTag([record])).toEqual({
+      type: 'vcard',
+      fields: {contactMode: 'android', firstName: 'Turgut', lastName: 'Ürer', phone: '+905551234567', org: 'Renderhane'},
+    });
+    expect(readBusinessTag([record])).toBeNull();
+    const bank = createCompactNfcRecord({kind: 'bank', locale: 'tr', fields: ['A', 'TR330006100519786457841326', '', '', '']}).data as Uint8Array;
+    expect(readCompactContactTag([{recordType: 'renderhane.com:c', data: new DataView(bank.buffer)}])).toBeNull();
+  });
 });
 
 describe('reading bank tags back', () => {
