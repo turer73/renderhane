@@ -265,6 +265,13 @@ test.describe('public mobile tool flows', () => {
       }
       state.NDEFReader = FakeNDEFReader;
     });
+    // A "standard" choice saved by the pre-link version must not override the copyable page.
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('seeded')) {
+        localStorage.setItem('renderhane:nfc-storage-mode', 'standard');
+        sessionStorage.setItem('seeded', '1');
+      }
+    });
     await page.goto('/tr/araclar/nfc-yaz');
     await page.locator('[data-nfc-type="bank"]').click();
     await expect(page.locator('.rh-nfc-storage input[name="rh-nfc-storage"][value="link"]')).toBeChecked();

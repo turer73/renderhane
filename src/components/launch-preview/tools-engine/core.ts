@@ -19,7 +19,9 @@ export type ContentType = 'url' | 'vcard' | 'social' | 'bank' | 'invoice' | 'wif
 /** Bank/invoice only: `link` opens a copy-per-field page on any phone that taps the tag. */
 type NfcStorageMode = 'link' | 'standard' | 'compact';
 const isNfcStorageMode = (value: unknown): value is NfcStorageMode => value === 'link' || value === 'standard' || value === 'compact';
-const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode';
+// v2: choices saved before the copyable page existed must not keep bank tags on plain text,
+// which Android shows in a viewer that cannot copy.
+const NFC_STORAGE_MODE_KEY = 'renderhane:nfc-storage-mode:v2';
 export type Fields = Record<string, string>;
 /** Adapts the shared NDEF decoder schema to this editor's field names. */
 export function toEditorNfcForm(form: {type: ContentType; fields: Fields}): {type: ContentType; fields: Fields} {
