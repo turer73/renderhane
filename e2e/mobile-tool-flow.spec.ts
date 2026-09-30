@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
 import {expect, test} from '@playwright/test';
 
 test.describe('public mobile tool flows', () => {
@@ -381,6 +383,35 @@ test.describe('public mobile tool flows', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 
     await page.goto('/tr/b#n=Eksik');
+    await expect(page.getByRole('heading', {name: 'Bilgiler okunamadı'})).toBeVisible();
+  });
+
+  test('portable NFC card page shows and copies every detail without the site', async ({page, context}) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const html = readFileSync(path.join(process.cwd(), 'standalone/nfc-card/index.html'), 'utf8');
+    // Serve the single file the way a static host would, at /tr/b and /en/b.
+    await page.route('**/portable/*/b', route => route.fulfill({status: 200, contentType: 'text/html; charset=utf-8', body: html}));
+
+    await page.goto('/portable/tr/b#n=%C3%96rnek+Al%C4%B1c%C4%B1&i=TR200000000000000000000001&b=Test+Bankas%C4%B1');
+    await expect(page.getByRole('heading', {name: 'Örnek Alıcı'})).toBeVisible();
+    await expect(page.getByText('TR20 0000 0000 0000 0000 0000 01')).toBeVisible();
+    await page.getByRole('button', {name: 'IBAN kopyala'}).click();
+    await expect(page.getByRole('button', {name: 'IBAN kopyala'})).toHaveText('Kopyalandı');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('TR200000000000000000000001');
+    await page.getByRole('button', {name: 'Tümünü kopyala'}).click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('BANKA BİLGİLERİ\nAlıcı: Örnek Alıcı\nIBAN: TR200000000000000000000001\nBanka: Test Bankası');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+
+    await page.goto('/portable/en/b#t=f&n=Renderhane+Ltd.&v=1234567890&a=Istanbul');
+    await expect(page.getByText('INVOICE DETAILS')).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Tax/ID no copy'})).toBeVisible();
+
+    // Tag-supplied text is rendered as text, never as markup.
+    await page.goto('/portable/tr/b#n=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E&i=TR33');
+    await expect(page.getByRole('heading', {name: '<img src=x onerror=alert(1)>'})).toBeVisible();
+    await expect(page.locator('img')).toHaveCount(0);
+
+    await page.goto('/portable/tr/b#n=Eksik');
     await expect(page.getByRole('heading', {name: 'Bilgiler okunamadı'})).toBeVisible();
   });
 
