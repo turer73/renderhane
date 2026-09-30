@@ -38,10 +38,12 @@ CREATE TABLE public.system_health_logs (id UUID PRIMARY KEY);
 \ir ../migrations/007_security_hardening.sql
 \ir ../migrations/008_user_segments.sql
 \ir ../migrations/009_increase_signup_credits.sql
+\ir ../migrations/010_api_keys.sql
 \ir ../migrations/011_subscriptions.sql
 \ir ../migrations/013_fix_handle_new_user.sql
 \ir ../migrations/015_outputs_job_id_unique.sql
 \ir ../migrations/016_jobs_original_request.sql
+\ir ../migrations/20260618_api_key_limit_guard.sql
 \ir ../migrations/20260830_reserve_credit_bundle.sql
 \ir ../migrations/20260831_social_kit_request_idempotency.sql
 
