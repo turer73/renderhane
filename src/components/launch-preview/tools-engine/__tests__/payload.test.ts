@@ -2,9 +2,95 @@ import {beforeAll, describe, expect, it} from 'vitest';
 
 let buildPayload: (typeof import('../core'))['buildPayload'];
 let toEditorNfcForm: (typeof import('../core'))['toEditorNfcForm'];
+let readBusinessTag: (typeof import('../core'))['readBusinessTag'];
+let readCompactContactTag: (typeof import('../core'))['readCompactContactTag'];
+let buildNfcLocationUrl: (typeof import('../core'))['buildNfcLocationUrl'];
 beforeAll(async () => {
   Object.assign(globalThis, {window: {}});
-  ({buildPayload, toEditorNfcForm} = await import('../core'));
+  ({buildPayload, toEditorNfcForm, readBusinessTag, readCompactContactTag, buildNfcLocationUrl} = await import('../core'));
+});
+
+describe('WiFi keys', () => {
+  const wifi = (encryption: string, password: string) => buildPayload('wifi', {ssid: 'Misafir', encryption, password});
+
+  it('rejects keys phones cannot join with', () => {
+    expect(() => wifi('WPA', '1234567')).toThrow('WPA şifresi 8–63 karakter olmalı.');
+    expect(() => wifi('WPA', 'x'.repeat(64))).toThrow('WPA şifresi 8–63 karakter olmalı.');
+    expect(() => wifi('WEP', '1234')).toThrow(/WEP anahtarı/);
+    expect(() => wifi('WEP', '0123456789abcdef')).toThrow(/WEP anahtarı/);
+  });
+
+  it('accepts standard WPA and WEP keys', () => {
+    expect(wifi('WPA', '12345678')).toContain('P:12345678;');
+    expect(wifi('WPA', 'x'.repeat(63))).toContain('T:WPA;');
+    expect(wifi('WPA', 'a'.repeat(64))).toContain('T:WPA;'); // 64 hex digits = raw PSK
+    for (const key of ['abcde', 'abcdefghijklm', '0123456789', '0123456789abcdef0123456789'])
+      expect(wifi('WEP', key)).toContain('T:WEP;');
+    expect(buildPayload('wifi', {ssid: 'Açık', encryption: 'nopass'})).toContain('T:nopass;');
+  });
+});
+
+describe('NFC location tags', () => {
+  it('writes a Google Maps link that iPhones open, and reads it back as a location', async () => {
+    const url = buildNfcLocationUrl({lat: ' 41.0082 ', lon: '28.9784'});
+    expect(url).toBe('https://www.google.com/maps?q=41.0082,28.9784');
+    expect(buildNfcLocationUrl({lat: '41.0', lon: '29.0', geoSuffix: ';u=25'})).toBe('https://www.google.com/maps?q=41,29');
+    expect(() => buildNfcLocationUrl({lat: '91', lon: '0'})).toThrow(/aralığında/);
+
+    const {decodeNfcForm} = await import('../nfc');
+    const bytes = new TextEncoder().encode(url);
+    const form = decodeNfcForm([{recordType: 'url', data: new DataView(bytes.buffer)}]);
+    expect(form && toEditorNfcForm(form)).toEqual({type: 'location', fields: {lat: '41.0082', lon: '28.9784'}});
+  });
+});
+
+describe('reading older compact contact tags', () => {
+  it('restores the vCard editor fields', async () => {
+    const {createCompactNfcRecord} = await import('../nfc');
+    const data = createCompactNfcRecord({kind: 'vcard', locale: 'tr', fields: ['Turgut Ürer', '+905551234567', '', 'Renderhane', '']}).data as Uint8Array;
+    const record = {recordType: 'renderhane.com:c', data: new DataView(data.buffer, data.byteOffset, data.byteLength)};
+    expect(readCompactContactTag([record])).toEqual({
+      type: 'vcard',
+      fields: {contactMode: 'android', firstName: 'Turgut', lastName: 'Ürer', phone: '+905551234567', org: 'Renderhane'},
+    });
+    expect(readBusinessTag([record])).toBeNull();
+    const bank = createCompactNfcRecord({kind: 'bank', locale: 'tr', fields: ['A', 'TR330006100519786457841326', '', '', '']}).data as Uint8Array;
+    expect(readCompactContactTag([{recordType: 'renderhane.com:c', data: new DataView(bank.buffer)}])).toBeNull();
+  });
+});
+
+describe('reading bank tags back', () => {
+  const details = {
+    kind: 'bank' as const,
+    locale: 'tr' as const,
+    fields: ['Örnek Alıcı', 'TR330006100519786457841326', 'Örnek Banka', '', 'Sipariş 42'],
+  };
+  const view = (value: string | Uint8Array) => {
+    const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  };
+
+  it('restores the same fields from link, text and compact tags', async () => {
+    const {buildBusinessLandingUrl, formatBusinessText} = await import('@/lib/nfc/business-card');
+    const {createCompactNfcRecord} = await import('../nfc');
+    const compact = createCompactNfcRecord(details).data as Uint8Array;
+
+    expect(readBusinessTag([{recordType: 'url', data: view(buildBusinessLandingUrl(details))}]))
+      .toEqual({details, mode: 'link'});
+    expect(readBusinessTag([{recordType: 'text', lang: 'tr', data: view(formatBusinessText(details))}]))
+      .toEqual({details, mode: 'standard'});
+    expect(readBusinessTag([{recordType: 'renderhane.com:c', data: view(compact)}]))
+      .toEqual({details, mode: 'compact'});
+  });
+
+  it('leaves ordinary links, text and multi-record tags alone', () => {
+    expect(readBusinessTag([{recordType: 'url', data: view('https://www.renderhane.com/tr/araclar/nfc-yaz')}])).toBeNull();
+    expect(readBusinessTag([{recordType: 'text', data: view('merhaba')}])).toBeNull();
+    expect(readBusinessTag([
+      {recordType: 'text', data: view('BANKA BİLGİLERİ\nAlıcı: A\nIBAN: TR330006100519786457841326')},
+      {recordType: 'text', data: view('ek')},
+    ])).toBeNull();
+  });
 });
 
 describe('copyable business payloads', () => {

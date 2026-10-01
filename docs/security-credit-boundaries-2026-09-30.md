@@ -101,7 +101,7 @@ psql -v ON_ERROR_STOP=1 -f supabase/tests/credit_authority_test.sql
 - Targeted npm updates fix `fast-uri` (3.1.8), `ip-address` (10.7.2),
   `brace-expansion` (1.1.21/5.0.12), `qs` (6.16.0) and `undici` (7.30.0).
   Express-related development dependencies are deduplicated within their existing
-  declared ranges; no application top-level dependency range was changed.
+  declared ranges; this first batch did not change application top-level ranges.
   A clean npm 10 install and both full/production-only audits report **0 known
   vulnerabilities**. This does not prove the absence of undisclosed vulnerabilities.
 
@@ -132,8 +132,12 @@ The application at the previous production commit still needs coordinated releas
 the old referral route calls the RPC as a user and is incompatible with the
 already-applied revocation. Do not restore public financial privileges as a workaround.
 
-PR preview lacks branch-specific Supabase environment configuration. Its health
-endpoint works, but authentication-dependent endpoints could not be accepted.
+The old PR preview at `38e9dd4` was built before the public Preview Supabase
+variables were configured and still returned 500 for `/api/subscriptions` in the
+2026-10-01 check. A fresh deployment is required to validate that configuration.
+Preview still has no service-role key, so privileged flows are not accepted there.
+The previous health response was not connection evidence: it failed open on missing
+configuration. The new contract below deliberately returns 503 in that case.
 Do not copy production service credentials into Preview; use an explicitly
 approved isolated test target. No new paid environment was created.
 
@@ -143,6 +147,48 @@ password protection warning cannot be closed without the Pro-or-higher feature
 No paid upgrade was authorized or performed. Five server-only tables with RLS
 and no client policies produce INFO advisories; adding permissive policies merely
 to clear those messages would weaken isolation and is not a fix.
+
+## 2026-10-01 review and release candidate
+
+- Reviewed master `3f42c6bd1042b7472bb0b606b68596bd48da6ef7` (PRs #120–#125):
+  bank-card copy fields, NFC storage-mode fixes, portable card, Google Maps links,
+  WiFi key validation and empty-tag messaging are retained. Their 21 changed files
+  do not overlap the earlier security diff. Master merged into the security branch
+  without conflicts; the original NFC checkout is untouched.
+- `/api/health/status` now returns an uncached 503 with `healthy: false` when
+  credentials are missing, a query fails, the record is missing/malformed, or the
+  five-second check times out. Confirmed boolean provider status remains HTTP 200
+  with its existing cache policy. Ten tests cover these states and timer cleanup.
+  This is the stored provider-status check, not proof of a paid generation working.
+- Current audit found the new `next/og` advisory
+  [GHSA-vcvr-r3jv-pc5j](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j)
+  in Next 16.3.3 and the JSX-boundary advisory
+  [GHSA-hxh3-vqpv-xpqv](https://github.com/honojs/hono/security/advisories/GHSA-hxh3-vqpv-xpqv)
+  in the development-only Hono dependency. This does not establish application
+  exploitability. Next and eslint-config-next are now pinned to 16.3.6; Hono's
+  lockfile resolves to 4.13.12 within the existing parent's range. No forced major
+  upgrade or broader `audit fix` was used; cross-platform SWC packages are retained.
+
+Local verification of this combined release candidate:
+
+| Check | Result |
+| --- | --- |
+| Clean `npm@10 ci` | Passed |
+| `npm test` | 67 files, 765 tests passed |
+| `npm run lint` | Passed, zero ESLint warnings |
+| `npm run type-check` | Passed |
+| `npm run build` | Passed with Next 16.3.6; existing metadataBase warning remains |
+| `npm@10 audit --json` | 0 known vulnerabilities |
+| `npm@10 audit --omit=dev --json` | 0 known vulnerabilities |
+
+Read-only production checks confirmed Vercel master `3f42c6b` and the intended
+Supabase project `byrovuwvzvzipwntounn`. A unique public comments request produced
+a matching HTTP 200 Supabase REST log; existing webhook-cron RPC logs also show
+successful server connectivity. No payment, generation, customer balance or queue
+mutation was triggered by these checks. The trigger/referral follow-up was still
+pending at this pre-release review. Updated-head CI, production deployment and the
+follow-up migration require their own evidence; local results above do not replace
+those release gates.
 
 ## Deferred, not silently marked fixed
 
