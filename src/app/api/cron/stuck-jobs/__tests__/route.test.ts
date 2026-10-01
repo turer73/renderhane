@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   cancelJobAndRefund: vi.fn(),
   completeSocialKitRequest: vi.fn(),
   reconcileTalkingAvatarTts: vi.fn(),
+  reconcileAcceptedProviderJob: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -26,6 +27,9 @@ vi.mock("@/lib/jobs/social-kit-idempotency", () => ({
 }));
 vi.mock("@/lib/jobs/talking-avatar-reconciliation", () => ({
   reconcileTalkingAvatarTts: mocks.reconcileTalkingAvatarTts,
+}));
+vi.mock("@/lib/jobs/provider-reconciliation", () => ({
+  reconcileAcceptedProviderJob: mocks.reconcileAcceptedProviderJob,
 }));
 
 import { GET } from "../route";
@@ -172,6 +176,7 @@ describe("stuck-jobs atomic cleanup", () => {
     mocks.cancelJobAndRefund.mockResolvedValue("cancelled_refunded");
     mocks.completeSocialKitRequest.mockResolvedValue(undefined);
     mocks.reconcileTalkingAvatarTts.mockResolvedValue("provider_pending");
+    mocks.reconcileAcceptedProviderJob.mockResolvedValue("provider_pending");
   });
 
   afterEach(() => {
@@ -311,6 +316,76 @@ describe("stuck-jobs atomic cleanup", () => {
     expect(mocks.refundCredits).not.toHaveBeenCalled();
   });
 
+  it("queues recovered main results without calling cleanup's refund path", async () => {
+    mocks.reconcileAcceptedProviderJob.mockResolvedValueOnce("webhook_queued");
+    installAdmin({
+      jobs: [listChain({ data: [{ id: "recovered", fal_request_id: "fal-main" }], error: null })],
+      creditTransactions: [listChain({ data: [], error: null })],
+      socialKitRequests: [listChain({ data: [], error: null })],
+    });
+    await expect((await GET(cronRequest())).json()).resolves.toMatchObject({
+      providerWebhooksQueued: 1, providerReconciliationPending: 0, cleaned: 0, refunded: 0,
+    });
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+    expect(mocks.refundCredits).not.toHaveBeenCalled();
+  });
+
+  it("surfaces unrecognized provider results without guessing a refund", async () => {
+    mocks.reconcileAcceptedProviderJob.mockResolvedValueOnce("review_required");
+    installAdmin({
+      jobs: [listChain({ data: [{ id: "needs-review", fal_request_id: "fal-main" }], error: null })],
+      creditTransactions: [listChain({ data: [], error: null })],
+      socialKitRequests: [listChain({ data: [], error: null })],
+    });
+    await expect((await GET(cronRequest())).json()).resolves.toMatchObject({ providerResultReviewRequired: 1, providerReconciliationPending: 1 });
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+  });
+
+  it("drains every fetched page before yielding its cursor to the next invocation", async () => {
+    let clock = Date.parse("2026-10-01T00:00:00Z");
+    const time = vi.spyOn(Date, "now").mockImplementation(() => clock);
+    const page = Array.from({ length: 50 }, (_, i) => ({ id: `provider-${i}`, fal_request_id: `fal-${i}` }));
+    mocks.reconcileAcceptedProviderJob.mockImplementationOnce(async () => {
+      // Enough for an end-of-page check, but NOT another 130s worst-case page.
+      clock += 117_000;
+      return "provider_pending";
+    });
+    installAdmin({
+      jobs: [
+        listChain({ data: page, error: null }),
+        listChain({ data: [{ id: "later-cleanable", fal_request_id: null }], error: null }),
+      ],
+      creditTransactions: [listChain({ data: [], error: null })],
+      socialKitRequests: [listChain({ data: [], error: null })],
+    });
+    try {
+      await expect((await GET(cronRequest())).json()).resolves.toMatchObject({ providerReconciliationPending: 50, scanTruncated: { jobs: true } });
+      expect(mocks.reconcileAcceptedProviderJob).toHaveBeenCalledTimes(50);
+      expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+      await expect((await GET(cronRequest())).json()).resolves.toMatchObject({ cleaned: 1, scanTruncated: { jobs: false } });
+      expect(mocks.failJobAndRefund).toHaveBeenCalledWith(expect.objectContaining({ jobId: "later-cleanable" }));
+    } finally { time.mockRestore(); }
+  });
+
+  it("uses at most four concurrent provider recovery reads", async () => {
+    let active = 0;
+    let peak = 0;
+    mocks.reconcileAcceptedProviderJob.mockImplementation(async () => {
+      peak = Math.max(peak, ++active);
+      await Promise.resolve();
+      active--;
+      return "provider_pending";
+    });
+    installAdmin({
+      jobs: [listChain({ data: Array.from({ length: 12 }, (_, i) => ({ id: `provider-${i}`, fal_request_id: `fal-${i}` })), error: null })],
+      creditTransactions: [listChain({ data: [], error: null })],
+      socialKitRequests: [listChain({ data: [], error: null })],
+    });
+    expect((await GET(cronRequest())).status).toBe(200);
+    expect(peak).toBe(4);
+    expect(mocks.reconcileAcceptedProviderJob).toHaveBeenCalledTimes(12);
+  });
+
   it("escalates an old unacknowledged provider attempt without refunding it", async () => {
     installAdmin({
       jobs: [
@@ -384,7 +459,7 @@ describe("stuck-jobs atomic cleanup", () => {
       providerReconciliationPending: 0,
       refunded: 0,
     });
-    expect(mocks.reconcileTalkingAvatarTts).toHaveBeenCalledWith(ttsJob);
+    expect(mocks.reconcileTalkingAvatarTts).toHaveBeenCalledWith(ttsJob, { abortSignal: expect.any(AbortSignal) });
     expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
   });
 

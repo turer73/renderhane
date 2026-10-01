@@ -73,13 +73,15 @@ export async function failJobAndRefund(input: {
   jobId: string;
   errorMessage: string;
   staleBefore?: string;
+  abortSignal?: AbortSignal;
 }): Promise<JobFailureDisposition> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("fail_job_and_refund", {
+  const query = supabase.rpc("fail_job_and_refund", {
     p_job_id: input.jobId,
     p_error_message: input.errorMessage,
     p_stale_before: input.staleBefore ?? null,
   });
+  const { data, error } = await (input.abortSignal ? query.abortSignal(input.abortSignal) : query);
 
   if (error) {
     throw new Error(`Failed to fail/refund webhook job: ${error.message}`);

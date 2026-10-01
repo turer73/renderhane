@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAIProvider } from "@/lib/ai";
+import type { ProviderReadOptions } from "@/lib/ai/types";
 import { routeRequest } from "@/lib/fal/smart-router";
 import type { ModelTier } from "@/lib/fal/models";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -63,9 +64,10 @@ function completedProviderFailure(status: {
 
 async function terminalizeFailedJob(
   jobId: string,
-  message: string
+  message: string,
+  options?: ProviderReadOptions,
 ): Promise<TalkingAvatarReconciliationOutcome> {
-  const disposition = await failJobAndRefund({ jobId, errorMessage: message });
+  const disposition = await failJobAndRefund({ jobId, errorMessage: message, ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}) });
   if (
     disposition === "failed_refunded" ||
     disposition === "already_failed_refunded" ||
@@ -89,7 +91,8 @@ async function terminalizeFailedJob(
  * main/submission_attempted and invoke the external provider.
  */
 export async function reconcileTalkingAvatarTts(
-  job: TalkingAvatarReconciliationJob
+  job: TalkingAvatarReconciliationJob,
+  options?: ProviderReadOptions,
 ): Promise<TalkingAvatarReconciliationOutcome> {
   const originalRequest = job.original_request;
   const marker =
@@ -115,7 +118,7 @@ export async function reconcileTalkingAvatarTts(
   const provider = getAIProvider();
   let status: { status?: unknown; error?: unknown; error_type?: unknown };
   try {
-    status = await provider.status(ttsEndpointId, ttsRequestId);
+    status = await (options ? provider.status(ttsEndpointId, ttsRequestId, options) : provider.status(ttsEndpointId, ttsRequestId));
   } catch {
     // Once the provider accepted a request, an HTTP retrieval error (including
     // 401/403/404) says nothing definitive about the queued job's lifecycle.
@@ -127,7 +130,8 @@ export async function reconcileTalkingAvatarTts(
     if (providerFailure) {
       return terminalizeFailedJob(
         job.id,
-        `TTS provider completed with error: ${providerFailure}`
+        `TTS provider completed with error: ${providerFailure}`,
+        options,
       );
     }
   }
@@ -136,17 +140,17 @@ export async function reconcileTalkingAvatarTts(
   if (["FAILED", "ERROR", "CANCELLED"].includes(String(status.status))) {
     return terminalizeFailedJob(
       job.id,
-      `TTS provider reached terminal state: ${status.status}`
+      `TTS provider reached terminal state: ${status.status}`,
+      options,
     );
   }
   if (status.status !== "COMPLETED") return "provider_pending";
 
   let ttsPayload: Record<string, unknown>;
   try {
-    ttsPayload = await provider.result<Record<string, unknown>>(
-      ttsEndpointId,
-      ttsRequestId
-    );
+    ttsPayload = await (options
+      ? provider.result<Record<string, unknown>>(ttsEndpointId, ttsRequestId, options)
+      : provider.result<Record<string, unknown>>(ttsEndpointId, ttsRequestId));
   } catch {
     // Result retrieval can fail because of credentials, endpoint drift, or
     // transient propagation even after the model completed. Keep the local
@@ -158,7 +162,8 @@ export async function reconcileTalkingAvatarTts(
   if (!audioUrl) {
     return terminalizeFailedJob(
       job.id,
-      "TTS provider completed without an audio output"
+      "TTS provider completed without an audio output",
+      options,
     );
   }
 
@@ -195,7 +200,8 @@ export async function reconcileTalkingAvatarTts(
       job.id,
       error instanceof Error
         ? error.message
-        : "Failed to rebuild talking-avatar provider input"
+        : "Failed to rebuild talking-avatar provider input",
+      options,
     );
   }
 
@@ -208,8 +214,9 @@ export async function reconcileTalkingAvatarTts(
       updatedAt: new Date().toISOString(),
     },
   };
+  if (options?.abortSignal?.aborted) return "provider_pending";
   const supabase = createAdminClient();
-  const { data: claimed, error: claimError } = await supabase
+  const claimQuery = supabase
     .from("jobs")
     .update({
       // The previous ID belongs to the TTS endpoint. Clearing it in the same
@@ -232,14 +239,21 @@ export async function reconcileTalkingAvatarTts(
         requestId: ttsRequestId,
       },
     })
-    .select("id")
-    .maybeSingle();
+    .select("id");
+  const { data: claimed, error: claimError } = await (options?.abortSignal
+    ? claimQuery.abortSignal(options.abortSignal)
+    : claimQuery).maybeSingle();
 
   if (claimError || !claimed) return "provider_pending";
+  // The CAS may have committed just as the deadline expired. Never reopen it
+  // or retry an admission whose acknowledgement might be lost.
+  if (options?.abortSignal?.aborted) return "main_submission_indeterminate";
 
   let submitted: { requestId: string };
   try {
-    submitted = await provider.submit(model.id, falInput, webhookUrl);
+    submitted = await (options
+      ? provider.submit(model.id, falInput, webhookUrl, options)
+      : provider.submit(model.id, falInput, webhookUrl));
   } catch (error) {
     const providerError = error as { status?: unknown };
     if (isDefinitiveSubmissionRejection(providerError.status)) {
@@ -247,7 +261,8 @@ export async function reconcileTalkingAvatarTts(
         job.id,
         error instanceof Error
           ? error.message
-          : "Talking-avatar provider rejected the resumed request"
+          : "Talking-avatar provider rejected the resumed request",
+        options,
       );
     }
     return "main_submission_indeterminate";
@@ -263,7 +278,7 @@ export async function reconcileTalkingAvatarTts(
       updatedAt: new Date().toISOString(),
     },
   };
-  const { data: accepted, error: acceptanceError } = await supabase
+  const acceptanceQuery = supabase
     .from("jobs")
     .update({
       fal_request_id: submitted.requestId,
@@ -280,8 +295,10 @@ export async function reconcileTalkingAvatarTts(
         state: "submission_attempted",
       },
     })
-    .select("id")
-    .maybeSingle();
+    .select("id");
+  const { data: accepted, error: acceptanceError } = await (options?.abortSignal
+    ? acceptanceQuery.abortSignal(options.abortSignal)
+    : acceptanceQuery).maybeSingle();
 
   return acceptanceError || !accepted ? "provider_pending" : "main_resubmitted";
 }
