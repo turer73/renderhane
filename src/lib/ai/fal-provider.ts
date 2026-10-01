@@ -1,6 +1,8 @@
 import { fal } from "@fal-ai/client";
 import type {
   AIProvider,
+  ProviderReadOptions,
+  ProviderSubmitOptions,
   QueueSubmitResult,
   QueueStatusInfo,
   SubscribeOptions,
@@ -8,9 +10,32 @@ import type {
 } from "./types";
 
 // Bound queue admission so a request whose acknowledgement was lost cannot
-// remain eligible to start forever. Reconciliation waits far longer than this
-// before refunding an unacknowledged submission attempt.
+// remain eligible to start forever. An unacknowledged attempt still needs
+// provider/manual evidence; its age never authorizes an automatic refund.
 const QUEUE_START_TIMEOUT_SECONDS = 30 * 60;
+
+/** The SDK's retry backoff sleep is not abort-aware. Bound the caller too,
+ * while still passing the signal to fetch so a later retry cannot send a new
+ * request after expiry. Consume late resolutions/rejections without replay.
+ */
+function withRequestSignal<T>(request: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return request();
+  if (signal.aborted) return Promise.reject(signal.reason ?? new DOMException("Request aborted", "AbortError"));
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      signal.removeEventListener("abort", abort);
+      reject(signal.reason ?? new DOMException("Request aborted", "AbortError"));
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    Promise.resolve().then(() => {
+      if (signal.aborted) throw signal.reason ?? new DOMException("Request aborted", "AbortError");
+      return request();
+    }).then(
+      (value) => { signal.removeEventListener("abort", abort); resolve(value); },
+      (error) => { signal.removeEventListener("abort", abort); reject(error); },
+    );
+  });
+}
 
 function isObjectLike(value: unknown): value is object {
   return value !== null && (typeof value === "object" || typeof value === "function");
@@ -85,13 +110,15 @@ export class FalProvider implements AIProvider {
   async submit(
     endpointId: string,
     input: Record<string, unknown>,
-    webhookUrl?: string
+    webhookUrl?: string,
+    options?: ProviderSubmitOptions,
   ): Promise<QueueSubmitResult> {
-    const result = await fal.queue.submit(endpointId, {
+    const result = await withRequestSignal(() => fal.queue.submit(endpointId, {
       input,
       webhookUrl,
       startTimeout: QUEUE_START_TIMEOUT_SECONDS,
-    });
+      ...options,
+    }), options?.abortSignal);
     return { requestId: result.request_id };
   }
 
@@ -120,12 +147,12 @@ export class FalProvider implements AIProvider {
     }
   }
 
-  async status(endpointId: string, requestId: string): Promise<QueueStatusInfo> {
-    return await fal.queue.status(endpointId, { requestId }) as unknown as QueueStatusInfo;
+  async status(endpointId: string, requestId: string, options?: ProviderReadOptions): Promise<QueueStatusInfo> {
+    return await withRequestSignal(() => fal.queue.status(endpointId, { requestId, ...options }), options?.abortSignal) as unknown as QueueStatusInfo;
   }
 
-  async result<T = unknown>(endpointId: string, requestId: string): Promise<T> {
-    const result = await fal.queue.result(endpointId, { requestId });
+  async result<T = unknown>(endpointId: string, requestId: string, options?: ProviderReadOptions): Promise<T> {
+    const result = await withRequestSignal(() => fal.queue.result(endpointId, { requestId, ...options }), options?.abortSignal);
     return result.data as T;
   }
 }

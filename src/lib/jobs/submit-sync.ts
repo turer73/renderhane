@@ -81,7 +81,7 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
 
   // Select and price the model before any paid TTS call. The final provider
   // input is rebuilt after TTS resolves.
-  const { model } = routeRequest({ tool, tier, modelKey, imageUrl, imageUrls, prompt, extraParams });
+  const { model, modelKey: resolvedModelKey } = routeRequest({ tool, tier, modelKey, imageUrl, imageUrls, prompt, extraParams });
 
   // 2. Reserve credits
   let txId: string | null = null;
@@ -111,13 +111,22 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
     txId = await reserveCredits(userId, creditCost, `${tool} — ${model.displayName.en}`);
   }
 
-  const originalRequest: Record<string, unknown> = { tool };
-  if (tier) originalRequest.tier = tier;
+  const originalRequest: Record<string, unknown> = {
+    tool,
+    tier: tier ?? model.tier,
+    modelKey: resolvedModelKey,
+  };
   if (imageUrl) originalRequest.imageUrl = imageUrl;
   if (imageUrls) originalRequest.imageUrls = imageUrls;
   if (prompt) originalRequest.prompt = prompt;
   if (script) originalRequest.script = script;
   if (audioUrl) originalRequest.audioUrl = audioUrl;
+  if (extraParams) originalRequest.extraParams = extraParams;
+  if (tool === "talking-avatar" && script && !audioUrl) {
+    originalRequest.voiceId = voiceId && isAllowedVoice(voiceId)
+      ? voiceId
+      : DEFAULT_SRT_VOICE;
+  }
 
   // Persist the job before any paid provider call. A subscribe request may be
   // accepted even when its polling transport later times out.

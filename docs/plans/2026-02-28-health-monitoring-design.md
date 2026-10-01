@@ -1,5 +1,12 @@
 # Renderhane — fal.ai Health Monitoring System
 
+> 2026-10-01 implementation note: the current health route reads authenticated
+> model metadata with GET; it does not submit/cancel a paid inference. The
+> committed schedule is 12-hourly. Adaptive 30-minute recovery below is an
+> original design proposal, not implemented behavior. Deployment and a fresh
+> scheduler receipt must be verified separately before claiming the new schedule
+> is live. See `docs/runbooks/provider-reconciliation.md`.
+
 ## Problem
 fal.ai servis kesintileri kullanıcılara teknik hata mesajları olarak yansıyor. Kullanıcılar ne olduğunu anlamıyor, admin'in haberi olmuyor. Proaktif izleme yok.
 

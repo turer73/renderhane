@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MODELS } from "@/lib/fal/models";
 
 const mocks = vi.hoisted(() => ({
   reserveCredits: vi.fn(),
@@ -158,6 +159,32 @@ describe("submitJobSync atomic terminal transitions", () => {
     });
     mocks.completeJobOutputAndSpend.mockResolvedValue(successfulCompletion);
     mocks.failJobAndRefund.mockResolvedValue("failed_refunded");
+  });
+
+  it("persists the resolved logo model and user extras for exact regeneration", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    const extraParams = { outputFormat: "svg", style: "logo" };
+    mocks.routeRequest.mockReturnValue({ model: MODELS["recraft-v4-svg"], modelKey: "recraft-v4-svg", input: { prompt: "flower" } });
+    await submitJobSync({ userId: "user-1", tool: "logo", prompt: "flower", extraParams });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      original_request: expect.objectContaining({ tool: "logo", modelKey: "recraft-v4-svg", tier: MODELS["recraft-v4-svg"].tier, extraParams }),
+    }));
+  });
+
+  it("persists the selected voice before TTS admission", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    mocks.routeRequest.mockReturnValue({ model: MODELS.omnihuman, modelKey: "omnihuman", input: { image_url: "https://cdn.example/avatar.png" } });
+    mocks.subscribe.mockImplementation(async (endpointId, _input, options) => {
+      const requestId = endpointId === "fal-ai/minimax/speech-2.8-hd" ? "fal-tts-1" : "fal-main-1";
+      await options?.onEnqueue?.(requestId);
+      return { requestId, data: endpointId === "fal-ai/minimax/speech-2.8-hd" ? { audio: { url: "https://fal.media/voice.wav" } } : { video: { url: "https://fal.media/result.mp4" } } };
+    });
+    await submitJobSync({ userId: "user-1", tool: "talking-avatar", imageUrl: "https://cdn.example/avatar.png", script: "Merhaba", voiceId: "Turkish_Trustworthyman" });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ original_request: expect.objectContaining({ modelKey: "omnihuman", script: "Merhaba", voiceId: "Turkish_Trustworthyman" }) }));
   });
 
   it("commits output, job status and spend through the atomic success RPC", async () => {

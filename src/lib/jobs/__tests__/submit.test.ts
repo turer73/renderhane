@@ -178,6 +178,26 @@ describe("submitJob credit ordering", () => {
     expect(mocks.submit).not.toHaveBeenCalled();
   });
 
+  it("saves the resolved default model and preprocessing choices before provider admission", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    await submitJob({ userId: "user-1", tool: "3d-model", tier: "fast", imageUrl: "https://cdn.example/source.png", skipBgRemove: true, autoEnhance: false });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      model_id: MODELS.triposr.id,
+      original_request: expect.objectContaining({ tool: "3d-model", tier: "fast", modelKey: "triposr", imageUrl: "https://cdn.example/source.png", skipBgRemove: true, autoEnhance: false }),
+    }));
+  });
+
+  it("saves composition context for a later regeneration", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    const promptContext = { kind: "scene" as const, sceneType: "luxury", caption: "mug" };
+    await submitJob({ userId: "user-1", tool: "scene", imageUrl: "https://cdn.example/source.png", promptContext });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ original_request: expect.objectContaining({ modelKey: "bria-product-shot", promptContext }) }));
+  });
+
   it("reserves before paid 3D preprocessing and charges enhancement per image", async () => {
     const result = await submitJob({
       userId: "user-1",

@@ -19,13 +19,23 @@ export interface SubscribeOptions {
   webhookUrl?: string;
 }
 
+export interface ProviderReadOptions {
+  /** Abort only a status/result read; never cancel the provider's paid job. */
+  abortSignal?: AbortSignal;
+}
+
+export interface ProviderSubmitOptions {
+  /** Bound HTTP admission; aborting is NOT evidence that inference was rejected. */
+  abortSignal?: AbortSignal;
+}
+
 export interface AIProvider {
-  submit(endpointId: string, input: Record<string, unknown>, webhookUrl?: string): Promise<QueueSubmitResult>;
+  submit(endpointId: string, input: Record<string, unknown>, webhookUrl?: string, options?: ProviderSubmitOptions): Promise<QueueSubmitResult>;
   subscribe<T = unknown>(
     endpointId: string,
     input: Record<string, unknown>,
     options?: SubscribeOptions
   ): Promise<SubscribeResult<T>>;
-  status(endpointId: string, requestId: string): Promise<QueueStatusInfo>;
-  result<T = unknown>(endpointId: string, requestId: string): Promise<T>;
+  status(endpointId: string, requestId: string, options?: ProviderReadOptions): Promise<QueueStatusInfo>;
+  result<T = unknown>(endpointId: string, requestId: string, options?: ProviderReadOptions): Promise<T>;
 }
