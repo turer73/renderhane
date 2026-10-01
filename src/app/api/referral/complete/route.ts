@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid referral code format" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.rpc("complete_referral", {
+  // The RPC is server-only. The beneficiary comes from verified auth, never input.
+  const { data, error } = await createAdminClient().rpc("complete_referral", {
     p_referral_code: referralCode,
     p_referee_id: user.id, // Use authenticated user ID, not client-supplied
   });

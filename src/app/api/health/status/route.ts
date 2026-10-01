@@ -5,10 +5,11 @@ import { NextResponse } from "next/server";
  * Public health status endpoint for the client.
  * Returns only a boolean — no sensitive info exposed.
  *
- * Called by Workspace before allowing job submission.
- * Cached for 30s to reduce Supabase calls during traffic spikes.
+ * Confirmed provider status is cached for 30s. An unavailable check returns
+ * 503 without caching, rather than claiming that the provider is healthy.
  */
 export async function GET() {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     const supabase = createAdminClient();
 
@@ -19,15 +20,17 @@ export async function GET() {
       .eq("id", "fal-ai")
       .single();
 
-    const timeoutPromise = new Promise<null>((resolve) =>
-      setTimeout(() => resolve(null), 5000)
-    );
+    const timeoutPromise = new Promise<null>((resolve) => {
+      timeout = setTimeout(() => resolve(null), 5000);
+    });
 
     const result = await Promise.race([query, timeoutPromise]);
-    const data = result && "data" in result ? result.data : null;
+    if (!result || result.error || typeof result.data?.is_healthy !== "boolean") {
+      return unavailable();
+    }
 
     return NextResponse.json(
-      { healthy: data?.is_healthy ?? true },
+      { healthy: result.data.is_healthy },
       {
         headers: {
           // Cache 30s at CDN edge — reduces cold starts for repeated checks
@@ -36,8 +39,15 @@ export async function GET() {
       }
     );
   } catch {
-    // If the health check system itself fails, don't block users.
-    // Assume healthy and let job-level errors handle it.
-    return NextResponse.json({ healthy: true });
+    return unavailable();
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
   }
+}
+
+function unavailable() {
+  return NextResponse.json(
+    { healthy: false },
+    { status: 503, headers: { "Cache-Control": "no-store" } }
+  );
 }

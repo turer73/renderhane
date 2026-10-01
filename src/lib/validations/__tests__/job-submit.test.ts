@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { validateJobSubmit } from "../job-submit";
 
 describe("validateJobSubmit", () => {
+  it.each(['wan-i2v', 'meshy-v71', 'constructor', '__proto__', '', null, 7])('rejects invalid background-removal model %s', (modelKey) => {
+    expect(validateJobSubmit({ tool: 'bg-remove', modelKey, imageUrl: 'https://assets.renderhane.com/input.png' }).valid).toBe(false);
+  });
+
+  it('accepts the intended tool/model pair', () => {
+    expect(validateJobSubmit({ tool: '3d-model', modelKey: 'meshy-v71', imageUrls: ['https://assets.renderhane.com/input.png'] }).valid).toBe(true);
+  });
+
   it("accepts srt-voiceover as a text-only tool with prompt", () => {
     const result = validateJobSubmit({
       tool: "srt-voiceover",
