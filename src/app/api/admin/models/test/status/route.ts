@@ -19,6 +19,7 @@ import {
 import { extractLabOutputs, persistLabOutputs, signLabPaths } from "@/lib/admin/model-lab-storage";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { LabDeadlineError, withinLabDeadline } from "@/lib/admin/model-lab-deadline";
 import type { NextRequest } from "next/server";
 
 // Copying a finished run's outputs into private storage happens here.
@@ -71,11 +72,12 @@ function leaseUntil(): string {
  */
 async function storeOutputs(admin: AdminClient, userId: string, claimed: LabRunRow, deadline: number, retryFailed: boolean): Promise<LabRunRow> {
   let latest = claimed;
-  const fenced = async (patch: Partial<LabRunRow>) => {
+  const fenced = async (patch: Partial<LabRunRow>, signal?: AbortSignal) => {
     const updated = await updateLabRun(admin, userId, claimed.id, patch, {
       whenStatus: ["completed"],
       whenStorage: ["pending"],
       whenLease: latest.storage_lease_until,
+      signal,
     });
     if (updated) latest = updated;
     return updated;
@@ -87,7 +89,7 @@ async function storeOutputs(admin: AdminClient, userId: string, claimed: LabRunR
     existing: claimed.outputs,
     deadline,
     retryFailed,
-    checkpoint: async (progress) => (await fenced({ outputs: progress, storage_lease_until: leaseUntil() })) !== null,
+    checkpoint: async (progress, signal) => (await fenced({ outputs: progress, storage_lease_until: leaseUntil() }, signal)) !== null,
   });
   if (result.fenced) return (await getLabRun(admin, userId, claimed.id)) ?? latest;
   const done = await fenced(result.state === null
@@ -177,7 +179,16 @@ async function advance(admin: AdminClient, userId: string, row: LabRunRow, secre
 }
 
 export async function POST(request: NextRequest) {
-  const deadline = Date.now() + COPY_BUDGET_MS;
+  const startedAt = Date.now();
+  try {
+    return await withinLabDeadline(startedAt + 100_000, (signal) => handleStatus(request, startedAt + COPY_BUDGET_MS, signal));
+  } catch (error) {
+    if (error instanceof LabDeadlineError) return labResponse({ error: "Durum sorgusu zaman aşımına uğradı. Yeniden kontrol edin; yeni üretim başlatılmadı.", retryable: true }, 503);
+    throw error;
+  }
+}
+
+async function handleStatus(request: NextRequest, deadline: number, signal: AbortSignal) {
   const user = await requireLabAdmin(request, { sameOrigin: true });
   if (user instanceof Response) return user;
   const body = await readLabJson(request, MAX_BODY_BYTES);
@@ -194,7 +205,8 @@ export async function POST(request: NextRequest) {
   const limited = await rateLimit(`labstatus:${user.id}`, RATE_LIMITS.general);
   if (!limited.success) return labResponse({ error: "Çok fazla durum sorgusu gönderildi. Lütfen bekleyin." }, 429);
 
-  const admin = createAdminClient();
+  signal.throwIfAborted();
+  const admin = createAdminClient(signal);
   let row: LabRunRow | null;
   if (legacy) {
     // A run started before server history: verify, then import it once.

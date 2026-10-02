@@ -110,8 +110,12 @@ async function inspect(url: string, position: ImagePosition, limits: ImageInputL
   const issues = checkImageFacts(facts, limits, position);
   if (issues.length) return { issues };
   // Only an image that fits is decoded, and only a decoded image is cached.
-  const data = await verifyImageData(bytes, probe.image);
-  if (data === "failed") return { issues: [undecodableImageIssue(position)] };
+  const data = await verifyImageData(bytes);
+  if (data === "failed") {
+    const issue = undecodableImageIssue(position);
+    if (probe.image.format === "heic" || probe.image.format === "bmp") issue.message = "Bu görsel biçimi sunucuda çözülemedi. JPEG veya PNG olarak kaydedip tekrar yükleyin.";
+    return { issues: [issue] };
+  }
   if (data === "timeout") return { issues: [decodeTimeoutIssue(position)] };
   cache?.set(url, facts);
   return { facts };

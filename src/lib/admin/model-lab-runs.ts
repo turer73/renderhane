@@ -149,7 +149,7 @@ export async function updateLabRun(
   userId: string,
   id: string,
   patch: Partial<Omit<LabRunRow, "id" | "user_id" | "client_request_id" | "created_at">>,
-  guard: { whenStatus?: LabRunStatus[]; whenStorage?: LabStorageState[]; whenLease?: string | null } = {}
+  guard: { whenStatus?: LabRunStatus[]; whenStorage?: LabStorageState[]; whenLease?: string | null; signal?: AbortSignal } = {}
 ): Promise<LabRunRow | null> {
   let query = admin
     .from(LAB_RUNS_TABLE)
@@ -163,6 +163,7 @@ export async function updateLabRun(
   if (guard.whenLease !== undefined) {
     query = guard.whenLease === null ? query.is("storage_lease_until", null) : query.eq("storage_lease_until", guard.whenLease);
   }
+  if (guard.signal) query = query.abortSignal(guard.signal);
   const { data, error } = await query.select(COLUMNS).maybeSingle();
   return error ? null : ((data as LabRunRow | null) ?? null);
 }

@@ -123,17 +123,17 @@ describe("preflightImageInputs", () => {
     }
   });
 
-  it("checks HEIC and BMP structure where the server cannot decode them", async () => {
+  it("rejects HEIC and BMP that the server cannot decode", async () => {
     mocks.openPublicDownload
       .mockResolvedValueOnce(serve(heicContainer(1024, 1024)))
       .mockResolvedValueOnce(serve(isoImage({ brand: "heic", extents: [[1024, 1024]] })));
-    await expect(preflightImageInputs({ urls: [SIGNED_URL], limits: getImageInputLimits("meshy-v71") })).resolves.toHaveLength(1);
+    expect((await rejection(preflightImageInputs({ urls: [SIGNED_URL], limits: getImageInputLimits("meshy-v71") }))).issues[0].code).toBe("corrupt");
     expect((await rejection(preflightImageInputs({ urls: [SIGNED_URL], limits: getImageInputLimits("meshy-v71") }))).issues[0].code).toBe("corrupt");
 
     mocks.openPublicDownload
       .mockResolvedValueOnce(serve(bmpWithPixels(300, 200)))
       .mockResolvedValueOnce(serve(bmp({ width: 300, height: 200 })));
-    await expect(preflightImageInputs({ urls: [SIGNED_URL], limits: getImageInputLimits("wan-i2v") })).resolves.toHaveLength(1);
+    expect((await rejection(preflightImageInputs({ urls: [SIGNED_URL], limits: getImageInputLimits("wan-i2v") }))).issues[0].code).toBe("corrupt");
     expect((await rejection(preflightImageInputs({ urls: [SIGNED_URL], limits: getImageInputLimits("wan-i2v") }))).issues[0].code).toBe("corrupt");
   });
 

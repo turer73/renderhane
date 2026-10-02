@@ -1,9 +1,10 @@
 import "server-only";
 
 import { isIP } from "node:net";
-import type { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { DownloadTooLargeError, openPublicDownload, readResponseBuffer } from "@/lib/security/safe-download";
 import type { LabOutputKind } from "./model-lab-flow";
+import { LabDeadlineError, withinLabDeadline } from "./model-lab-deadline";
 
 /**
  * Bounded, authenticated persistence for Model Lab outputs. Provider links
@@ -137,7 +138,7 @@ export async function persistLabOutputs(
     /** Wall-clock time (ms since epoch) by which copying must have stopped. */
     deadline: number;
     retryFailed?: boolean;
-    checkpoint?: (outputs: LabStoredOutput[]) => Promise<boolean>;
+    checkpoint?: (outputs: LabStoredOutput[], signal?: AbortSignal) => Promise<boolean>;
   }
 ): Promise<PersistLabOutputsResult> {
   if (input.outputs.length === 0) return { outputs: [], state: "none", fenced: false };
@@ -166,7 +167,15 @@ export async function persistLabOutputs(
       const mime = mimeOf(file.contentType, output.kind);
       const extension = EXTENSION_BY_MIME[mime] ?? DEFAULT_BY_KIND[output.kind].extension;
       const path = `${labOutputPrefix(input.userId, input.runId)}${index}.${extension}`;
-      const { error } = await admin.storage.from(LAB_BUCKET).upload(path, file.buffer, { contentType: mime, upsert: true });
+      let error: unknown;
+      try {
+        const result = await withinLabDeadline(input.deadline, (signal) =>
+          createAdminClient(signal).storage.from(LAB_BUCKET).upload(path, file!.buffer, { contentType: mime, upsert: true }));
+        error = result.error;
+      } catch (cause) {
+        if (cause instanceof LabDeadlineError) return { outputs: current, state: null, fenced: false };
+        error = cause;
+      }
       if (error) {
         current[index] = failed("storage_failed");
       } else {
@@ -174,8 +183,14 @@ export async function persistLabOutputs(
         current[index] = { kind: output.kind, providerUrl: output.url, path, mime, bytes: file.buffer.length, error: null };
       }
     }
-    if (input.checkpoint && !(await input.checkpoint(current.map((stored) => ({ ...stored }))))) {
-      return { outputs: current, state: null, fenced: true };
+    if (input.checkpoint) {
+      try {
+        const saved = await withinLabDeadline(input.deadline, (signal) => input.checkpoint!(current.map((stored) => ({ ...stored })), signal));
+        if (!saved) return { outputs: current, state: null, fenced: true };
+      } catch (cause) {
+        if (cause instanceof LabDeadlineError) return { outputs: current, state: null, fenced: true };
+        throw cause;
+      }
     }
   }
   const count = current.filter((entry) => entry.path).length;

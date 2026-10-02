@@ -18,7 +18,7 @@ import { verifyImageData } from "../image-decode-check";
 
 describe("image data check limits", () => {
   it("decodes with error-level strictness, a pixel cap, one frame and a time limit", async () => {
-    expect(await verifyImageData(new Uint8Array(32), { format: "png" })).toBe("timeout");
+    expect(await verifyImageData(new Uint8Array(32))).toBe("timeout");
     expect(sharpMock.sharp).toHaveBeenCalledWith(expect.any(Uint8Array), expect.objectContaining({
       failOn: "error",
       limitInputPixels: 50_000_000,
@@ -28,6 +28,6 @@ describe("image data check limits", () => {
 
   it("reports any other decoder error as a failed decode", async () => {
     sharpMock.failure.error = new Error("Input buffer has corrupt header");
-    expect(await verifyImageData(new Uint8Array(32), { format: "webp" })).toBe("failed");
+    expect(await verifyImageData(new Uint8Array(32))).toBe("failed");
   });
 });

@@ -2,7 +2,6 @@ import "server-only";
 
 import sharp from "sharp";
 import { IMAGE_MAX_PIXELS } from "./image-formats";
-import type { ImageProbe } from "./image-probe";
 
 /**
  * A header can describe an image whose pixel data is missing, cut short or
@@ -11,11 +10,10 @@ import type { ImageProbe } from "./image-probe";
  * truncation but tolerates warnings, as providers' own decoders do: data that
  * decodes (even to noise) is passed on, data that does not is rejected.
  *
- * The prebuilt decoder cannot read HEIC (HEVC) or BMP; those get a
- * structural check instead (every box or pixel row is present).
+ * HEIC and BMP must also decode: unsupported platforms reject them.
  */
 
-export type ImageDataCheck = "decoded" | "structural" | "failed" | "timeout";
+export type ImageDataCheck = "decoded" | "failed" | "timeout";
 
 const DECODE_TIMEOUT_SECONDS = 10;
 
@@ -77,10 +75,10 @@ export function heicStructureOk(bytes: Uint8Array): boolean {
   return offset === bytes.length && sawMeta && mediaBytes > 0;
 }
 
-/** Decode once (first frame, bounded) or check structure where decoding is not available. */
-export async function verifyImageData(bytes: Uint8Array, image: Pick<ImageProbe, "format">): Promise<ImageDataCheck> {
-  if (image.format === "heic") return heicStructureOk(bytes) ? "structural" : "failed";
-  if (image.format === "bmp") return bmpPixelsPresent(bytes) ? "structural" : "failed";
+/** Decode once (first frame, bounded), without a header-only fallback. */
+export async function verifyImageData(bytes: Uint8Array): Promise<ImageDataCheck> {
+  // Container structure cannot prove that HEVC samples are decodable. Try
+  // the real decoder; unsupported platforms safely reject before spending.
   try {
     await sharp(bytes, { failOn: "error", limitInputPixels: IMAGE_MAX_PIXELS, sequentialRead: true, pages: 1 })
       .timeout({ seconds: DECODE_TIMEOUT_SECONDS })

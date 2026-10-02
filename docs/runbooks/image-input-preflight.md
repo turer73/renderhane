@@ -14,7 +14,7 @@ Kullanıcı görseli bir modele gitmeden önce iki yerde kontrol edilir: tarayı
 - `src/lib/media/image-preflight.ts`: dosya `openPublicDownload` ile okunur (DNS sabitleme, özel IP engeli, 15 sn zaman aşımı, en çok 2 yönlendirme, model sınırı kadar bayt). `data:` adresleri çözülmeden önce kodlanmış uzunluğuyla ölçülür.
 - Biçimi bildirilen MIME değil dosyanın sihirli baytları belirler (`image-probe.ts`; PNG, JPEG, WebP, GIF, BMP, AVIF, HEIC). Boyut başlıktan okunur; çok pikselli dosya çözülmeden reddedilir.
 - Başlık tek başına görsel değildir: sınırlara uyan her dosya bir kez **gerçekten çözülür** (`image-decode-check.ts`, `sharp`/libvips; ilk kare, en çok 50 MP, 10 sn). `failOn: "error"`: yalnız başlığı olan, yarıda kesilmiş veya çözülemeyen veri reddedilir; çözülebilen ama içi bozuk (gürültüye dönmüş) veri, sağlayıcıların çözücüleri gibi kabul edilir. Ölçüm (2026-10-02, sharp 0.35.4): 20 MP JPEG ≈ 0,2 sn, 25 MP WebP ≈ 1,2 sn, ek bellek ihmal edilebilir.
-- Hazır `sharp` ikilisi HEIC (HEVC) ve BMP çözemez: HEIC için kutu yapısı ve `mdat` verisi, sıkıştırılmamış BMP için tüm piksel satırlarının dosyada olması denetlenir. RLE BMP kabul edilmez.
+- HEIC ve BMP de gerçek çözücüden geçmek zorundadır; platformun biçim desteği yoksa ücretli işleme geçmeden 422 döner ve JPEG/PNG olarak yeniden yükleme önerilir. Kutu yapısı, `mdat` veya piksel dizisinin varlığı tek başına çözme kanıtı sayılmaz.
 - Yalnız çözülmüş dosyanın bilgisi istek içi önbelleğe girer; reddedilen dosya önbelleğe alınmaz.
 - Kontrol; proje, iş kaydı, kredi rezervasyonu, ücretli ön işleme ve sağlayıcı gönderiminden önce çalışır. Kullanıldığı yollar: `/api/jobs/submit`, `submit-aplus`, `submit-talking-avatar`, `submit-social-kit`, `/api/v1/jobs`, `/api/jobs/[id]/regenerate` (süresi dolmuş imzalı bağlantılar önce yeniden imzalanır) ve Model Laboratuvarı (`/api/admin/models/preflight`, `/api/admin/models/test`; alan bazlı).
 - Ret yanıtı 422: `{ error: <Türkçe mesaj>, code: "image_input_invalid", issues: [{ code, index, message, field? }] }`. Mesajlar Türkçedir, adres veya imzalı bağlantı belirteci içermez. Ret durumunda rezervasyon yapılmamıştır ya da iade edilir; sağlayıcıya istek gitmez.
@@ -34,6 +34,8 @@ Kullanıcı görseli bir modele gitmeden önce iki yerde kontrol edilir: tarayı
 - Ölçüm (Chrome, 2026-10-02): 5.242.881 baytlık JPEG → 2210×1700 px, 2,8 MB, kalite %92, onaysız; istek gövdesi 3,76 MB. 10,5 MB 12 MP gürültü → 2400×1800, 2,4 MB, kalite %86, onaylı; gövde 3,18 MB. Saf gürültü 20 MP (en kötü durum) hazırlığı ≈ 20–25 sn sürdü; gerçek fotoğraflar çok daha hızlıdır (12 MP düzgün görsel 0,5 sn).
 
 ## Sorun giderme
+
+- İlk kullanıcı raporundaki `file_too_large` hatası 5.242.880 baytlık sağlayıcı sınırı ve Supabase imzalı yükleme adresi içeriyordu. Ücretsiz aracın `data:` aktarım sınırının düzeltilmesi bu hatanın kaynağını kanıtlamaz. Model anahtarı/endpoint belirlenmeden o özel sağlayıcı sınırının düzeltildiği iddia edilmez; belgelenmemiş sınırlar hâlâ ayrıca doğrulanmalıdır.
 
 - Kullanıcı 422 görüyorsa mesaj hangi sınırın aşıldığını söyler (biçim, bayt, boyut, piksel, adet, okunamadı, zaman aşımı). Sınır yanlışsa önce sağlayıcının güncel şemasına bakın, sonra `DOCUMENTED` tablosunu ve testlerini (`src/lib/media/__tests__/`) birlikte güncelleyin.
 - "Okunamadı/zaman aşımı" kaynağın sunucudan erişilemediğini gösterir (özel ağ, yönlendirme zinciri, süresi dolmuş imzalı bağlantı). Sunucu bu adresleri kasıtlı olarak indirmez.

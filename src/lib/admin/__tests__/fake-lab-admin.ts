@@ -131,6 +131,7 @@ export function createFakeLabAdmin() {
       eq(column: string, value: unknown) { filters.push((row) => row[column] === value); return builder; },
       neq(column: string, value: unknown) { filters.push((row) => row[column] !== value); return builder; },
       is(column: string, value: null) { filters.push((row) => (row[column] ?? null) === value); return builder; },
+      abortSignal(signal: AbortSignal) { signal.throwIfAborted(); return builder; },
       in(column: string, values: unknown[]) { filters.push((row) => values.includes(row[column])); return builder; },
       lt(column: string, value: string) { filters.push((row) => String(row[column]) < value); return builder; },
       contains(column: string, value: unknown) { filters.push((row) => isSubset(value, row[column])); return builder; },

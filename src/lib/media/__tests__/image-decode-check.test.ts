@@ -7,9 +7,17 @@ import { bmp, isoImage } from "./image-fixtures";
 import { bmpWithPixels, heicContainer, realImage, truncated } from "./real-images";
 
 describe("image data check", () => {
+  it("rejects a HEIC container with arbitrary bytes instead of coded pixels", async () => {
+    expect(await verifyImageData(heicContainer(64, 64))).toBe("failed");
+  });
+  it("rejects a BMP whose pixel offset points into its header", async () => {
+    const bytes = bmpWithPixels(64, 64);
+    bytes.set([26, 0, 0, 0], 10);
+    expect(await verifyImageData(bytes)).toBe("failed");
+  });
   it("decodes real images and rejects ones that stop early", async () => {
-    expect(await verifyImageData(await realImage("jpeg", 200, 100), { format: "jpeg" })).toBe("decoded");
-    expect(await verifyImageData(truncated(await realImage("jpeg", 640, 480)), { format: "jpeg" })).toBe("failed");
+    expect(await verifyImageData(await realImage("jpeg", 200, 100))).toBe("decoded");
+    expect(await verifyImageData(truncated(await realImage("jpeg", 640, 480)))).toBe("failed");
   });
 
   it("requires every pixel row of an uncompressed BMP", () => {

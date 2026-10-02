@@ -23,7 +23,7 @@ vi.mock("@/lib/security/safe-download", async (importOriginal) => ({
 
 import { POST as submit } from "@/app/api/admin/models/test/route";
 import { jpeg } from "@/lib/media/__tests__/image-fixtures";
-import { realImage, truncated } from "@/lib/media/__tests__/real-images";
+import { heicContainer, realImage, truncated } from "@/lib/media/__tests__/real-images";
 
 const ORIGIN = "https://renderhane.test";
 const IMAGE = "https://cdn.example.com/shoe.jpg";
@@ -33,11 +33,11 @@ function serve(bytes: Uint8Array) {
   const response = Object.assign(Readable.from([Buffer.from(bytes)]), { statusCode: 200, headers: {}, complete: true });
   mocks.openPublicDownload.mockResolvedValueOnce({ response, finalUrl: new URL(IMAGE), contentLength: bytes.byteLength, close: vi.fn() });
 }
-function start() {
+function start(modelKey = "flux-kontext") {
   return submit(new NextRequest(`${ORIGIN}/api/admin/models/test`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: ORIGIN },
-    body: JSON.stringify({ modelKey: "flux-kontext", values: { image_url: IMAGE, prompt: "red" }, confirmProviderSpend: true, clientRequestId: crypto.randomUUID() }),
+    body: JSON.stringify({ modelKey, values: modelKey === "meshy-v71" ? { image_url: IMAGE } : { image_url: IMAGE, prompt: "red" }, confirmProviderSpend: true, clientRequestId: crypto.randomUUID() }),
   }));
 }
 
@@ -75,5 +75,13 @@ describe("Model Lab submit with undecodable pixels", () => {
     expect((await start()).status).toBe(202);
     expect(fake.rows).toHaveLength(1);
     expect(mocks.submit).toHaveBeenCalledTimes(1);
+  });
+  it("rejects a fake HEIC before recording a Meshy run or spending", async () => {
+    serve(heicContainer(64, 64));
+    const response = await start("meshy-v71");
+    expect(response.status).toBe(422);
+    expect((await response.json()).error).toContain("JPEG veya PNG");
+    expect(fake.rows).toHaveLength(0);
+    expect(mocks.submit).not.toHaveBeenCalled();
   });
 });
