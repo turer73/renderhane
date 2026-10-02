@@ -113,10 +113,12 @@ export async function preflightImageInputs(input: {
   urls: readonly string[];
   limits: ImageInputLimits;
   cache?: ImageFactsCache;
+  /** False when the caller bounds the count itself (e.g. separate image and mask fields). */
+  checkCount?: boolean;
 }): Promise<ImageFacts[]> {
-  const { urls, limits, cache } = input;
+  const { urls, limits, cache, checkCount = true } = input;
   if (limits.inputKind !== "image") return [];
-  const countIssue = checkImageCount(urls.length, limits);
+  const countIssue = checkCount ? checkImageCount(urls.length, limits) : null;
   if (countIssue) throw new ImagePreflightError([countIssue]);
 
   const positions = urls.map((_, index) => ({ index, count: urls.length }));
@@ -146,6 +148,6 @@ export function imagePreflightErrorBody(error: ImagePreflightError) {
   return {
     error: error.issues[0]?.message ?? "Görsel bu model için uygun değil.",
     code: IMAGE_INPUT_INVALID,
-    issues: error.issues.map(({ code, index, message }) => ({ code, index, message })),
+    issues: error.issues.map(({ code, index, message, field }) => ({ code, index, message, ...(field ? { field } : {}) })),
   };
 }

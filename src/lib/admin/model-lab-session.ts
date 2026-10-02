@@ -1,4 +1,6 @@
-// Browser-local recovery only. Authentication and receipt checks are server-side.
+// Runs started before server-side history were tracked in this browser only.
+// They are read once, imported through their signed receipt, then cleared.
+// Authentication and receipt checks are server-side.
 export interface LabOutput { url: string; kind: "image" | "video" | "audio" | "glb" | "file" }
 export interface LabRun {
   modelKey: string;
@@ -37,10 +39,7 @@ export function parseLabRun(raw: string | null): LabRun | null {
 export function readLabRun(userId: string): LabRun | null {
   try { return parseLabRun(localStorage.getItem(prefix + userId)); } catch { return null; }
 }
-export function saveLabRun(userId: string, run: LabRun): boolean {
-  try {
-    const raw = JSON.stringify(run);
-    localStorage.setItem(prefix + userId, raw);
-    return localStorage.getItem(prefix + userId) === raw;
-  } catch { return false; }
+/** Forget the browser-local run once it is in server history (or was dismissed). */
+export function clearLabRun(userId: string): void {
+  try { localStorage.removeItem(prefix + userId); } catch { /* blocked storage: nothing to clear */ }
 }

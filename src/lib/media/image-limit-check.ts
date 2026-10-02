@@ -24,6 +24,8 @@ export interface ImageInputIssue {
   /** Zero-based position of the image in the request, or null for the set. */
   index: number | null;
   message: string;
+  /** Form field the image came from, when a form has several image fields. */
+  field?: string;
 }
 
 export interface ImageFacts {
