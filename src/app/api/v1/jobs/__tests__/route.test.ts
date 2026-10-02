@@ -81,7 +81,7 @@ describe("public job submission reconciliation status", () => {
 
     expect(response.status).toBe(422);
     await expect(response.json()).resolves.toMatchObject({
-      error: "image_input_invalid",
+      code: "image_input_invalid",
       issues: [{ code: "unsupported_format", index: 0 }],
     });
   });

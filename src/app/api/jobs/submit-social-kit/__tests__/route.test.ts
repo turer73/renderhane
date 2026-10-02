@@ -117,7 +117,7 @@ describe("submit-social-kit idempotency and release guard", () => {
 
     expect(response.status).toBe(422);
     expect(body).toMatchObject({
-      error: "image_input_invalid",
+      code: "image_input_invalid",
       issues: [{ code: "too_large", index: 0 }],
       idempotency: { outcome: "not_claimed", keyAction: "rotate" },
     });

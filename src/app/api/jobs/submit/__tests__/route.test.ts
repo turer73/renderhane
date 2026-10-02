@@ -53,7 +53,9 @@ describe("POST /api/jobs/submit image preflight", () => {
     const body = await response.json();
 
     expect(response.status).toBe(422);
-    expect(body).toMatchObject({ error: "image_input_invalid", issues: [{ code: "unsupported_format", index: 0 }] });
+    expect(body).toMatchObject({ code: "image_input_invalid", issues: [{ code: "unsupported_format", index: 0 }] });
+    // Existing clients show `error` as is, so it carries the Turkish message.
+    expect(body.error).toBe("WebP biçimi bu modelde desteklenmiyor.");
     expect(JSON.stringify(body)).not.toContain("TOKEN");
     expect(mocks.autoCreateProject).not.toHaveBeenCalled();
     expect(mocks.submitJob).not.toHaveBeenCalled();

@@ -161,7 +161,7 @@ describe("regenerate route authorization and exact replay", () => {
     const response = await regenerate();
 
     expect(response.status).toBe(422);
-    await expect(response.json()).resolves.toMatchObject({ error: "image_input_invalid", issues: [{ code: "unreachable" }] });
+    await expect(response.json()).resolves.toMatchObject({ code: "image_input_invalid", issues: [{ code: "unreachable" }] });
   });
 
   it("does not expose raw provider or database text in a 500", async () => {

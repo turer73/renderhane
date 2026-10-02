@@ -1,4 +1,4 @@
-import { IMAGE_FORMATS, type ImageFormat, type ImageInputLimits } from "./image-input-contract";
+import { IMAGE_FORMATS, MIN_IMAGE_DIMENSION, type ImageFormat, type ImageInputLimits } from "./image-input-contract";
 import type { ImageProbe } from "./image-probe";
 
 /**
@@ -160,6 +160,18 @@ export function adviseImageFacts(facts: ImageFacts, limits: ImageInputLimits): s
     }
   }
   return notes;
+}
+
+/** One-line Turkish summary of what the model accepts, for helper text. */
+export function limitsSummaryTr(limits: ImageInputLimits): string {
+  const parts = [formatListTr(limits.formats), `en fazla ${formatBytesTr(limits.maxBytes)}`];
+  if (limits.maxDimension !== null) {
+    parts.push(`${limits.minDimension}–${limits.maxDimension} piksel`);
+  } else if (limits.minDimension > MIN_IMAGE_DIMENSION) {
+    parts.push(`en az ${limits.minDimension} piksel`);
+  }
+  if (limits.maxImages > 1) parts.push(`en fazla ${limits.maxImages} görsel`);
+  return parts.join(" · ");
 }
 
 /** Turkish note for limits the provider does not document. */

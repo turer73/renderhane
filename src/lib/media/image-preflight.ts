@@ -135,11 +135,17 @@ export async function preflightImageInputs(input: {
   return facts;
 }
 
-/** JSON body for a rejected image; the HTTP status is 422. */
+export const IMAGE_INPUT_INVALID = "image_input_invalid";
+
+/**
+ * JSON body for a rejected image; the HTTP status is 422. `error` carries the
+ * Turkish message because existing clients show that field as is; `code` and
+ * `issues` are the machine-readable part.
+ */
 export function imagePreflightErrorBody(error: ImagePreflightError) {
   return {
-    error: "image_input_invalid",
-    message: error.issues[0]?.message ?? "Görsel bu model için uygun değil.",
+    error: error.issues[0]?.message ?? "Görsel bu model için uygun değil.",
+    code: IMAGE_INPUT_INVALID,
     issues: error.issues.map(({ code, index, message }) => ({ code, index, message })),
   };
 }
