@@ -1,63 +1,192 @@
 import { getAIProvider } from "@/lib/ai";
-import { buildLabInput } from "@/lib/admin/model-lab-catalog";
+import { buildLabInput, LAB_CATALOG, labImageInputs } from "@/lib/admin/model-lab-catalog";
+import { isLabUuid } from "@/lib/admin/model-lab-flow";
+import { labResponse, ownRecord, readLabJson, requireLabAdmin } from "@/lib/admin/model-lab-http";
 import { issueModelLabReceipt } from "@/lib/admin/model-lab-receipt";
-import { isAdmin } from "@/lib/auth/admin-check";
+import {
+  claimedInputDeletions,
+  insertSubmittingRun,
+  labRunDto,
+  sanitizeLabInputs,
+  storedPathsOf,
+  updateLabRun,
+  uploadPathsOf,
+  type LabRunRow,
+} from "@/lib/admin/model-lab-runs";
+import { signLabPaths } from "@/lib/admin/model-lab-storage";
 import { MODELS } from "@/lib/fal/models";
+import { getImageInputLimits } from "@/lib/media/image-input-contract";
+import type { ImageInputIssue } from "@/lib/media/image-limit-check";
+import { ImagePreflightError, imagePreflightErrorBody, preflightImageInputs } from "@/lib/media/image-preflight";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { createClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { NextRequest } from "next/server";
 
 const MAX_BODY_BYTES = 32 * 1024;
-const HEADERS = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
-const response = (body: Record<string, unknown>, status: number) => NextResponse.json(body, { status, headers: HEADERS });
-const ownRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
+const SUBMIT_FIELDS = ["modelKey", "values", "confirmProviderSpend", "clientRequestId"];
+// A late acknowledgement may still arrive after the run was shown as unknown
+// (stale submit); recording it restores tracking. A run the admin already
+// closed (failed) is never reopened.
+const ACKNOWLEDGEABLE: Array<"submitting" | "unknown"> = ["submitting", "unknown"];
+const UNCERTAIN_MESSAGE = "Sağlayıcı yanıtı belirsiz. Yeniden göndermeden önce fal.ai istek geçmişini kontrol edin.";
 
-async function bodyFor(request: NextRequest): Promise<Record<string, unknown> | Response> {
-  const length = request.headers.get("content-length");
-  if (length && (!/^\d+$/.test(length) || Number(length) > MAX_BODY_BYTES)) return response({ error: "İstek gövdesi çok büyük." }, 413);
-  let raw: string;
-  try { raw = await request.text(); } catch { return response({ error: "İstek gövdesi okunamadı." }, 400); }
-  if (Buffer.byteLength(raw, "utf8") > MAX_BODY_BYTES) return response({ error: "İstek gövdesi çok büyük." }, 413);
-  try { const parsed: unknown = JSON.parse(raw); return ownRecord(parsed) ? parsed : response({ error: "Geçersiz istek gövdesi." }, 400); }
-  catch { return response({ error: "Geçersiz JSON gövdesi." }, 400); }
-}
-function sameOrigin(request: NextRequest): boolean { try { return Boolean(request.headers.get("origin")) && request.headers.get("origin") === new URL(request.url).origin; } catch { return false; } }
 function acceptedRequestId(error: unknown): string | null {
   if (!error || typeof error !== "object") return null;
-  try { const id = Reflect.get(error, "requestId"); return typeof id === "string" && id.length > 0 && id.length <= 512 ? id : null; }
-  catch { return null; }
+  try {
+    const id = Reflect.get(error, "requestId");
+    return typeof id === "string" && id.length > 0 && id.length <= 512 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check every image field of a built lab input against the model contract
+ * before any provider spend. Each field is checked on its own (an image and
+ * its mask are separate fields), and issues carry the field key.
+ */
+export async function preflightLabImages(modelKey: string, input: Record<string, unknown>): Promise<void> {
+  const limits = getImageInputLimits(modelKey);
+  if (limits.inputKind !== "image") return;
+  const issues: ImageInputIssue[] = [];
+  for (const { field, urls } of labImageInputs(modelKey, input)) {
+    try {
+      await preflightImageInputs({ urls, limits, checkCount: false });
+    } catch (error) {
+      if (!(error instanceof ImagePreflightError)) throw error;
+      issues.push(...error.issues.map((issue) => ({ ...issue, field })));
+    }
+  }
+  if (issues.length) throw new ImagePreflightError(issues);
+}
+
+/** Validated model key and values, or the response to return. */
+export function parseLabValues(modelKey: unknown, values: unknown): { modelKey: string; values: Record<string, string> } | Response {
+  if (typeof modelKey !== "string" || modelKey.length === 0 || modelKey.length > 256 || !Object.hasOwn(MODELS, modelKey)) {
+    return labResponse({ error: "Bilinmeyen model anahtarı." }, 400);
+  }
+  if (!ownRecord(values) || !Object.values(values).every((value) => typeof value === "string")) {
+    return labResponse({ error: "Model alanları geçersiz." }, 400);
+  }
+  return { modelKey, values: values as Record<string, string> };
+}
+
+async function respondWithRun(
+  admin: ReturnType<typeof createAdminClient>,
+  row: LabRunRow,
+  status: number,
+  extra: Record<string, unknown> = {}
+) {
+  const links = await signLabPaths(admin, storedPathsOf(row));
+  return labResponse({ ...extra, run: labRunDto(row, links) }, status);
 }
 
 export async function submitModelLabProbe(request: NextRequest): Promise<Response> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !isAdmin(user.email)) return response({ error: "Bu işlem için yönetici yetkisi gerekiyor." }, 403);
-  if (!sameOrigin(request)) return response({ error: "İstek yalnızca aynı Renderhane adresinden yapılabilir." }, 403);
-  const parsed = await bodyFor(request);
+  const user = await requireLabAdmin(request, { sameOrigin: true });
+  if (user instanceof Response) return user;
+  const parsed = await readLabJson(request, MAX_BODY_BYTES);
   if (parsed instanceof Response) return parsed;
-  const { modelKey, values, confirmProviderSpend } = parsed;
-  if (Object.keys(parsed).some((key) => !["modelKey", "values", "confirmProviderSpend"].includes(key))) return response({ error: "Bilinmeyen istek alanı." }, 400);
-  if (typeof modelKey !== "string" || modelKey.length === 0 || modelKey.length > 256 || !Object.hasOwn(MODELS, modelKey)) return response({ error: "Bilinmeyen model anahtarı." }, 400);
-  if (!ownRecord(values) || !Object.values(values).every((value) => typeof value === "string")) return response({ error: "Model alanları geçersiz." }, 400);
-  if (confirmProviderSpend !== true) return response({ error: "Sağlayıcı harcaması açıkça onaylanmalıdır." }, 400);
+  if (Object.keys(parsed).some((key) => !SUBMIT_FIELDS.includes(key))) return labResponse({ error: "Bilinmeyen istek alanı." }, 400);
+  const checked = parseLabValues(parsed.modelKey, parsed.values);
+  if (checked instanceof Response) return checked;
+  const { modelKey, values } = checked;
+  if (parsed.confirmProviderSpend !== true) return labResponse({ error: "Sağlayıcı harcaması açıkça onaylanmalıdır." }, 400);
+  // One id per browser attempt: a retried request finds its run instead of paying again.
+  if (!isLabUuid(parsed.clientRequestId)) return labResponse({ error: "Deneme kimliği eksik veya geçersiz." }, 400);
+  const clientRequestId = parsed.clientRequestId;
   const secret = process.env.FAL_WEBHOOK_SECRET;
-  if (!secret) return response({ error: "Model laboratuvarı güvenli yapılandırması eksik." }, 503);
+  if (!secret) return labResponse({ error: "Model laboratuvarı güvenli yapılandırması eksik." }, 503);
   const limited = await rateLimit(`labsubmit:${user.id}`, RATE_LIMITS.jobSubmit);
-  if (!limited.success) return response({ error: "Çok fazla laboratuvar isteği gönderildi. Lütfen bekleyin." }, 429);
+  if (!limited.success) return labResponse({ error: "Çok fazla laboratuvar isteği gönderildi. Lütfen bekleyin." }, 429);
+
   let input: Record<string, unknown>;
-  try { input = buildLabInput(modelKey, values as Record<string, string>); }
-  catch { return response({ error: "Model alanları bu deneme için uygun değil." }, 400); }
+  try {
+    input = buildLabInput(modelKey, values);
+  } catch {
+    return labResponse({ error: "Model alanları bu deneme için uygun değil." }, 400);
+  }
+  try {
+    await preflightLabImages(modelKey, input);
+  } catch (error) {
+    if (error instanceof ImagePreflightError) return labResponse(imagePreflightErrorBody(error), 422);
+    throw error;
+  }
+
+  const model = LAB_CATALOG.find((entry) => entry.key === modelKey);
   const endpoint = MODELS[modelKey].id;
+  const admin = createAdminClient();
+  // The run is recorded BEFORE the paid submit; without the record there is no submit.
+  const created = await insertSubmittingRun(admin, {
+    userId: user.id,
+    clientRequestId,
+    modelKey,
+    endpoint,
+    inputs: model ? sanitizeLabInputs(model, values, user.id) : [],
+  });
+  if (!created) return labResponse({ error: "Deney kaydı oluşturulamadı; sağlayıcıya istek gönderilmedi.", code: "history_unavailable" }, 503);
+  if (created.duplicate) {
+    // A deleted run keeps its attempt id: resending it must not pay again.
+    if (created.row.deleted_at) {
+      return labResponse({ error: "Bu deneme silinmiş; sağlayıcıya yeniden gönderilmedi.", code: "attempt_deleted" }, 409);
+    }
+    return respondWithRun(admin, created.row, 200, { duplicate: true });
+  }
+
+  // The run now pins its uploads. A deletion that claimed one of them first
+  // wins: close the run unpaid instead of sending a file that is going away.
+  const claimed = await claimedInputDeletions(admin, user.id, uploadPathsOf(created.row.inputs));
+  if (claimed === null || claimed.length > 0) {
+    const inputDeleted = claimed !== null;
+    const row = await updateLabRun(admin, user.id, created.row.id, {
+      status: "failed",
+      completed_at: new Date().toISOString(),
+      error_code: inputDeleted ? "input_deleted" : "input_check_failed",
+      error_message: inputDeleted
+        ? "Girdi görseli silindiği için deneme gönderilmedi; yeniden yükleyin."
+        : "Girdi dosyaları doğrulanamadığı için deneme gönderilmedi.",
+    }, { whenStatus: ["submitting"] });
+    return respondWithRun(admin, row ?? created.row, inputDeleted ? 409 : 503, {
+      error: inputDeleted ? "Girdi görseli silindi; sağlayıcıya istek gönderilmedi." : "Girdi dosyaları şu anda doğrulanamadı; sağlayıcıya istek gönderilmedi.",
+      code: inputDeleted ? "input_deleted" : "history_unavailable",
+    });
+  }
+
   try {
     const queued = await getAIProvider().submit(endpoint, input);
     const receipt = issueModelLabReceipt({ userId: user.id, modelKey, endpoint, requestId: queued.requestId }, secret);
-    return response({ receipt, modelKey, requestId: queued.requestId, status: "IN_QUEUE" }, 202);
+    const row = await updateLabRun(admin, user.id, created.row.id, { status: "queued", request_id: queued.requestId, receipt }, { whenStatus: ACKNOWLEDGEABLE });
+    return respondWithRun(admin, row ?? { ...created.row, status: "queued", request_id: queued.requestId, receipt }, 202, {
+      receipt,
+      modelKey,
+      requestId: queued.requestId,
+      status: "IN_QUEUE",
+      ...(row ? {} : { persistencePending: true }),
+    });
   } catch (error) {
+    // Never retry: the provider may have accepted (and will charge) the request.
     const requestId = acceptedRequestId(error);
     if (requestId) {
       const receipt = issueModelLabReceipt({ userId: user.id, modelKey, endpoint, requestId }, secret);
-      return response({ error: "Sağlayıcı yanıtı belirsiz; makbuzla durumu daha sonra kontrol edin.", submissionUncertain: true, receipt, modelKey, requestId, status: "IN_QUEUE" }, 502);
+      const row = await updateLabRun(admin, user.id, created.row.id, { status: "queued", request_id: requestId, receipt }, { whenStatus: ACKNOWLEDGEABLE });
+      return respondWithRun(admin, row ?? created.row, 502, {
+        error: "Sağlayıcı yanıtı belirsiz; durum takip ediliyor.",
+        submissionUncertain: true,
+        receipt,
+        modelKey,
+        requestId,
+        status: "IN_QUEUE",
+      });
     }
-    return response({ error: "Model isteği kuyruğa gönderilemedi. Tekrar göndermeden önce sağlayıcı durumunu kontrol edin.", submissionUncertain: true }, 502);
+    const row = await updateLabRun(
+      admin,
+      user.id,
+      created.row.id,
+      { status: "unknown", error_code: "submission_uncertain", error_message: UNCERTAIN_MESSAGE },
+      { whenStatus: ["submitting"] }
+    );
+    return respondWithRun(admin, row ?? created.row, 502, {
+      error: "Model isteği kuyruğa gönderilemedi. Tekrar göndermeden önce sağlayıcı durumunu kontrol edin.",
+      submissionUncertain: true,
+    });
   }
 }

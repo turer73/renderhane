@@ -41,7 +41,20 @@ import { showToast } from "./workspace-toast";
 import type { PromptContext } from "@/lib/prompts/presets";
 import { smartDefaultsFor, primaryToolTarget } from "@/lib/analysis/product-intel";
 import { parseSRT, estimateSrtCredits } from "@/lib/voiceover/srt";
-import { MAX_AVATAR_SCRIPT_CHARS } from "@/lib/fal/models";
+import { MAX_AVATAR_SCRIPT_CHARS, type ModelTier, type ToolType } from "@/lib/fal/models";
+import { getSelectionImageInputLimits, type ImageInputLimits } from "@/lib/media/image-input-contract";
+import {
+  checkImageFacts,
+  limitsSummaryTr,
+  unverifiedLimitsNoteTr,
+  type ImageFacts,
+  type ImageInputIssue,
+  type ImagePosition,
+} from "@/lib/media/image-limit-check";
+import { describeTransformTr } from "@/lib/media/optimize-image";
+import { useImagePreparation } from "@/hooks/use-image-preparation";
+import { ImagePrepareDialog } from "@/components/media/image-prepare-dialog";
+import { ImageInputErrorDialog } from "@/components/media/image-input-error-dialog";
 import {
   SRT_VOICES,
   SRT_EMOTIONS,
@@ -298,6 +311,48 @@ const VIDEO_MODEL_TO_KEY: Record<string, string> = {
   "kling-o3": "kling-o3-i2v",
 };
 
+const TEXT_ONLY_TABS = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code", "srt-voiceover"];
+
+/**
+ * The tool and model a submit from this tab sends an image to, so an upload
+ * is prepared for the model that actually receives it. Mirrors the tier and
+ * modelKey choices in handleGenerate and handleAvatarGenerate; keep the two
+ * in step. Null for tabs without an image input.
+ */
+function imageSelectionForTab(state: {
+  activeTool: string;
+  activeTab: string;
+  selectedModel: string;
+  selectedVideoModel: string;
+  editModel: PickerModel;
+  sceneModel: PickerModel;
+  avatarModel: PickerModel;
+}): { tool: ToolType; tier?: ModelTier; modelKey?: string } | null {
+  const { activeTab } = state;
+  if (TEXT_ONLY_TABS.includes(activeTab)) return null;
+  const tool = (TAB_TO_API_TOOL[activeTab] ?? state.activeTool) as ToolType;
+  const picked = (model: PickerModel) =>
+    model.modelKey ? { tool, tier: model.tier as ModelTier, modelKey: model.modelKey } : { tool };
+  if (activeTab === "talking-avatar") return { tool: "talking-avatar", modelKey: state.avatarModel.modelKey };
+  if (activeTab === "image-to-video") {
+    return {
+      tool,
+      tier: VIDEO_MODEL_TO_TIER[state.selectedVideoModel] as ModelTier | undefined,
+      modelKey: VIDEO_MODEL_TO_KEY[state.selectedVideoModel],
+    };
+  }
+  if (activeTab === "image-edit") return picked(state.editModel);
+  if (activeTab === "scene") return picked(state.sceneModel);
+  if (activeTab === "img-to-3d" || activeTab === "texture") {
+    return {
+      tool,
+      tier: MODEL_TO_TIER[state.selectedModel] as ModelTier | undefined,
+      modelKey: MODEL_TO_KEY[state.selectedModel],
+    };
+  }
+  return { tool };
+}
+
 /* ═══════════════════════════════════════════════ */
 
 /**
@@ -460,6 +515,21 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const [modelPhotoUploading, setModelPhotoUploading] = useState(false);
   const modelPhotoInputRef = useRef<HTMLInputElement>(null);
 
+  // Image preparation against the selected model's contract. The original
+  // file is kept so a model change or retry starts from it, and every upload
+  // carries a sequence number so a late response cannot overwrite a newer one.
+  const imagePrep = useImagePreparation();
+  const modelPhotoPrep = useImagePreparation();
+  const { prepare: prepareImage, showIssues: showImageIssues } = imagePrep;
+  const { prepare: prepareModelPhoto } = modelPhotoPrep;
+  const [imageFieldError, setImageFieldError] = useState<string | null>(null);
+  const [modelPhotoFieldError, setModelPhotoFieldError] = useState<string | null>(null);
+  const [preparedNote, setPreparedNote] = useState<string | null>(null);
+  const originalFileRef = useRef<File | null>(null);
+  const uploadedFactsRef = useRef<ImageFacts | null>(null);
+  const uploadSeqRef = useRef(0);
+  const modelPhotoSeqRef = useRef(0);
+
   // SRT voiceover (dedicated sync endpoint — generic job akışını kullanmaz)
   const [srtText, setSrtText] = useState("");
   const [srtFileName, setSrtFileName] = useState<string | null>(null);
@@ -527,6 +597,16 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     setModelPhotoPreview(null);
     setModelPhotoUrl(null);
     setModelPhotoUploading(false);
+    // Clear image preparation state; pending work for the old tool is dropped.
+    imagePrep.cancel();
+    modelPhotoPrep.cancel();
+    originalFileRef.current = null;
+    uploadedFactsRef.current = null;
+    uploadSeqRef.current += 1;
+    modelPhotoSeqRef.current += 1;
+    setImageFieldError(null);
+    setModelPhotoFieldError(null);
+    setPreparedNote(null);
     // Clear SRT voiceover state
     setSrtText("");
     setSrtFileName(null);
@@ -555,6 +635,31 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   const currentTextModel = TEXT_MODELS.find((m) => m.id === selectedTextModel) ?? TEXT_MODELS[0];
   const currentSceneModel = SCENE_MODELS.find((m) => m.id === selectedSceneModel) ?? SCENE_MODELS[0];
   const tabs = DEFAULT_TABS[activeTool];
+
+  const imageLimits = useMemo((): ImageInputLimits | null => {
+    const selection = imageSelectionForTab({
+      activeTool,
+      activeTab,
+      selectedModel,
+      selectedVideoModel,
+      editModel: currentEditModel,
+      sceneModel: currentSceneModel,
+      avatarModel: currentAvatarModel,
+    });
+    if (!selection) return null;
+    try {
+      const limits = getSelectionImageInputLimits({ ...selection, imageCount: activeTab === "virtual-tryon" ? 2 : 1 });
+      return limits.inputKind === "image" ? limits : null;
+    } catch {
+      return null; // the server still checks every image
+    }
+  }, [activeTool, activeTab, selectedModel, selectedVideoModel, currentEditModel, currentSceneModel, currentAvatarModel]);
+  const imageLimitsNote = imageLimits ? unverifiedLimitsNoteTr(imageLimits) : null;
+  /** The try-on request sends [model photo, garment]; other tabs send one image. */
+  const garmentPosition = useMemo<ImagePosition | null>(
+    () => (activeTab === "virtual-tryon" ? { index: 1, count: 2 } : null),
+    [activeTab]
+  );
 
   // SRT önizleme — istemcide parse edilir, ücretlendirme öncesi gösterilir
   const srtPreview = useMemo(() => {
@@ -649,8 +754,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     return signedUrlData.signedUrl;
   }, []);
 
-  const handleFile = useCallback((f: File) => {
-    if (!f.type.startsWith("image/")) return;
+  /** Preview, upload and analyze the file that will actually be sent. */
+  const startUpload = useCallback((f: File) => {
+    const seq = ++uploadSeqRef.current;
     // Set blob preview immediately
     setPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -663,6 +769,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     // Start background upload
     setUploading(true);
     uploadToSupabase(f).then((url) => {
+      // A newer file or model choice replaced this upload while it ran.
+      if (seq !== uploadSeqRef.current) return;
       setUploadedImageUrl(url);
       setUploading(false);
       if (!url) {
@@ -681,6 +789,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           return (await res.json()) as ImageAnalysis;
         })
         .then((data) => {
+          if (seq !== uploadSeqRef.current) return;
           if (data && data.caption) {
             setAnalysisResult(data);
             // Code-only smart default: auto-pick the best scene preset for the
@@ -691,10 +800,58 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         .catch(() => { /* silent */ })
         .finally(() => setAnalyzing(false));
     }).catch(() => {
+      if (seq !== uploadSeqRef.current) return;
       setUploading(false);
       showToast("Görsel yüklenemedi, tekrar dene", "error");
     });
   }, [uploadToSupabase]);
+
+  /**
+   * Prepare the user's original for the selected model, then upload what
+   * fits. A rejected or declined file leaves the previous image in place.
+   */
+  const prepareAndUpload = useCallback(async (original: File, limits: ImageInputLimits | null) => {
+    setImageFieldError(null);
+    setPreparedNote(null);
+    if (!limits) {
+      originalFileRef.current = original;
+      uploadedFactsRef.current = null;
+      startUpload(original);
+      return;
+    }
+    const result = await prepareImage(original, limits, garmentPosition);
+    if (result.kind === "ready") {
+      originalFileRef.current = original;
+      uploadedFactsRef.current = result.prepared.facts;
+      const { transform, advisories } = result.prepared;
+      const note = [transform ? `Görsel bu model için hazırlandı: ${describeTransformTr(transform)}.` : null, ...advisories]
+        .filter(Boolean)
+        .join(" ");
+      setPreparedNote(note || null);
+      startUpload(result.prepared.file);
+    } else if (result.kind === "rejected") {
+      setImageFieldError(result.issues[0]?.message ?? "Görsel bu model için uygun değil.");
+    } else if (result.kind === "declined") {
+      setImageFieldError("Hazırlanan görsel kullanılmadı; yeni görsel yüklenmedi. Başka bir görsel seçebilirsiniz.");
+    }
+  }, [prepareImage, garmentPosition, startUpload]);
+
+  const handleFile = useCallback((f: File) => {
+    // Some pickers report HEIC/AVIF with an empty type; the bytes decide.
+    if (f.type ? !f.type.startsWith("image/") : !imageLimits) return;
+    void prepareAndUpload(f, imageLimits);
+  }, [prepareAndUpload, imageLimits]);
+
+  // A different model can accept different files. Keep the current upload if
+  // it still fits; otherwise prepare again from the user's original.
+  useEffect(() => {
+    const original = originalFileRef.current;
+    if (!original || !imageLimits) return;
+    const facts = uploadedFactsRef.current;
+    if (facts && checkImageFacts(facts, imageLimits, garmentPosition).length === 0) return;
+    void prepareAndUpload(original, imageLimits);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageLimits]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -722,8 +879,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   );
 
   /** Upload model/person photo for virtual try-on (second image) */
-  const handleModelPhoto = useCallback((f: File) => {
-    if (!f.type.startsWith("image/")) return;
+  const startModelPhotoUpload = useCallback((f: File) => {
+    const seq = ++modelPhotoSeqRef.current;
     setModelPhotoPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(f);
@@ -731,14 +888,55 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     setModelPhotoUrl(null);
     setModelPhotoUploading(true);
     uploadToSupabase(f).then((url) => {
+      if (seq !== modelPhotoSeqRef.current) return;
       setModelPhotoUrl(url);
       setModelPhotoUploading(false);
       if (!url) showToast("Model fotoğrafı yüklenemedi", "error");
     }).catch(() => {
+      if (seq !== modelPhotoSeqRef.current) return;
       setModelPhotoUploading(false);
       showToast("Model fotoğrafı yüklenemedi", "error");
     });
   }, [uploadToSupabase]);
+
+  const handleModelPhoto = useCallback((f: File) => {
+    if (f.type ? !f.type.startsWith("image/") : !imageLimits) return;
+    setModelPhotoFieldError(null);
+    if (!imageLimits) {
+      startModelPhotoUpload(f);
+      return;
+    }
+    // The try-on request sends [model photo, garment]: this is image 1 of 2.
+    void prepareModelPhoto(f, imageLimits, { index: 0, count: 2 }).then((result) => {
+      if (result.kind === "ready") startModelPhotoUpload(result.prepared.file);
+      else if (result.kind === "rejected") setModelPhotoFieldError(result.issues[0]?.message ?? "Fotoğraf bu model için uygun değil.");
+      else if (result.kind === "declined") setModelPhotoFieldError("Hazırlanan fotoğraf kullanılmadı; yeni fotoğraf yüklenmedi.");
+    });
+  }, [imageLimits, prepareModelPhoto, startModelPhotoUpload]);
+
+  // A server-side rejection (422) is shown like a local one: modal plus a
+  // message under the right field. Nothing was charged; inputs stay.
+  const showServerImageIssues = useCallback((issues: ImageInputIssue[]) => {
+    if (issues.length === 0) return;
+    showImageIssues(issues);
+    if (activeTab === "virtual-tryon") {
+      const forModelPhoto = issues.find((issue) => issue.index === 0);
+      const forGarment = issues.find((issue) => issue.index !== 0);
+      setModelPhotoFieldError(forModelPhoto?.message ?? null);
+      setImageFieldError(forGarment?.message ?? null);
+    } else {
+      setImageFieldError(issues[0].message);
+    }
+  }, [activeTab, showImageIssues]);
+
+  useEffect(() => {
+    const onImageInputError = (event: Event) => {
+      const issues = (event as CustomEvent<unknown>).detail;
+      if (Array.isArray(issues)) showServerImageIssues(issues as ImageInputIssue[]);
+    };
+    window.addEventListener("image-input-error", onImageInputError);
+    return () => window.removeEventListener("image-input-error", onImageInputError);
+  }, [showServerImageIssues]);
 
   /** .srt dosyasını oku → textarea'ya koy (en fazla ~20KB ham metin) */
   const handleSrtFile = useCallback((f: File) => {
@@ -866,6 +1064,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
         return;
       }
       const data = await res.json().catch(() => null);
+      if (res.status === 422 && data?.code === "image_input_invalid" && Array.isArray(data.issues)) {
+        showServerImageIssues(data.issues as ImageInputIssue[]);
+        return;
+      }
       if (!res.ok) {
         showToast(
           typeof data?.errorTr === "string" && data.errorTr
@@ -902,8 +1104,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     const apiTool = TAB_TO_API_TOOL[activeTab] ?? activeTool;
 
     // --- Validation ---
-    const textOnlyTabs = ["text-to-3d", "text-to-image", "text-to-video", "logo", "qr-code", "srt-voiceover"];
-    const needsImage = !textOnlyTabs.includes(activeTab);
+    const needsImage = !TEXT_ONLY_TABS.includes(activeTab);
     const needsPrompt = ["text-to-3d", "text-to-image", "text-to-video", "object-removal"].includes(activeTab);
 
     if (needsImage && !uploadedImageUrl) {
@@ -1166,7 +1367,21 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview} alt="Yüklenen görsel" className="w-full h-full object-contain rounded-lg" />
             <button
-              onClick={(e) => { e.stopPropagation(); if (preview) URL.revokeObjectURL(preview); setPreview(null); setUploadedFile(null); setUploadedImageUrl(null); setAnalysisResult(null); }}
+              type="button"
+              aria-label="Görseli kaldır"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (preview) URL.revokeObjectURL(preview);
+                setPreview(null); setUploadedFile(null); setUploadedImageUrl(null); setAnalysisResult(null);
+                // Forget the original and any upload still in flight.
+                imagePrep.cancel();
+                uploadSeqRef.current += 1;
+                setUploading(false);
+                originalFileRef.current = null;
+                uploadedFactsRef.current = null;
+                setImageFieldError(null);
+                setPreparedNote(null);
+              }}
               className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
             >
               <X className="h-3 w-3" />
@@ -1208,6 +1423,24 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
         />
       </div>
+      {imagePrep.busy && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground" aria-live="polite">
+          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+          <span>Görsel bu model için hazırlanıyor…</span>
+          <button type="button" onClick={imagePrep.cancel} className="ml-auto underline hover:text-foreground">İptal</button>
+        </div>
+      )}
+      {imageFieldError ? (
+        <p role="alert" className="mt-2 break-words text-[11px] text-destructive">{imageFieldError}</p>
+      ) : preparedNote ? (
+        <p className="mt-2 break-words text-[10px] text-muted-foreground">{preparedNote}</p>
+      ) : null}
+      {imageLimits && (
+        <p className="mt-1 break-words text-[10px] text-muted-foreground">
+          Bu model: {limitsSummaryTr(imageLimits)}
+          {imageLimitsNote ? ` — ${imageLimitsNote}` : ""}
+        </p>
+      )}
       {/* AI image analysis badge — silent fail (UX should not block on this) */}
       {(analyzing || analysisResult) && preview && (
         <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
@@ -1271,6 +1504,20 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       className="flex w-full md:w-[280px] flex-col bg-card/50 md:rounded-l-2xl"
       onPaste={handlePaste}
     >
+      <ImagePrepareDialog pending={imagePrep.pending} onAccept={imagePrep.accept} onDecline={imagePrep.decline} />
+      <ImagePrepareDialog pending={modelPhotoPrep.pending} onAccept={modelPhotoPrep.accept} onDecline={modelPhotoPrep.decline} />
+      <ImageInputErrorDialog
+        issues={imagePrep.issues}
+        note={imageLimitsNote}
+        onClose={imagePrep.clearIssues}
+        onChooseAnother={() => fileInputRef.current?.click()}
+      />
+      <ImageInputErrorDialog
+        issues={modelPhotoPrep.issues}
+        note={imageLimitsNote}
+        onClose={modelPhotoPrep.clearIssues}
+        onChooseAnother={() => modelPhotoInputRef.current?.click()}
+      />
       {/* Tabs — compact mode when 4+ tabs */}
       {(() => { const compact = tabs.length > 3; return (
       <div className={cn("flex p-3 pb-2 border-b border-border/40", compact ? "gap-1" : "gap-1.5")}>
@@ -2337,11 +2584,17 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={modelPhotoPreview} alt="Model fotoğrafı" className="w-full h-full object-contain rounded-lg" />
                     <button
+                      type="button"
+                      aria-label="Model fotoğrafını kaldır"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (modelPhotoPreview) URL.revokeObjectURL(modelPhotoPreview);
                         setModelPhotoPreview(null);
                         setModelPhotoUrl(null);
+                        modelPhotoPrep.cancel();
+                        modelPhotoSeqRef.current += 1;
+                        setModelPhotoUploading(false);
+                        setModelPhotoFieldError(null);
                       }}
                       className="absolute top-1 right-1 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                     >
@@ -2383,6 +2636,16 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>Yükleniyor...</span>
                 </div>
+              )}
+              {modelPhotoPrep.busy && (
+                <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground" aria-live="polite">
+                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                  <span>Fotoğraf hazırlanıyor…</span>
+                  <button type="button" onClick={modelPhotoPrep.cancel} className="ml-auto underline hover:text-foreground">İptal</button>
+                </div>
+              )}
+              {modelPhotoFieldError && (
+                <p role="alert" className="mt-1 break-words text-[10px] text-destructive">{modelPhotoFieldError}</p>
               )}
             </div>
 

@@ -92,8 +92,8 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         q: { tr: "Hangi dosya formatları destekleniyor?", en: "What file formats are supported?" },
         a: {
-          tr: "JPG ve PNG formatları desteklenir. Maksimum dosya boyutu 5MB'dir. Sonuç şeffaf arka planlı PNG olarak indirilir.",
-          en: "JPG and PNG formats are supported. Maximum file size is 5MB. Results are downloaded as transparent PNG.",
+          tr: "JPG, PNG ve WebP fotoğraflar desteklenir. Büyük fotoğraflar araca sığması için tarayıcıda otomatik küçültülür. Sonuç şeffaf arka planlı PNG olarak indirilir.",
+          en: "JPG, PNG and WebP photos are supported. Large photos are reduced automatically in the browser to fit the tool. Results are downloaded as transparent PNG.",
         },
       },
       {
@@ -111,8 +111,8 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         name: { tr: "Fotoğraf yükleyin", en: "Upload your photo" },
         text: {
-          tr: "Arka planını kaldırmak istediğiniz fotoğrafı sürükleyip bırakın veya dosya seçici ile yükleyin. JPG veya PNG, maksimum 5MB.",
-          en: "Drag and drop or use the file picker to upload the photo you want to remove the background from. JPG or PNG, max 5MB.",
+          tr: "Arka planını kaldırmak istediğiniz fotoğrafı sürükleyip bırakın veya dosya seçici ile yükleyin. JPG, PNG veya WebP; büyük fotoğraflar otomatik küçültülür.",
+          en: "Drag and drop or use the file picker to upload the photo you want to remove the background from. JPG, PNG or WebP; large photos are reduced automatically.",
         },
       },
       {

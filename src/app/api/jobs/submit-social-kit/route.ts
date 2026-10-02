@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { orchestrateSocialKit } from "@/lib/jobs/orchestrate";
+import { orchestrateSocialKit, preflightSocialKitImage } from "@/lib/jobs/orchestrate";
+import { ImagePreflightError, imagePreflightErrorBody, type ImageFactsCache } from "@/lib/media/image-preflight";
 import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
@@ -78,6 +79,21 @@ export async function POST(request: NextRequest) {
       { error: "invalid_source_fingerprint", idempotency: notClaimed },
       { status: 400 }
     );
+  }
+
+  // Read the real image before the durable claim: a rejected image leaves no
+  // claim, reservation or project behind, and the key stays reusable.
+  const imageFactsCache: ImageFactsCache = new Map();
+  try {
+    await preflightSocialKitImage(imageUrl as string, imageFactsCache);
+  } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(
+        { ...imagePreflightErrorBody(error), idempotency: notClaimed },
+        { status: 422 }
+      );
+    }
+    throw error;
   }
 
   if (projectId) {
@@ -252,6 +268,7 @@ export async function POST(request: NextRequest) {
       imageUrl: imageUrl as string,
       locale,
       requestId: claim.requestId,
+      imageFactsCache,
     });
 
     const reconciliationPending =
@@ -281,6 +298,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return completeAndRespond(402, { error: "insufficient_credits" });
+    }
+    // Orchestration checks the image before reserving, so nothing was charged.
+    if (error instanceof ImagePreflightError) {
+      return completeAndRespond(422, imagePreflightErrorBody(error));
     }
     if (error instanceof SocialKitSchemaUnavailableError) {
       return completeAndRespond(

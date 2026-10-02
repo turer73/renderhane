@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseLabRun, readLabRun, saveLabRun, type LabRun } from "../model-lab-session";
+import { clearLabRun, parseLabRun, readLabRun, type LabRun } from "../model-lab-session";
 
 const run: LabRun = { modelKey: "meshy-v71", startedAt: 1_800_000_000_000, status: "IN_QUEUE", receipt: "signed-receipt", requestId: "request-1" };
 afterEach(() => vi.unstubAllGlobals());
@@ -19,24 +19,21 @@ describe("model lab browser recovery", () => {
     expect(parsed).not.toHaveProperty("image_url");
     expect(parsed?.outputs).toEqual([{ url: "https://cdn.example/out.glb", kind: "glb" }]);
   });
-  it("partitions recovery by signed-in user", () => {
-    const storage = new Map<string, string>();
-    vi.stubGlobal("localStorage", { setItem: (key: string, value: string) => storage.set(key, value), getItem: (key: string) => storage.get(key) ?? null });
-    expect(saveLabRun("admin-a", run)).toBe(true);
+  it("partitions recovery by signed-in user and clears only that user's run", () => {
+    const storage = new Map<string, string>([
+      ["renderhane:model-lab:v1:admin-a", JSON.stringify(run)],
+      ["renderhane:model-lab:v1:admin-b", JSON.stringify({ ...run, requestId: "request-b" })],
+    ]);
+    vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, removeItem: (key: string) => storage.delete(key) });
     expect(readLabRun("admin-a")?.requestId).toBe(run.requestId);
-    expect(readLabRun("admin-b")).toBeNull();
-  });
-  it("reports blocked browser storage without breaking the page", () => {
-    vi.stubGlobal("localStorage", { setItem: () => { throw new Error("blocked"); }, getItem: () => { throw new Error("blocked"); } });
+    expect(readLabRun("admin-c")).toBeNull();
+    clearLabRun("admin-a");
     expect(readLabRun("admin-a")).toBeNull();
-    expect(saveLabRun("admin-a", run)).toBe(false);
+    expect(readLabRun("admin-b")?.requestId).toBe("request-b");
   });
-  it("does not accept a write that cannot be read back", () => {
-    vi.stubGlobal("localStorage", { setItem: vi.fn(), getItem: () => null });
-    expect(saveLabRun("admin-a", run)).toBe(false);
-  });
-  it("does not accept storage that fails during read-back", () => {
-    vi.stubGlobal("localStorage", { setItem: vi.fn(), getItem: () => { throw new Error("blocked"); } });
-    expect(saveLabRun("admin-a", run)).toBe(false);
+  it("tolerates blocked browser storage without breaking the page", () => {
+    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, removeItem: () => { throw new Error("blocked"); } });
+    expect(readLabRun("admin-a")).toBeNull();
+    expect(() => clearLabRun("admin-a")).not.toThrow();
   });
 });
