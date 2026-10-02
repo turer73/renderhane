@@ -61,6 +61,10 @@ Admin Renderhane kredisi harcamaz. **Sağlayıcı çağrıları gerçek ücretli
 
 Model çıktısı dijital bir denemedir; özellikle GLB üretimi fiziksel ölçülü/üretime hazır dosya garantisi değildir. Relief Pro'nun kapalı bırakılan akışı bu çalışma kapsamında yeniden etkinleştirilmez.
 
+## 2 Ekim canlı Tripo düzeltmesi
+
+Tripo H3.1 için `texture` boolean'dır; kalite `texture_quality: "standard"` ile belirtilir ([sağlayıcı şeması](https://fal.ai/models/tripo3d/h3.1/image-to-3d/api)). Önceki `texture: "standard"` iki canlı denemenin reddine neden oldu. Kuyruk `COMPLETED` bildirip sonuç okumasında alan bazlı 422 doğrulama hatası döndü. Bu kanıt artık denemeyi `failed` olarak kapatır; ham sağlayıcı ayrıntıları gösterilmez ve tekrar üretim gönderilmez. Geçici sonuç okuma hataları ile doğrulama ayrıntısı olmayan 422 yanıtları takip edilebilir kalır.
+
 ## Önceki sürüm kaydı — 29 Eylül 2026 (PR #118)
 
 İlk sürüm dosya yüklemiyor, yalnız son denemeyi tarayıcıda tutuyordu. O sürümün yerel kontrolleri (642 → 669 test; 320/390/768/1366 px taşma kontrolü; depolama hatasında 0 gönderim; belirsiz gönderimde yenilemeden sonra 0 yeni gönderim; PR #118 incelemesindeki dört bulgunun düzeltilmesi) PR #118 kayıtlarında durur. 2 Ekim 2026'dan itibaren bu belgedeki sunucu geçmişi akışı geçerlidir.

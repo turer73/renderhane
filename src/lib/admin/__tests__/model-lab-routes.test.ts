@@ -207,6 +207,40 @@ describe("admin model lab routes", () => {
     expect(mocks.submit).toHaveBeenCalledTimes(1);
   });
 
+  it("closes structured validation failures from a completed result without another submit", async () => {
+    const runId = await queuedRun();
+    mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
+    mocks.result.mockRejectedValueOnce(Object.assign(new Error("private provider details"), {
+      status: 422,
+      body: { detail: [{ type: "bool_parsing", loc: ["body", "texture"], msg: "Input should be a valid boolean", input: "standard" }] },
+    }));
+    const response = await status(request(STATUS_URL, { runId }));
+    expect(response.status).toBe(200);
+    const body = await json(response);
+    expect(body.run).toMatchObject({ status: "failed", errorCode: "provider_failed", outputs: [] });
+    expect(body).not.toHaveProperty("retryable");
+    expect(JSON.stringify(body)).not.toContain("private provider details");
+    expect(JSON.stringify(body)).not.toContain("bool_parsing");
+    expect(fake.rows[0].completed_at).toBeTruthy();
+    await status(request(STATUS_URL, { runId }));
+    expect(mocks.result).toHaveBeenCalledTimes(1);
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { status: 503, body: { detail: [{ loc: ["body"], msg: "temporarily unavailable" }] } },
+    { status: 422 },
+    { status: 422, body: { detail: [] } },
+  ])("keeps result read failures retryable without terminal validation evidence: %j", async (failure) => {
+    const runId = await queuedRun();
+    mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
+    mocks.result.mockRejectedValueOnce(Object.assign(new Error("read failed"), failure));
+    const response = await status(request(STATUS_URL, { runId }));
+    expect(response.status).toBe(502);
+    expect(await json(response)).toMatchObject({ retryable: true, run: { status: "queued" } });
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves terminal failure without pretending to have an output", async () => {
     const runId = await queuedRun();
     mocks.status.mockResolvedValueOnce({ status: "FAILED" });

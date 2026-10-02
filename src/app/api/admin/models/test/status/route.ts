@@ -38,6 +38,18 @@ function completedProviderFailure(status: Record<string, unknown>): boolean {
     (typeof errorType === "string" && errorType.trim().length > 0);
 }
 
+/** A completed queue job may expose its terminal validation error only on the result read. */
+function terminalResultValidation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const failure = error as { status?: unknown; body?: { detail?: unknown } };
+  if (failure.status !== 422) return false;
+  const detail = failure.body?.detail;
+  return Array.isArray(detail) && detail.length > 0 && detail.every((entry: unknown) =>
+    entry !== null && typeof entry === "object" &&
+    typeof (entry as { msg?: unknown }).msg === "string" &&
+    Array.isArray((entry as { loc?: unknown }).loc));
+}
+
 /** Stable id for importing one legacy browser-local run exactly once. */
 function legacyClientRequestId(requestId: string): string {
   const hex = createHash("sha256").update(`model-lab-legacy:${requestId}`).digest("hex");
@@ -148,7 +160,16 @@ async function advance(admin: AdminClient, userId: string, row: LabRunRow, secre
     let payload: unknown;
     try {
       payload = await getAIProvider().result<unknown>(claims.endpoint, claims.requestId);
-    } catch {
+    } catch (error) {
+      if (terminalResultValidation(error)) {
+        const updated = await updateLabRun(admin, userId, row.id, {
+          status: "failed",
+          completed_at: new Date(now).toISOString(),
+          error_code: "provider_failed",
+          error_message: "Sağlayıcı denemenin girdilerini reddetti.",
+        }, { whenStatus: ["queued", "running"] });
+        return { row: updated ?? row };
+      }
       return { row, status: 502, error: "İş tamamlandı ancak sonuçlar henüz okunamadı. Daha sonra tekrar deneyin." };
     }
     const outputs = extractLabOutputs(payload);
