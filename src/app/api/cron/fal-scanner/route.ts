@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
 
     // Store scan result
-    await admin.from("fal_scan_results").insert({
+    const { error: storeError } = await admin.from("fal_scan_results").insert({
       scanned_at: result.scannedAt,
       total_models_checked: result.totalModelsChecked,
       active_count: result.activeCount,
@@ -48,6 +48,9 @@ export async function GET(request: NextRequest) {
       new_models: result.newModels,
       alerts: result.alerts,
     });
+    if (storeError) {
+      console.error("[fal-scanner-cron] fal_scan_results insert failed:", storeError.message);
+    }
 
     // Email admin if there are critical alerts
     const criticalAlerts = result.alerts.filter((a) => a.severity === "critical");
@@ -120,15 +123,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const summary = {
       message: "Cron scan completed",
       totalModelsChecked: result.totalModelsChecked,
       activeCount: result.activeCount,
       errorCount: result.errorCount,
       newModelsFound: result.newModelsFound,
       criticalAlerts: criticalAlerts.length,
+      stored: !storeError,
       timestamp: result.scannedAt,
-    });
+    };
+    // One line per run, so a scheduled scan can be verified from runtime logs.
+    console.log(`[fal-scanner-cron] summary ${JSON.stringify(summary)}`);
+    // Alerts above still go out, but a scan without a stored result did not
+    // complete; let the scheduler see that.
+    return NextResponse.json(summary, { status: storeError ? 503 : 200 });
   } catch (err) {
     console.error("[fal-scanner-cron] Scan failed:", err);
     return NextResponse.json(
