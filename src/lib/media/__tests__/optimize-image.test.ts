@@ -8,7 +8,7 @@ import {
   type EncodeTarget,
   type ImageCodec,
 } from "../optimize-image";
-import { gif, jpeg, png, textBytes, webpExtended } from "./image-fixtures";
+import { gif, isoImage, jpeg, png, textBytes, webpExtended } from "./image-fixtures";
 
 const MIME: Record<string, string> = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
 
@@ -56,7 +56,7 @@ function limitsWith(overrides: Partial<ImageInputLimits>, base = "trellis-v1"): 
 }
 
 describe("prepareImageForLimits", () => {
-  it("returns a fitting image untouched, without decoding it", async () => {
+  it("returns a fitting image untouched, after one decode to check its pixels", async () => {
     const codec = fakeCodec({ width: 1024, height: 1024 });
     const original = fileOf(png({ width: 1024, height: 1024 }), 5_242_880);
 
@@ -65,6 +65,31 @@ describe("prepareImageForLimits", () => {
     expect(prepared.file).toBe(original);
     expect(prepared.transform).toBeNull();
     expect(codec.encodes).toHaveLength(0);
+    expect(codec.closed).toBe(1);
+  });
+
+  it("rejects a fitting file whose header is fine but whose pixels do not decode", async () => {
+    const codec = fakeCodec({ width: 1024, height: 1024, failDecode: true });
+    const original = fileOf(png({ width: 1024, height: 1024 }), 400_000);
+
+    const error = (await prepareImageForLimits(original, limitsWith({}), { codec }).catch((e: unknown) => e)) as ImagePreparationError;
+
+    expect(error).toBeInstanceOf(ImagePreparationError);
+    expect(error.issues[0]).toMatchObject({ code: "corrupt" });
+    expect(error.issues[0].message).toContain("çözülemedi");
+  });
+
+  it("uses the codec's light verify when it has one, and leaves HEIC to the server", async () => {
+    const verify = vi.fn(async () => undefined);
+    const codec = { ...fakeCodec({ width: 1024, height: 1024, failDecode: true }), verify };
+    const original = fileOf(png({ width: 1024, height: 1024 }), 400_000);
+    await expect(prepareImageForLimits(original, limitsWith({}), { codec })).resolves.toMatchObject({ file: original });
+    expect(verify).toHaveBeenCalledWith(original);
+
+    verify.mockClear();
+    const heic = fileOf(isoImage({ brand: "heic", extents: [[1024, 1024]] }), 400_000, "photo.heic", "image/heic");
+    await expect(prepareImageForLimits(heic, getImageInputLimits("meshy-v71"), { codec })).resolves.toMatchObject({ file: heic });
+    expect(verify).not.toHaveBeenCalled();
   });
 
   it("optimizes a file one byte over 5,242,880 and keeps the original", async () => {
@@ -205,7 +230,8 @@ describe("prepareImageForLimits", () => {
     const forTrellis = await prepareImageForLimits(original, limitsWith({ maxBytes: 5_000_000 }), { codec: wrapped });
     const forRecraft = await prepareImageForLimits(forTrellis.original, getImageInputLimits("recraft-crisp-upscale"), { codec: wrapped });
 
-    expect(decode.mock.calls.map(([file]) => file)).toEqual([original]);
+    // One decode to optimize, one to verify the untouched original: never the earlier output.
+    expect(decode.mock.calls.map(([file]) => file)).toEqual([original, original]);
     expect(forRecraft.file).toBe(original);
   });
 

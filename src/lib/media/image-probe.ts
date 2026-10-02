@@ -1,4 +1,4 @@
-import type { ImageFormat } from "./image-input-contract";
+import type { ImageFormat } from "./image-formats";
 
 /**
  * Header-only image inspection. It identifies the real format from magic

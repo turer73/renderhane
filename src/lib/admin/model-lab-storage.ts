@@ -20,6 +20,10 @@ export const MAX_LAB_OUTPUT_BYTES = 100_000_000;
 export const MAX_LAB_RUN_OUTPUT_BYTES = 250_000_000;
 const MAX_OUTPUTS = 12;
 const DOWNLOAD_TIMEOUT_MS = 60_000;
+/** Downloads stop this long before the deadline, so the last upload and the final write still fit. */
+const UPLOAD_RESERVE_MS = 15_000;
+/** A download window shorter than this is not started; the copy continues on a later request. */
+const MIN_DOWNLOAD_WINDOW_MS = 5_000;
 
 export interface LabProviderOutput {
   url: string;
@@ -94,8 +98,8 @@ export function labOutputPrefix(userId: string, runId: string): string {
   return `${userId}/model-lab/${runId}/`;
 }
 
-async function download(url: string): Promise<{ buffer: Buffer; contentType: string | string[] | undefined }> {
-  const opened = await openPublicDownload(url, { maxBytes: MAX_LAB_OUTPUT_BYTES, timeoutMs: DOWNLOAD_TIMEOUT_MS, maxRedirects: 2 });
+async function download(url: string, timeoutMs: number): Promise<{ buffer: Buffer; contentType: string | string[] | undefined }> {
+  const opened = await openPublicDownload(url, { maxBytes: MAX_LAB_OUTPUT_BYTES, timeoutMs, maxRedirects: 2 });
   try {
     if (opened.response.statusCode !== 200) throw new Error("download_failed");
     const buffer = await readResponseBuffer(opened.response, MAX_LAB_OUTPUT_BYTES);
@@ -105,52 +109,77 @@ async function download(url: string): Promise<{ buffer: Buffer; contentType: str
   }
 }
 
+export interface PersistLabOutputsResult {
+  outputs: LabStoredOutput[];
+  /** Final state once every output was attempted; null when copying stopped early. */
+  state: "none" | "stored" | "partial" | "failed" | null;
+  /** A checkpoint was refused: another request now holds the copy and nothing more may be written. */
+  fenced: boolean;
+}
+
 /**
- * Copy provider outputs into private storage. Already-stored outputs (a
- * retry) are kept as they are; each failure is recorded per output, so a
- * partial copy still shows which files are temporary provider links.
+ * Copy provider outputs into private storage within a time budget. Stored
+ * outputs (from an earlier round) are kept; outputs that failed earlier are
+ * tried again only when `retryFailed` is set, so one slow file cannot block
+ * the rest round after round. Each failure is recorded per output, so a
+ * partial copy still shows which files are temporary provider links. After
+ * every output, `checkpoint` saves the progress; when it refuses (the lease
+ * was lost), copying stops at once. When the budget runs out, the result has
+ * `state: null` and a later request continues from the first output left.
  */
 export async function persistLabOutputs(
   admin: AdminClient,
-  input: { userId: string; runId: string; outputs: readonly LabProviderOutput[]; existing?: readonly LabStoredOutput[] }
-): Promise<{ outputs: LabStoredOutput[]; state: "none" | "stored" | "partial" | "failed" }> {
-  if (input.outputs.length === 0) return { outputs: [], state: "none" };
-  const stored: LabStoredOutput[] = [];
-  let total = 0;
+  input: {
+    userId: string;
+    runId: string;
+    outputs: readonly LabProviderOutput[];
+    existing?: readonly LabStoredOutput[];
+    /** Wall-clock time (ms since epoch) by which copying must have stopped. */
+    deadline: number;
+    retryFailed?: boolean;
+    checkpoint?: (outputs: LabStoredOutput[]) => Promise<boolean>;
+  }
+): Promise<PersistLabOutputsResult> {
+  if (input.outputs.length === 0) return { outputs: [], state: "none", fenced: false };
+  const current: LabStoredOutput[] = input.outputs.map((output) =>
+    input.existing?.find((entry) => entry.providerUrl === output.url) ??
+      { kind: output.kind, providerUrl: output.url, path: null, mime: null, bytes: null, error: null }
+  );
+  let total = current.reduce((sum, entry) => sum + (entry.path ? entry.bytes ?? 0 : 0), 0);
   for (const [index, output] of input.outputs.entries()) {
-    const prior = input.existing?.find((entry) => entry.providerUrl === output.url && entry.path);
-    if (prior) {
-      stored.push(prior);
-      total += prior.bytes ?? 0;
-      continue;
-    }
+    const entry = current[index];
+    if (entry.path || (entry.error && !input.retryFailed)) continue;
+    const window = Math.min(DOWNLOAD_TIMEOUT_MS, input.deadline - Date.now() - UPLOAD_RESERVE_MS);
+    if (window < MIN_DOWNLOAD_WINDOW_MS) return { outputs: current, state: null, fenced: false };
     const failed = (error: LabStoredOutput["error"]): LabStoredOutput => ({
       kind: output.kind, providerUrl: output.url, path: null, mime: null, bytes: null, error,
     });
-    let file: { buffer: Buffer; contentType: string | string[] | undefined };
+    let file: { buffer: Buffer; contentType: string | string[] | undefined } | null = null;
     try {
-      file = await download(output.url);
+      file = await download(output.url, window);
     } catch (error) {
-      stored.push(failed(error instanceof DownloadTooLargeError ? "too_large" : "download_failed"));
-      continue;
+      current[index] = failed(error instanceof DownloadTooLargeError ? "too_large" : "download_failed");
     }
-    if (total + file.buffer.length > MAX_LAB_RUN_OUTPUT_BYTES) {
-      stored.push(failed("too_large"));
-      continue;
+    if (file && total + file.buffer.length > MAX_LAB_RUN_OUTPUT_BYTES) {
+      current[index] = failed("too_large");
+    } else if (file) {
+      const mime = mimeOf(file.contentType, output.kind);
+      const extension = EXTENSION_BY_MIME[mime] ?? DEFAULT_BY_KIND[output.kind].extension;
+      const path = `${labOutputPrefix(input.userId, input.runId)}${index}.${extension}`;
+      const { error } = await admin.storage.from(LAB_BUCKET).upload(path, file.buffer, { contentType: mime, upsert: true });
+      if (error) {
+        current[index] = failed("storage_failed");
+      } else {
+        total += file.buffer.length;
+        current[index] = { kind: output.kind, providerUrl: output.url, path, mime, bytes: file.buffer.length, error: null };
+      }
     }
-    const mime = mimeOf(file.contentType, output.kind);
-    const extension = EXTENSION_BY_MIME[mime] ?? DEFAULT_BY_KIND[output.kind].extension;
-    const path = `${labOutputPrefix(input.userId, input.runId)}${index}.${extension}`;
-    const { error } = await admin.storage.from(LAB_BUCKET).upload(path, file.buffer, { contentType: mime, upsert: true });
-    if (error) {
-      stored.push(failed("storage_failed"));
-      continue;
+    if (input.checkpoint && !(await input.checkpoint(current.map((stored) => ({ ...stored }))))) {
+      return { outputs: current, state: null, fenced: true };
     }
-    total += file.buffer.length;
-    stored.push({ kind: output.kind, providerUrl: output.url, path, mime, bytes: file.buffer.length, error: null });
   }
-  const count = stored.filter((entry) => entry.path).length;
-  return { outputs: stored, state: count === stored.length ? "stored" : count === 0 ? "failed" : "partial" };
+  const count = current.filter((entry) => entry.path).length;
+  return { outputs: current, state: count === current.length ? "stored" : count === 0 ? "failed" : "partial", fenced: false };
 }
 
 /** Fresh view and download links for stored paths; missing ones are left out. */

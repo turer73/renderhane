@@ -10,8 +10,6 @@ export type LabStorageState = "none" | "pending" | "stored" | "partial" | "faile
 
 /** A submit whose acknowledgement never arrived is shown as unknown after this. */
 export const STALE_SUBMITTING_MS = 2 * 60 * 1000;
-/** Storage that was claimed but never finished (e.g. a timed-out request) may be retried after this. */
-export const STALE_STORAGE_MS = 5 * 60 * 1000;
 
 export interface LabRunInputDto {
   key: string;

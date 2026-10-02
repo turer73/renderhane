@@ -1,8 +1,9 @@
-import { IMAGE_FORMATS, type ImageFormat, type ImageInputLimits } from "./image-input-contract";
+import { IMAGE_FORMATS, type ImageFormat, type ImageInputLimits } from "./image-formats";
 import {
   adviseImageFacts,
   checkImageFacts,
   formatBytesTr,
+  undecodableImageIssue,
   unreadableImageIssue,
   type ImageFacts,
   type ImageInputIssue,
@@ -12,7 +13,8 @@ import { probeImage } from "./image-probe";
 
 /**
  * Browser-side preparation of a user image for a model. An image that
- * already fits is returned untouched. Otherwise it is re-encoded in a format
+ * already fits is decoded once (a header alone is not an image) and returned
+ * untouched. Otherwise it is re-encoded in a format
  * the model accepts, trading quality and size in small steps; transparency is
  * never dropped silently and the original file is always kept, so a retry or
  * a model change starts again from the original.
@@ -28,6 +30,8 @@ export interface DecodedImage {
 }
 
 export interface ImageCodec {
+  /** Rejects when the file does not decode; cheaper than `decode` when available. */
+  verify?(file: Blob): Promise<void>;
   decode(file: Blob, knownOpaque: boolean): Promise<DecodedImage>;
   /** Must reject when the browser cannot produce exactly the requested format. */
   encode(image: DecodedImage, target: EncodeTarget): Promise<Blob>;
@@ -116,6 +120,21 @@ function candidateFormats(limits: ImageInputLimits, original: ImageFormat, hasAl
   return { formats: allowed, flattens: true };
 }
 
+/** Browsers commonly cannot decode these; the server checks their structure instead. */
+const NOT_BROWSER_DECODABLE: ReadonlySet<ImageFormat> = new Set(["heic"]);
+
+async function verifyDecodes(codec: ImageCodec, file: File, format: ImageFormat, knownOpaque: boolean, position: ImagePosition | null, signal?: AbortSignal) {
+  if (NOT_BROWSER_DECODABLE.has(format)) return;
+  try {
+    if (codec.verify) await codec.verify(file);
+    else (await codec.decode(file, knownOpaque)).close();
+  } catch {
+    throwIfAborted(signal);
+    throw new ImagePreparationError([undecodableImageIssue(position)]);
+  }
+  throwIfAborted(signal);
+}
+
 function renamed(original: File, format: ImageFormat, blob: Blob): File {
   const base = original.name.replace(/\.[^.]+$/, "") || "image";
   const extension = format === "jpeg" ? "jpg" : format;
@@ -144,6 +163,7 @@ export async function prepareImageForLimits(
   const advisories = adviseImageFacts(facts, limits);
   const issues = checkImageFacts(facts, limits, position);
   if (issues.length === 0) {
+    await verifyDecodes(codec, original, probe.image.format, probe.image.alpha === "no", position, signal);
     return { file: original, original, facts, transform: null, confirmationReasons: [], advisories };
   }
   const blocking = issues.filter((issue) => !FIXABLE.has(issue.code));

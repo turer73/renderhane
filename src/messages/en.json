@@ -762,7 +762,7 @@
     "results": "Results",
     "resultsDescription": "Runs started with this account are kept on the server; tracking continues after a reload.",
     "resultsEmpty": "No runs yet. Opening this page or selecting a model does not create a charge.",
-    "retentionNote": "Runs are kept for {days} days, then deleted with their outputs and unused uploads. File links are valid for one hour and refresh automatically.",
+    "retentionNote": "Runs are kept for {days} days, then deleted with their outputs and unused uploads; only a content-free id record remains so the attempt cannot be charged twice. File links are valid for one hour and refresh automatically.",
     "historyLoading": "Loading run history…",
     "historyError": "Run history could not be read.",
     "retry": "Try again",
@@ -834,7 +834,9 @@
       "receipt_invalid": "The tracking receipt expired or is invalid. Check the result in fal.ai request history.",
       "provider_failed": "The provider could not complete this job. Check provider history for details before starting another paid probe.",
       "manually_resolved": "fal.ai history was checked; the run was closed.",
-      "other": "The run ended with an error."
+      "other": "The run ended with an error.",
+      "input_deleted": "The probe was not sent because its input image was deleted; nothing was charged.",
+      "input_check_failed": "The probe was not sent because its input files could not be checked; nothing was charged."
     },
     "outputKinds": {
       "image": "Image",
@@ -892,7 +894,9 @@
       "ref_text": "Reference audio text",
       "video_url": "Video URL",
       "scene_description": "Scene description"
-    }
+    },
+    "attemptDeleted": "This attempt was deleted from history; it was not resent and nothing was charged. You can start a new probe.",
+    "inputDeleted": "The probe was not sent because one of its images was deleted; nothing was charged. Upload the image again and retry."
   },
   "processingModal": {
     "processingTitle": "Processing Your Request",

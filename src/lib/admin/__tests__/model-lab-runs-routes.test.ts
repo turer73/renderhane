@@ -252,8 +252,13 @@ describe("Model Lab server history", () => {
     const response = await deleteRun(del(`/api/admin/models/runs/${running.body.run.id}`), params(running.body.run.id));
 
     expect(response.status).toBe(200);
-    expect(fake.calls.removes.at(-1)).toEqual([`admin-a/model-lab/${running.body.run.id}/0.png`]);
-    expect(fake.rows.map((row) => row.id)).not.toContain(running.body.run.id);
+    expect(fake.calls.removes.flat()).toEqual([`admin-a/model-lab/${running.body.run.id}/0.png`]);
+    // The row stays only as a tombstone: no content, not listed, not readable.
+    expect(fake.rows.find((row) => row.id === running.body.run.id)).toMatchObject({
+      deleted_at: expect.any(String), inputs: [], outputs: [], receipt: null, storage_state: "none", storage_lease_until: null,
+    });
+    expect((await getRun(get(`/api/admin/models/runs/${running.body.run.id}`), params(running.body.run.id))).status).toBe(404);
+    expect((await (await listRuns(get("/api/admin/models/runs"))).json()).runs.map((run: { id: string }) => run.id)).not.toContain(running.body.run.id);
   });
 
   it("purges expired runs and their files when history is read", async () => {
@@ -265,8 +270,8 @@ describe("Model Lab server history", () => {
     const list = await (await listRuns(get("/api/admin/models/runs"))).json();
 
     expect(list.runs).toEqual([]);
-    expect(fake.rows).toHaveLength(0);
-    expect(fake.calls.removes.at(-1)).toEqual(expect.arrayContaining([`admin-a/model-lab/${body.run.id}/0.png`, "admin-a/model-lab/inputs/1-shoe.png"]));
+    expect(fake.rows).toEqual([expect.objectContaining({ id: body.run.id, deleted_at: expect.any(String), inputs: [], outputs: [], receipt: null })]);
+    expect(fake.calls.removes.flat()).toEqual(expect.arrayContaining([`admin-a/model-lab/${body.run.id}/0.png`, "admin-a/model-lab/inputs/1-shoe.png"]));
   });
 
   it("closes an unknown run only after the admin checked provider history", async () => {

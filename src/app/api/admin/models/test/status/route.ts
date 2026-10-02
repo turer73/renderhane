@@ -4,23 +4,27 @@ import { isActiveRun, isLabUuid, providerStatusToRun } from "@/lib/admin/model-l
 import { labResponse, readLabJson, requireLabAdmin } from "@/lib/admin/model-lab-http";
 import { verifyModelLabReceipt, type ModelLabReceipt } from "@/lib/admin/model-lab-receipt";
 import {
+  canContinueStorage,
+  canRetryStorage,
   effectiveLabStatus,
   findLabRunByRequest,
   getLabRun,
   insertSubmittingRun,
-  isStorageRetryable,
+  LAB_STORAGE_LEASE_MS,
   labRunDto,
   storedPathsOf,
   updateLabRun,
   type LabRunRow,
 } from "@/lib/admin/model-lab-runs";
-import { extractLabOutputs, persistLabOutputs, signLabPaths, type LabProviderOutput } from "@/lib/admin/model-lab-storage";
+import { extractLabOutputs, persistLabOutputs, signLabPaths } from "@/lib/admin/model-lab-storage";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NextRequest } from "next/server";
 
 // Copying a finished run's outputs into private storage happens here.
 export const maxDuration = 120;
+/** Copying stops by this point of a request (the rest of maxDuration answers the client). */
+const COPY_BUDGET_MS = 80_000;
 
 const MAX_BODY_BYTES = 8 * 1024;
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -54,14 +58,46 @@ async function importLegacyRun(admin: AdminClient, userId: string, claims: Model
   return updateLabRun(admin, userId, created.row.id, { status: "queued", request_id: claims.requestId, receipt }, { whenStatus: ["submitting"] });
 }
 
-async function storeOutputs(admin: AdminClient, userId: string, row: LabRunRow, outputs: LabProviderOutput[]): Promise<LabRunRow> {
-  const result = await persistLabOutputs(admin, { userId, runId: row.id, outputs, existing: row.outputs });
-  const updated = await updateLabRun(admin, userId, row.id, { outputs: result.outputs, storage_state: result.state }, { whenStorage: ["pending"] });
-  return updated ?? { ...row, outputs: result.outputs, storage_state: result.state };
+function leaseUntil(): string {
+  return new Date(Date.now() + LAB_STORAGE_LEASE_MS).toISOString();
+}
+
+/**
+ * Copy outputs while holding the storage lease the caller just claimed.
+ * Progress is written after every file, fenced on the lease (which each
+ * write renews), so a request that lost the lease stops without writing.
+ * When the budget runs out the lease is released with the copy still
+ * 'pending', and the next status read continues from the first file left.
+ */
+async function storeOutputs(admin: AdminClient, userId: string, claimed: LabRunRow, deadline: number, retryFailed: boolean): Promise<LabRunRow> {
+  let latest = claimed;
+  const fenced = async (patch: Partial<LabRunRow>) => {
+    const updated = await updateLabRun(admin, userId, claimed.id, patch, {
+      whenStatus: ["completed"],
+      whenStorage: ["pending"],
+      whenLease: latest.storage_lease_until,
+    });
+    if (updated) latest = updated;
+    return updated;
+  };
+  const result = await persistLabOutputs(admin, {
+    userId,
+    runId: claimed.id,
+    outputs: claimed.outputs.map((output) => ({ url: output.providerUrl, kind: output.kind })),
+    existing: claimed.outputs,
+    deadline,
+    retryFailed,
+    checkpoint: async (progress) => (await fenced({ outputs: progress, storage_lease_until: leaseUntil() })) !== null,
+  });
+  if (result.fenced) return (await getLabRun(admin, userId, claimed.id)) ?? latest;
+  const done = await fenced(result.state === null
+    ? { outputs: result.outputs, storage_lease_until: null }
+    : { outputs: result.outputs, storage_state: result.state, storage_lease_until: null });
+  return done ?? (await getLabRun(admin, userId, claimed.id)) ?? latest;
 }
 
 /** Move a run one step forward using status/result reads only; never submits. */
-async function advance(admin: AdminClient, userId: string, row: LabRunRow, secret: string, retryStorage: boolean): Promise<Step> {
+async function advance(admin: AdminClient, userId: string, row: LabRunRow, secret: string, retryStorage: boolean, deadline: number): Promise<Step> {
   const now = Date.now();
   if (row.status === "submitting") {
     if (effectiveLabStatus(row, now) !== "unknown") return { row };
@@ -114,30 +150,34 @@ async function advance(admin: AdminClient, userId: string, row: LabRunRow, secre
       return { row, status: 502, error: "İş tamamlandı ancak sonuçlar henüz okunamadı. Daha sonra tekrar deneyin." };
     }
     const outputs = extractLabOutputs(payload);
-    // Claim the completion once: only the request that wins copies the files.
+    // Claim the completion once, with the storage lease: only the winner copies the files.
     const claimed = await updateLabRun(admin, userId, row.id, {
       status: "completed",
       completed_at: new Date(now).toISOString(),
       outputs: outputs.map((output) => ({ kind: output.kind, providerUrl: output.url, path: null, mime: null, bytes: null, error: null })),
       storage_state: outputs.length ? "pending" : "none",
+      storage_lease_until: outputs.length ? leaseUntil() : null,
     }, { whenStatus: ["queued", "running"] });
     if (!claimed) return { row: (await getLabRun(admin, userId, row.id)) ?? row };
-    return { row: outputs.length ? await storeOutputs(admin, userId, claimed, outputs) : claimed };
+    return { row: outputs.length ? await storeOutputs(admin, userId, claimed, deadline, false) : claimed };
   }
 
-  if (retryStorage && isStorageRetryable(row, now)) {
-    const claimed = await updateLabRun(admin, userId, row.id, { storage_state: "pending" }, {
+  // A copy left to finish continues on any read; failed files are retried only on request.
+  const continuing = canContinueStorage(row, now);
+  if (continuing || (retryStorage && canRetryStorage(row, now))) {
+    const claimed = await updateLabRun(admin, userId, row.id, { storage_state: "pending", storage_lease_until: leaseUntil() }, {
       whenStatus: ["completed"],
       whenStorage: [row.storage_state],
-      whenUpdatedAt: row.updated_at,
+      whenLease: row.storage_lease_until,
     });
     if (!claimed) return { row: (await getLabRun(admin, userId, row.id)) ?? row };
-    return { row: await storeOutputs(admin, userId, claimed, row.outputs.map((output) => ({ url: output.providerUrl, kind: output.kind }))) };
+    return { row: await storeOutputs(admin, userId, claimed, deadline, !continuing) };
   }
   return { row };
 }
 
 export async function POST(request: NextRequest) {
+  const deadline = Date.now() + COPY_BUDGET_MS;
   const user = await requireLabAdmin(request, { sameOrigin: true });
   if (user instanceof Response) return user;
   const body = await readLabJson(request, MAX_BODY_BYTES);
@@ -162,12 +202,14 @@ export async function POST(request: NextRequest) {
     if (!claims || claims.userId !== user.id) return labResponse({ error: "Makbuz geçersiz veya bu kullanıcıya ait değil." }, 403);
     row = await importLegacyRun(admin, user.id, claims, body.receipt as string);
     if (!row) return labResponse({ error: "Önceki deneme geçmişe aktarılamadı. Daha sonra tekrar deneyin." }, 503);
+    // Deleted from history since: it is not brought back.
+    if (row.deleted_at) return labResponse({ error: "Bu deneme geçmişten silinmiş.", code: "attempt_deleted" }, 410);
   } else {
     row = await getLabRun(admin, user.id, body.runId as string);
     if (!row) return labResponse({ error: "Deney bulunamadı." }, 404);
   }
 
-  const step = await advance(admin, user.id, row, secret, body.retryStorage === true);
+  const step = await advance(admin, user.id, row, secret, body.retryStorage === true, deadline);
   const links = await signLabPaths(admin, storedPathsOf(step.row));
   return labResponse({
     run: labRunDto(step.row, links),

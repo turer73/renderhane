@@ -4,11 +4,13 @@ import { isLabUuid } from "@/lib/admin/model-lab-flow";
 import { labResponse, ownRecord, readLabJson, requireLabAdmin } from "@/lib/admin/model-lab-http";
 import { issueModelLabReceipt } from "@/lib/admin/model-lab-receipt";
 import {
+  claimedInputDeletions,
   insertSubmittingRun,
   labRunDto,
   sanitizeLabInputs,
   storedPathsOf,
   updateLabRun,
+  uploadPathsOf,
   type LabRunRow,
 } from "@/lib/admin/model-lab-runs";
 import { signLabPaths } from "@/lib/admin/model-lab-storage";
@@ -122,7 +124,32 @@ export async function submitModelLabProbe(request: NextRequest): Promise<Respons
     inputs: model ? sanitizeLabInputs(model, values, user.id) : [],
   });
   if (!created) return labResponse({ error: "Deney kaydı oluşturulamadı; sağlayıcıya istek gönderilmedi.", code: "history_unavailable" }, 503);
-  if (created.duplicate) return respondWithRun(admin, created.row, 200, { duplicate: true });
+  if (created.duplicate) {
+    // A deleted run keeps its attempt id: resending it must not pay again.
+    if (created.row.deleted_at) {
+      return labResponse({ error: "Bu deneme silinmiş; sağlayıcıya yeniden gönderilmedi.", code: "attempt_deleted" }, 409);
+    }
+    return respondWithRun(admin, created.row, 200, { duplicate: true });
+  }
+
+  // The run now pins its uploads. A deletion that claimed one of them first
+  // wins: close the run unpaid instead of sending a file that is going away.
+  const claimed = await claimedInputDeletions(admin, user.id, uploadPathsOf(created.row.inputs));
+  if (claimed === null || claimed.length > 0) {
+    const inputDeleted = claimed !== null;
+    const row = await updateLabRun(admin, user.id, created.row.id, {
+      status: "failed",
+      completed_at: new Date().toISOString(),
+      error_code: inputDeleted ? "input_deleted" : "input_check_failed",
+      error_message: inputDeleted
+        ? "Girdi görseli silindiği için deneme gönderilmedi; yeniden yükleyin."
+        : "Girdi dosyaları doğrulanamadığı için deneme gönderilmedi.",
+    }, { whenStatus: ["submitting"] });
+    return respondWithRun(admin, row ?? created.row, inputDeleted ? 409 : 503, {
+      error: inputDeleted ? "Girdi görseli silindi; sağlayıcıya istek gönderilmedi." : "Girdi dosyaları şu anda doğrulanamadı; sağlayıcıya istek gönderilmedi.",
+      code: inputDeleted ? "input_deleted" : "history_unavailable",
+    });
+  }
 
   try {
     const queued = await getAIProvider().submit(endpoint, input);

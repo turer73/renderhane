@@ -1,22 +1,23 @@
 import {
-  deleteLabRunRow,
+  deleteUnusedLabInputs,
   expiredLabRuns,
   LAB_HISTORY_PAGE,
   labRunDto,
   listLabRuns,
-  staleUnusedLabInputs,
+  staleLabInputCandidates,
   storedPathsOf,
-  unsharedUploadPaths,
+  tombstoneLabRun,
+  uploadPathsOf,
 } from "@/lib/admin/model-lab-runs";
 import { labResponse, requireLabAdmin } from "@/lib/admin/model-lab-http";
-import { removeLabObjects, signLabPaths } from "@/lib/admin/model-lab-storage";
+import { labOutputPrefix, removeLabObjects, signLabPaths } from "@/lib/admin/model-lab-storage";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NextRequest } from "next/server";
 
 /**
- * Kept for this many days; expired runs, their stored files and uploads no
- * run uses are removed when history is read.
+ * Kept for this many days; expired runs lose their stored files, unused
+ * uploads and content when history is read (a tombstone keeps the attempt id).
  */
 export const LAB_RETENTION_DAYS = 30;
 const RETENTION_MS = LAB_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -26,15 +27,15 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 async function purgeExpired(admin: AdminClient, userId: string): Promise<void> {
   const now = new Date();
   for (const row of await expiredLabRuns(admin, userId, now)) {
-    // A 30-day-old run is no longer charging; files go first, then the row.
-    const paths = [
-      ...row.outputs.flatMap((output) => (output.path ? [output.path] : [])),
-      ...(await unsharedUploadPaths(admin, row)),
-    ];
-    if (await removeLabObjects(admin, paths)) await deleteLabRunRow(admin, userId, row.id);
+    // Files first, then the row becomes a tombstone; a failure retries on the next read.
+    const prefix = labOutputPrefix(userId, row.id);
+    const outputs = row.outputs.flatMap((output) => (output.path?.startsWith(prefix) ? [output.path] : []));
+    if (!(await removeLabObjects(admin, outputs))) continue;
+    if (!(await deleteUnusedLabInputs(admin, userId, uploadPathsOf(row.inputs), { exceptRunId: row.id })).ok) continue;
+    await tombstoneLabRun(admin, userId, row);
   }
-  // Uploads from abandoned forms: never used by a run and older than retention.
-  await removeLabObjects(admin, await staleUnusedLabInputs(admin, userId, now, RETENTION_MS));
+  // Uploads from abandoned forms: older than retention and used by no run.
+  await deleteUnusedLabInputs(admin, userId, await staleLabInputCandidates(admin, userId, now, RETENTION_MS));
 }
 
 /** GET /api/admin/models/runs?before=<ISO time> — the admin's own history, newest first. */

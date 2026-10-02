@@ -3,11 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { LAB_CATALOG } from "../model-lab-catalog";
-import { STALE_STORAGE_MS, STALE_SUBMITTING_MS } from "../model-lab-flow";
+import { STALE_SUBMITTING_MS } from "../model-lab-flow";
 import {
+  canContinueStorage,
+  canRetryStorage,
   effectiveLabStatus,
   isLabInputPath,
-  isStorageRetryable,
   labRunDto,
   ownUploadPath,
   sanitizeLabInputs,
@@ -31,12 +32,14 @@ function row(patch: Partial<LabRunRow> = {}): LabRunRow {
     inputs: [],
     outputs: [],
     storage_state: "none",
+    storage_lease_until: null,
     error_code: null,
     error_message: null,
     created_at: "2026-10-02T11:00:00.000Z",
     updated_at: "2026-10-02T11:00:00.000Z",
     completed_at: null,
     expires_at: "2026-11-01T11:00:00.000Z",
+    deleted_at: null,
     ...patch,
   };
 }
@@ -82,13 +85,18 @@ describe("Model Lab history rows", () => {
     expect(effectiveLabStatus(row({ status: "queued", created_at: "2026-01-01T00:00:00.000Z" }), NOW)).toBe("queued");
   });
 
-  it("allows a storage retry for failed, partial or long-stuck copies of completed runs only", () => {
-    expect(isStorageRetryable(row({ storage_state: "failed" }), NOW)).toBe(true);
-    expect(isStorageRetryable(row({ storage_state: "partial" }), NOW)).toBe(true);
-    expect(isStorageRetryable(row({ storage_state: "pending", updated_at: new Date(NOW - 1000).toISOString() }), NOW)).toBe(false);
-    expect(isStorageRetryable(row({ storage_state: "pending", updated_at: new Date(NOW - STALE_STORAGE_MS - 1).toISOString() }), NOW)).toBe(true);
-    expect(isStorageRetryable(row({ storage_state: "stored" }), NOW)).toBe(false);
-    expect(isStorageRetryable(row({ status: "queued", storage_state: "failed" }), NOW)).toBe(false);
+  it("continues a pending copy only when its lease is free, and retries failed copies only on request", () => {
+    const held = new Date(NOW + 1000).toISOString();
+    const lapsed = new Date(NOW - 1).toISOString();
+    expect(canContinueStorage(row({ storage_state: "pending", storage_lease_until: null }), NOW)).toBe(true);
+    expect(canContinueStorage(row({ storage_state: "pending", storage_lease_until: lapsed }), NOW)).toBe(true);
+    expect(canContinueStorage(row({ storage_state: "pending", storage_lease_until: held }), NOW)).toBe(false);
+    expect(canContinueStorage(row({ storage_state: "partial" }), NOW)).toBe(false);
+    expect(canRetryStorage(row({ storage_state: "failed" }), NOW)).toBe(true);
+    expect(canRetryStorage(row({ storage_state: "partial" }), NOW)).toBe(true);
+    expect(canRetryStorage(row({ storage_state: "partial", storage_lease_until: held }), NOW)).toBe(false);
+    expect(canRetryStorage(row({ storage_state: "stored" }), NOW)).toBe(false);
+    expect(canRetryStorage(row({ status: "queued", storage_state: "failed" }), NOW)).toBe(false);
   });
 
   it("shows stored files through fresh signed links and the rest as temporary provider links", () => {

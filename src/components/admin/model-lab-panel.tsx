@@ -253,6 +253,10 @@ export function LabWorkbench({ userId, initialModelKey = "meshy-v71" }: { userId
         setLegacyNotice({ kind: "imported" });
       } else if (response.status === 403) {
         setLegacyNotice({ kind: "expired", requestId: legacy.requestId ?? "—" });
+      } else if (response.status === 410) {
+        // Deleted from server history since: nothing to bring back.
+        clearLabRun(userId);
+        setLegacy(null);
       }
       // Anything else (rate limit, outage): keep it and try on the next visit.
     }).catch(() => undefined);
@@ -400,11 +404,16 @@ export function LabWorkbench({ userId, initialModelKey = "meshy-v71" }: { userId
       } else if (run && response.ok) {
         setConsent(false);
         if (data?.duplicate) setNotice(t("duplicateRun"));
+      } else if (data?.code === "attempt_deleted") {
+        setFormError(t("attemptDeleted"));
+      } else if (data?.code === "input_deleted") {
+        // Nothing was sent; the deleted upload must be replaced before trying again.
+        setFormError(t("inputDeleted"));
+      } else if (data?.code === "history_unavailable") {
+        setFormError(t("storageAbort"));
       } else if (run || data?.submissionUncertain) {
         setConsent(false);
         setFormError(t("uncertain"));
-      } else if (response.status === 503 && data?.code === "history_unavailable") {
-        setFormError(t("storageAbort"));
       } else {
         setFormError(t(labResponseErrorKey(response.status, "submit")));
       }

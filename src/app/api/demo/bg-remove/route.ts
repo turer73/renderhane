@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAIProvider } from "@/lib/ai";
+import { DEMO_BG_REMOVE_LIMITS } from "@/lib/media/demo-image-limits";
+import { ImagePreflightError, imagePreflightErrorBody, preflightImageInputs } from "@/lib/media/image-preflight";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -48,6 +50,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Invalid image format" },
         { status: 400 }
+      );
+    }
+
+    // The browser prepares photos to fit these limits; check the real bytes
+    // (size, format, decodable pixels) again before the paid provider call.
+    try {
+      await preflightImageInputs({ urls: [imageDataUrl], limits: DEMO_BG_REMOVE_LIMITS });
+    } catch (error) {
+      if (!(error instanceof ImagePreflightError)) throw error;
+      const body = imagePreflightErrorBody(error);
+      return NextResponse.json(
+        { ...body, error: "This photo cannot be used for this tool. Choose another JPG, PNG or WebP photo.", errorTr: body.error },
+        { status: 422 }
       );
     }
 

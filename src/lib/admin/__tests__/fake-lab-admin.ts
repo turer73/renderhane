@@ -1,12 +1,19 @@
 /**
  * In-memory stand-in for the Supabase service-role client, covering exactly
- * the query shapes the Model Lab modules use. It enforces the migration's
- * per-user unique client request id (Postgres error 23505) so idempotency is
- * tested against the same rule the database applies.
+ * the query shapes the Model Lab modules use. It enforces what the migration
+ * enforces: the per-user unique client request id and deletion-claim key
+ * (Postgres error 23505), and no DELETE on model_lab_runs for the service
+ * role. `hooks.gate` lets a test pause any statement to force an interleaving.
  */
 
 type Row = Record<string, unknown>;
 type Filter = (row: Row) => boolean;
+type Mode = "select" | "insert" | "update" | "delete";
+
+export type LabFakeGate = (table: string, mode: Mode, payload: Row | null) => Promise<void> | void;
+
+const RUNS = "model_lab_runs";
+const CLAIMS = "model_lab_input_deletions";
 
 function isSubset(needle: unknown, haystack: unknown): boolean {
   if (Array.isArray(needle)) {
@@ -19,6 +26,15 @@ function isSubset(needle: unknown, haystack: unknown): boolean {
   return needle === haystack;
 }
 
+/** A pause point: the paused side awaits `opened`; the test awaits `arrived`, then calls `release`. */
+export function barrier() {
+  let release!: () => void;
+  const opened = new Promise<void>((resolve) => { release = resolve; });
+  let reached!: () => void;
+  const arrived = new Promise<void>((resolve) => { reached = resolve; });
+  return { opened, release, arrived, reached };
+}
+
 export function createFakeLabAdmin() {
   // Timestamps follow Date.now() (so vi.setSystemTime moves them) and are
   // strictly increasing per fake, which keeps created_at ordering deterministic.
@@ -28,21 +44,24 @@ export function createFakeLabAdmin() {
     return new Date(last).toISOString();
   };
   const rows: Row[] = [];
+  const claims: Row[] = [];
   const objects = new Map<string, { bytes: number; contentType?: string; createdAt: string }>();
   const calls = { uploads: [] as string[], removes: [] as string[][], signs: 0, lists: [] as string[] };
-  const failures = { insert: false, upload: false, remove: false, sign: false, list: false, count: false };
+  const failures = { insert: false, upload: false, remove: false, sign: false, list: false, count: false, claims: false };
+  const hooks: { gate: LabFakeGate | null } = { gate: null };
   let sequence = 0;
 
   function query(table: string) {
-    if (table !== "model_lab_runs") throw new Error(`Unexpected table ${table}`);
+    if (table !== RUNS && table !== CLAIMS) throw new Error(`Unexpected table ${table}`);
+    const store = table === RUNS ? rows : claims;
     const filters: Filter[] = [];
-    let mode: "select" | "insert" | "update" | "delete" = "select";
+    let mode: Mode = "select";
     let payload: Row | null = null;
     let order: Array<{ column: string; ascending: boolean }> = [];
     let limit = Infinity;
     let countHead = false;
 
-    const matching = () => rows.filter((row) => filters.every((filter) => filter(row)));
+    const matching = () => store.filter((row) => filters.every((filter) => filter(row)));
     const sorted = (list: Row[]) => [...list].sort((a, b) => {
       for (const { column, ascending } of order) {
         const left = String(a[column]);
@@ -53,15 +72,23 @@ export function createFakeLabAdmin() {
     });
 
     function run(): { data: unknown; error: { code?: string; message: string } | null; count?: number } {
+      if (table === CLAIMS && failures.claims) return { data: null, error: { code: "08006", message: "connection failure" } };
       if (mode === "insert") {
+        if (table === CLAIMS) {
+          if (claims.some((row) => row.user_id === payload!.user_id && row.path === payload!.path)) {
+            return { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint" } };
+          }
+          claims.push({ created_at: tick(), ...payload });
+          return { data: null, error: null };
+        }
         if (failures.insert) return { data: null, error: { code: "08006", message: "connection failure" } };
         const duplicate = rows.some((row) => row.user_id === payload!.user_id && row.client_request_id === payload!.client_request_id);
         if (duplicate) return { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint" } };
         const created = tick();
         const row: Row = {
           id: `00000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
-          request_id: null, receipt: null, inputs: [], outputs: [], storage_state: "none",
-          error_code: null, error_message: null, completed_at: null,
+          request_id: null, receipt: null, inputs: [], outputs: [], storage_state: "none", storage_lease_until: null,
+          error_code: null, error_message: null, completed_at: null, deleted_at: null,
           created_at: created, updated_at: created,
           expires_at: new Date(Date.parse(created) + 30 * 86_400_000).toISOString(),
           ...payload,
@@ -75,7 +102,9 @@ export function createFakeLabAdmin() {
         return { data: targets.map((row) => ({ ...row })), error: null };
       }
       if (mode === "delete") {
-        for (const row of matching()) rows.splice(rows.indexOf(row), 1);
+        // Mirrors the migration: the service role cannot hard-delete history rows.
+        if (table === RUNS) return { data: null, error: { code: "42501", message: "permission denied for table model_lab_runs" } };
+        for (const row of matching()) store.splice(store.indexOf(row), 1);
         return { data: null, error: null };
       }
       const found = sorted(matching()).slice(0, limit);
@@ -85,6 +114,11 @@ export function createFakeLabAdmin() {
       }
       return { data: found.map((row) => ({ ...row })), error: null };
     }
+
+    const execute = async () => {
+      await hooks.gate?.(table, mode, payload);
+      return run();
+    };
 
     const builder = {
       insert(value: Row) { mode = "insert"; payload = value; return builder; },
@@ -96,23 +130,24 @@ export function createFakeLabAdmin() {
       },
       eq(column: string, value: unknown) { filters.push((row) => row[column] === value); return builder; },
       neq(column: string, value: unknown) { filters.push((row) => row[column] !== value); return builder; },
+      is(column: string, value: null) { filters.push((row) => (row[column] ?? null) === value); return builder; },
       in(column: string, values: unknown[]) { filters.push((row) => values.includes(row[column])); return builder; },
       lt(column: string, value: string) { filters.push((row) => String(row[column]) < value); return builder; },
       contains(column: string, value: unknown) { filters.push((row) => isSubset(value, row[column])); return builder; },
       order(column: string, options?: { ascending?: boolean }) { order = [...order, { column, ascending: options?.ascending ?? true }]; return builder; },
       limit(value: number) { limit = value; return builder; },
       async single() {
-        const result = run();
+        const result = await execute();
         const data = Array.isArray(result.data) ? result.data[0] ?? null : result.data;
         return { data, error: result.error ?? (data ? null : { code: "PGRST116", message: "no rows" }) };
       },
       async maybeSingle() {
-        const result = run();
+        const result = await execute();
         const data = Array.isArray(result.data) ? result.data[0] ?? null : result.data;
         return { data, error: result.error };
       },
       then(resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) {
-        return Promise.resolve(run()).then(resolve, reject);
+        return execute().then(resolve, reject);
       },
     };
     return builder;
@@ -162,5 +197,5 @@ export function createFakeLabAdmin() {
   /** Put an object in the fake bucket, e.g. an upload the panel made directly. */
   const seedObject = (path: string, createdAt = tick()) => objects.set(path, { bytes: 1, createdAt });
 
-  return { client: { from: query, storage }, rows, objects, calls, failures, seedObject };
+  return { client: { from: query, storage }, rows, claims, objects, calls, failures, hooks, seedObject };
 }

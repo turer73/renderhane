@@ -7,11 +7,14 @@ import {
   UnsafeDownloadUrlError,
 } from "@/lib/security/safe-download";
 import type { ImageInputLimits } from "./image-input-contract";
+import { verifyImageData } from "./image-decode-check";
 import {
   checkImageCount,
   checkImageFacts,
+  decodeTimeoutIssue,
   timeoutImageIssue,
   tooLargeToReadIssue,
+  undecodableImageIssue,
   unreachableImageIssue,
   unreadableImageIssue,
   type ImageFacts,
@@ -22,9 +25,10 @@ import { probeImage } from "./image-probe";
 
 /**
  * Server-side image preflight. It reads the real bytes of every input image
- * (bounded, SSRF-safe, with a timeout) and checks them against the model's
- * contract. Callers run it before any credit reservation, paid preprocessing
- * or provider submit, so a rejected image costs nothing.
+ * (bounded, SSRF-safe, with a timeout), checks them against the model's
+ * contract and decodes them once (see image-decode-check). Callers run it
+ * before any credit reservation, paid preprocessing or provider submit, so a
+ * rejected image costs nothing.
  */
 
 export class ImagePreflightError extends Error {
@@ -34,7 +38,7 @@ export class ImagePreflightError extends Error {
   }
 }
 
-/** Facts already read in this request, keyed by URL; avoids re-downloads. */
+/** Facts of images already read and decoded in this request, keyed by URL; avoids re-downloads. */
 export type ImageFactsCache = Map<string, ImageFacts>;
 
 const DOWNLOAD_TIMEOUT_MS = 15_000;
@@ -45,12 +49,6 @@ class ImageReadError extends Error {
   constructor(readonly kind: "too_large" | "unreachable" | "timeout") {
     super(kind);
   }
-}
-
-function factsFromBytes(bytes: Uint8Array, position: ImagePosition): ImageFacts | ImageInputIssue {
-  const probe = probeImage(bytes);
-  if (!probe.ok) return unreadableImageIssue(position);
-  return { bytes: bytes.byteLength, probe: probe.image };
 }
 
 async function readDataUrl(url: string, maxBytes: number): Promise<Uint8Array> {
@@ -89,20 +87,34 @@ async function readRemote(url: string, maxBytes: number): Promise<Uint8Array> {
   }
 }
 
-async function inspect(url: string, position: ImagePosition, limits: ImageInputLimits, cache?: ImageFactsCache): Promise<ImageFacts | ImageInputIssue> {
+type Inspection = { facts: ImageFacts } | { issues: ImageInputIssue[] };
+
+async function inspect(url: string, position: ImagePosition, limits: ImageInputLimits, cache?: ImageFactsCache): Promise<Inspection> {
   const cached = cache?.get(url);
-  if (cached) return cached;
+  if (cached) {
+    const issues = checkImageFacts(cached, limits, position);
+    return issues.length ? { issues } : { facts: cached };
+  }
+  let bytes: Uint8Array;
   try {
-    const bytes = DATA_URL.test(url) ? await readDataUrl(url, limits.maxBytes) : await readRemote(url, limits.maxBytes);
-    const facts = factsFromBytes(bytes, position);
-    if (cache && !("code" in facts)) cache.set(url, facts);
-    return facts;
+    bytes = DATA_URL.test(url) ? await readDataUrl(url, limits.maxBytes) : await readRemote(url, limits.maxBytes);
   } catch (error) {
     const kind = error instanceof ImageReadError ? error.kind : "unreachable";
-    if (kind === "too_large") return tooLargeToReadIssue(position, limits);
-    if (kind === "timeout") return timeoutImageIssue(position);
-    return unreachableImageIssue(position);
+    if (kind === "too_large") return { issues: [tooLargeToReadIssue(position, limits)] };
+    if (kind === "timeout") return { issues: [timeoutImageIssue(position)] };
+    return { issues: [unreachableImageIssue(position)] };
   }
+  const probe = probeImage(bytes);
+  if (!probe.ok) return { issues: [unreadableImageIssue(position)] };
+  const facts: ImageFacts = { bytes: bytes.byteLength, probe: probe.image };
+  const issues = checkImageFacts(facts, limits, position);
+  if (issues.length) return { issues };
+  // Only an image that fits is decoded, and only a decoded image is cached.
+  const data = await verifyImageData(bytes, probe.image);
+  if (data === "failed") return { issues: [undecodableImageIssue(position)] };
+  if (data === "timeout") return { issues: [decodeTimeoutIssue(position)] };
+  cache?.set(url, facts);
+  return { facts };
 }
 
 /**
@@ -125,14 +137,10 @@ export async function preflightImageInputs(input: {
   const inspected = await Promise.all(urls.map((url, index) => inspect(url, positions[index], limits, cache)));
   const issues: ImageInputIssue[] = [];
   const facts: ImageFacts[] = [];
-  inspected.forEach((entry, index) => {
-    if ("code" in entry) {
-      issues.push(entry);
-      return;
-    }
-    issues.push(...checkImageFacts(entry, limits, positions[index]));
-    facts.push(entry);
-  });
+  for (const entry of inspected) {
+    if ("issues" in entry) issues.push(...entry.issues);
+    else facts.push(entry.facts);
+  }
   if (issues.length > 0) throw new ImagePreflightError(issues);
   return facts;
 }

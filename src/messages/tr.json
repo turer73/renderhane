@@ -762,7 +762,7 @@
     "results": "Sonuçlar",
     "resultsDescription": "Bu hesapla başlatılan denemeler sunucuda saklanır; sayfayı yenileseniz de takip sürer.",
     "resultsEmpty": "Henüz deneme yok. Sayfa açmak veya model seçmek ücret oluşturmaz.",
-    "retentionNote": "Denemeler {days} gün saklanır, sonra çıktıları ve kullanılmayan yüklemeleriyle birlikte silinir. Dosya bağlantıları bir saat geçerlidir ve otomatik yenilenir.",
+    "retentionNote": "Denemeler {days} gün saklanır, sonra çıktıları ve kullanılmayan yüklemeleriyle birlikte silinir; tekrar ücretlendirmeyi önlemek için yalnız içeriksiz bir kimlik kaydı kalır. Dosya bağlantıları bir saat geçerlidir ve otomatik yenilenir.",
     "historyLoading": "Deneme geçmişi yükleniyor…",
     "historyError": "Deneme geçmişi okunamadı.",
     "retry": "Yeniden dene",
@@ -834,7 +834,9 @@
       "receipt_invalid": "Takip alındısının süresi doldu veya geçersiz. Sonucu fal.ai istek geçmişinden kontrol edin.",
       "provider_failed": "Sağlayıcı bu işi tamamlayamadı. Yeni ücretli deneme başlatmadan önce ayrıntılar için sağlayıcı geçmişini kontrol edin.",
       "manually_resolved": "fal.ai geçmişi kontrol edildi; deneme kapatıldı.",
-      "other": "Deneme bir hatayla sonuçlandı."
+      "other": "Deneme bir hatayla sonuçlandı.",
+      "input_deleted": "Girdi görseli silindiği için deneme gönderilmedi; ücret oluşmadı.",
+      "input_check_failed": "Girdi dosyaları doğrulanamadığı için deneme gönderilmedi; ücret oluşmadı."
     },
     "outputKinds": {
       "image": "Görsel",
@@ -892,7 +894,9 @@
       "ref_text": "Referans ses metni",
       "video_url": "Video adresi",
       "scene_description": "Sahne açıklaması"
-    }
+    },
+    "attemptDeleted": "Bu deneme geçmişten silinmiş; aynı deneme yeniden gönderilmedi ve ücret oluşmadı. Yeni bir deneme başlatabilirsiniz.",
+    "inputDeleted": "Girdi görsellerinden biri silindiği için deneme gönderilmedi; ücret oluşmadı. Görseli yeniden yükleyip tekrar deneyin."
   },
   "processingModal": {
     "processingTitle": "İşleminiz Hazırlanıyor",

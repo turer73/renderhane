@@ -1,4 +1,4 @@
-import { IMAGE_FORMATS, MIN_IMAGE_DIMENSION, type ImageFormat, type ImageInputLimits } from "./image-input-contract";
+import { IMAGE_FORMATS, MIN_IMAGE_DIMENSION, type ImageFormat, type ImageInputLimits } from "./image-formats";
 import type { ImageProbe } from "./image-probe";
 
 /**
@@ -124,6 +124,15 @@ export function checkImageFacts(facts: ImageFacts, limits: ImageInputLimits, pos
 
 export function unreadableImageIssue(position: ImagePosition | null): ImageInputIssue {
   return issue("corrupt", position, "Dosya okunamadı ya da desteklenen bir görsel değil. Dosyayı yeniden kaydedip tekrar deneyin.");
+}
+
+/** The header was valid, but the pixel data could not be decoded. */
+export function undecodableImageIssue(position: ImagePosition | null): ImageInputIssue {
+  return issue("corrupt", position, "Görselin piksel verisi çözülemedi; dosya bozuk veya eksik görünüyor. Dosyayı yeniden kaydedip tekrar deneyin.");
+}
+
+export function decodeTimeoutIssue(position: ImagePosition | null): ImageInputIssue {
+  return issue("timeout", position, "Görsel zamanında çözümlenemedi. Daha küçük bir dosyayla tekrar deneyin.");
 }
 
 export function unreachableImageIssue(position: ImagePosition | null): ImageInputIssue {

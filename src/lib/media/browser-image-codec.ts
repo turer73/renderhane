@@ -1,4 +1,4 @@
-import { IMAGE_FORMATS } from "./image-input-contract";
+import { IMAGE_FORMATS } from "./image-formats";
 import type { DecodedImage, EncodeTarget, ImageCodec } from "./optimize-image";
 
 /**
@@ -48,6 +48,11 @@ function detectAlpha(bitmap: ImageBitmap): boolean {
 }
 
 export const browserImageCodec: ImageCodec = {
+  async verify(file: Blob): Promise<void> {
+    // A tiny target keeps memory low; the decoder still reads the whole file.
+    const bitmap = await createImageBitmap(file, { resizeWidth: 16, resizeHeight: 16, resizeQuality: "low" });
+    bitmap.close();
+  },
   async decode(file: Blob, knownOpaque: boolean): Promise<DecodedImage> {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const image: BitmapImage = {

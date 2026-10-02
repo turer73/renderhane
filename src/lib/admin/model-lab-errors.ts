@@ -16,6 +16,8 @@ const RUN_ERROR_CODES = [
   "receipt_invalid",
   "provider_failed",
   "manually_resolved",
+  "input_deleted",
+  "input_check_failed",
 ] as const;
 
 /** Message key for a run's stored error code; unknown codes get a generic message. */

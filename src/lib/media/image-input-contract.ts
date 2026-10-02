@@ -1,45 +1,25 @@
 import { MAX_MULTI_IMAGES, MODELS, TOOL_MODELS, type ModelConfig, type ModelTier, type ToolType } from "@/lib/fal/models";
 import { routeRequest } from "@/lib/fal/smart-router";
+import {
+  IMAGE_DOWNLOAD_HARD_LIMIT_BYTES,
+  IMAGE_MAX_PIXELS,
+  MIN_IMAGE_DIMENSION,
+  UNVERIFIED_FORMATS,
+  UNVERIFIED_MAX_BYTES,
+  type ImageAdvisory,
+  type ImageFormat,
+  type ImageInputKind,
+  type ImageInputLimits,
+} from "./image-formats";
+
+export * from "./image-formats";
 
 /**
  * Shared image-input contract. The browser (optimizer, upload UI) and the
  * server (pre-reservation preflight) read limits from this one module, so the
  * same file is accepted or rejected for the same reason on both sides.
+ * Formats and global bounds live in image-formats (no model catalog).
  */
-
-export type ImageFormat = "jpeg" | "png" | "webp" | "gif" | "bmp" | "avif" | "heic";
-
-export interface ImageFormatInfo {
-  label: string;
-  mime: string;
-  /** The format can carry transparency. */
-  alpha: boolean;
-}
-
-export const IMAGE_FORMATS: Record<ImageFormat, ImageFormatInfo> = {
-  jpeg: { label: "JPEG", mime: "image/jpeg", alpha: false },
-  png: { label: "PNG", mime: "image/png", alpha: true },
-  webp: { label: "WebP", mime: "image/webp", alpha: true },
-  gif: { label: "GIF", mime: "image/gif", alpha: true },
-  bmp: { label: "BMP", mime: "image/bmp", alpha: false },
-  avif: { label: "AVIF", mime: "image/avif", alpha: true },
-  heic: { label: "HEIC/HEIF", mime: "image/heic", alpha: true },
-};
-
-/** Ceiling for every server-side read, whatever a provider documents. */
-export const IMAGE_DOWNLOAD_HARD_LIMIT_BYTES = 32 * 1024 * 1024;
-/** Decode guard: larger header dimensions are refused before any decode. */
-export const IMAGE_MAX_PIXELS = 50_000_000;
-/** Applied when a provider documents no byte limit for the model (decimal MB, like the messages). */
-export const UNVERIFIED_MAX_BYTES = 20_000_000;
-/** Applied when a provider documents no format list for the model. */
-export const UNVERIFIED_FORMATS: readonly ImageFormat[] = ["jpeg", "png", "webp"];
-/** Sanity floor: smaller images are almost certainly not usable input. */
-export const MIN_IMAGE_DIMENSION = 64;
-
-export type ImageAdvisory =
-  | { code: "preferred_min_short_side"; pixels: number }
-  | { code: "preferred_aspect"; ratios: readonly string[] };
 
 interface DocumentedImageLimits {
   formats?: readonly ImageFormat[];
@@ -87,29 +67,6 @@ const DOCUMENTED: Record<string, DocumentedImageLimits> = {
   },
   "wan-i2v": { formats: ["jpeg", "png", "webp", "bmp"], maxBytes: 20_000_000 },
 };
-
-export type ImageInputKind = "image" | "video" | "none";
-
-export interface ImageInputVerification {
-  formats: boolean;
-  size: boolean;
-  dimensions: boolean;
-  source: string | null;
-}
-
-export interface ImageInputLimits {
-  modelKeys: string[];
-  inputKind: ImageInputKind;
-  maxBytes: number;
-  maxPixels: number;
-  minDimension: number;
-  maxDimension: number | null;
-  formats: ImageFormat[];
-  minImages: number;
-  maxImages: number;
-  advisories: ImageAdvisory[];
-  verification: ImageInputVerification;
-}
 
 /** What the model's primary input actually is; a video URL is not an image. */
 export function imageInputKind(model: ModelConfig): ImageInputKind {
