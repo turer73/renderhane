@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/auth/admin-check";
 import { readBoundedBody, workshopWorkerPath, WORKSHOP_MAX_BODY } from "./workshop";
 import { isWorkshopArtifactTypeForName, parseWorkshopReply, WORKSHOP_MAX_ARTIFACT } from "./workshop-response";
 import { verifiedArtifactStream } from "./workshop-artifact-stream";
+import { isWorkshopReadOnly } from "./workshop-lifecycle";
 
 type WorkshopConfig = { origin: string; token: string; accessHeaders: Record<string, string> };
 
@@ -85,12 +86,16 @@ export async function proxyWorkshop(request: Request, parts: string[]): Promise<
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return error(401, "authentication_required");
     if (!isAdmin(user.email)) return error(403, "admin_required");
+    if (request.method === "POST") {
+      // Keep authentication and CSRF checks, including for stale open tabs.
+      if (request.headers.get("origin") !== new URL(request.url).origin) return error(403, "same_origin_required");
+      // Archive mode never reads a mutation body or contacts the worker.
+      if (isWorkshopReadOnly()) return error(409, "workshop_read_only");
+    }
     const config = workshopConfig();
     if (!config) return error(503, "workshop_not_configured");
     let body: Uint8Array | undefined;
     if (request.method === "POST") {
-      // Cookie-authenticated mutation: same-origin required even for zero-body retry.
-      if (request.headers.get("origin") !== new URL(request.url).origin) return error(403, "same_origin_required");
       if (!parts.length && request.headers.get("content-type")?.split(";")[0] !== "application/json") {
         return error(415, "application_json_required");
       }
