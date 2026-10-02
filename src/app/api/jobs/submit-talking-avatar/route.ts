@@ -7,6 +7,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
 import { isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
 import { isAdmin } from "@/lib/auth/admin-check";
+import { getImageInputLimits } from "@/lib/media/image-input-contract";
+import {
+  ImagePreflightError,
+  imagePreflightErrorBody,
+  preflightImageInputs,
+  type ImageFactsCache,
+} from "@/lib/media/image-preflight";
 
 // TTS (~5s) + video submission — needs extended timeout
 export const maxDuration = 60;
@@ -82,6 +89,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Read the real avatar image before any project, reservation or TTS.
+  const imageFactsCache: ImageFactsCache = new Map();
+  try {
+    await preflightImageInputs({
+      urls: [imageUrl as string],
+      limits: getImageInputLimits(avatarModel),
+      cache: imageFactsCache,
+    });
+  } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
+    throw error;
+  }
+
   // Check credits upfront
   const { data: balance } = await supabase.rpc("get_credit_balance", {
     p_user_id: user.id,
@@ -113,6 +135,7 @@ export async function POST(request: NextRequest) {
       voiceId: voice,
       audioUrl: audioUrlText,
       userEmail: user.email,
+      imageFactsCache,
     });
 
     const reconciliationPending = result.submissionState !== "accepted";
@@ -123,6 +146,9 @@ export async function POST(request: NextRequest) {
         : {}),
     });
   } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
         { error: "insufficient_credits" },

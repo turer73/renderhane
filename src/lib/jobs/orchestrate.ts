@@ -9,6 +9,7 @@ import {
   SOCIAL_KIT_SCENE_COUNT,
   SOCIAL_KIT_SCENE_MODEL,
   SOCIAL_KIT_VIDEO_MODEL,
+  TOOL_MODELS,
 } from "@/lib/fal/models";
 import {
   CreditError,
@@ -17,6 +18,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/auth/admin-check";
 import { autoCreateProject } from "@/lib/jobs/api-helpers";
 import { reserveSocialKitRequestBundle } from "@/lib/jobs/social-kit-idempotency";
+import { getImageInputLimits, intersectImageInputLimits } from "@/lib/media/image-input-contract";
+import { preflightImageInputs, type ImageFactsCache } from "@/lib/media/image-preflight";
 
 // ── Types ────────────────────────────────────────
 
@@ -25,6 +28,34 @@ interface OrchestrationInput {
   imageUrl: string;
   locale?: string;
   projectId?: string;
+  /** Facts of the source image read earlier in this request. */
+  imageFactsCache?: ImageFactsCache;
+}
+
+// ── Image preflight ──────────────────────────────
+
+/**
+ * Read the shared source image once and check it against every model it
+ * feeds, before any reservation or child job. Children reuse the facts.
+ */
+async function preflightSharedImage(
+  imageUrl: string,
+  modelKeys: readonly string[],
+  cache: ImageFactsCache
+): Promise<void> {
+  await preflightImageInputs({
+    urls: [imageUrl],
+    limits: intersectImageInputLimits(modelKeys.map(getImageInputLimits)),
+    cache,
+  });
+}
+
+export function preflightAplusImage(imageUrl: string, cache: ImageFactsCache): Promise<void> {
+  return preflightSharedImage(imageUrl, TOOL_MODELS.aplus, cache);
+}
+
+export function preflightSocialKitImage(imageUrl: string, cache: ImageFactsCache): Promise<void> {
+  return preflightSharedImage(imageUrl, [SOCIAL_KIT_SCENE_MODEL, SOCIAL_KIT_VIDEO_MODEL], cache);
 }
 
 interface SocialKitOrchestrationInput extends OrchestrationInput {
@@ -51,6 +82,8 @@ export async function orchestrateAplus(
   input: OrchestrationInput
 ): Promise<OrchestrationResult> {
   const { userId, imageUrl, locale = "tr" } = input;
+  const imageFactsCache = input.imageFactsCache ?? new Map();
+  await preflightAplusImage(imageUrl, imageFactsCache);
 
   const results = await Promise.allSettled(
     APLUS_SCENES.map((scene) =>
@@ -59,6 +92,7 @@ export async function orchestrateAplus(
         tool: "aplus",
         imageUrl,
         prompt: getScenePrompt(scene.id, locale),
+        imageFactsCache,
       })
     )
   );
@@ -212,6 +246,10 @@ export async function orchestrateSocialKit(
     },
   ];
 
+  // A rejected source image must not reserve the bundle or create a project.
+  const imageFactsCache = input.imageFactsCache ?? new Map();
+  await preflightSocialKitImage(imageUrl, imageFactsCache);
+
   let userEmail: string | undefined;
   try {
     userEmail = (await createAdminClient().auth.admin.getUserById(userId)).data?.user?.email;
@@ -247,6 +285,7 @@ export async function orchestrateSocialKit(
         imageUrl,
         prompt: job.prompt,
         orchestrationRequestId: requestId,
+        imageFactsCache,
         ...(reservations[index]
           ? {
               reservedCredit: {

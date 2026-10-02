@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   orchestrateSocialKit: vi.fn(),
   claimSocialKitRequest: vi.fn(),
   completeSocialKitRequest: vi.fn(),
+  preflightSocialKitImage: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -25,6 +26,7 @@ vi.mock("@/lib/jobs/orchestrate", () => ({
   orchestrateAplus: mocks.orchestrateAplus,
   orchestrateTalkingAvatar: mocks.orchestrateTalkingAvatar,
   orchestrateSocialKit: mocks.orchestrateSocialKit,
+  preflightSocialKitImage: mocks.preflightSocialKitImage,
 }));
 vi.mock("@/lib/jobs/social-kit-idempotency", async (importOriginal) => {
   const original =
@@ -37,6 +39,7 @@ vi.mock("@/lib/jobs/social-kit-idempotency", async (importOriginal) => {
 });
 
 import { POST } from "../route";
+import { ImagePreflightError } from "@/lib/media/image-preflight";
 
 function request(body: Record<string, unknown>, idempotencyKey?: string) {
   const headers: Record<string, string> = {
@@ -66,6 +69,35 @@ describe("public job submission reconciliation status", () => {
       estimatedTime: "~1min",
       submissionStates: { "social-job-1": "accepted" },
     });
+    mocks.preflightSocialKitImage.mockResolvedValue(undefined);
+  });
+
+  it("returns 422 with field-level issues when submitJob rejects the image", async () => {
+    mocks.submitJob.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "unsupported_format", index: 0, message: "GIF biçimi bu modelde desteklenmiyor." }])
+    );
+
+    const response = await POST(request({ tool: "video", imageUrls: ["https://cdn.example/a.gif"] }));
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "image_input_invalid",
+      issues: [{ code: "unsupported_format", index: 0 }],
+    });
+  });
+
+  it("rejects an unusable public Social Kit image before claiming or charging", async () => {
+    mocks.preflightSocialKitImage.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "corrupt", index: 0, message: "Dosya okunamadı." }])
+    );
+
+    const response = await POST(
+      request({ tool: "social-kit", imageUrl: "https://cdn.example/broken.png" }, "public-social-key-2")
+    );
+
+    expect(response.status).toBe(422);
+    expect(mocks.claimSocialKitRequest).not.toHaveBeenCalled();
+    expect(mocks.orchestrateSocialKit).not.toHaveBeenCalled();
   });
 
   it("returns 202 instead of 500 for an indeterminate sync provider result", async () => {

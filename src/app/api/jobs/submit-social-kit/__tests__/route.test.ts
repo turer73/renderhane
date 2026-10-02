@@ -10,12 +10,14 @@ const mocks = vi.hoisted(() => ({
   completeSocialKitRequest: vi.fn(),
   profileSingle: vi.fn(),
   projectMaybeSingle: vi.fn(),
+  preflightSocialKitImage: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/jobs/orchestrate", () => ({
   orchestrateSocialKit: mocks.orchestrateSocialKit,
+  preflightSocialKitImage: mocks.preflightSocialKitImage,
 }));
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: mocks.rateLimit,
@@ -33,6 +35,7 @@ vi.mock("@/lib/jobs/social-kit-idempotency", async (importOriginal) => {
 
 import { POST } from "../route";
 import { SocialKitSchemaUnavailableError } from "@/lib/jobs/social-kit-idempotency";
+import { ImagePreflightError } from "@/lib/media/image-preflight";
 
 const fingerprint = "a".repeat(64);
 
@@ -101,6 +104,36 @@ describe("submit-social-kit idempotency and release guard", () => {
       hasVideo: false,
       estimatedTime: "~3min",
     });
+    mocks.preflightSocialKitImage.mockResolvedValue(undefined);
+  });
+
+  it("rejects an unusable image with 422 before claiming, reserving or orchestrating", async () => {
+    mocks.preflightSocialKitImage.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "too_large", index: 0, message: "Dosya 15 MB; bu model en fazla 12 MB kabul ediyor." }])
+    );
+
+    const response = await POST(request());
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body).toMatchObject({
+      error: "image_input_invalid",
+      issues: [{ code: "too_large", index: 0 }],
+      idempotency: { outcome: "not_claimed", keyAction: "rotate" },
+    });
+    expect(mocks.claimSocialKitRequest).not.toHaveBeenCalled();
+    expect(mocks.orchestrateSocialKit).not.toHaveBeenCalled();
+  });
+
+  it("finalizes the claim without a charge when orchestration rejects the image", async () => {
+    mocks.orchestrateSocialKit.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "unreachable", index: 0, message: "Görsele ulaşılamadı." }])
+    );
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(422);
+    expect(mocks.completeSocialKitRequest).toHaveBeenCalledWith(expect.objectContaining({ responseStatus: 422 }));
   });
 
   it("fails closed before authentication when the submission kill switch is enabled", async () => {

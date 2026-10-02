@@ -3,6 +3,8 @@ import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
 import { buildRegenerationInput, RegenerationInputError } from "@/lib/jobs/regenerate-input";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { ImagePreflightError, imagePreflightErrorBody } from "@/lib/media/image-preflight";
+import { refreshSignedUrl } from "@/lib/supabase/refresh-url";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
@@ -60,6 +62,17 @@ export async function POST(
   }
   try {
     const replay = buildRegenerationInput(job);
+    // Stored upload links expire after an hour. Re-sign the user's own
+    // original upload (storage RLS limits signing to their folder) so a
+    // regeneration replays the original image instead of a dead link.
+    if (replay.imageUrl) {
+      replay.imageUrl = (await refreshSignedUrl(supabase, replay.imageUrl)) ?? replay.imageUrl;
+    }
+    if (replay.imageUrls) {
+      replay.imageUrls = await Promise.all(
+        replay.imageUrls.map(async (url) => (await refreshSignedUrl(supabase, url)) ?? url)
+      );
+    }
     if (replay.projectId) {
       const { data: project, error: projectError } = await supabase
         .from("projects")
@@ -96,11 +109,15 @@ export async function POST(
     if (err instanceof RegenerationInputError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
+    if (err instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(err), { status: 422 });
+    }
     if (err instanceof CreditError && err.code === "INSUFFICIENT") {
       return NextResponse.json({ error: "Yetersiz kredi" }, { status: 402 });
     }
-    const message =
-      err instanceof Error ? err.message : "Yeniden uretim basarisiz";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // The raw message can carry provider detail or database text; keep it
+    // in the server log and show a generic message.
+    console.error("[regenerate] submission failed:", err);
+    return NextResponse.json({ error: "Yeniden üretim başlatılamadı. Lütfen tekrar deneyin." }, { status: 500 });
   }
 }

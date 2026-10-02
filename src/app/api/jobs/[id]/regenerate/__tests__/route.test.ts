@@ -3,18 +3,26 @@ import { NextRequest } from "next/server";
 import { MODELS } from "@/lib/fal/models";
 import { CreditError } from "@/lib/credits/engine";
 
-const mocks = vi.hoisted(() => ({ createClient: vi.fn(), submitJob: vi.fn(), rateLimit: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createClient: vi.fn(), submitJob: vi.fn(), rateLimit: vi.fn(), createSignedUrl: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/jobs/submit", () => ({ submitJob: mocks.submitJob }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: mocks.rateLimit, RATE_LIMITS: { jobSubmit: {} } }));
 import { POST } from "../route";
+import { ImagePreflightError } from "@/lib/media/image-preflight";
 
 const projectId = "11111111-1111-4111-8111-111111111111";
 const sourceJob = {
   id: "job-1", user_id: "user-1", project_id: projectId as string | null, tool: "logo", model_id: MODELS["recraft-v4-svg"].id,
-  original_request: { prompt: "flower", modelKey: "recraft-v4-svg", extraParams: { outputFormat: "svg", style: "logo" } },
+  original_request: { prompt: "flower", modelKey: "recraft-v4-svg", extraParams: { outputFormat: "svg", style: "logo" } } as Record<string, unknown>,
   input_params: {},
+};
+const EXPIRED_UPLOAD = "https://proj.supabase.co/storage/v1/object/sign/uploads/user-1/1700000000-shoe.png?token=OLD-TOKEN";
+const imageJob = {
+  ...sourceJob,
+  tool: "3d-model",
+  model_id: MODELS["meshy-v71"].id,
+  original_request: { tool: "3d-model", modelKey: "meshy-v71", imageUrl: EXPIRED_UPLOAD, skipBgRemove: true },
 };
 
 function installClient(options: {
@@ -39,11 +47,13 @@ function installClient(options: {
     if (table === "projects") return projects;
     throw new Error(`unexpected ${table}`);
   });
+  const storageFrom = vi.fn(() => ({ createSignedUrl: mocks.createSignedUrl }));
   mocks.createClient.mockResolvedValue({
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user: options.user === undefined ? { id: "user-1", email: "user@example.com" } : options.user } }) },
     from,
+    storage: { from: storageFrom },
   });
-  return { from, jobs, projects };
+  return { from, jobs, projects, storageFrom };
 }
 const regenerate = () => POST(new NextRequest("https://renderhane.com/api/jobs/job-1/regenerate", { method: "POST" }), { params: Promise.resolve({ id: "job-1" }) });
 
@@ -127,5 +137,43 @@ describe("regenerate route authorization and exact replay", () => {
   it("preserves the insufficient-credit status", async () => {
     mocks.submitJob.mockRejectedValue(new CreditError("Insufficient", "INSUFFICIENT"));
     expect((await regenerate()).status).toBe(402);
+  });
+
+  it("re-signs the user's own expired upload so the original image is replayed", async () => {
+    const client = installClient({ job: imageJob });
+    mocks.createSignedUrl.mockResolvedValue({ data: { signedUrl: "https://proj.supabase.co/storage/v1/object/sign/uploads/user-1/1700000000-shoe.png?token=FRESH" } });
+
+    expect((await regenerate()).status).toBe(200);
+
+    expect(client.storageFrom).toHaveBeenCalledWith("uploads");
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith("user-1/1700000000-shoe.png", 3600);
+    expect(mocks.submitJob).toHaveBeenCalledWith(expect.objectContaining({
+      modelKey: "meshy-v71",
+      imageUrl: "https://proj.supabase.co/storage/v1/object/sign/uploads/user-1/1700000000-shoe.png?token=FRESH",
+    }));
+  });
+
+  it("returns 422 with the image issues when the replayed image is rejected", async () => {
+    installClient({ job: imageJob });
+    mocks.createSignedUrl.mockResolvedValue({ data: null });
+    mocks.submitJob.mockRejectedValue(new ImagePreflightError([{ code: "unreachable", index: 0, message: "Görsele ulaşılamadı." }]));
+
+    const response = await regenerate();
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({ error: "image_input_invalid", issues: [{ code: "unreachable" }] });
+  });
+
+  it("does not expose raw provider or database text in a 500", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.submitJob.mockRejectedValue(new Error('fal 422 {"detail":"image_url invalid","url":"https://x?token=SECRET"}'));
+
+    const response = await regenerate();
+    const body = await response.json();
+    error.mockRestore();
+
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(body)).not.toMatch(/SECRET|detail|fal 422/);
+    expect(body.error).toBe("Yeniden üretim başlatılamadı. Lütfen tekrar deneyin.");
   });
 });
