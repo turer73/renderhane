@@ -1,5 +1,7 @@
 "use client";
 
+import { workshopNavigationLabel } from "@/lib/relief/workshop-lifecycle";
+
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslations } from "next-intl";
@@ -111,7 +113,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           { href: `/${locale}/app/admin/models`, label: tLab("nav"), icon: FlaskConical },
           {
             href: `/${locale}/app/relief`,
-            label: "Relief Pro Atölyesi",
+            label: workshopNavigationLabel(locale),
             icon: Layers3,
           },
           {
@@ -128,7 +130,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     { href: `/${locale}/app/admin/models`, label: tLab("nav"), icon: FlaskConical },
     {
       href: `/${locale}/app/relief`,
-      label: "Relief Pro Atölyesi",
+      label: workshopNavigationLabel(locale),
       icon: Layers3,
     },
     {

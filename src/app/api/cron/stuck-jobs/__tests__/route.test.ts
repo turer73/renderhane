@@ -341,6 +341,28 @@ describe("stuck-jobs atomic cleanup", () => {
     expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
   });
 
+  it("logs one counters-only summary line that matches the response", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    mocks.reconcileAcceptedProviderJob.mockResolvedValueOnce("webhook_queued");
+    installAdmin({
+      jobs: [listChain({ data: [{ id: "job-private-7f3a", fal_request_id: "fal-private-9c1e" }], error: null })],
+      creditTransactions: [listChain({ data: [], error: null })],
+      socialKitRequests: [listChain({ data: [], error: null })],
+    });
+
+    const body = await (await GET(cronRequest())).json();
+    const lines = log.mock.calls
+      .map(([line]) => String(line))
+      .filter((line) => line.startsWith("[stuck-jobs] summary "));
+    log.mockRestore();
+
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0].slice("[stuck-jobs] summary ".length))).toEqual(body);
+    expect(body).toMatchObject({ providerWebhooksQueued: 1 });
+    expect(lines[0]).not.toContain("job-private-7f3a");
+    expect(lines[0]).not.toContain("fal-private-9c1e");
+  });
+
   it("drains every fetched page before yielding its cursor to the next invocation", async () => {
     let clock = Date.parse("2026-10-01T00:00:00Z");
     const time = vi.spyOn(Date, "now").mockImplementation(() => clock);

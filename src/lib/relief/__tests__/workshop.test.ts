@@ -6,6 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { g
 vi.mock("@/lib/auth/admin-check", () => ({ isAdmin: mocks.isAdmin }));
 import { proxyWorkshop, workshopConfig } from "../workshop-server";
 import { readBoundedBody, workshopWorkerPath } from "../workshop";
+import * as lifecycle from "../workshop-lifecycle";
 
 const id = "00000000-0000-4000-8000-000000000001";
 const base = "https://www.renderhane.com/api/relief/workshop";
@@ -15,8 +16,11 @@ function request(body = "{}", origin = "https://www.renderhane.com") {
   return new Request(base, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body });
 }
 
-describe("private Relief Pro workshop", () => {
+// Preserve the legacy transport/security checks. Archive mode is exercised
+// separately against the real (unmocked) default in workshop-archive.test.ts.
+describe("private Relief Pro workshop transport (writes restored by reviewed code)", () => {
   beforeEach(() => {
+    vi.spyOn(lifecycle, "isWorkshopReadOnly").mockReturnValue(false);
     vi.stubEnv("RELIEF_WORKSHOP_ENABLED", "true");
     vi.stubEnv("RELIEF_WORKSHOP_URL", "https://private-worker.example");
     vi.stubEnv("RELIEF_WORKSHOP_TOKEN", "x".repeat(40));
@@ -26,7 +30,7 @@ describe("private Relief Pro workshop", () => {
     mocks.isAdmin.mockReturnValue(true);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ revisions: [], worker_online: true })));
   });
-  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
   it("allows only explicit paths and verbs", () => {
     expect(workshopWorkerPath([], "GET")).toBe("/revisions");
