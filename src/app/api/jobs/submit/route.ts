@@ -6,6 +6,13 @@ import { NextRequest, NextResponse } from "next/server";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 import { validateJobSubmit } from "@/lib/validations/job-submit";
 import { autoCreateProject } from "@/lib/jobs/api-helpers";
+import { getSelectionImageInputLimits } from "@/lib/media/image-input-contract";
+import {
+  ImagePreflightError,
+  imagePreflightErrorBody,
+  preflightImageInputs,
+  type ImageFactsCache,
+} from "@/lib/media/image-preflight";
 
 // Job submission can include auto bg-remove (~5s) + fal.ai queue submit
 export const maxDuration = 60;
@@ -53,6 +60,34 @@ export async function POST(request: NextRequest) {
 
   const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, skipBgRemove, extraParams } = parsed.data;
 
+  // Check the images before a project is created; submitJob re-checks them
+  // against the routed model from the cached facts without downloading again.
+  const imageFactsCache: ImageFactsCache = new Map();
+  const sourceUrls = imageUrls?.length ? imageUrls : imageUrl ? [imageUrl] : [];
+  if (sourceUrls.length > 0 && tool !== "qr-code") {
+    let limits = null;
+    try {
+      limits = getSelectionImageInputLimits({
+        tool: tool as ToolType,
+        tier: tier as ModelTier | undefined,
+        modelKey,
+        imageCount: sourceUrls.length,
+      });
+    } catch {
+      // An invalid model selection is rejected by submitJob below.
+    }
+    if (limits) {
+      try {
+        await preflightImageInputs({ urls: sourceUrls, limits, cache: imageFactsCache });
+      } catch (error) {
+        if (error instanceof ImagePreflightError) {
+          return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+        }
+        throw error;
+      }
+    }
+  }
+
   // Resolve or auto-create a project for this job
   const thumbnailUrl = imageUrl ?? imageUrls?.[0] ?? "";
   let resolvedProjectId = projectId as string | undefined;
@@ -78,6 +113,7 @@ export async function POST(request: NextRequest) {
       skipBgRemove: skipBgRemove === true,
       extraParams: extraParams as Record<string, unknown> | undefined,
       userEmail: user.email,
+      imageFactsCache,
     });
 
     const reconciliationPending = result.submissionState !== "accepted";
@@ -88,6 +124,9 @@ export async function POST(request: NextRequest) {
         : {}),
     });
   } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
         { error: "insufficient_credits" },

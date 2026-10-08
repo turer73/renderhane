@@ -172,6 +172,12 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/tests/social_kit_request_idempotency_test.sql
           bash supabase/tests/social_kit_concurrency_test.sh
 
+      - name: Verify Model Lab history contract
+        run: |
+          psql --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261002160000_model_lab_runs.sql
+          psql --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261002160000_model_lab_runs.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/model_lab_runs_test.sql
+
       - name: Verify financial authority on the legacy schema
         run: |
           createdb security_contract

@@ -12,7 +12,9 @@ import {
   orchestrateAplus,
   orchestrateTalkingAvatar,
   orchestrateSocialKit,
+  preflightSocialKitImage,
 } from "@/lib/jobs/orchestrate";
+import { ImagePreflightError, imagePreflightErrorBody, type ImageFactsCache } from "@/lib/media/image-preflight";
 import {
   claimSocialKitRequest,
   completeSocialKitRequest,
@@ -157,6 +159,9 @@ export async function POST(request: NextRequest) {
     if (error instanceof ModelSelectionError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
         { error: "insufficient_credits" },
@@ -239,6 +244,11 @@ async function handleOrchestration(
             { status: 400 }
           );
         }
+
+        // Read the real image before the durable claim; a rejected image
+        // leaves no claim or reservation behind.
+        const imageFactsCache: ImageFactsCache = new Map();
+        await preflightSocialKitImage(imageUrl, imageFactsCache);
 
         const normalizedLocale = locale === "en" ? "en" : "tr";
         const sourceFingerprint = crypto
@@ -335,6 +345,7 @@ async function handleOrchestration(
             requestId: claim.requestId,
             imageUrl,
             locale: normalizedLocale,
+            imageFactsCache,
           });
           if (hasPendingProviderReconciliation(result)) {
             return NextResponse.json(
@@ -353,6 +364,10 @@ async function handleOrchestration(
         } catch (error) {
           if (error instanceof CreditError && error.code === "INSUFFICIENT") {
             return completeAndRespond(402, { error: "insufficient_credits" });
+          }
+          // Checked before any reservation, so nothing was charged.
+          if (error instanceof ImagePreflightError) {
+            return completeAndRespond(422, imagePreflightErrorBody(error));
           }
           console.error("[api/v1/jobs] social-kit orchestration indeterminate:", error);
           return NextResponse.json(
@@ -373,6 +388,9 @@ async function handleOrchestration(
         );
     }
   } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
         { error: "insufficient_credits" },

@@ -14,6 +14,8 @@ import {
 } from "@/lib/jobs/provider-webhook";
 import { MAX_AVATAR_SCRIPT_CHARS, MODELS, isModelBlockedForUser, type ToolType, type ModelTier } from "@/lib/fal/models";
 import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
+import { getImageInputLimits } from "@/lib/media/image-input-contract";
+import { preflightImageInputs, type ImageFactsCache } from "@/lib/media/image-preflight";
 
 /** Tools whose final prompt is composed server-side from structured context. */
 const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
@@ -108,6 +110,8 @@ export interface SubmitJobInput {
   };
   /** Correlates child jobs to a durable orchestration request for recovery. */
   orchestrationRequestId?: string;
+  /** Image facts the caller already read in this request; skips re-downloads. */
+  imageFactsCache?: ImageFactsCache;
 }
 
 export type ProviderSubmissionState =
@@ -185,6 +189,25 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
     prompt: effectivePrompt,
     extraParams: input.extraParams,
   });
+
+  // Read and check the real image bytes before any job row, reservation or
+  // paid preprocessing: a rejected image must cost nothing. The QR tool's
+  // control image is generated above, so it has no user image to check.
+  if (tool !== "qr-code") {
+    const sourceUrls = imageUrls?.length ? imageUrls : imageUrl ? [imageUrl] : [];
+    if (sourceUrls.length > 0) {
+      try {
+        await preflightImageInputs({
+          urls: sourceUrls,
+          limits: getImageInputLimits(modelKey),
+          cache: input.imageFactsCache,
+        });
+      } catch (error) {
+        if (input.reservedCredit) await refundCredits(input.reservedCredit.txId);
+        throw error;
+      }
+    }
+  }
 
   // Check free/admin eligibility and reserve BEFORE paid preprocessing.
   let txId: string | null = null;

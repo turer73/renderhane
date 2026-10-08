@@ -12,7 +12,15 @@ export type LabField = {
   label: string;
   kind: "text" | "url" | "urls";
   required: boolean;
+  /** What a URL field points at. Only image fields get the upload UI and the image preflight. */
+  media: "image" | "audio" | "video" | null;
 };
+
+function mediaFor(key: string): LabField["media"] {
+  if (/audio/.test(key)) return "audio";
+  if (/video/.test(key)) return "video";
+  return "image";
+}
 
 export type LabModel = {
   key: string;
@@ -104,6 +112,7 @@ function deriveFields(modelKey: string): LabField[] {
         label: labelFor(key),
         kind: "url",
         required: fashnImageRequired || index === 0,
+        media: "image",
       });
     }
   } else if (model.imageParamKey !== "_unused") {
@@ -112,6 +121,7 @@ function deriveFields(modelKey: string): LabField[] {
       label: labelFor(model.imageParamKey),
       kind: model.multiImage ? "urls" : "url",
       required: true,
+      media: mediaFor(model.imageParamKey),
     });
   }
 
@@ -123,6 +133,7 @@ function deriveFields(modelKey: string): LabField[] {
       key: model.promptParamKey,
       label: labelFor(model.promptParamKey),
       kind: "text",
+      media: null,
       required:
         model.promptParamKey === "gen_text" ||
         model.promptParamKey === "text" ||
@@ -139,12 +150,14 @@ function deriveFields(modelKey: string): LabField[] {
       label: labelFor("ref_audio_url"),
       kind: "url",
       required: true,
+      media: "audio",
     });
     addField(fields, {
       key: "ref_text",
       label: labelFor("ref_text"),
       kind: "text",
       required: false,
+      media: null,
     });
   }
   if (modelToolsContain(modelKey, "talking-avatar")) {
@@ -153,6 +166,7 @@ function deriveFields(modelKey: string): LabField[] {
       label: labelFor("audio_url"),
       kind: "url",
       required: true,
+      media: "audio",
     });
   }
   if (modelKey === "flux-fill") {
@@ -161,6 +175,7 @@ function deriveFields(modelKey: string): LabField[] {
       label: labelFor("mask_url"),
       kind: "url",
       required: true,
+      media: "image",
     });
   }
 
@@ -327,4 +342,28 @@ export function buildLabInput(
   }
 
   return input;
+}
+
+/**
+ * The image URLs a built input sends, per image field, for the shared image
+ * preflight. Audio and video URL fields are not images and are left out.
+ */
+export function labImageInputs(
+  modelKey: string,
+  input: Record<string, unknown>
+): Array<{ field: string; urls: string[] }> {
+  const model = LAB_CATALOG.find((entry) => entry.key === modelKey);
+  if (!model) throw new Error(`Bilinmeyen model: ${modelKey}`);
+  return model.fields
+    .filter((field) => field.media === "image")
+    .map((field) => {
+      const value = input[field.key];
+      const urls = Array.isArray(value)
+        ? value.filter((url): url is string => typeof url === "string")
+        : typeof value === "string"
+          ? [value]
+          : [];
+      return { field: field.key, urls };
+    })
+    .filter((entry) => entry.urls.length > 0);
 }

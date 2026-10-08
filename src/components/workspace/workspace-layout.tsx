@@ -168,10 +168,18 @@ export function WorkspaceLayout({
 
       if (!res.ok) {
         let errorText = "Üretim başlatılamadı. Tekrar dene.";
+        let errBody: { error?: unknown; code?: unknown; issues?: unknown } | null = null;
         try {
-          const errBody = await res.json();
-          if (errBody?.error) errorText = errBody.error;
+          errBody = await res.json();
         } catch { /* use generic */ }
+        if (res.status === 422 && errBody?.code === "image_input_invalid" && Array.isArray(errBody.issues)) {
+          // The form shows the issues in a modal and under the image field;
+          // nothing was charged and every input stays as it was.
+          window.dispatchEvent(new CustomEvent("image-input-error", { detail: errBody.issues }));
+          clearFailedSubmission();
+          return;
+        }
+        if (typeof errBody?.error === "string" && errBody.error) errorText = errBody.error;
         showToast(errorText, "error");
         clearFailedSubmission();
         return;

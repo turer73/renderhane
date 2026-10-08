@@ -75,9 +75,9 @@ describe("LAB_CATALOG", () => {
     const model = LAB_CATALOG.find((entry) => entry.key === "f5-tts")!;
     expect(model.category).toBe("audio");
     expect(model.status).toBe("legacy");
-    expect(model.fields).toContainEqual({ key: "gen_text", label: "Üretilecek metin", kind: "text", required: true });
-    expect(model.fields).toContainEqual({ key: "ref_audio_url", label: "Referans ses adresi", kind: "url", required: true });
-    expect(model.fields).toContainEqual({ key: "ref_text", label: "Referans ses metni", kind: "text", required: false });
+    expect(model.fields).toContainEqual({ key: "gen_text", label: "Üretilecek metin", kind: "text", required: true, media: null });
+    expect(model.fields).toContainEqual({ key: "ref_audio_url", label: "Referans ses adresi", kind: "url", required: true, media: "audio" });
+    expect(model.fields).toContainEqual({ key: "ref_text", label: "Referans ses metni", kind: "text", required: false, media: null });
     expect(buildLabInput("f5-tts", {
       gen_text: "Merhaba dünya",
       ref_audio_url: "https://cdn.example.com/reference.wav",

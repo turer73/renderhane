@@ -1,3 +1,4 @@
+import { DEMO_UPLOAD_MAX_BYTES } from '@/lib/media/demo-image-limits';
 import type { ImageResult, RenderhaneAdapters } from './core';
 
 function fileAsDataUrl(file: File, signal: AbortSignal, readError: string): Promise<string> {
@@ -22,7 +23,8 @@ export function createRenderhaneAdapter(locale: 'tr' | 'en' = 'tr'): RenderhaneA
   const message = (tr: string, en: string): string => locale === 'en' ? en : tr;
   return {
     async removeBackground(file: File, signal: AbortSignal): Promise<ImageResult> {
-      if (file.size > 5 * 1024 * 1024) throw new Error(message('Dosya 5 MB sınırını aşıyor.', 'The file exceeds the 5 MB limit.'));
+      // The tool prepares photos to this size; anything larger would not fit the request body.
+      if (file.size > DEMO_UPLOAD_MAX_BYTES) throw new Error(message('Fotoğraf bu araç için fazla büyük. Fotoğrafı yeniden seç.', 'The photo is too large for this tool. Choose the photo again.'));
       const imageDataUrl = await fileAsDataUrl(file, signal, message('Dosya okunamadı.', 'The file could not be read.'));
       const response = await fetch('/api/demo/bg-remove', {
         method: 'POST', credentials: 'same-origin', signal,

@@ -6,10 +6,11 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { resizeImageIfNeeded } from "@/lib/resize-image";
 import { Upload, ArrowLeft, Loader2 } from "lucide-react";
 import {
   SOCIAL_KIT_SCENE_COUNT,
+  SOCIAL_KIT_SCENE_MODEL,
+  SOCIAL_KIT_VIDEO_MODEL,
   SOCIAL_KIT_VIDEO_SECONDS,
   TOOL_CREDITS,
 } from "@/lib/fal/models";
@@ -18,9 +19,18 @@ import {
   getPendingIdempotencyKey,
   rememberPendingIdempotencyKey,
 } from "@/lib/jobs/social-kit-pending";
+import { getImageInputLimits, intersectImageInputLimits } from "@/lib/media/image-input-contract";
+import { limitsSummaryTr, unverifiedLimitsNoteTr, type ImageInputIssue } from "@/lib/media/image-limit-check";
+import { useImagePreparation } from "@/hooks/use-image-preparation";
+import { ImagePrepareDialog } from "@/components/media/image-prepare-dialog";
+import { ImageInputErrorDialog } from "@/components/media/image-input-error-dialog";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SOCIAL_KIT_CREDITS = TOOL_CREDITS["social-kit"];
+/** One photo feeds both the scene and the video model. */
+const SOCIAL_KIT_IMAGE_LIMITS = intersectImageInputLimits([
+  getImageInputLimits(SOCIAL_KIT_SCENE_MODEL),
+  getImageInputLimits(SOCIAL_KIT_VIDEO_MODEL),
+]);
 
 interface PendingSocialKitOperation {
   file: File;
@@ -51,24 +61,28 @@ export default function SocialKitPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const operationRef = useRef<PendingSocialKitOperation | null>(null);
+  const imagePrep = useImagePreparation();
+  const { prepare: prepareImage, showIssues: showImageIssues } = imagePrep;
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
+  // Prepare the photo for both models before upload. A file that fits is kept
+  // as is; a rejected or declined one leaves the current photo in place.
   const handleFile = useCallback(async (f: File) => {
-    if (!f.type.startsWith("image/")) return;
-    if (f.size > MAX_FILE_SIZE) {
-      setMessage({ type: "error", text: t("fileTooLarge") });
-      return;
-    }
-    if (preview) URL.revokeObjectURL(preview);
+    if (f.type && !f.type.startsWith("image/")) return;
     setMessage(null);
-    try {
-      const resized = await resizeImageIfNeeded(f);
+    setFieldError(null);
+    const result = await prepareImage(f, SOCIAL_KIT_IMAGE_LIMITS);
+    if (result.kind === "ready") {
+      if (preview) URL.revokeObjectURL(preview);
       operationRef.current = null;
-      setFile(resized);
-      setPreview(URL.createObjectURL(resized));
-    } catch {
-      setMessage({ type: "error", text: t("uploadError") });
+      setFile(result.prepared.file);
+      setPreview(URL.createObjectURL(result.prepared.file));
+    } else if (result.kind === "rejected") {
+      setFieldError(result.issues[0]?.message ?? t("uploadError"));
+    } else if (result.kind === "declined") {
+      setFieldError("Hazırlanan görsel kullanılmadı; yeni görsel yüklenmedi.");
     }
-  }, [preview, t]);
+  }, [preview, prepareImage, t]);
 
   async function handleSubmit() {
     if (!file) return;
@@ -211,6 +225,12 @@ export default function SocialKitPage() {
 
       if (!res.ok) {
         if (canRotateKey) clearDurableOperation();
+        if (res.status === 422 && responseBody?.code === "image_input_invalid" && Array.isArray(responseBody.issues)) {
+          // Rejected before any claim or charge; show it like a local check.
+          const issues = responseBody.issues as ImageInputIssue[];
+          showImageIssues(issues);
+          setFieldError(issues[0]?.message ?? null);
+        }
         setMessage({
           type: "error",
           text:
@@ -253,6 +273,12 @@ export default function SocialKitPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
+      <ImagePrepareDialog pending={imagePrep.pending} onAccept={imagePrep.accept} onDecline={imagePrep.decline} />
+      <ImageInputErrorDialog
+        issues={imagePrep.issues}
+        onClose={imagePrep.clearIssues}
+        onChooseAnother={() => fileInputRef.current?.click()}
+      />
       {/* Header */}
       <div className="flex items-center gap-3">
         <a
@@ -307,6 +333,7 @@ export default function SocialKitPage() {
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) handleFile(f);
+                  e.target.value = "";
                 }}
               />
             </div>
@@ -366,6 +393,19 @@ export default function SocialKitPage() {
               </div>
             </div>
           )}
+
+          {imagePrep.busy && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Görsel hazırlanıyor…</span>
+              <button type="button" onClick={imagePrep.cancel} className="ml-auto underline hover:text-foreground">İptal</button>
+            </div>
+          )}
+          {fieldError && <p role="alert" className="mt-3 break-words text-xs text-destructive">{fieldError}</p>}
+          <p className="mt-2 break-words text-[11px] text-muted-foreground">
+            {limitsSummaryTr(SOCIAL_KIT_IMAGE_LIMITS)}
+            {unverifiedLimitsNoteTr(SOCIAL_KIT_IMAGE_LIMITS) ? ` — ${unverifiedLimitsNoteTr(SOCIAL_KIT_IMAGE_LIMITS)}` : ""}
+          </p>
 
           {/* Messages */}
           {message && (

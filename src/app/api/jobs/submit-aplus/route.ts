@@ -5,6 +5,8 @@ import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
 import { APLUS_SCENES, getScenePrompt, APLUS_TOTAL_CREDITS } from "@/lib/fal/aplus-scenes";
+import { preflightAplusImage } from "@/lib/jobs/orchestrate";
+import { ImagePreflightError, imagePreflightErrorBody, type ImageFactsCache } from "@/lib/media/image-preflight";
 
 // A+ submits 4 parallel jobs — needs extended timeout
 export const maxDuration = 60;
@@ -42,6 +44,17 @@ export async function POST(request: NextRequest) {
   const urlError = validateImageUrl(imageUrl);
   if (urlError) {
     return NextResponse.json({ error: urlError }, { status: 400 });
+  }
+
+  // Read the real image once, before any project, reservation or scene.
+  const imageFactsCache: ImageFactsCache = new Map();
+  try {
+    await preflightAplusImage(imageUrl as string, imageFactsCache);
+  } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
+    throw error;
   }
 
   // Check credits upfront — user needs 32 credits (4 scenes x 8 each)
@@ -83,6 +96,7 @@ export async function POST(request: NextRequest) {
         tool: "aplus",
         imageUrl: imageUrl as string,
         prompt: getScenePrompt(scene.id, locale),
+        imageFactsCache,
       })
     )
   );
