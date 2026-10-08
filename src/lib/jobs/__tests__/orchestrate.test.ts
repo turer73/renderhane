@@ -13,6 +13,12 @@ const mocks = vi.hoisted(() => ({
   getUserById: vi.fn(),
   isAdmin: vi.fn(),
   autoCreateProject: vi.fn(),
+  preflightImageInputs: vi.fn(),
+}));
+
+vi.mock("@/lib/media/image-preflight", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/media/image-preflight")>()),
+  preflightImageInputs: mocks.preflightImageInputs,
 }));
 
 vi.mock("@/lib/jobs/submit", () => ({ submitJob: mocks.submitJob }));
@@ -31,6 +37,7 @@ vi.mock("@/lib/jobs/api-helpers", () => ({
 }));
 
 import { orchestrateSocialKit } from "../orchestrate";
+import { ImagePreflightError } from "@/lib/media/image-preflight";
 
 describe("orchestrateSocialKit", () => {
   const transactionIds = Array.from(
@@ -56,6 +63,35 @@ describe("orchestrateSocialKit", () => {
       estimatedTime: "~1min",
       submissionState: "accepted",
     }));
+    mocks.preflightImageInputs.mockResolvedValue([]);
+  });
+
+  it("checks the source image against both Social Kit models once, before reserving", async () => {
+    const order: string[] = [];
+    mocks.preflightImageInputs.mockImplementation(async () => { order.push("preflight"); return []; });
+    mocks.reserveSocialKitRequestBundle.mockImplementation(async () => { order.push("reserve"); return transactionIds; });
+
+    await orchestrateSocialKit({ userId: "user-1", requestId: "request-1", imageUrl: "https://cdn.example/product.png" });
+
+    expect(mocks.preflightImageInputs).toHaveBeenCalledOnce();
+    const [{ urls, limits, cache }] = mocks.preflightImageInputs.mock.calls[0];
+    expect(urls).toEqual(["https://cdn.example/product.png"]);
+    expect(limits.modelKeys).toEqual([SOCIAL_KIT_SCENE_MODEL, SOCIAL_KIT_VIDEO_MODEL]);
+    expect(order).toEqual(["preflight", "reserve"]);
+    // Children reuse the facts of this one read instead of downloading again.
+    expect(mocks.submitJob.mock.calls.every(([input]) => input.imageFactsCache === cache)).toBe(true);
+  });
+
+  it("rejects an unusable source image without reserving, creating a project or submitting", async () => {
+    mocks.preflightImageInputs.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "unsupported_format", index: 0, message: "BMP biçimi desteklenmiyor." }])
+    );
+
+    await expect(orchestrateSocialKit({ userId: "user-1", requestId: "request-1", imageUrl: "https://cdn.example/a.bmp" }))
+      .rejects.toBeInstanceOf(ImagePreflightError);
+    expect(mocks.reserveSocialKitRequestBundle).not.toHaveBeenCalled();
+    expect(mocks.autoCreateProject).not.toHaveBeenCalled();
+    expect(mocks.submitJob).not.toHaveBeenCalled();
   });
 
   it("reserves the complete 67-credit bundle before submitting child jobs", async () => {

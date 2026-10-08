@@ -15,6 +15,8 @@ import {
 } from "@/lib/jobs/provider-webhook";
 import { MAX_AVATAR_SCRIPT_CHARS, MODELS, isModelBlockedForUser, type ToolType, type ModelTier } from "@/lib/fal/models";
 import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
+import { getImageInputLimits } from "@/lib/media/image-input-contract";
+import { preflightImageInputs } from "@/lib/media/image-preflight";
 
 /**
  * Synchronous job submission — uses fal.subscribe instead of queue+webhook.
@@ -82,6 +84,14 @@ export async function submitJobSync(input: SubmitSyncInput): Promise<SubmitSyncR
   // Select and price the model before any paid TTS call. The final provider
   // input is rebuilt after TTS resolves.
   const { model, modelKey: resolvedModelKey } = routeRequest({ tool, tier, modelKey, imageUrl, imageUrls, prompt, extraParams });
+
+  // Check the real image bytes before reserving: a rejected image costs nothing.
+  if (tool !== "qr-code") {
+    const sourceUrls = imageUrls?.length ? imageUrls : imageUrl ? [imageUrl] : [];
+    if (sourceUrls.length > 0) {
+      await preflightImageInputs({ urls: sourceUrls, limits: getImageInputLimits(resolvedModelKey) });
+    }
+  }
 
   // 2. Reserve credits
   let txId: string | null = null;

@@ -246,7 +246,8 @@ export const MODELS: Record<string, ModelConfig> = {
     imageParamKey: "image_url",
     adminOnly: true,
     defaultParams: {
-      texture: "standard",
+      texture: true,
+      texture_quality: "standard",
     },
   },
 

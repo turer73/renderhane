@@ -220,6 +220,8 @@ describe('routeRequest', () => {
 
     const tripo = routeRequest({ tool: '3d-model', modelKey: 'tripo-h31', imageUrl: 'http://img/1.jpg' });
     expect(tripo.input.image_url).toBe('http://img/1.jpg');
+    expect(tripo.input.texture).toBe(true);
+    expect(tripo.input.texture_quality).toBe('standard');
 
     const eleven = routeRequest({ tool: 'srt-voiceover', modelKey: 'eleven-v3', prompt: 'Selam' });
     expect(eleven.input.text).toBe('Selam');

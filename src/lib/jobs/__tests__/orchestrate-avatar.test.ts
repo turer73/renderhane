@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
   submitJob: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/lib/jobs/submit", () => ({
   submitJob: mocks.submitJob,
 }));

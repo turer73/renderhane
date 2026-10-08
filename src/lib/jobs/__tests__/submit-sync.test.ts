@@ -15,9 +15,19 @@ const mocks = vi.hoisted(() => ({
     payload: Record<string, unknown>;
     filters: Array<{ method: string; args: unknown[] }>;
   }>,
+  preflightImageInputs: vi.fn(),
+  getImageInputLimits: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/media/image-preflight", () => ({
+  preflightImageInputs: mocks.preflightImageInputs,
+}));
+
+vi.mock("@/lib/media/image-input-contract", () => ({
+  getImageInputLimits: mocks.getImageInputLimits,
+}));
 
 vi.mock("@/lib/credits/engine", () => ({
   reserveCredits: mocks.reserveCredits,
@@ -159,6 +169,23 @@ describe("submitJobSync atomic terminal transitions", () => {
     });
     mocks.completeJobOutputAndSpend.mockResolvedValue(successfulCompletion);
     mocks.failJobAndRefund.mockResolvedValue("failed_refunded");
+    mocks.preflightImageInputs.mockResolvedValue([]);
+    mocks.getImageInputLimits.mockImplementation((modelKey: string) => ({ modelKeys: [modelKey], inputKind: "image" }));
+  });
+
+  it("rejects an unusable image against the routed model before reserving or calling the provider", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    mocks.routeRequest.mockReturnValue({ model: MODELS["wan-i2v"], modelKey: "wan-i2v", input: { image_url: "https://cdn.example/a.png" } });
+    mocks.preflightImageInputs.mockRejectedValueOnce(new Error("image rejected"));
+
+    await expect(submitJobSync({ userId: "user-1", tool: "video", imageUrl: "https://cdn.example/a.png" })).rejects.toThrow("image rejected");
+
+    expect(mocks.getImageInputLimits).toHaveBeenCalledWith("wan-i2v");
+    expect(mocks.preflightImageInputs).toHaveBeenCalledWith(expect.objectContaining({ urls: ["https://cdn.example/a.png"] }));
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
   });
 
   it("persists the resolved logo model and user extras for exact regeneration", async () => {

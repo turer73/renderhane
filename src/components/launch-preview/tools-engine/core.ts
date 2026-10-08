@@ -11,6 +11,10 @@ import {SOCIAL_PLATFORMS, buildContactLandingUrl, buildSocialPayload, normalizeC
 import {buildVCard} from '@/lib/vcard';
 import {WSC_MIME, buildWifiWscPayload, readWscCredentials, type WifiEncryption} from '@/lib/nfc/ndef';
 import {buildBusinessLandingUrl, businessEntries, businessFormFields, businessFromLandingUrl, businessFromText, formatBusinessText, formatIbanForDisplay, type BusinessDetails} from '@/lib/nfc/business-card';
+import {browserImageCodec} from '@/lib/media/browser-image-codec';
+import {DEMO_BG_REMOVE_LIMITS} from '@/lib/media/demo-image-limits';
+import {IMAGE_FORMATS} from '@/lib/media/image-formats';
+import {ImagePreparationCancelled, ImagePreparationError, prepareImageForLimits, type PreparedImage} from '@/lib/media/optimize-image';
 import {NFC_CAPACITY_PROFILES, checkNfcCapacity, createCompactNfcRecord, createWebNfcAdapter, decodeCompactNfcRecord, decodeNfcForm, decodeNfcRecord, formatCompactNfcDetails, nfcReadErrorMessage, nfcWriteErrorMessage, type CompactNfcDetails, type NfcAdapter, type NfcAdapterSupport, type NfcCapacityProfileId, type NfcReadRecord, type NfcRecordInput, type WebNfcWindow} from './nfc';
 
 export type Page = 'home' | 'background' | 'scenes' | 'qr' | 'nfc' | 'artistic' | 'tools';
@@ -112,8 +116,6 @@ type ToolWindow = Window & {
   LocalQR: new (version: number, level: number) => QRModel;
   LocalQRTools: QrTools;
 } & WebNfcWindow;
-const MAX_FILE = 5 * 1024 * 1024;
-const MAX_PIXELS = 24_000_000;
 const pages: Page[] = ['home', 'background', 'scenes', 'qr', 'nfc', 'artistic', 'tools'];
 const PAGE_NAMES: Record<ToolLocale, Record<Page, string>> = {
   tr: { home: 'Ana sayfa', background: 'Arka plan kaldır', scenes: 'Sahne oluştur', qr: 'QR kod oluştur', nfc: 'NFC etiket yaz', artistic: 'Sanatsal QR', tools: 'Tüm araçlar' },
@@ -359,6 +361,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   let request: AbortController | null = null; let nfcAbort: AbortController | null = null;
   let nfcAbortAfterWrite: ((reason: string) => void) | null = null;
   let currentObjectUrl: string | null = null;
+  let preparation: AbortController | null = null;
   let manualComposer: ManualComposer | null = null;
   const historyEnabled = !options.onNavigate;
   const asset = (name: string): string => options.assets?.[name] || `${options.assetBase ?? './assets'}/${name}`;
@@ -465,7 +468,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function heading(title: string, description: string, badges: string[]): string { return `<div class="rh-breadcrumb">${navlink('home', 'ANA SAYFA')}${icon('arrow')}<span>ARAÇLAR</span>${icon('arrow')}<span>${pageNames[s.page]}</span></div><div class="rh-page-heading"><div><h1>${title}</h1><p>${description}</p><div class="rh-badges">${badges.map(t => `<span class="rh-pill">${icon('check')}${t}</span>`).join('')}</div></div><div class="rh-heading-note">${icon('info')} Üretim alanı sade.<br>Dosyanız, ayarlarınız ve sonuç aynı yerde.</div></div>`; }
   function benefits(items: string[][]): string { return `<div class="rh-benefits">${items.map(([i, title, text]) => `<div class="rh-benefit"><div class="rh-icon-tile">${icon(i)}</div><h3>${title}</h3><p>${text}</p></div>`).join('')}</div>`; }
-  function uploadBox(compact = false): string { return `<label class="rh-upload" tabindex="0" data-upload-zone="true">${compact ? icon('upload') : `<div class="rh-icon-tile">${icon('upload')}</div>`}<strong>${s.file ? 'Fotoğrafı değiştir' : 'Fotoğrafını buraya bırak'}</strong><p>veya dosya seç</p><small>JPG, PNG, WebP · en fazla 5 MB</small><input class="rh-sr" type="file" accept="image/jpeg,image/png,image/webp" data-file="true" aria-label="Ürün fotoğrafı seç"/></label>`; }
+  function uploadBox(compact = false): string { return `<label class="rh-upload" tabindex="0" data-upload-zone="true">${compact ? icon('upload') : `<div class="rh-icon-tile">${icon('upload')}</div>`}<strong>${s.file ? 'Fotoğrafı değiştir' : 'Fotoğrafını buraya bırak'}</strong><p>veya dosya seç</p><small>JPG, PNG, WebP · büyük fotoğraflar otomatik küçültülür</small><input class="rh-sr" type="file" accept="image/*" data-file="true" aria-label="Ürün fotoğrafı seç"/></label>`; }
   function compareCanvas(): string {
     if (s.fileUrl && !s.result) return `<div class="rh-panel-top"><span class="rh-panel-title">Yüklenen fotoğraf</span><span class="rh-pill">Yerel önizleme</span></div><div class="rh-empty"><img class="rh-custom-preview" src="${s.fileUrl}" alt="Yüklediğiniz fotoğraf"/></div><div class="rh-canvas-footer"><span>${icon('info')}Henüz AI işlemi uygulanmadı.</span><button class="rh-link-button" data-action="sample">Hazır örneğe dön</button></div>`;
     const before = s.fileUrl || asset('photo.jpg'); const after = s.result || asset('cutout.png');
@@ -473,7 +476,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   }
   function background(): string {
     const hasAdapter = !!options.adapters?.removeBackground;
-    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Arka planı <span class="rh-highlight">geride bırak.</span>', 'Ürün fotoğrafını yükle. Sade bir çalışma alanında incele, arka planını düzenle ve çıktını indir.', ['Kayıt olmadan', 'Günde 3 ücretsiz kullanım', 'Şeffaf PNG'])}<div class="rh-mobile-upload"><span>Kendi fotoğrafınla başla</span>${btn("Fotoğraf seç","upload-open",true,"upload")}</div><div class="rh-workspace"><section class="rh-panel" id="rh-canvas">${compareCanvas()}</section><aside class="rh-panel rh-tool-controls"><div class="rh-panel-top"><span class="rh-panel-title">${icon('upload')}Fotoğraf ve çıktı</span><span class="rh-pill purple">${hasAdapter ? 'API bağlı' : 'Demo'}</span></div><div class="rh-panel-body">${uploadBox()}<div class="rh-control-settings"><div class="rh-field"><label for="rh-format">Çıktı biçimi</label><select class="rh-select" id="rh-format"><option>PNG</option></select></div><div class="rh-field"><label for="rh-size-info">Boyut</label><input class="rh-input" id="rh-size-info" value="Kaynak boyutu" readonly/></div><div class="rh-label-row"><span>Arka plan</span><span class="rh-helper">PNG önizlemesi</span></div><div class="rh-color-row">${['transparent', '#ffffff', '#eee9e2', '#e9e4f6', '#dce8df', '#202832'].map(c => `<button data-bg="${c}" class="rh-color-button ${c === 'transparent' ? 'rh-checker' : ''}" style="--swatch:${c}" aria-label="${c === 'transparent' ? 'Şeffaf' : c} arka plan" aria-pressed="${s.bgColor === c}"></button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="remove" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'eraser', s.busy ? 'rh-spin' : '')}${s.busy ? 'İşleniyor…' : hasAdapter && s.file ? 'Arka planı kaldır' : s.file ? 'AI bağlantısını kontrol et' : 'Örnek sonucu göster'}</button><button class="rh-btn rh-block-btn" data-action="download-bg" ${s.file && !s.result ? 'disabled' : ''}>${icon('download')}${s.result ? 'PNG indir' : 'Örnek PNG indir'}</button><div class="rh-file-card"><img src="${s.fileUrl || asset('photo.jpg')}" alt=""/><div><strong translate="no">${s.file ? esc(s.file.name) : 'aurelia-sise-ornek.jpg'}</strong><small>${s.file ? (s.file.size / 1024).toFixed(0) + ' KB · yerel dosya' : '896 × 894 · temsili şişe örneği'}</small></div></div></div><div class="rh-control-note"><div class="rh-status" id="rh-bg-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Fotoğraf yüklemek üretim işlemi başlatmaz.'}</div>${hasAdapter ? `<p class="rh-helper">İşlem düğmesine basıldığında fotoğraf mevcut API’ye gönderilir. ${s.remaining !== null ? `Kalan hak: ${s.remaining}` : ''}</p>` : `<div class="rh-notice">Demo, yalnızca hazır örneğin dekupe sonucunu içerir. Kendi fotoğrafın için mevcut AI API’sini bağlamak gerekir.</div>`}</div></div></aside></div>${composerEntry()}${benefits([['image', 'Gerçek fotoğrafla başla', 'Örnek yerine kendi ürün fotoğrafını da yükleyebilirsin.'], ['layers', 'Sonucu karşılaştır', 'Kaydırıcıyla kenarları ve detayları incele.'], ['download', 'PNG olarak indir', 'Saydam veya seçtiğin düz zeminle dışa aktar.'], ['shield', 'İşlemler görünür', 'Demo çıktısı ve gerçek API çıktısı ayrı etiketlenir.']])}</main>`;
+    return `<main id="rh-main" class="rh-page rh-wrap" tabindex="-1">${heading('Arka planı <span class="rh-highlight">geride bırak.</span>', 'Ürün fotoğrafını yükle. Sade bir çalışma alanında incele, arka planını düzenle ve çıktını indir.', ['Kayıt olmadan', 'Günde 3 ücretsiz kullanım', 'Şeffaf PNG'])}<div class="rh-mobile-upload"><span>Kendi fotoğrafınla başla</span>${btn("Fotoğraf seç","upload-open",true,"upload")}</div><div class="rh-workspace"><section class="rh-panel" id="rh-canvas">${compareCanvas()}</section><aside class="rh-panel rh-tool-controls"><div class="rh-panel-top"><span class="rh-panel-title">${icon('upload')}Fotoğraf ve çıktı</span><span class="rh-pill purple">${hasAdapter ? 'API bağlı' : 'Demo'}</span></div><div class="rh-panel-body">${uploadBox()}<div class="rh-control-settings"><div class="rh-field"><label for="rh-format">Çıktı biçimi</label><select class="rh-select" id="rh-format"><option>PNG</option></select></div><div class="rh-field"><label for="rh-size-info">Boyut</label><input class="rh-input" id="rh-size-info" value="Kaynak boyutu" readonly/></div><div class="rh-label-row"><span>Arka plan</span><span class="rh-helper">PNG önizlemesi</span></div><div class="rh-color-row">${['transparent', '#ffffff', '#eee9e2', '#e9e4f6', '#dce8df', '#202832'].map(c => `<button data-bg="${c}" class="rh-color-button ${c === 'transparent' ? 'rh-checker' : ''}" style="--swatch:${c}" aria-label="${c === 'transparent' ? 'Şeffaf' : c} arka plan" aria-pressed="${s.bgColor === c}"></button>`).join('')}</div><button class="rh-btn rh-btn-primary rh-block-btn" data-action="remove" ${s.busy ? 'disabled' : ''}>${icon(s.busy ? 'spinner' : 'eraser', s.busy ? 'rh-spin' : '')}${s.busy ? 'İşleniyor…' : hasAdapter && s.file ? 'Arka planı kaldır' : s.file ? 'AI bağlantısını kontrol et' : 'Örnek sonucu göster'}</button><button class="rh-btn rh-block-btn" data-action="download-bg" ${s.file && !s.result ? 'disabled' : ''}>${icon('download')}${s.result ? 'PNG indir' : 'Örnek PNG indir'}</button><div class="rh-file-card"><img src="${s.fileUrl || asset('photo.jpg')}" alt=""/><div><strong translate="no">${s.file ? esc(s.file.name) : 'aurelia-sise-ornek.jpg'}</strong><small>${s.file ? (s.file.size / 1024).toFixed(0) + ' KB · yerel dosya' : '896 × 894 · temsili şişe örneği'}</small></div></div></div><div class="rh-control-note"><div class="rh-status" id="rh-bg-status" role="status">${s.bgMessage ? esc(s.bgMessage) : 'Fotoğraf yüklemek üretim işlemi başlatmaz.'}</div>${hasAdapter ? `<p class="rh-helper">İşlem düğmesine basıldığında fotoğraf mevcut API’ye gönderilir. ${s.remaining !== null ? `Kalan hak: ${s.remaining}` : ''}</p>` : `<div class="rh-notice">Demo, yalnızca hazır örneğin dekupe sonucunu içerir. Kendi fotoğrafın için mevcut AI API’sini bağlamak gerekir.</div>`}</div></div></aside></div>${composerEntry()}${benefits([['image', 'Gerçek fotoğrafla başla', 'Örnek yerine kendi ürün fotoğrafını da yükleyebilirsin.'], ['layers', 'Sonucu karşılaştır', 'Kaydırıcıyla kenarları ve detayları incele.'], ['download', 'PNG olarak indir', 'Saydam veya seçtiğin düz zeminle dışa aktar.'], ['shield', 'İşlemler görünür', 'Demo çıktısı ve gerçek API çıktısı ayrı etiketlenir.']])}<dialog class="rh-error-dialog" id="rh-prepare-dialog" aria-labelledby="rh-prepare-title"><form method="dialog"><div class="rh-error-dialog-icon">${icon('info')}</div><h2 id="rh-prepare-title">${l('Fotoğraf bu araç için hazırlandı', 'The photo was prepared for this tool')}</h2><p data-prepare-reason></p><p data-prepare-detail translate="no"></p><div class="rh-dialog-actions"><button class="rh-btn rh-btn-primary" value="accept">${l('Hazırlanan fotoğrafı kullan', 'Use the prepared photo')}</button><button class="rh-btn" value="cancel">${l('Vazgeç', 'Cancel')}</button></div></form></dialog></main>`;
   }
   function composerEntry(): string {
     return `<section class="mc-entry"><div><span class="mc-kicker">SONRAKİ ADIM · ÜCRETSİZ + ÜYELİKLİ</span><h2>Kendi sahneni kur.</h2><p>Kendi arka planını yükle; ürününü sürükle, boyutlandır ve döndür. Manuel yerleştirme ücretsizdir; indirmek için üyelik gerekir. AI ile sahne üretimi ayrı ve kredilidir.</p></div><button type="button" class="rh-btn rh-btn-primary" data-action="open-composer">${icon('layers')}Sahneye yerleştir</button></section>`;
@@ -729,15 +732,88 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
     s.page = page; win.history.pushState(null, '', `#${page}`); render(true); win.scrollTo({ top: 0, behavior: 'instant' });
   }
   function replaceFile(file: File | null, url: string | null): void { if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl); currentObjectUrl = url; s.file = file; s.fileUrl = url; s.result = null; s.scenes = null; s.bgMessage = ''; s.tab = 'compare'; }
+  function preparedSummary(prepared: PreparedImage): string {
+    const t = prepared.transform;
+    if (!t) return '';
+    const mb = (bytes: number): string => `${(bytes / 1_000_000).toFixed(1).replace('.', en ? '.' : ',')} MB`;
+    const parts: string[] = [];
+    if (t.fromFormat !== t.toFormat) parts.push(`${IMAGE_FORMATS[t.fromFormat].label} → ${IMAGE_FORMATS[t.toFormat].label}`);
+    if (t.scale < 1) parts.push(`${t.fromWidth}×${t.fromHeight} → ${t.toWidth}×${t.toHeight} px`);
+    parts.push(`${mb(t.bytesBefore)} → ${mb(t.bytesAfter)}`);
+    if (t.quality !== null) parts.push(l(`kalite %${Math.round(t.quality * 100)}`, `quality ${Math.round(t.quality * 100)}%`));
+    return parts.join(' · ');
+  }
+  function preparationMessage(error: ImagePreparationError): string {
+    switch (error.issues[0]?.code) {
+      case 'too_large':
+      case 'too_many_pixels': return l('Fotoğraf bu araç için yeterince küçültülemedi. Daha küçük bir fotoğraf seç.', 'The photo could not be reduced enough for this tool. Choose a smaller photo.');
+      case 'unsupported_format': return l('Bu dosya biçimi bu tarayıcıda açılamadı. JPG, PNG veya WebP fotoğraf seç.', 'This file type could not be opened in this browser. Choose a JPG, PNG or WebP photo.');
+      case 'dimensions_too_small': return l('Fotoğraf çok küçük; her kenarı en az 64 piksel olmalı.', 'The photo is too small; each side must be at least 64 pixels.');
+      default: return l('Dosya okunamadı ya da bozuk. Fotoğrafı yeniden kaydedip tekrar dene.', 'The file could not be read or is damaged. Save the photo again and retry.');
+    }
+  }
+  /** Visible loss from fitting the photo: show what changes and let the user choose. */
+  function confirmPrepared(prepared: PreparedImage): Promise<boolean> {
+    const reason = prepared.confirmationReasons.includes('transparency')
+      ? l('Saydam alanlar beyaz zemine dönüştürülecek.', 'Transparent areas will become a white background.')
+      : l('Fotoğraf, ücretsiz aracın 3 MB gönderim sınırına sığması için küçültüldü veya sıkıştırıldı; ayrıntı kaybı olabilir. Orijinal dosyan değişmez.', "The photo was resized or compressed to fit the free tool's 3 MB upload limit; some detail may be lost. Your original file is not changed.");
+    const dialog = $<HTMLDialogElement>('#rh-prepare-dialog');
+    if (!dialog || typeof dialog.showModal !== 'function') return Promise.resolve(win.confirm(`${reason}\n${preparedSummary(prepared)}`));
+    const reasonText = dialog.querySelector('[data-prepare-reason]');
+    const detailText = dialog.querySelector('[data-prepare-detail]');
+    if (reasonText) reasonText.textContent = reason;
+    if (detailText) detailText.textContent = preparedSummary(prepared);
+    dialog.returnValue = '';
+    return new Promise(resolve => {
+      dialog.addEventListener('close', () => resolve(dialog.returnValue === 'accept'), {once: true});
+      dialog.showModal();
+    });
+  }
+  /** Status line text without a full render (an open dialog must survive). */
+  function setBgStatus(text: string): void {
+    s.bgMessage = text;
+    const el = $('#rh-bg-status');
+    if (el) el.textContent = text || (en ? localizeToolText('Fotoğraf yüklemek üretim işlemi başlatmaz.') : 'Fotoğraf yüklemek üretim işlemi başlatmaz.');
+  }
   async function handleFile(file: File): Promise<void> {
     const ticket = ++uploadTicket;
+    preparation?.abort();
+    const controller = new AbortController();
+    preparation = controller;
+    // Fitting a very large photo can take several seconds: say so.
+    const preparing = l('Fotoğraf hazırlanıyor…', 'Preparing the photo…');
+    setBgStatus(preparing);
     try {
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw Error('Yalnızca JPG, PNG veya WebP yükleyin.');
-      if (file.size > MAX_FILE) throw Error('Dosya 5 MB sınırını aşıyor.');
-      const url = URL.createObjectURL(file);
-      try { const img = await imageLoaded(url); if (img.naturalWidth * img.naturalHeight > MAX_PIXELS) throw Error('Görsel çok büyük: en fazla 24 megapiksel.'); if (disposed || ticket !== uploadTicket) { URL.revokeObjectURL(url); return; } request?.abort(); s.busy = false; replaceFile(file, url); if (s.page === 'home') navigate('background'); else render(); toast('Fotoğraf yalnızca bu tarayıcıya yüklendi.'); }
-      catch (error) { URL.revokeObjectURL(url); throw error; }
+      let prepared: PreparedImage;
+      try {
+        // Large photos are fitted to the tool's real upload limit instead of being refused;
+        // the file type is read from the bytes, not from the name or the declared type.
+        prepared = await prepareImageForLimits(file, DEMO_BG_REMOVE_LIMITS, {codec: browserImageCodec, signal: controller.signal});
+      } catch (error) {
+        if (error instanceof ImagePreparationCancelled || controller.signal.aborted) return;
+        throw Error(error instanceof ImagePreparationError ? preparationMessage(error) : l('Dosya açılamadı.', 'The file could not be opened.'));
+      }
+      if (disposed || ticket !== uploadTicket) return;
+      if (prepared.confirmationReasons.length > 0 && !(await confirmPrepared(prepared))) {
+        if (!disposed && ticket === uploadTicket) toast(l('Fotoğraf eklenmedi; dosyan değiştirilmedi.', 'The photo was not added; your file was not changed.'));
+        return;
+      }
+      if (disposed || ticket !== uploadTicket) return;
+      const url = URL.createObjectURL(prepared.file);
+      try {
+        await imageLoaded(url);
+        if (disposed || ticket !== uploadTicket) { URL.revokeObjectURL(url); return; }
+        request?.abort(); s.busy = false; replaceFile(prepared.file, url);
+        if (s.page === 'home') navigate('background'); else render();
+        toast(prepared.transform
+          ? l(`Fotoğraf bu araç için hazırlandı: ${preparedSummary(prepared)}`, `The photo was prepared for this tool: ${preparedSummary(prepared)}`)
+          : 'Fotoğraf yalnızca bu tarayıcıya yüklendi.');
+      } catch (error) { URL.revokeObjectURL(url); throw error; }
     } catch (error) { toast(error instanceof Error ? error.message : 'Dosya açılamadı.'); }
+    finally {
+      if (preparation === controller) preparation = null;
+      if (!disposed && ticket === uploadTicket && s.bgMessage === preparing) setBgStatus('');
+    }
   }
   function qrKey(): string { return JSON.stringify([s.qrType, s.qr, s.qrColor, s.qrSize, s.qrStyle]); }
   function qrStatus(state: string, title: string, detail: string): void {
@@ -1278,7 +1354,7 @@ export function mountRenderhane(root: HTMLElement, options: MountOptions = {}): 
   function onVisibility(): void { if (doc.hidden && s.nfcBusy) cancelNfc('Sayfa arka plana geçti; etiket yazıldıysa kilit durumu doğrulanamadı.'); }
   root.addEventListener('submit', onSubmit); root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange); root.addEventListener('keydown', onKey); root.addEventListener('dragover', onDrag); root.addEventListener('dragleave', onDrag); root.addEventListener('drop', onDrag); doc.addEventListener('click', onOutside); doc.addEventListener('visibilitychange', onVisibility); if (historyEnabled) { win.addEventListener('hashchange', onHash); win.addEventListener('popstate', onHash); }
   render();
-  return () => { viewCleanup?.(); viewCleanup = undefined; manualComposer?.dispose(); manualComposer = null; disposed = true; uploadTicket++; request?.abort(); stopNfc(); win.clearTimeout(toastTimer); win.clearTimeout(qrTimer); if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl); root.removeEventListener('submit', onSubmit); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); root.removeEventListener('change', onChange); root.removeEventListener('keydown', onKey); root.removeEventListener('dragover', onDrag); root.removeEventListener('dragleave', onDrag); root.removeEventListener('drop', onDrag); doc.removeEventListener('click', onOutside); doc.removeEventListener('visibilitychange', onVisibility); win.removeEventListener('hashchange', onHash); win.removeEventListener('popstate', onHash); root.replaceChildren(); };
+  return () => { viewCleanup?.(); viewCleanup = undefined; manualComposer?.dispose(); manualComposer = null; disposed = true; uploadTicket++; preparation?.abort(); request?.abort(); stopNfc(); win.clearTimeout(toastTimer); win.clearTimeout(qrTimer); if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl); root.removeEventListener('submit', onSubmit); root.removeEventListener('click', onClick); root.removeEventListener('input', onInput); root.removeEventListener('change', onChange); root.removeEventListener('keydown', onKey); root.removeEventListener('dragover', onDrag); root.removeEventListener('dragleave', onDrag); root.removeEventListener('drop', onDrag); doc.removeEventListener('click', onOutside); doc.removeEventListener('visibilitychange', onVisibility); win.removeEventListener('hashchange', onHash); win.removeEventListener('popstate', onHash); root.replaceChildren(); };
 }
 function assertImageUrl(url: string): void {
   if (url.startsWith('data:image/png;base64,') || url.startsWith('data:image/jpeg;base64,') || url.startsWith('data:image/webp;base64,') || url.startsWith('blob:')) return;
