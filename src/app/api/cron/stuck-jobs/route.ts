@@ -879,7 +879,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  const summary = {
     cleaned: failed,
     refunded,
     orphanRefunded,
@@ -905,5 +905,9 @@ export async function GET(request: NextRequest) {
       requests: requestScanTruncated,
     },
     timestamp: new Date().toISOString(),
-  });
+  };
+  // One counters-only line per run: a scheduled run can be verified from
+  // runtime logs without exposing job or user identifiers.
+  console.log(`[stuck-jobs] summary ${JSON.stringify(summary)}`);
+  return NextResponse.json(summary);
 }

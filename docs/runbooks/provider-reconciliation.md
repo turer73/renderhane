@@ -35,6 +35,26 @@ not paid inference, provider quota, or every model runner. Scanner uses metadata
 and catalog reads. Alerts may send existing admin emails; no model generation
 is initiated by these two monitoring routes.
 
+## Scheduler receipts
+
+Each scheduled route writes one `[<route>] summary {json}` runtime log line
+with counters only — no job, user or provider request identifiers.
+`[health]`, `[stuck-jobs]` and `[fal-scanner-cron]` log on every run;
+`[process-webhooks]` logs only when it dequeued messages, and also counts lost
+`complete_webhook`/`fail_webhook` acknowledgements (`ackFailed`).
+
+`health` and `fal-scanner` return 503 and log the database error when their
+receipt (`system_status` + `system_health_logs`, or `fal_scan_results`) is not
+stored. A 200 from them therefore means the receipt was written, not that the
+provider is healthy: read the logged `healthy` / `errorCount` fields. A `health`
+run that cannot read `system_status` writes nothing and sends no alert. The
+first scheduled runs after #126 (2026-10-02 00:00 UTC) returned 200 but predate
+these lines, so their content is only visible in the database.
+
+Verify a scheduled run from Vercel runtime logs first: the request line shows
+that the scheduler reached the deployment, the summary line shows what it did.
+Database access is still needed to inspect individual jobs.
+
 ## Accepted main requests
 
 The cleanup scans stale jobs with a persistent keyset cursor. A known request
