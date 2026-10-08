@@ -14,6 +14,8 @@ import {
 } from "@/lib/jobs/provider-webhook";
 import { MAX_AVATAR_SCRIPT_CHARS, MODELS, isModelBlockedForUser, type ToolType, type ModelTier } from "@/lib/fal/models";
 import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voiceover/voices";
+import { getImageInputLimits } from "@/lib/media/image-input-contract";
+import { preflightImageInputs, type ImageFactsCache } from "@/lib/media/image-preflight";
 
 /** Tools whose final prompt is composed server-side from structured context. */
 const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
@@ -68,7 +70,7 @@ async function enhanceImages(imageUrls: string[]): Promise<string[]> {
  */
 export { signWebhookPayload };
 
-interface SubmitJobInput {
+export interface SubmitJobInput {
   userId: string;
   projectId?: string;
   tool: ToolType;
@@ -108,6 +110,8 @@ interface SubmitJobInput {
   };
   /** Correlates child jobs to a durable orchestration request for recovery. */
   orchestrationRequestId?: string;
+  /** Image facts the caller already read in this request; skips re-downloads. */
+  imageFactsCache?: ImageFactsCache;
 }
 
 export type ProviderSubmissionState =
@@ -176,7 +180,7 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
   // preprocessing call. The final fal input is rebuilt after preprocessing.
   let effectivePrompt = qrStylePrompt ?? input.audioUrl ?? prompt;
   const usedSmartPrompt = Boolean(input.promptContext && SMART_PROMPT_TOOLS.includes(tool));
-  const { model } = routeRequest({
+  const { model, modelKey } = routeRequest({
     tool,
     tier,
     modelKey: input.modelKey,
@@ -185,6 +189,25 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
     prompt: effectivePrompt,
     extraParams: input.extraParams,
   });
+
+  // Read and check the real image bytes before any job row, reservation or
+  // paid preprocessing: a rejected image must cost nothing. The QR tool's
+  // control image is generated above, so it has no user image to check.
+  if (tool !== "qr-code") {
+    const sourceUrls = imageUrls?.length ? imageUrls : imageUrl ? [imageUrl] : [];
+    if (sourceUrls.length > 0) {
+      try {
+        await preflightImageInputs({
+          urls: sourceUrls,
+          limits: getImageInputLimits(modelKey),
+          cache: input.imageFactsCache,
+        });
+      } catch (error) {
+        if (input.reservedCredit) await refundCredits(input.reservedCredit.txId);
+        throw error;
+      }
+    }
+  }
 
   // Check free/admin eligibility and reserve BEFORE paid preprocessing.
   let txId: string | null = null;
@@ -241,16 +264,26 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
 
   // Persist a pending job before reserving. This gives the stuck-job cleanup a
   // durable recovery record if the runtime exits during paid preprocessing.
-  const originalRequest: Record<string, unknown> = { tool, tier };
-  if (input.modelKey) originalRequest.modelKey = input.modelKey;
+  const originalRequest: Record<string, unknown> = {
+    tool,
+    tier: tier ?? model.tier,
+    modelKey,
+  };
   if (input.imageUrl) originalRequest.imageUrl = input.imageUrl;
   if (input.imageUrls) originalRequest.imageUrls = input.imageUrls;
   if (prompt) originalRequest.prompt = prompt;
   if (input.script) originalRequest.script = input.script;
   if (input.voiceId) originalRequest.voiceId = input.voiceId;
   if (input.audioUrl) originalRequest.audioUrl = input.audioUrl;
-  if (autoEnhance) originalRequest.autoEnhance = true;
+  if (autoEnhance !== undefined) originalRequest.autoEnhance = autoEnhance;
+  if (input.skipBgRemove !== undefined) originalRequest.skipBgRemove = input.skipBgRemove;
   if (input.extraParams) originalRequest.extraParams = input.extraParams;
+  if (input.promptContext) originalRequest.promptContext = input.promptContext;
+  if (tool === "talking-avatar" && input.script && !input.audioUrl) {
+    originalRequest.voiceId = input.voiceId && isAllowedVoice(input.voiceId)
+      ? input.voiceId
+      : DEFAULT_SRT_VOICE;
+  }
   if (input.orchestrationRequestId) {
     originalRequest.orchestrationRequestId = input.orchestrationRequestId;
   }

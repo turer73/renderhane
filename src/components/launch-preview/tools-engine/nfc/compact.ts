@@ -1,3 +1,4 @@
+import {formatBusinessText} from '@/lib/nfc/business-card';
 import type {NfcReadRecord, NfcRecordInput} from './types';
 
 export const RENDERHANE_COMPACT_RECORD_TYPE = 'renderhane.com:c';
@@ -81,7 +82,6 @@ export function decodeCompactNfcRecord(record: NfcReadRecord): CompactNfcDetails
 }
 
 export function formatCompactNfcDetails(details: CompactNfcDetails): string {
-  const en = details.locale === 'en';
   if (details.kind === 'vcard') {
     const [name, phone, email, org, website] = details.fields;
     return [
@@ -96,24 +96,5 @@ export function formatCompactNfcDetails(details: CompactNfcDetails): string {
       'END:VCARD',
     ].filter(Boolean).join('\r\n');
   }
-  if (details.kind === 'bank') {
-    const [accountName, iban, bankName, branch, description] = details.fields;
-    return [
-      en ? 'BANK DETAILS' : 'BANKA BİLGİLERİ',
-      `${en ? 'Recipient' : 'Alıcı'}: ${accountName}`,
-      `IBAN: ${iban}`,
-      bankName ? `${en ? 'Bank' : 'Banka'}: ${bankName}` : '',
-      branch ? `${en ? 'Branch' : 'Şube'}: ${branch}` : '',
-      description ? `${en ? 'Reference' : 'Açıklama'}: ${description}` : '',
-    ].filter(Boolean).join('\n');
-  }
-  const [title, taxOffice, taxNumber, address, invoiceEmail] = details.fields;
-  return [
-    en ? 'INVOICE DETAILS' : 'FATURA BİLGİLERİ',
-    `${en ? 'Legal name' : 'Unvan'}: ${title}`,
-    taxOffice ? `${en ? 'Tax office' : 'Vergi dairesi'}: ${taxOffice}` : '',
-    `${en ? 'Tax/ID no' : 'Vergi/T.C. no'}: ${taxNumber}`,
-    `${en ? 'Address' : 'Adres'}: ${address}`,
-    invoiceEmail ? `${en ? 'Email' : 'E-posta'}: ${invoiceEmail}` : '',
-  ].filter(Boolean).join('\n');
+  return formatBusinessText({kind: details.kind, locale: details.locale, fields: details.fields});
 }

@@ -206,6 +206,34 @@ export const MODELS: Record<string, ModelConfig> = {
     },
   },
 
+  /* ── 3D Model — Meshy 7.1 (2026-09-29 doğrulandı) ──
+     Ayrı seçim: Meshy 7 ve mevcut varsayılanlar korunur.
+     fal: $1.20/textured; rigging/animation kapalı, standard geometri.
+     Sözleşme: https://fal.ai/models/meshy/v7.1/image-to-3d/api */
+  "meshy-v71": {
+    id: "meshy/v7.1/image-to-3d",
+    displayName: {
+      tr: "Meshy 7.1 — Premium 3D",
+      en: "Meshy 7.1 — Premium 3D",
+    },
+    tier: "premium",
+    creditCost: 80,
+    estimatedTime: "~3min",
+    imageParamKey: "image_url",
+    defaultParams: {
+      model_type: "standard",
+      geometry_resolution: "standard",
+      should_texture: true,
+      should_remesh: true,
+      topology: "triangle",
+      target_polycount: 30000,
+      enable_pbr: false,
+      enable_rigging: false,
+      enable_animation: false,
+      enable_safety_checker: true,
+    },
+  },
+
   /* ── 3D Model — Tripo H3.1 LAB (2026-09 doğrulandı) ──
      Detay amirali (500K poly). Çıktı model_mesh (mevcut hat destekler).
      Fiyat sayfası opak → 45kr geçici, teyit edilecek. */
@@ -218,7 +246,8 @@ export const MODELS: Record<string, ModelConfig> = {
     imageParamKey: "image_url",
     adminOnly: true,
     defaultParams: {
-      texture: "standard",
+      texture: true,
+      texture_quality: "standard",
     },
   },
 
@@ -1159,7 +1188,7 @@ export function isModelBlockedForUser(
 }
 
 export const TOOL_MODELS: Record<ToolType, string[]> = {
-  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-v7", "meshy-6-text", "tripo-v25-mv", "tripo-h31", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
+  "3d-model": ["triposr", "trellis-v1", "trellis-2", "meshy-6-image", "meshy-v7", "meshy-v71", "meshy-6-text", "tripo-v25-mv", "tripo-h31", "tripo-p1", "hunyuan3d-v3", "hunyuan3d-v31-pro", "hyper3d-rodin"],
   "bg-remove": ["bria-rmbg", "birefnet"],
   "enhance": ["recraft-crisp-upscale", "aura-sr"],
   "scene": ["bria-product-shot", "ideogram-v3-replace-bg", "nano-banana-pro-edit"],

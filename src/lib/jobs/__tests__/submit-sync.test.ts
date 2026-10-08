@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MODELS } from "@/lib/fal/models";
 
 const mocks = vi.hoisted(() => ({
   reserveCredits: vi.fn(),
   refundCredits: vi.fn(),
   subscribe: vi.fn(),
+  routeRequest: vi.fn(),
   createAdminClient: vi.fn(),
   completeJobOutputAndSpend: vi.fn(),
   failJobAndRefund: vi.fn(),
@@ -13,9 +15,19 @@ const mocks = vi.hoisted(() => ({
     payload: Record<string, unknown>;
     filters: Array<{ method: string; args: unknown[] }>;
   }>,
+  preflightImageInputs: vi.fn(),
+  getImageInputLimits: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/media/image-preflight", () => ({
+  preflightImageInputs: mocks.preflightImageInputs,
+}));
+
+vi.mock("@/lib/media/image-input-contract", () => ({
+  getImageInputLimits: mocks.getImageInputLimits,
+}));
 
 vi.mock("@/lib/credits/engine", () => ({
   reserveCredits: mocks.reserveCredits,
@@ -35,14 +47,7 @@ vi.mock("@/lib/auth/admin-check", () => ({
 }));
 
 vi.mock("@/lib/fal/smart-router", () => ({
-  routeRequest: () => ({
-    model: {
-      id: "fal-ai/test-scene",
-      creditCost: 8,
-      displayName: { en: "Test Scene" },
-    },
-    input: { prompt: "studio scene" },
-  }),
+  routeRequest: mocks.routeRequest,
 }));
 
 vi.mock("@/lib/jobs/webhook-transitions", () => ({
@@ -123,6 +128,20 @@ const successfulCompletion = {
 };
 
 describe("submitJobSync atomic terminal transitions", () => {
+  it('uses the real router to reject cross-tool selection before financial/provider side effects', async () => {
+    const realRouter = await vi.importActual<typeof import('@/lib/fal/smart-router')>('@/lib/fal/smart-router');
+    mocks.routeRequest.mockImplementationOnce(realRouter.routeRequest);
+    const supabase = createSupabaseMock();
+    supabase.rpc.mockResolvedValue({ data: true, error: null });
+    mocks.createAdminClient.mockReturnValue(supabase);
+    await expect(submitJobSync({ userId: 'user-1', tool: 'bg-remove', modelKey: 'wan-i2v', imageUrl: 'https://cdn.example/input.png' }))
+      .rejects.toThrow('Model is not available for this tool');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.jobUpdates.length = 0;
@@ -130,6 +149,14 @@ describe("submitJobSync atomic terminal transitions", () => {
     mocks.createAdminClient.mockReturnValue(createSupabaseMock());
     mocks.reserveCredits.mockResolvedValue("tx-sync-1");
     mocks.refundCredits.mockResolvedValue(undefined);
+    mocks.routeRequest.mockReturnValue({
+      model: {
+        id: "fal-ai/test-scene",
+        creditCost: 8,
+        displayName: { en: "Test Scene" },
+      },
+      input: { prompt: "studio scene" },
+    });
     process.env.FAL_WEBHOOK_SECRET = "test-secret";
     process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
     mocks.subscribe.mockImplementation(async (endpointId, _input, options) => {
@@ -142,6 +169,49 @@ describe("submitJobSync atomic terminal transitions", () => {
     });
     mocks.completeJobOutputAndSpend.mockResolvedValue(successfulCompletion);
     mocks.failJobAndRefund.mockResolvedValue("failed_refunded");
+    mocks.preflightImageInputs.mockResolvedValue([]);
+    mocks.getImageInputLimits.mockImplementation((modelKey: string) => ({ modelKeys: [modelKey], inputKind: "image" }));
+  });
+
+  it("rejects an unusable image against the routed model before reserving or calling the provider", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    mocks.routeRequest.mockReturnValue({ model: MODELS["wan-i2v"], modelKey: "wan-i2v", input: { image_url: "https://cdn.example/a.png" } });
+    mocks.preflightImageInputs.mockRejectedValueOnce(new Error("image rejected"));
+
+    await expect(submitJobSync({ userId: "user-1", tool: "video", imageUrl: "https://cdn.example/a.png" })).rejects.toThrow("image rejected");
+
+    expect(mocks.getImageInputLimits).toHaveBeenCalledWith("wan-i2v");
+    expect(mocks.preflightImageInputs).toHaveBeenCalledWith(expect.objectContaining({ urls: ["https://cdn.example/a.png"] }));
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+  });
+
+  it("persists the resolved logo model and user extras for exact regeneration", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    const extraParams = { outputFormat: "svg", style: "logo" };
+    mocks.routeRequest.mockReturnValue({ model: MODELS["recraft-v4-svg"], modelKey: "recraft-v4-svg", input: { prompt: "flower" } });
+    await submitJobSync({ userId: "user-1", tool: "logo", prompt: "flower", extraParams });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      original_request: expect.objectContaining({ tool: "logo", modelKey: "recraft-v4-svg", tier: MODELS["recraft-v4-svg"].tier, extraParams }),
+    }));
+  });
+
+  it("persists the selected voice before TTS admission", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    mocks.routeRequest.mockReturnValue({ model: MODELS.omnihuman, modelKey: "omnihuman", input: { image_url: "https://cdn.example/avatar.png" } });
+    mocks.subscribe.mockImplementation(async (endpointId, _input, options) => {
+      const requestId = endpointId === "fal-ai/minimax/speech-2.8-hd" ? "fal-tts-1" : "fal-main-1";
+      await options?.onEnqueue?.(requestId);
+      return { requestId, data: endpointId === "fal-ai/minimax/speech-2.8-hd" ? { audio: { url: "https://fal.media/voice.wav" } } : { video: { url: "https://fal.media/result.mp4" } } };
+    });
+    await submitJobSync({ userId: "user-1", tool: "talking-avatar", imageUrl: "https://cdn.example/avatar.png", script: "Merhaba", voiceId: "Turkish_Trustworthyman" });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ original_request: expect.objectContaining({ modelKey: "omnihuman", script: "Merhaba", voiceId: "Turkish_Trustworthyman" }) }));
   });
 
   it("commits output, job status and spend through the atomic success RPC", async () => {
@@ -201,6 +271,42 @@ describe("submitJobSync atomic terminal transitions", () => {
       input_params: { prompt: "studio scene" },
       status: "processing",
     });
+  });
+
+  it("extracts a Meshy 7.1 GLB before thumbnail and texture URLs", async () => {
+    const { routeRequest } = await vi.importActual<typeof import("@/lib/fal/smart-router")>("@/lib/fal/smart-router");
+    mocks.routeRequest.mockImplementation(routeRequest);
+    const payload = {
+      thumbnail: { url: "https://fal.media/preview.png" },
+      texture_urls: [{ base_color: { url: "https://fal.media/texture.png" } }],
+      model_glb: { url: "https://fal.media/model.glb" },
+      model_urls: { glb: { url: "https://fal.media/model.glb" } },
+    };
+    mocks.subscribe.mockImplementationOnce(async (_endpointId, _input, options) => {
+      await options?.onEnqueue?.("fal-meshy-71");
+      return { requestId: "fal-meshy-71", data: payload };
+    });
+    mocks.completeJobOutputAndSpend.mockResolvedValueOnce({
+      ...successfulCompletion,
+      outputType: "glb",
+      r2Url: "https://assets.example/model.glb",
+    });
+
+    const result = await submitJobSync({
+      userId: "user-1", tool: "3d-model", modelKey: "meshy-v71",
+      imageUrl: "https://cdn.example/source.png",
+    });
+    expect(result.output?.url).toBe("https://assets.example/model.glb");
+    expect(result.creditCost).toBe(80);
+    expect(mocks.subscribe).toHaveBeenCalledWith(
+      "meshy/v7.1/image-to-3d",
+      expect.objectContaining({ image_url: "https://cdn.example/source.png", should_texture: true }),
+      expect.any(Object),
+    );
+    expect(mocks.completeJobOutputAndSpend).toHaveBeenCalledWith({
+      jobId: "job-sync-1", falUrl: "https://fal.media/model.glb", metadata: payload,
+    });
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
   });
 
   it("atomically fails and refunds when an accepted provider result has no output", async () => {

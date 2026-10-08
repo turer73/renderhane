@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,6 @@ import {
 import { toast } from "sonner";
 import { FalScannerPanel } from "./fal-scanner-panel";
 import { HealthCheckPanel } from "./health-check-panel";
-import { ModelLabPanel } from "./model-lab-panel";
 
 interface UserRow {
   id: string;
@@ -49,6 +49,8 @@ interface Stats {
 
 export function AdminDashboard() {
   const t = useTranslations("admin");
+  const tLab = useTranslations("modelLab");
+  const locale = useLocale();
 
   const [users, setUsers] = useState<UserRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -148,6 +150,10 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+      <Link href={`/${locale}/app/admin/models`} className="block rounded-xl border border-primary/30 bg-primary/5 p-5 transition-colors hover:bg-primary/10">
+        <h2 className="font-semibold">{t("lab")} →</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{tLab("dashboardDescription")}</p>
+      </Link>
 
       {/* Stats Cards */}
       {stats && (
@@ -307,9 +313,6 @@ export function AdminDashboard() {
 
       {/* fal.ai Scanner */}
       <FalScannerPanel />
-
-      {/* Model Lab (admin-only trials) */}
-      <ModelLabPanel />
 
       {/* Edit Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>

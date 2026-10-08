@@ -10,10 +10,16 @@
  */
 
 import { buildVCard, parseVCard, type VCardFields } from "@/lib/vcard";
+import {
+  buildSocialPayload,
+  SOCIAL_PLATFORMS,
+  type SocialPlatform,
+} from "@/lib/share-links";
 
 export type NfcContentType =
   | "url"
   | "vcard"
+  | "social"
   | "wifi"
   | "phone"
   | "email"
@@ -210,6 +216,7 @@ export function normalizeUrl(raw: string): string {
 const REQUIRED: Record<NfcContentType, string[]> = {
   url: ["url"],
   vcard: ["firstName"],
+  social: [],
   wifi: ["ssid"],
   phone: ["phone"],
   email: ["email"],
@@ -220,6 +227,14 @@ const REQUIRED: Record<NfcContentType, string[]> = {
 };
 
 export function isNfcInputValid(type: NfcContentType, fields: NfcFields): boolean {
+  if (type === "social") {
+    try {
+      buildSocialPayload(fields);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   return REQUIRED[type].every((key) => (fields[key] || "").trim().length > 0);
 }
 
@@ -233,7 +248,7 @@ export function buildNdefRecords(
   opts: { lang?: string } = {}
 ): NfcRecordInit[] {
   if (!isNfcInputValid(type, fields)) return [];
-  const lang = opts.lang || "tr";
+  const lang = fields.lang || opts.lang || "tr";
   const encoder = new TextEncoder();
 
   switch (type) {
@@ -268,6 +283,8 @@ export function buildNdefRecords(
       ];
     case "url":
       return [{ recordType: "url", data: normalizeUrl(fields.url) }];
+    case "social":
+      return [{ recordType: "url", data: buildSocialPayload(fields, opts.lang === "en" ? "en" : "tr") }];
     default:
       return [{ recordType: "url", data: buildUri(type, fields) }];
   }
@@ -344,12 +361,23 @@ export interface DecodedRecord {
 }
 
 /** Maps a URI record back to the content type that would have produced it. */
-function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
-  if (/^tel:/i.test(uri)) return { type: "phone", fields: { phone: uri.slice(4) } };
+function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } | null {
+  if (/^tel:/i.test(uri)) {
+    const phone = uri.slice(4);
+    return phone && !/[;,]/.test(phone) ? { type: "phone", fields: { phone } } : null;
+  }
 
   if (/^mailto:/i.test(uri)) {
-    const [address, query = ""] = uri.slice(7).split("?");
+    const [encodedAddress, query = ""] = uri.slice(7).split("?");
+    let address = encodedAddress;
+    try {
+      address = decodeURIComponent(encodedAddress);
+    } catch {
+      // Preserve malformed legacy values as-is so the reader still displays them.
+    }
     const params = new URLSearchParams(query);
+    if ([...params.keys()].some((key) => !["subject", "body"].includes(key.toLowerCase())))
+      return null;
     const fields: NfcFields = { email: address };
     if (params.get("subject")) fields.subject = params.get("subject") as string;
     if (params.get("body")) fields.body = params.get("body") as string;
@@ -358,19 +386,103 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
 
   if (/^sms:/i.test(uri)) {
     const [number, query = ""] = uri.slice(4).split("?");
+    if (!number || number.includes(",")) return null;
     const params = new URLSearchParams(query);
     const fields: NfcFields = { phone: number };
     if (params.get("body")) fields.body = params.get("body") as string;
     return { type: "sms", fields };
   }
 
-  const maps = /[?&]q=(-?[\d.]+),\s*(-?[\d.]+)/.exec(uri);
-  if (maps && /maps/i.test(uri)) {
-    return { type: "location", fields: { lat: maps[1], lon: maps[2] } };
-  }
+  try {
+    const url = new URL(uri);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const maps = /^(-?[\d.]+),\s*(-?[\d.]+)$/.exec(url.searchParams.get("q") || "");
+    const recognizedMap =
+      (host === "google.com" && url.pathname === "/maps") ||
+      host === "maps.google.com";
+    const mapParams = [...url.searchParams.keys()];
+    if (maps && recognizedMap && mapParams.every((key) => key === "q") && !url.hash) {
+      return { type: "location", fields: { lat: maps[1], lon: maps[2] } };
+    }
 
-  const play = /play\.google\.com\/store\/apps\/details\?id=([^&\s]+)/i.exec(uri);
-  if (play) return { type: "app", fields: { packageName: play[1] } };
+    const playParams = [...url.searchParams.keys()];
+    const playPackage =
+      url.protocol === "https:" &&
+      !url.port &&
+      host === "play.google.com" &&
+      url.pathname === "/store/apps/details" &&
+      playParams.length === 1 &&
+      playParams[0] === "id" &&
+      !url.hash
+        ? url.searchParams.get("id")
+        : null;
+    if (playPackage) return { type: "app", fields: { packageName: playPackage } };
+
+    const productionAuthority = url.protocol === "https:" && !url.port && host === "renderhane.com";
+    const contactRoute = /^\/(tr|en)\/k\/?$/.exec(url.pathname);
+    if (productionAuthority && contactRoute) {
+      const fields: NfcFields = {
+        contactMode: "linked",
+        shareLocale: contactRoute[1],
+        firstName: url.searchParams.get("n") || "",
+      };
+      const linkedFields: ReadonlyArray<readonly [string, string]> = [
+        ["lastName", "s"],
+        ["phone", "p"],
+        ["email", "e"],
+        ["org", "o"],
+        ["website", "u"],
+      ];
+      for (const [field, key] of linkedFields) {
+        const value = url.searchParams.get(key);
+        if (value) fields[field] = value;
+      }
+      return { type: "vcard", fields };
+    }
+
+    const socialRoute = /^\/(tr|en)\/s\/?$/.exec(url.pathname);
+    if (productionAuthority && socialRoute) {
+      const fields: NfcFields = { socialMode: "card", shareLocale: socialRoute[1] };
+      const profileName = url.searchParams.get("n");
+      if (profileName) fields.profileName = profileName;
+      for (const platform of SOCIAL_PLATFORMS) {
+        const value = url.searchParams.get(platform.key);
+        if (value) fields[platform.id] = value;
+      }
+      return { type: "social", fields };
+    }
+
+    const socialHosts: Record<string, SocialPlatform> = {
+      "instagram.com": "instagram",
+      "wa.me": "whatsapp",
+      "api.whatsapp.com": "whatsapp",
+      "whatsapp.com": "whatsapp",
+      "chat.whatsapp.com": "whatsapp",
+      "t.me": "telegram",
+      "telegram.me": "telegram",
+      "tiktok.com": "tiktok",
+      "vm.tiktok.com": "tiktok",
+      "vt.tiktok.com": "tiktok",
+      "x.com": "x",
+      "twitter.com": "x",
+      "facebook.com": "facebook",
+      "m.facebook.com": "facebook",
+      "fb.com": "facebook",
+      "linkedin.com": "linkedin",
+      "youtube.com": "youtube",
+      "m.youtube.com": "youtube",
+      "youtu.be": "youtube",
+    };
+    const platform = socialHosts[host];
+    if (platform) {
+      return {
+        type: "social",
+        fields: { socialMode: "single", platform, socialValue: uri },
+      };
+    }
+  } catch {
+    // Keep malformed or unsupported URI records editable as generic URLs.
+  }
 
   return { type: "url", fields: { url: uri } };
 }
@@ -382,25 +494,39 @@ function uriToForm(uri: string): { type: NfcContentType; fields: NfcFields } {
 export function recordsToForm(
   records: DecodedRecord[]
 ): { type: NfcContentType; fields: NfcFields } | null {
-  const priority: DecodedRecord["kind"][] = ["app", "wifi", "vcard", "text", "url"];
-  for (const kind of priority) {
-    const hit = records.find((record) => record.kind === kind && record.form);
-    if (hit?.form) return hit.form;
+  if (records.length === 1) return records[0].form ?? null;
+
+  // The app writer intentionally emits exactly a Play Store fallback plus AAR.
+  if (records.length === 2) {
+    const app = records.find((record) => record.kind === "app" && record.form);
+    const fallback = records.find((record) => record !== app && record.form?.type === "app");
+    if (
+      app?.form &&
+      fallback?.form &&
+      app.form.fields.packageName === fallback.form.fields.packageName
+    ) return app.form;
   }
-  return records.find((record) => record.form)?.form ?? null;
+
+  // Any other multi-record message cannot be round-tripped losslessly by the
+  // single-form editor, so keep it readable without offering rewrite state.
+  return null;
 }
 
-function toText(data: unknown): string {
+function toText(data: unknown, encoding = "utf-8"): string {
   if (typeof data === "string") return data;
-  if (data instanceof Uint8Array) return new TextDecoder().decode(data);
-  if (data instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(data));
-  if (ArrayBuffer.isView(data)) {
-    const view = data as ArrayBufferView;
-    return new TextDecoder().decode(
-      new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
-    );
+  const bytes = data instanceof Uint8Array
+    ? data
+    : data instanceof ArrayBuffer
+      ? new Uint8Array(data)
+      : ArrayBuffer.isView(data)
+        ? new Uint8Array((data as ArrayBufferView).buffer, (data as ArrayBufferView).byteOffset, (data as ArrayBufferView).byteLength)
+        : null;
+  if (!bytes) return "";
+  try {
+    return new TextDecoder(encoding).decode(bytes);
+  } catch {
+    return new TextDecoder().decode(bytes);
   }
-  return "";
 }
 
 export interface WscCredentials {
@@ -457,23 +583,25 @@ export function readWscSsid(data: Uint8Array): string {
 export function describeRecord(record: {
   recordType: string;
   mediaType?: string | null;
+  lang?: string | null;
   data?: unknown;
 }): DecodedRecord {
   const { recordType, mediaType } = record;
+  const mediaTypeEssence = (mediaType || "").split(";", 1)[0].trim().toLowerCase();
 
   if (recordType === "url" || recordType === "absolute-url") {
     const value = toText(record.data);
-    return { kind: "url", value, form: uriToForm(value) };
+    return { kind: "url", value, form: uriToForm(value) ?? undefined };
   }
   if (recordType === "text") {
     const value = toText(record.data);
-    return { kind: "text", value, form: { type: "text", fields: { text: value } } };
+    return { kind: "text", value, form: { type: "text", fields: { text: value, lang: record.lang || "" } } };
   }
   if (recordType === "empty") {
     return { kind: "empty", value: "" };
   }
   if (recordType === "mime") {
-    if (mediaType === WSC_MIME) {
+    if (mediaTypeEssence === WSC_MIME) {
       const bytes =
         record.data instanceof Uint8Array
           ? record.data
@@ -498,14 +626,21 @@ export function describeRecord(record: {
         },
       };
     }
-    if (mediaType === VCARD_MIME || mediaType === "text/x-vcard") {
-      const raw = toText(record.data);
+    if (mediaTypeEssence === VCARD_MIME || mediaTypeEssence === "text/x-vcard") {
+      const charset = /(?:^|;)\s*charset\s*=\s*"?([^;"\s]+)"?/i.exec(mediaType || "")?.[1] || "utf-8";
+      const raw = toText(record.data, charset);
       const fn = /^FN:(.*)$/m.exec(raw)?.[1]?.trim();
-      const fields: NfcFields = {};
-      for (const [key, value] of Object.entries(parseVCard(raw))) {
-        if (value) fields[key] = value;
+      try {
+        const fields: NfcFields = {};
+        for (const [key, value] of Object.entries(parseVCard(raw))) {
+          if (value) fields[key] = value;
+        }
+        return { kind: "vcard", value: fn || "", raw, form: { type: "vcard", fields } };
+      } catch {
+        // Multi-value or otherwise non-lossless cards stay readable/copyable,
+        // but are not loaded into the single-value editor for rewriting.
+        return { kind: "vcard", value: fn || "", raw };
       }
-      return { kind: "vcard", value: fn || "", raw, form: { type: "vcard", fields } };
     }
     return { kind: "mime", value: mediaType || "", raw: toText(record.data) };
   }

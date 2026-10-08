@@ -4,13 +4,17 @@ import { authenticateApiRequest } from "@/lib/api-keys/middleware";
 import { submitJob } from "@/lib/jobs/submit";
 import { submitJobSync } from "@/lib/jobs/submit-sync";
 import { CreditError } from "@/lib/credits/engine";
-import { TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
+import { MAX_MULTI_IMAGES, TOOL_CREDITS, type ToolType } from "@/lib/fal/models";
+import { assertModelForTool, ModelSelectionError } from "@/lib/fal/model-selection";
+import { imageUrlSchema } from "@/lib/validations/job-submit";
 import type { ModelTier } from "@/lib/fal/models";
 import {
   orchestrateAplus,
   orchestrateTalkingAvatar,
   orchestrateSocialKit,
+  preflightSocialKitImage,
 } from "@/lib/jobs/orchestrate";
+import { ImagePreflightError, imagePreflightErrorBody, type ImageFactsCache } from "@/lib/media/image-preflight";
 import {
   claimSocialKitRequest,
   completeSocialKitRequest,
@@ -89,6 +93,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate before either direct submission or orchestration can incur cost.
+    assertModelForTool(tool, modelKey);
+    if (imageUrls !== undefined && (
+      !Array.isArray(imageUrls) ||
+      imageUrls.length < 1 ||
+      imageUrls.length > MAX_MULTI_IMAGES ||
+      imageUrls.some((url) => !imageUrlSchema.safeParse(url).success)
+    )) {
+      return NextResponse.json(
+        { error: `imageUrls must contain 1-${MAX_MULTI_IMAGES} public HTTP(S) image URLs` },
+        { status: 400 }
+      );
+    }
+
     // ── Orchestration tools (multi-job pipelines) ────────────
     if (ORCHESTRATION_TOOLS.includes(tool as ToolType)) {
       return handleOrchestration(auth.userId, tool as ToolType, {
@@ -138,6 +156,12 @@ export async function POST(request: NextRequest) {
 
     return submissionResponse(result);
   } catch (error) {
+    if (error instanceof ModelSelectionError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
         { error: "insufficient_credits" },
@@ -220,6 +244,11 @@ async function handleOrchestration(
             { status: 400 }
           );
         }
+
+        // Read the real image before the durable claim; a rejected image
+        // leaves no claim or reservation behind.
+        const imageFactsCache: ImageFactsCache = new Map();
+        await preflightSocialKitImage(imageUrl, imageFactsCache);
 
         const normalizedLocale = locale === "en" ? "en" : "tr";
         const sourceFingerprint = crypto
@@ -316,6 +345,7 @@ async function handleOrchestration(
             requestId: claim.requestId,
             imageUrl,
             locale: normalizedLocale,
+            imageFactsCache,
           });
           if (hasPendingProviderReconciliation(result)) {
             return NextResponse.json(
@@ -334,6 +364,10 @@ async function handleOrchestration(
         } catch (error) {
           if (error instanceof CreditError && error.code === "INSUFFICIENT") {
             return completeAndRespond(402, { error: "insufficient_credits" });
+          }
+          // Checked before any reservation, so nothing was charged.
+          if (error instanceof ImagePreflightError) {
+            return completeAndRespond(422, imagePreflightErrorBody(error));
           }
           console.error("[api/v1/jobs] social-kit orchestration indeterminate:", error);
           return NextResponse.json(
@@ -354,6 +388,9 @@ async function handleOrchestration(
         );
     }
   } catch (error) {
+    if (error instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(error), { status: 422 });
+    }
     if (error instanceof CreditError && error.code === "INSUFFICIENT") {
       return NextResponse.json(
         { error: "insufficient_credits" },

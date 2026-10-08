@@ -1,10 +1,13 @@
 import {describe, expect, it, vi} from 'vitest';
+import {localizeToolText} from '../english-copy';
+import {ndefMessageBytes} from '@/lib/nfc/ndef';
 import {
   NFC_CHIP_PROFILES,
   checkNfcCapacity,
   createCompactNfcRecord,
   createWebNfcAdapter,
   decodeCompactNfcRecord,
+  decodeNfcForm,
   decodeNfcRecord,
   estimateNdefStorageBytes,
   formatCompactNfcDetails,
@@ -75,8 +78,12 @@ describe('NFC chip platform', () => {
 
   it('estimates Type 2 NDEF storage and blocks an oversized NTAG213 vCard', () => {
     const url = [{recordType: 'url', data: 'https://renderhane.com'}];
-    expect(estimateNdefStorageBytes(url)).toBe(27);
-    expect(checkNfcCapacity(url, 'ntag213')).toMatchObject({estimatedBytes: 27, capacityBytes: 132, remainingBytes: 105, fits: true});
+    // "https://" is stored as one RTD-URI identifier byte, as Android writes it.
+    expect(estimateNdefStorageBytes(url)).toBe(19);
+    expect(estimateNdefStorageBytes(url)).toBe(ndefMessageBytes(url));
+    expect(estimateNdefStorageBytes([{recordType: 'url', data: 'https://www.renderhane.com/tr/b#n=A'}]))
+      .toBe(ndefMessageBytes([{recordType: 'url', data: 'https://www.renderhane.com/tr/b#n=A'}]));
+    expect(checkNfcCapacity(url, 'ntag213')).toMatchObject({estimatedBytes: 19, capacityBytes: 132, remainingBytes: 113, fits: true});
 
     const vcard = new TextEncoder().encode([
       'BEGIN:VCARD', 'VERSION:3.0', 'FN:Turgut Ürer', 'N:;Turgut Ürer;;;',
@@ -90,6 +97,55 @@ describe('NFC chip platform', () => {
     expect(checkNfcCapacity(records, 'ntag215').fits).toBe(true);
   });
 
+  it('restores UTF-16 NDEF text without mojibake', () => {
+    const utf16 = Uint8Array.from([0xff, 0xfe, 0x6d, 0x00, 0x65, 0x00, 0x72, 0x00, 0x68, 0x00, 0x61, 0x00, 0x62, 0x00, 0x61, 0x00]);
+    expect(decodeNfcForm([{
+      recordType: 'text', encoding: 'utf-16', lang: 'en', data: new DataView(utf16.buffer),
+    }])).toEqual({type: 'text', fields: {text: 'merhaba', lang: 'en'}});
+  });
+
+  it('restores vCards with MIME casing and charset parameters', () => {
+    const raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:Lovelace;Ada;;;', 'FN:Ada Lovelace', 'END:VCARD'].join('\r\n');
+    expect(decodeNfcForm([{
+      recordType: 'mime', mediaType: 'Text/VCard; Charset=UTF-8',
+      data: new DataView(new TextEncoder().encode(raw).buffer),
+    }])).toEqual({type: 'vcard', fields: {firstName: 'Ada', lastName: 'Lovelace'}});
+
+    const latin1Raw = ['BEGIN:VCARD', 'VERSION:3.0', 'N:;Ürer;;;', 'FN:Ürer', 'END:VCARD'].join('\r\n');
+    const latin1 = Uint8Array.from([...latin1Raw].map(character => character.charCodeAt(0)));
+    expect(decodeNfcForm([{
+      recordType: 'mime', mediaType: 'text/vcard; charset=iso-8859-1',
+      data: new DataView(latin1.buffer),
+    }])).toEqual({type: 'vcard', fields: {firstName: 'Ürer'}});
+  });
+
+  it('restores direct and linked social scans into the editable form', () => {
+    const record = (url: string) => ({
+      recordType: 'url',
+      data: new DataView(new TextEncoder().encode(url).buffer),
+    });
+
+    expect(decodeNfcForm([record('https://www.instagram.com/renderhane/')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'single', platform: 'instagram', socialValue: 'https://www.instagram.com/renderhane/'},
+    });
+    expect(decodeNfcForm([record('https://m.youtube.com/watch?v=abc123')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'single', platform: 'youtube', socialValue: 'https://m.youtube.com/watch?v=abc123'},
+    });
+    expect(decodeNfcForm([record('https://renderhane.com/tr/s?n=Renderhane&i=%40renderhane')])).toEqual({
+      type: 'social',
+      fields: {socialMode: 'card', shareLocale: 'tr', profileName: 'Renderhane', instagram: '@renderhane'},
+    });
+    expect(decodeNfcForm([record('https://renderhane.com/tr/k?n=Turgut&s=%C3%9Crer&p=%2B905551234567&e=turgut%40example.com')])).toEqual({
+      type: 'vcard',
+      fields: {
+        contactMode: 'linked', shareLocale: 'tr', firstName: 'Turgut', lastName: 'Ürer',
+        phone: '+905551234567', email: 'turgut@example.com',
+      },
+    });
+  });
+
   it('turns Android Web NFC IO failures into actionable Turkish messages', () => {
     const error = new DOMException('Failed to write due to an IO error: null', 'NetworkError');
     expect(nfcWriteErrorMessage(error, false)).toContain('mevcut içerik');
@@ -97,6 +153,21 @@ describe('NFC chip platform', () => {
     expect(nfcWriteErrorMessage(error, true)).toContain('Kapasiteyi kontrol et');
     expect(nfcReadErrorMessage(new DOMException('Cannot decode record', 'DataError'))).toContain('okunamadı');
     expect(nfcReadErrorMessage(new DOMException('Cannot decode record', 'DataError'))).not.toContain('yazılamadı');
+  });
+
+  it('does not report a blocked overwrite as a denied NFC permission', () => {
+    const blocked = new DOMException('NDEFWriteOptions#overwrite does not allow overwrite.', 'NotAllowedError');
+    expect(nfcWriteErrorMessage(blocked, false)).toContain('üzerine yazma kapalı');
+    expect(nfcWriteErrorMessage(blocked, false)).not.toContain('izni verilmedi');
+    expect(nfcWriteErrorMessage(new DOMException('', 'NotAllowedError'), false)).toContain('üzerine yazma kapalı');
+    expect(localizeToolText(nfcWriteErrorMessage(blocked, false))).toBe(
+      "The tag already has content and overwriting is off. Enable “Allow overwriting the tag's existing content.” and try again.",
+    );
+
+    const denied = new DOMException('NFC permission request denied.', 'NotAllowedError');
+    expect(nfcWriteErrorMessage(denied, false)).toContain('izni verilmedi');
+    expect(nfcWriteErrorMessage(denied, true)).toContain('izni verilmedi');
+    expect(nfcWriteErrorMessage(new DOMException('', 'NotAllowedError'), true)).toContain('izni verilmedi');
   });
 
   it('covers every NFC Forum tag type and keeps proprietary cards out of generic web writes', () => {

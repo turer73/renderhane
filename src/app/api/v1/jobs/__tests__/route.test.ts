@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   orchestrateSocialKit: vi.fn(),
   claimSocialKitRequest: vi.fn(),
   completeSocialKitRequest: vi.fn(),
+  preflightSocialKitImage: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -25,6 +26,7 @@ vi.mock("@/lib/jobs/orchestrate", () => ({
   orchestrateAplus: mocks.orchestrateAplus,
   orchestrateTalkingAvatar: mocks.orchestrateTalkingAvatar,
   orchestrateSocialKit: mocks.orchestrateSocialKit,
+  preflightSocialKitImage: mocks.preflightSocialKitImage,
 }));
 vi.mock("@/lib/jobs/social-kit-idempotency", async (importOriginal) => {
   const original =
@@ -37,6 +39,7 @@ vi.mock("@/lib/jobs/social-kit-idempotency", async (importOriginal) => {
 });
 
 import { POST } from "../route";
+import { ImagePreflightError } from "@/lib/media/image-preflight";
 
 function request(body: Record<string, unknown>, idempotencyKey?: string) {
   const headers: Record<string, string> = {
@@ -66,6 +69,35 @@ describe("public job submission reconciliation status", () => {
       estimatedTime: "~1min",
       submissionStates: { "social-job-1": "accepted" },
     });
+    mocks.preflightSocialKitImage.mockResolvedValue(undefined);
+  });
+
+  it("returns 422 with field-level issues when submitJob rejects the image", async () => {
+    mocks.submitJob.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "unsupported_format", index: 0, message: "GIF biçimi bu modelde desteklenmiyor." }])
+    );
+
+    const response = await POST(request({ tool: "video", imageUrls: ["https://cdn.example/a.gif"] }));
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "image_input_invalid",
+      issues: [{ code: "unsupported_format", index: 0 }],
+    });
+  });
+
+  it("rejects an unusable public Social Kit image before claiming or charging", async () => {
+    mocks.preflightSocialKitImage.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "corrupt", index: 0, message: "Dosya okunamadı." }])
+    );
+
+    const response = await POST(
+      request({ tool: "social-kit", imageUrl: "https://cdn.example/broken.png" }, "public-social-key-2")
+    );
+
+    expect(response.status).toBe(422);
+    expect(mocks.claimSocialKitRequest).not.toHaveBeenCalled();
+    expect(mocks.orchestrateSocialKit).not.toHaveBeenCalled();
   });
 
   it("returns 202 instead of 500 for an indeterminate sync provider result", async () => {
@@ -88,6 +120,40 @@ describe("public job submission reconciliation status", () => {
       status: "processing",
       submissionState: "indeterminate",
     });
+  });
+
+  it.each([false, true])('rejects a mismatched model before sync=%s submission', async (sync) => {
+    const response = await POST(request({ tool: 'bg-remove', modelKey: 'wan-i2v', imageUrl: 'https://cdn.example/input.png', sync }));
+    expect(response.status).toBe(400);
+    expect(mocks.submitJob).not.toHaveBeenCalled();
+    expect(mocks.submitJobSync).not.toHaveBeenCalled();
+  });
+
+  it.each(['constructor', '__proto__', '', null, 12, 'does-not-exist'])('rejects malformed/unknown modelKey %s', async (modelKey) => {
+    const response = await POST(request({ tool: '3d-model', modelKey, imageUrl: 'https://cdn.example/input.png' }));
+    expect(response.status).toBe(400);
+    expect(mocks.submitJob).not.toHaveBeenCalled();
+  });
+
+  it('rejects a model override before orchestration/credit claiming', async () => {
+    const response = await POST(request({ tool: 'social-kit', modelKey: 'wan-i2v', imageUrl: 'https://cdn.example/input.png' }, 'valid-idempotency-key'));
+    expect(response.status).toBe(400);
+    expect(mocks.claimSocialKitRequest).not.toHaveBeenCalled();
+    expect(mocks.orchestrateSocialKit).not.toHaveBeenCalled();
+  });
+
+  it.each([[], null, 'image.png', [123], [''], ['file:///private'], ['http://127.0.0.1/private'], Array(5).fill('https://cdn.example/input.png')])('rejects invalid or unbounded image arrays (%j)', async (imageUrls) => {
+    const response = await POST(request({ tool: '3d-model', imageUrls }));
+    expect(response.status).toBe(400);
+    expect(mocks.submitJob).not.toHaveBeenCalled();
+    expect(mocks.submitJobSync).not.toHaveBeenCalled();
+  });
+
+  it('preserves a valid explicit Meshy 7.1 selection', async () => {
+    mocks.submitJob.mockResolvedValue({ jobId: 'job-meshy', requestId: 'request-meshy', creditCost: 80, estimatedTime: '~3min', submissionState: 'accepted' });
+    const response = await POST(request({ tool: '3d-model', modelKey: 'meshy-v71', imageUrls: ['https://cdn.example/input.png'] }));
+    expect(response.status).toBe(201);
+    expect(mocks.submitJob).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-1', modelKey: 'meshy-v71', tool: '3d-model' }));
   });
 
   it("returns 202 for an async submission whose provider state needs reconciliation", async () => {

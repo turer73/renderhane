@@ -30,6 +30,51 @@ describe("FalProvider durable subscribe boundary", () => {
     mocks.result.mockResolvedValue({ data: { image: { url: "https://fal/result.png" } } });
   });
 
+  it("forwards read-only abort signals without cancelling or resubmitting a job", async () => {
+    const provider = new FalProvider();
+    const abortSignal = new AbortController().signal;
+    await provider.status("fal-ai/test", "fal-request-1", { abortSignal });
+    await provider.result("fal-ai/test", "fal-request-1", { abortSignal });
+    expect(mocks.status).toHaveBeenCalledWith("fal-ai/test", { requestId: "fal-request-1", abortSignal });
+    expect(mocks.result).toHaveBeenCalledWith("fal-ai/test", { requestId: "fal-request-1", abortSignal });
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it("bounds admission transport without using the queue cancellation API", async () => {
+    const provider = new FalProvider();
+    const abortSignal = new AbortController().signal;
+    await provider.submit("fal-ai/test", { prompt: "test" }, "https://example.com/webhook", { abortSignal });
+    expect(mocks.submit).toHaveBeenCalledWith("fal-ai/test", {
+      input: { prompt: "test" }, webhookUrl: "https://example.com/webhook", startTimeout: 1800, abortSignal,
+    });
+    expect(mocks.status).not.toHaveBeenCalled();
+    expect(mocks.result).not.toHaveBeenCalled();
+  });
+
+  it.each(["status", "result", "submit"] as const)("bounds %s even while an SDK retry/backoff promise ignores abort", async (operation) => {
+    let rejectLate!: (error: Error) => void;
+    mocks[operation].mockReturnValueOnce(new Promise((_resolve, reject) => { rejectLate = reject; }));
+    const controller = new AbortController();
+    const provider = new FalProvider();
+    const request = operation === "submit"
+      ? provider.submit("fal-ai/test", {}, undefined, { abortSignal: controller.signal })
+      : provider[operation]("fal-ai/test", "fal-request-1", { abortSignal: controller.signal });
+    await Promise.resolve();
+    controller.abort(new DOMException("deadline", "TimeoutError"));
+    await expect(request).rejects.toThrow("deadline");
+    rejectLate(new Error("late SDK rejection"));
+    await Promise.resolve();
+    expect(mocks[operation]).toHaveBeenCalledTimes(1);
+    expect(mocks.subscribeToStatus).not.toHaveBeenCalled();
+  });
+
+  it("never starts admission with an already expired deadline", async () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException("deadline", "TimeoutError"));
+    await expect(new FalProvider().submit("fal-ai/test", {}, undefined, { abortSignal: controller.signal })).rejects.toThrow("deadline");
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
   it("awaits request-id persistence before polling for the result", async () => {
     const events: string[] = [];
     mocks.subscribeToStatus.mockImplementation(async () => {

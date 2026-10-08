@@ -1,5 +1,5 @@
 import type {NfcRecordInput} from './types';
-import {NFC_TAG_CAPACITIES} from '@/lib/nfc/ndef';
+import {NFC_TAG_CAPACITIES, URI_PREFIXES, uriPrefixCode} from '@/lib/nfc/ndef';
 
 export type NfcCapacityProfileId = 'unknown' | 'ntag213' | 'ntag215' | 'ntag216';
 
@@ -24,7 +24,11 @@ const encoder = new TextEncoder();
 
 function payloadLength(record: NfcRecordInput): number {
   const length = typeof record.data === 'string' ? encoder.encode(record.data).length : record.data.byteLength;
-  if (record.recordType === 'url') return length + 1; // URI identifier-code byte; conservative, without prefix compression.
+  if (record.recordType === 'url') {
+    // Android's writer stores the longest RTD-URI prefix (e.g. "https://www.") as one identifier byte.
+    const uri = typeof record.data === 'string' ? record.data : '';
+    return length + 1 - encoder.encode(URI_PREFIXES[uriPrefixCode(uri)]).length;
+  }
   if (record.recordType === 'text') return length + 1 + encoder.encode(record.lang || 'en').length;
   return length;
 }
@@ -37,9 +41,9 @@ function typeLength(record: NfcRecordInput): number {
 }
 
 /**
- * Conservative NDEF message estimate (record headers included). Tag capacities
- * already use their NDEF-message allowance, so Type 2 TLV bytes are not added a
- * second time. URI prefix compression is not assumed.
+ * NDEF message size (record headers included). Tag capacities already use their
+ * NDEF-message allowance, so Type 2 TLV bytes are not added a second time. URL
+ * records count the RTD-URI prefix as the single byte Android writes.
  */
 export function estimateNdefStorageBytes(records: readonly NfcRecordInput[]): number {
   return records.reduce((total, record) => {
@@ -76,13 +80,19 @@ export function checkNfcCapacity(records: readonly NfcRecordInput[], profileId: 
 export function nfcWriteErrorMessage(error: unknown, overwrite: boolean): string {
   const name = error instanceof Error ? error.name : '';
   const detail = error instanceof Error ? error.message : '';
-  if (name === 'NotAllowedError') return 'NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.';
+  if (name === 'NotAllowedError') {
+    // Web NFC also rejects with NotAllowedError when overwrite is off and the
+    // tag already holds an NDEF message; only a permission-worded rejection is a denial.
+    if (/overwrite/i.test(detail) || (!overwrite && !/permission/i.test(detail)))
+      return 'Etikette zaten içerik var ve üzerine yazma kapalı. “Etiketteki mevcut içeriğin üzerine yazılmasına izin ver.” seçeneğini açıp yeniden dene.';
+    return 'NFC izni verilmedi. İzinleri kontrol ederek tekrar dene.';
+  }
   if (name === 'NotSupportedError') return 'Cihaz veya etiket bu işlemi desteklemiyor.';
   if (name === 'AbortError') return 'NFC işlemi durduruldu.';
   if (name === 'InvalidStateError') return 'Başka bir NFC işlemi açık olabilir. Sayfayı önde tutup yeniden dene.';
   if (name === 'NotReadableError') return 'NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.';
   if (name === 'DataError') return 'İçerik geçerli bir NDEF kaydı olarak yazılamadı. Alanları kısaltıp yeniden dene.';
-  if (name === 'NetworkError' || /(?:i[\s./-]*o|input[\s./-]*output).*error|null/i.test(detail)) {
+  if (name === 'NetworkError' || /(?:\bi[\s./-]*o|input[\s./-]*output)\b.*error|^\s*null\s*$/i.test(detail)) {
     return overwrite
       ? 'Etikete yazılamadı. Etiket dolu, kilitli/korumalı olabilir veya temas kesilmiş olabilir. Kapasiteyi kontrol et ve etiketi telefonun NFC alanında sabit tut.'
       : 'Etikete yazılamadı. Etiket dolu, kilitli/korumalı olabilir veya mevcut içerik üzerine yazmayı engelliyor olabilir. Önce etiketi oku; mevcut içerik varsa “üzerine yaz” seçeneğini aç.';
@@ -98,7 +108,7 @@ export function nfcReadErrorMessage(error: unknown): string {
   if (name === 'AbortError') return 'NFC okuma işlemi durduruldu.';
   if (name === 'InvalidStateError') return 'Başka bir NFC işlemi açık olabilir. Sayfayı önde tutup yeniden dene.';
   if (name === 'NotReadableError' || name === 'DataError') return 'NFC etiketi okunamadı. Etiketi telefonun NFC alanında sabit tutup yeniden dene.';
-  if (name === 'NetworkError' || /(?:i[\s./-]*o|input[\s./-]*output).*error|null/i.test(detail)) {
+  if (name === 'NetworkError' || /(?:\bi[\s./-]*o|input[\s./-]*output)\b.*error|^\s*null\s*$/i.test(detail)) {
     return 'NFC etiketi okunamadı. Temas kesilmiş veya etiket uyumsuz olabilir; etiketi telefonun NFC alanında sabit tutup yeniden dene.';
   }
   return detail ? `NFC etiketi okunamadı: ${detail}` : 'NFC etiketi okunamadı. Etiketi ve telefonun NFC ayarını kontrol et.';

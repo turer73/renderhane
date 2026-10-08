@@ -41,6 +41,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ processed: 0 });
   }
 
+  // An unacknowledged message becomes visible again and is re-run; log it so a
+  // lost acknowledgement is not mistaken for a clean pass.
+  let ackFailed = 0;
+  const acknowledge = async (
+    fn: "complete_webhook" | "fail_webhook",
+    args: Record<string, unknown>
+  ) => {
+    const { error: ackError } = await supabase.rpc(fn, args);
+    if (ackError) {
+      ackFailed++;
+      console.error(`[process-webhooks] ${fn} failed for message ${args.p_id}:`, ackError.message);
+    }
+  };
+
   for (const msg of messages) {
     try {
       const result = await processWebhookEvent({
@@ -50,15 +64,15 @@ export async function GET(request: NextRequest) {
       });
 
       if (result.ok) {
-        await supabase.rpc("complete_webhook", { p_id: msg.id });
+        await acknowledge("complete_webhook", { p_id: msg.id });
         processed.push(msg.job_id);
       } else {
-        await supabase.rpc("fail_webhook", { p_id: msg.id, p_error: result.error });
+        await acknowledge("fail_webhook", { p_id: msg.id, p_error: result.error });
         failed.push(msg.job_id);
       }
     } catch (err) {
       console.error(`[process-webhooks] Processing failed for message ${msg.id}:`, err);
-      await supabase.rpc("fail_webhook", {
+      await acknowledge("fail_webhook", {
         p_id: msg.id,
         p_error: err instanceof Error ? err.message : String(err),
       });
@@ -66,5 +80,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ processed: processed.length, failed: failed.length });
+  // Counters only, once per run that dequeued work; empty runs stay silent.
+  const summary = {
+    dequeued: messages.length,
+    processed: processed.length,
+    failed: failed.length,
+    ackFailed,
+  };
+  console.log(`[process-webhooks] summary ${JSON.stringify(summary)}`);
+  return NextResponse.json(summary);
 }

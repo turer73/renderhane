@@ -10,6 +10,7 @@ import {
   reconcileTalkingAvatarTts,
   type TalkingAvatarReconciliationJob,
 } from "@/lib/jobs/talking-avatar-reconciliation";
+import { reconcileAcceptedProviderJob } from "@/lib/jobs/provider-reconciliation";
 import { completeSocialKitRequest } from "@/lib/jobs/social-kit-idempotency";
 import { SOCIAL_KIT_SCENE_COUNT } from "@/lib/fal/models";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,6 +19,12 @@ const SOCIAL_KIT_JOB_COUNT = SOCIAL_KIT_SCENE_COUNT + 1;
 const CLEANUP_SCAN_PAGE_SIZE = 50;
 const CLEANUP_SCAN_MAX_PAGES = 10;
 const PROVIDER_SUBMISSION_REVIEW_AFTER_MS = 24 * 60 * 60 * 1000;
+const PROVIDER_SCAN_BUDGET_MS = 180_000;
+const PROVIDER_READ_CONCURRENCY = 4;
+const PROVIDER_JOB_TIMEOUT_MS = 10_000;
+const PROVIDER_PAGE_DRAIN_MAX_MS = Math.ceil(CLEANUP_SCAN_PAGE_SIZE / PROVIDER_READ_CONCURRENCY) * PROVIDER_JOB_TIMEOUT_MS;
+
+export const maxDuration = 300;
 
 type MaintenanceScanName =
   | "stuck_jobs"
@@ -49,12 +56,19 @@ async function takeMaintenancePages<T>(input: {
   supabase: ReturnType<typeof createAdminClient>;
   scanName: MaintenanceScanName;
   cutoff: string;
+  /** Drain a fetched page before advancing the durable cursor again. */
+  onPage?: (rows: T[]) => Promise<boolean>;
+  canTakePage?: () => boolean;
 }) {
   const rows: T[] = [];
   let error: { message: string } | null = null;
   let scanTruncated = false;
 
   for (let pageIndex = 0; pageIndex < CLEANUP_SCAN_MAX_PAGES; pageIndex++) {
+    if (input.canTakePage && !input.canTakePage()) {
+      scanTruncated = true;
+      break;
+    }
     const { data, error: rpcError } = await input.supabase.rpc(
       "take_maintenance_scan_page",
       {
@@ -76,7 +90,12 @@ async function takeMaintenancePages<T>(input: {
 
     rows.push(...page.rows);
     scanTruncated = page.scanTruncated;
+    const continueScan = input.onPage ? await input.onPage(page.rows) : true;
     if (page.cycleComplete) break;
+    if (!continueScan) {
+      scanTruncated = true;
+      break;
+    }
     if (pageIndex === CLEANUP_SCAN_MAX_PAGES - 1) scanTruncated = true;
   }
 
@@ -398,7 +417,8 @@ function reconcileFreeSocialKit(input: {
  * jobs (e.g. premium 3D).
  *
  * Schedule: daily — vercel.json "0 0 * * *". Vercel Hobby plan limits crons to
- * once/day, so cleanup latency is up to ~24h (acceptable for stuck-job GC).
+ * once/day, so recovery latency can be ~24h plus the webhook queue's interval.
+ * The existing external webhook schedule is documented in the operations runbook.
  * Protected by CRON_SECRET.
  */
 export async function GET(request: NextRequest) {
@@ -418,17 +438,6 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString(); // 30 min ago (headroom for long jobs)
 
-  // Keyset-scan multiple pages so the oldest provider-pending rows cannot
-  // permanently hide later jobs that are safe to terminalize.
-  const stuckJobScan = await takeMaintenancePages<StuckJobRow>({
-    supabase,
-    scanName: "stuck_jobs",
-    cutoff,
-  });
-  const stuckJobs = stuckJobScan.rows;
-  const stuckJobsError = stuckJobScan.error;
-  const stuckJobsScanTruncated = stuckJobScan.scanTruncated;
-
   let refunded = 0;
   let failed = 0;
   let repaired = 0;
@@ -437,15 +446,12 @@ export async function GET(request: NextRequest) {
   let providerTtsResubmitted = 0;
   let providerTtsTerminalized = 0;
   let providerSubmissionReviewRequired = 0;
+  let providerWebhooksQueued = 0;
+  let providerResultReviewRequired = 0;
+  const providerScanDeadline = Date.now() + PROVIDER_SCAN_BUDGET_MS;
 
-  if (stuckJobsError) {
-    console.error(
-      "[stuck-jobs] Failed to query stuck jobs:",
-      stuckJobsError.message
-    );
-  }
-
-  for (const job of stuckJobs) {
+  const reconcileStuckJob = async (job: StuckJobRow) => {
+    const abortSignal = AbortSignal.timeout(PROVIDER_JOB_TIMEOUT_MS);
     const originalRequest =
       job.original_request && typeof job.original_request === "object"
         ? (job.original_request as Record<string, unknown>)
@@ -482,7 +488,7 @@ export async function GET(request: NextRequest) {
         console.error(
           `[stuck-jobs] Provider submission outcome requires manual review for ${job.id}`
         );
-        continue;
+        return;
       }
     }
 
@@ -493,7 +499,8 @@ export async function GET(request: NextRequest) {
     ) {
       try {
         const outcome = await reconcileTalkingAvatarTts(
-          job as TalkingAvatarReconciliationJob
+          job as TalkingAvatarReconciliationJob,
+          { abortSignal },
         );
         if (outcome === "main_resubmitted") {
           providerTtsResubmitted++;
@@ -509,16 +516,24 @@ export async function GET(request: NextRequest) {
           reconciliationError
         );
       }
-      continue;
+      return;
     }
 
-    // A provider call may have been accepted even when submit/poll transport
-    // failed. Without a definitive provider result, refunding here would both
-    // give credits back and allow the external paid job to finish. Keep these
-    // jobs visible for provider/manual reconciliation instead.
+    // Recover a known accepted main request through status/result reads only.
+    // An unacknowledged submission is still not evidence for an age-based refund.
     if (hasProviderSubmissionAttempt) {
-      providerReconciliationPending++;
-      continue;
+      try {
+        const outcome = await reconcileAcceptedProviderJob(job, abortSignal);
+        if (outcome === "webhook_queued") providerWebhooksQueued++;
+        else {
+          providerReconciliationPending++;
+          if (outcome === "review_required") providerResultReviewRequired++;
+        }
+      } catch (error) {
+        providerReconciliationPending++;
+        console.error(`[stuck-jobs] Provider recovery unavailable for ${job.id}:`, error);
+      }
+      return;
     }
 
     try {
@@ -526,6 +541,7 @@ export async function GET(request: NextRequest) {
         jobId: job.id,
         errorMessage: "Processing timeout — credits refunded automatically",
         staleBefore: cutoff,
+        abortSignal,
       });
 
       if (disposition === "failed_refunded") {
@@ -540,6 +556,30 @@ export async function GET(request: NextRequest) {
       refundRetryPending++;
       console.error(`[stuck-jobs] Failed to clean job ${job.id}:`, err);
     }
+  };
+
+  // Fetch/process one page at a time. A finite provider-read budget must never
+  // skip an already advanced page and permanently starve its later jobs.
+  const stuckJobScan = await takeMaintenancePages<StuckJobRow>({
+    supabase,
+    scanName: "stuck_jobs",
+    cutoff,
+    // Reserve enough headroom for the entire page BEFORE its cursor advances.
+    // Fifty jobs / four readers at ten seconds need thirteen waves (130s).
+    canTakePage: () => providerScanDeadline - Date.now() >= PROVIDER_PAGE_DRAIN_MAX_MS,
+    onPage: async (jobs) => {
+      let nextIndex = 0;
+      await Promise.all(Array.from(
+        { length: Math.min(PROVIDER_READ_CONCURRENCY, jobs.length) },
+        async () => {
+          while (nextIndex < jobs.length) await reconcileStuckJob(jobs[nextIndex++]);
+        },
+      ));
+      return Date.now() < providerScanDeadline;
+    },
+  });
+  if (stuckJobScan.error) {
+    console.error("[stuck-jobs] Failed to query stuck jobs:", stuckJobScan.error.message);
   }
 
   if (failed > 0) {
@@ -839,7 +879,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  const summary = {
     cleaned: failed,
     refunded,
     orphanRefunded,
@@ -851,6 +891,8 @@ export async function GET(request: NextRequest) {
     providerTtsResubmitted,
     providerTtsTerminalized,
     providerSubmissionReviewRequired,
+    providerWebhooksQueued,
+    providerResultReviewRequired,
     expiredRequests: expiredRequestCount,
     reconciledRequests: reconciledRequestCount,
     succeededRequests: succeededRequestCount,
@@ -858,10 +900,14 @@ export async function GET(request: NextRequest) {
     failedRequests: failedRequestCount,
     requestReconciliationPending,
     scanTruncated: {
-      jobs: stuckJobsScanTruncated,
+      jobs: stuckJobScan.scanTruncated,
       reservations: reservationScanTruncated,
       requests: requestScanTruncated,
     },
     timestamp: new Date().toISOString(),
-  });
+  };
+  // One counters-only line per run: a scheduled run can be verified from
+  // runtime logs without exposing job or user identifiers.
+  console.log(`[stuck-jobs] summary ${JSON.stringify(summary)}`);
+  return NextResponse.json(summary);
 }

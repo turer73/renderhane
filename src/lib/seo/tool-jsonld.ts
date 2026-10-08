@@ -92,8 +92,8 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         q: { tr: "Hangi dosya formatları destekleniyor?", en: "What file formats are supported?" },
         a: {
-          tr: "JPG ve PNG formatları desteklenir. Maksimum dosya boyutu 5MB'dir. Sonuç şeffaf arka planlı PNG olarak indirilir.",
-          en: "JPG and PNG formats are supported. Maximum file size is 5MB. Results are downloaded as transparent PNG.",
+          tr: "JPG, PNG ve WebP fotoğraflar desteklenir. Büyük fotoğraflar araca sığması için tarayıcıda otomatik küçültülür. Sonuç şeffaf arka planlı PNG olarak indirilir.",
+          en: "JPG, PNG and WebP photos are supported. Large photos are reduced automatically in the browser to fit the tool. Results are downloaded as transparent PNG.",
         },
       },
       {
@@ -111,8 +111,8 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         name: { tr: "Fotoğraf yükleyin", en: "Upload your photo" },
         text: {
-          tr: "Arka planını kaldırmak istediğiniz fotoğrafı sürükleyip bırakın veya dosya seçici ile yükleyin. JPG veya PNG, maksimum 5MB.",
-          en: "Drag and drop or use the file picker to upload the photo you want to remove the background from. JPG or PNG, max 5MB.",
+          tr: "Arka planını kaldırmak istediğiniz fotoğrafı sürükleyip bırakın veya dosya seçici ile yükleyin. JPG, PNG veya WebP; büyük fotoğraflar otomatik küçültülür.",
+          en: "Drag and drop or use the file picker to upload the photo you want to remove the background from. JPG, PNG or WebP; large photos are reduced automatically.",
         },
       },
       {
@@ -696,8 +696,8 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         name: { tr: "İçerik türünü seçin", en: "Select content type" },
         text: {
-          tr: "Web adresi, kişi kartı, WiFi, telefon, konum, uygulama veya metin türlerinden birini seçin.",
-          en: "Choose URL, contact card, Wi-Fi, phone, location, app or plain text.",
+          tr: "Web adresi, kişi kartı, banka (IBAN) veya fatura bilgisi, WiFi, telefon, konum, uygulama veya metin türlerinden birini seçin. Banka bilgisi yazılan etiketi okutan telefonda IBAN ve diğer bilgiler ayrı kopyalama düğmeleriyle açılır.",
+          en: "Choose URL, contact card, bank (IBAN) or invoice details, Wi-Fi, phone, location, app or plain text. A phone that taps a bank-details tag opens the IBAN and other details with separate copy buttons.",
         },
       },
       {
@@ -717,8 +717,8 @@ const toolConfigs: ToolSEOConfig[] = [
       {
         name: { tr: "Doğrulayın ve kilitleyin", en: "Verify and lock" },
         text: {
-          tr: "İçeriği yazmadan önce kontrol edin. Kalıcı kilit seçildiğinde araç etiketi yazdıktan sonra geri okur, NDEF kayıtlarını karşılaştırır ve yalnız eşleşirse kilitler; işlem geri alınamaz. Yazımdan sonra Etiketi Oku ile hedef cihaz davranışını sınayabilirsiniz.",
-          en: "Review the content before writing. When permanent locking is selected, the tool reads the tag back after writing, compares the NDEF records, and locks only on an exact match; this cannot be undone. After writing, use Read Tag to test behavior on the intended device.",
+          tr: "İçeriği yazmadan önce kontrol edin. Araç her yazımdan sonra etiketi geri okuyup NDEF kayıtlarını karşılaştırır; bu yüzden başarı mesajı görünene kadar etiketi uzaklaştırmayın. Kalıcı kilit seçildiyse etiket yalnız kayıtlar birebir eşleşirse kilitlenir; işlem geri alınamaz. Yazımdan sonra Etiketi Oku ile hedef cihaz davranışını sınayabilirsiniz.",
+          en: "Review the content before writing. After every write the tool reads the tag back and compares the NDEF records, so keep the tag in place until the success message appears. When permanent locking is selected, the tag is locked only on an exact match; this cannot be undone. After writing, use Read Tag to test behavior on the intended device.",
         },
       },
       {

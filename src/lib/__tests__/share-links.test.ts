@@ -1,0 +1,205 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildContactLandingUrl,
+  buildSocialLandingUrl,
+  buildSocialPayload,
+  normalizeSocialLink,
+  isPrivateSharePath,
+  normalizeContactEmail,
+  normalizeContactPhone,
+  normalizeContactWebsite,
+  socialLinksFromParams,
+} from "../share-links";
+
+describe("social link normalization", () => {
+  it("creates canonical links from handles and phone numbers", () => {
+    expect(normalizeSocialLink("instagram", "@renderhane").url).toBe(
+      "https://www.instagram.com/renderhane"
+    );
+    expect(normalizeSocialLink("whatsapp", "+90 555 123 45 67").url).toBe(
+      "https://wa.me/905551234567"
+    );
+    expect(() => normalizeSocialLink("whatsapp", "+90 555 O23 45 67")).toThrow(
+      /ülke koduyla/
+    );
+    expect(() => normalizeSocialLink("whatsapp", "05551234567")).toThrow(/ülke koduyla/);
+    expect(() => normalizeSocialLink("whatsapp", "https://wa.me/05551234567")).toThrow(
+      /ülke koduyla/
+    );
+    expect(normalizeSocialLink("tiktok", "@renderhane").url).toBe(
+      "https://www.tiktok.com/@renderhane"
+    );
+  });
+
+  it("accepts official full URLs and rejects look-alike hosts", () => {
+    expect(normalizeSocialLink("x", "https://twitter.com/renderhane?ref=test").url).toBe(
+      "https://twitter.com/renderhane?ref=test"
+    );
+    expect(() =>
+      normalizeSocialLink("instagram", "https://instagram.com.example.org/renderhane")
+    ).toThrow(/resmi bağlantı/);
+    expect(() => normalizeSocialLink("instagram", "https://instagram.com/")).toThrow(
+      /profil veya paylaşım/
+    );
+  });
+
+  it("preserves official URLs that cannot be converted to a profile losslessly", () => {
+    expect(normalizeSocialLink("youtube", "https://youtube.com/channel/UC123").url).toBe(
+      "https://youtube.com/channel/UC123"
+    );
+    expect(normalizeSocialLink("youtube", "https://youtu.be/abc123").url).toBe(
+      "https://youtu.be/abc123"
+    );
+    expect(normalizeSocialLink("facebook", "https://facebook.com/profile.php?id=123").url).toBe(
+      "https://facebook.com/profile.php?id=123"
+    );
+    expect(normalizeSocialLink("facebook", "https://m.facebook.com/renderhane").url).toBe(
+      "https://www.facebook.com/renderhane"
+    );
+    expect(normalizeSocialLink("whatsapp", "https://wa.me/905551234567?text=Merhaba").url).toBe(
+      "https://wa.me/905551234567?text=Merhaba"
+    );
+    expect(() => normalizeSocialLink("whatsapp", "https://wa.me/90555O?text=Hello")).toThrow(
+      /ülke koduyla/
+    );
+    expect(() => normalizeSocialLink("whatsapp", "https://wa.me/90555123456O")).toThrow(
+      /ülke koduyla/
+    );
+    expect(normalizeSocialLink("whatsapp", "https://www.whatsapp.com/channel/example").url).toBe(
+      "https://www.whatsapp.com/channel/example"
+    );
+    expect(normalizeSocialLink("whatsapp", "https://chat.whatsapp.com/AbCdEf123").url).toBe(
+      "https://chat.whatsapp.com/AbCdEf123"
+    );
+    expect(normalizeSocialLink("website", "https://example.com/#/contact").url).toBe(
+      "https://example.com/#/contact"
+    );
+    expect(normalizeSocialLink("telegram", "https://t.me/+AbCd123").url).toBe(
+      "https://t.me/+AbCd123"
+    );
+    expect(normalizeSocialLink("tiktok", "https://vm.tiktok.com/ZAbCd123/").url).toBe(
+      "https://vm.tiktok.com/ZAbCd123/"
+    );
+    expect(normalizeSocialLink("youtube", "https://m.youtube.com/watch?v=abc123").url).toBe(
+      "https://m.youtube.com/watch?v=abc123"
+    );
+    expect(normalizeSocialLink("instagram", "http://instagram.com/p/example").url).toBe(
+      "https://instagram.com/p/example"
+    );
+  });
+
+  it("uses platform-specific handle rules", () => {
+    expect(() => normalizeSocialLink("instagram", "bad-name")).toThrow(/kullanıcı adı/);
+    for (const handle of [".person", "person.", "a..b"])
+      expect(() => normalizeSocialLink("instagram", handle)).toThrow(/kullanıcı adı/);
+    expect(normalizeSocialLink("instagram", "render.hane").url).toBe(
+      "https://www.instagram.com/render.hane"
+    );
+    expect(() => normalizeSocialLink("x", "a".repeat(16))).toThrow(/kullanıcı adı/);
+    expect(normalizeSocialLink("tiktok", "@render_hane").url).toBe(
+      "https://www.tiktok.com/@render_hane"
+    );
+    expect(() => normalizeSocialLink("tiktok", "person.")).toThrow(/kullanıcı adı/);
+    expect(normalizeSocialLink("youtube", "@ışık").url).toBe(
+      "https://www.youtube.com/@ışık"
+    );
+    expect(normalizeSocialLink("youtube", "https://www.youtube.com/@ışık").url).toBe(
+      "https://www.youtube.com/@ışık"
+    );
+    expect(normalizeSocialLink("linkedin", "in/jane-doe").url).toBe(
+      "https://www.linkedin.com/in/jane-doe"
+    );
+  });
+
+  it("marks contact and social share routes as analytics-free", () => {
+    expect(isPrivateSharePath("/tr/k")).toBe(true);
+    expect(isPrivateSharePath("/en/s/")).toBe(true);
+    expect(isPrivateSharePath("/tr/b")).toBe(true);
+    expect(isPrivateSharePath("/tr/araclar/nfc-yaz")).toBe(false);
+  });
+});
+
+describe("public contact field validation", () => {
+  it("rejects dialer commands and malformed email addresses", () => {
+    expect(normalizeContactPhone("+90 555 123 45 67")).toBe("+905551234567");
+    expect(normalizeContactPhone("*21*905551234567#")).toBeNull();
+    expect(normalizeContactEmail("person@example.com")).toBe("person@example.com");
+    expect(normalizeContactEmail("person@example.com,")).toBeNull();
+    expect(normalizeContactEmail(".person@example.com")).toBeNull();
+    expect(normalizeContactEmail("a..b@example.com")).toBeNull();
+    expect(normalizeContactWebsite("http://example.com/path")).toBe("https://example.com/path");
+  });
+});
+
+describe("share landing URLs", () => {
+  it("uses a direct official URL for one network", () => {
+    expect(
+      buildSocialPayload({ socialMode: "single", platform: "telegram", socialValue: "@renderhane" })
+    ).toBe("https://t.me/renderhane");
+  });
+
+  it("creates and safely decodes a stateless multi-network card", () => {
+    const url = buildSocialLandingUrl(
+      { profileName: "Renderhane", instagram: "@renderhane", whatsapp: "+905551234567" },
+      "tr"
+    );
+    const parsed = new URL(url);
+    expect(parsed.pathname).toBe("/tr/s");
+    expect(parsed.searchParams.get("n")).toBe("Renderhane");
+    expect(socialLinksFromParams(parsed.searchParams).map((link) => link.url)).toEqual([
+      "https://www.instagram.com/renderhane",
+      "https://wa.me/905551234567",
+    ]);
+    expect(
+      socialLinksFromParams(new URLSearchParams("u=https%3A%2F%2Fexample.com"), "en")[0]?.label
+    ).toBe("Website");
+  });
+
+  it("requires at least two links for a multi-network card", () => {
+    expect(() => buildSocialLandingUrl({ instagram: "renderhane" })).toThrow(/en az iki/);
+  });
+
+  it("creates an iPhone and Android contact landing URL without storing data", () => {
+    const url = new URL(
+      buildContactLandingUrl(
+        { firstName: "Turgut", lastName: "Ürer", phone: "+90 555 123 45 67" },
+        "tr"
+      )
+    );
+    expect(url.pathname).toBe("/tr/k");
+    expect(url.searchParams.get("n")).toBe("Turgut");
+    expect(url.searchParams.get("s")).toBe("Ürer");
+    expect(url.searchParams.get("p")).toBe("+905551234567");
+  });
+
+  it("rejects contact names that the landing page cannot preserve", () => {
+    expect(() => buildContactLandingUrl({ firstName: "A".repeat(81) })).toThrow(/80 karakter/);
+    expect(() => buildContactLandingUrl({ firstName: "Ada", lastName: "B".repeat(81) })).toThrow(
+      /80 karakter/
+    );
+  });
+
+  it("rejects malformed linked-card email domains", () => {
+    expect(() =>
+      buildContactLandingUrl({ firstName: "Ada", email: "person@example.com," })
+    ).toThrow(/e-posta/);
+    expect(
+      buildContactLandingUrl({ firstName: "Ada", email: "person@example.com" })
+    ).toContain("e=person%40example.com");
+  });
+
+  it("rejects contact websites that expand beyond the landing-page limit", () => {
+    expect(() =>
+      buildContactLandingUrl({
+        firstName: "Ada",
+        website: `https://example.com/${"ü".repeat(400)}`,
+      })
+    ).toThrow(/1000 karakter/);
+  });
+
+  it("rejects organizations that the landing page cannot preserve", () => {
+    expect(() => buildContactLandingUrl({ firstName: "Ada", org: "A".repeat(121) })).toThrow(
+      /120 karakter/
+    );
+  });
+});

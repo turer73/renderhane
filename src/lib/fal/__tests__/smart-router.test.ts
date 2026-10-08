@@ -54,25 +54,38 @@ describe('routeRequest', () => {
     expect(modelKey).toBe('hunyuan3d-v3');
   });
 
-  it('falls back to tier routing when modelKey is unknown', () => {
-    const { modelKey } = routeRequest({
+  it('rejects an unknown explicit model instead of silently switching the paid request', () => {
+    expect(() => routeRequest({
       tool: '3d-model',
       tier: 'standard',
       modelKey: 'does-not-exist',
       imageUrl: 'http://img/1.jpg',
-    });
-    expect(modelKey).toBe('meshy-6-image');
+    })).toThrow('Model is not available for this tool');
   });
 
-  it('honors explicit modelKey for kling-i2v on video image-to-video', () => {
+  it('honors explicit modelKey for the current Kling image-to-video model', () => {
     const { modelKey } = routeRequest({
       tool: 'video',
       tier: 'fast',
-      modelKey: 'kling-i2v',
+      modelKey: 'kling-o3-i2v',
       imageUrl: 'http://img/1.jpg',
       prompt: 'a smooth zoom',
     });
-    expect(modelKey).toBe('kling-i2v');
+    expect(modelKey).toBe('kling-o3-i2v');
+  });
+
+  it.each(['wan-i2v', 'meshy-v71', 'constructor', '__proto__', 'toString', ''])('rejects %s under the free background-removal tool', (modelKey) => {
+    expect(() => routeRequest({ tool: 'bg-remove', modelKey, imageUrl: 'https://cdn.example/input.png' }))
+      .toThrow('Model is not available for this tool');
+  });
+
+  it('does not reactivate a registry-only retired model', () => {
+    expect(() => routeRequest({ tool: 'video', modelKey: 'kling-i2v', imageUrl: 'https://cdn.example/input.png' }))
+      .toThrow('Model is not available for this tool');
+  });
+
+  it.each(['bria-rmbg', 'birefnet'])('preserves valid background removal with %s', (modelKey) => {
+    expect(routeRequest({ tool: 'bg-remove', modelKey, imageUrl: 'https://cdn.example/input.png' }).modelKey).toBe(modelKey);
   });
 
   // ── Other tools ────────────────────────────────
@@ -207,6 +220,8 @@ describe('routeRequest', () => {
 
     const tripo = routeRequest({ tool: '3d-model', modelKey: 'tripo-h31', imageUrl: 'http://img/1.jpg' });
     expect(tripo.input.image_url).toBe('http://img/1.jpg');
+    expect(tripo.input.texture).toBe(true);
+    expect(tripo.input.texture_quality).toBe('standard');
 
     const eleven = routeRequest({ tool: 'srt-voiceover', modelKey: 'eleven-v3', prompt: 'Selam' });
     expect(eleven.input.text).toBe('Selam');
@@ -236,6 +251,36 @@ describe('routeRequest', () => {
     const flare = routeRequest({ tool: 'text-to-image', modelKey: 'gpt-image-25-flare', prompt: 'logo' });
     expect(flare.modelKey).toBe('gpt-image-25-flare');
     expect(flare.input.quality).toBe('medium');
+  });
+
+  it('honors explicit Meshy 7.1 selection instead of the premium-tier default', () => {
+    const result = routeRequest({
+      tool: '3d-model', tier: 'premium', modelKey: 'meshy-v71',
+      imageUrl: 'https://cdn.example/source.png',
+    });
+    expect(result.modelKey).toBe('meshy-v71');
+    expect(result.model.id).toBe('meshy/v7.1/image-to-3d');
+    expect(result.input).toEqual({
+      ...result.model.defaultParams,
+      image_url: 'https://cdn.example/source.png',
+    });
+    expect(result.input).not.toHaveProperty('input');
+  });
+
+  it('uses a single image from the array input for Meshy 7.1', () => {
+    const result = routeRequest({
+      tool: '3d-model', modelKey: 'meshy-v71',
+      imageUrls: ['https://cdn.example/source.png'],
+    });
+    expect(result.input.image_url).toBe('https://cdn.example/source.png');
+    expect(result.input).not.toHaveProperty('image_urls');
+  });
+
+  it('rejects paid Meshy 7.1 feature overrides', () => {
+    expect(() => routeRequest({
+      tool: '3d-model', modelKey: 'meshy-v71', imageUrl: 'https://cdn.example/source.png',
+      extraParams: { geometry_resolution: '4k', enable_rigging: true },
+    })).toThrow('extraParams are not supported');
   });
 
   it('routes logo to recraft-v4', () => {

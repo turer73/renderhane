@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   FolderOpen,
   Shield,
+  FlaskConical,
   LogOut,
   Sparkles,
   ArrowLeft,
@@ -29,6 +30,7 @@ interface SidebarProps {
 export function Sidebar({ className, onNavigate }: SidebarProps) {
   const t = useTranslations("common");
   const tSidebar = useTranslations("sidebar");
+  const tLab = useTranslations("modelLab");
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const pathname = usePathname();
@@ -108,6 +110,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     },
     ...(isAdminUser
       ? [
+          { href: `/${locale}/app/admin/models`, label: tLab("nav"), icon: FlaskConical },
           {
             href: `/${locale}/app/relief`,
             label: workshopNavigationLabel(locale),
@@ -124,6 +127,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   ];
 
   const adminNavItems = [
+    { href: `/${locale}/app/admin/models`, label: tLab("nav"), icon: FlaskConical },
     {
       href: `/${locale}/app/relief`,
       label: workshopNavigationLabel(locale),
@@ -147,6 +151,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
 
   function isActive(href: string) {
     if (href === "#") return false;
+    if (href === `/${locale}/app/admin`) return pathname === href;
     return pathname.startsWith(href);
   }
 

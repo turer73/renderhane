@@ -172,6 +172,36 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/tests/social_kit_request_idempotency_test.sql
           bash supabase/tests/social_kit_concurrency_test.sh
 
+      - name: Verify Model Lab history contract
+        run: |
+          psql --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261002160000_model_lab_runs.sql
+          psql --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261002160000_model_lab_runs.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/model_lab_runs_test.sql
+
+      - name: Verify financial authority on the legacy schema
+        run: |
+          createdb security_contract
+          export PGDATABASE=security_contract
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/bootstrap_security_schema.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/credit_authority_legacy_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929204937_harden_credit_authority.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/credit_authority_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929204937_harden_credit_authority.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/credit_authority_test.sql
+
+      - name: Verify trigger and referral security boundaries
+        env:
+          PGDATABASE: security_contract
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/referral_boundary_legacy_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260930111146_harden_trigger_and_referral_boundaries.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/trigger_referral_boundary_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/credit_authority_test.sql
+          bash supabase/tests/referral_concurrency_test.sh
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260930111146_harden_trigger_and_referral_boundaries.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/trigger_referral_boundary_test.sql
+          bash supabase/tests/referral_concurrency_test.sh
+
       - name: Reapply migrations and contracts
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'

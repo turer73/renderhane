@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { assertModelForTool } from "@/lib/fal/model-selection";
+import { MAX_MULTI_IMAGES } from "@/lib/fal/models";
 
 const TOOL_TYPES = [
   "3d-model", "bg-remove", "enhance", "scene", "video", "aplus",
@@ -64,7 +66,7 @@ export const jobSubmitSchema = z.object({
   tier: z.enum(MODEL_TIERS).optional(),
   modelKey: z.string().optional(),
   imageUrl: imageUrlSchema.optional(),
-  imageUrls: z.array(imageUrlSchema).min(1).max(4).optional(),
+  imageUrls: z.array(imageUrlSchema).min(1).max(MAX_MULTI_IMAGES).optional(),
   projectId: z.string().uuid().optional(),
   prompt: z.string().min(1).max(5000).optional(),
   autoEnhance: z.boolean().optional(),
@@ -72,6 +74,11 @@ export const jobSubmitSchema = z.object({
   extraParams: logoExtraParamsSchema.optional(),
   promptContext: z.record(z.string(), z.unknown()).optional(),
 }).superRefine((data, ctx) => {
+  try {
+    assertModelForTool(data.tool, data.modelKey);
+  } catch {
+    ctx.addIssue({ code: "custom", message: "Model is not available for this tool", path: ["modelKey"] });
+  }
   if (data.extraParams && data.tool !== "logo") {
     ctx.addIssue({
       code: "custom",

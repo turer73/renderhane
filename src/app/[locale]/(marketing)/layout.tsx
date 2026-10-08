@@ -15,13 +15,6 @@ export default async function MarketingLayout({
       <link rel="dns-prefetch" href="https://byrovuwvzvzipwntounn.supabase.co" />
       <link rel="dns-prefetch" href="https://assets.renderhane.com" />
       <link rel="dns-prefetch" href="https://analytics.panola.app" />
-      {/* Preload hero 3D model so it starts downloading before JS hydrates */}
-      <link
-        rel="preload"
-        href="/hero/renderhane.glb"
-        as="fetch"
-        crossOrigin="anonymous"
-      />
       {children}
     </>
   );

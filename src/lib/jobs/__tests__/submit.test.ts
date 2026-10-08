@@ -15,6 +15,14 @@ const mocks = vi.hoisted(() => ({
     payload: Record<string, unknown>;
     filters: Array<{ method: string; args: unknown[] }>;
   }>,
+  preflightImageInputs: vi.fn(),
+}));
+
+vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/media/image-preflight", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/media/image-preflight")>()),
+  preflightImageInputs: mocks.preflightImageInputs,
 }));
 
 vi.mock("@/lib/credits/engine", () => ({
@@ -46,6 +54,7 @@ vi.mock("@/lib/prompts/compose", () => ({
 }));
 
 import { submitJob } from "../submit";
+import { ImagePreflightError } from "@/lib/media/image-preflight";
 
 function createSupabaseMock() {
   const insertSingle = vi.fn().mockImplementation(async () => {
@@ -142,6 +151,123 @@ describe("submitJob credit ordering", () => {
       mocks.events.push("submit");
       return { requestId: "fal-request-1" };
     });
+    mocks.preflightImageInputs.mockImplementation(async () => {
+      mocks.events.push("preflight");
+      return [];
+    });
+  });
+
+  it("checks the image bytes before the job row, any reservation or paid preprocessing", async () => {
+    await submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      modelKey: "meshy-v71",
+      imageUrl: "https://cdn.example/source.png",
+    });
+
+    expect(mocks.preflightImageInputs).toHaveBeenCalledWith(expect.objectContaining({
+      urls: ["https://cdn.example/source.png"],
+      limits: expect.objectContaining({ modelKeys: ["meshy-v71"], formats: ["jpeg", "png", "avif", "heic"] }),
+    }));
+    expect(mocks.events[0]).toBe("preflight");
+    expect(mocks.events.indexOf("preflight")).toBeLessThan(mocks.events.indexOf("job-insert"));
+  });
+
+  it("rejects an unusable image with zero credits, zero job rows and zero inference", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    mocks.preflightImageInputs.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "too_large", index: 0, message: "Dosya çok büyük." }])
+    );
+
+    await expect(submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      modelKey: "meshy-v71",
+      imageUrl: "https://cdn.example/huge.png",
+    })).rejects.toBeInstanceOf(ImagePreflightError);
+
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it("refunds a pre-reserved bundle item when its image is rejected", async () => {
+    mocks.preflightImageInputs.mockRejectedValueOnce(
+      new ImagePreflightError([{ code: "unsupported_format", index: 0, message: "Biçim desteklenmiyor." }])
+    );
+
+    await expect(submitJob({
+      userId: "user-1",
+      tool: "scene",
+      modelKey: "bria-product-shot",
+      imageUrl: "https://cdn.example/product.gif",
+      reservedCredit: { txId: "bundle-tx-1", amount: MODELS["bria-product-shot"].creditCost },
+    })).rejects.toBeInstanceOf(ImagePreflightError);
+
+    expect(mocks.refundCredits).toHaveBeenCalledWith("bundle-tx-1");
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it("does not inspect the QR tool's discarded style image", async () => {
+    await submitJob({ userId: "user-1", tool: "qr-code", prompt: "https://renderhane.com", imageUrl: "https://cdn.example/style.png" });
+    expect(mocks.preflightImageInputs).not.toHaveBeenCalled();
+  });
+
+  it("submits Meshy 7.1 to its exact endpoint with an 80-credit reservation", async () => {
+    const result = await submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      modelKey: "meshy-v71",
+      tier: "premium",
+      imageUrl: "https://cdn.example/source.png",
+      skipBgRemove: true,
+    });
+
+    expect(result.creditCost).toBe(80);
+    expect(mocks.reserveCredits).toHaveBeenCalledWith("user-1", 80, expect.any(String));
+    expect(mocks.submit).toHaveBeenCalledWith(
+      "meshy/v7.1/image-to-3d",
+      { ...MODELS["meshy-v71"].defaultParams, image_url: "https://cdn.example/source.png" },
+      expect.stringMatching(/^https:\/\/example\.com\/api\/webhook\/fal\?jobId=job-1&txId=tx-1&sig=/),
+    );
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+    expect(mocks.events.indexOf("reserve:80")).toBeLessThan(mocks.events.indexOf("submit"));
+  });
+
+  it('rejects model/tool tampering before consuming a free allowance, reserving or calling a provider', async () => {
+    const supabase = createSupabaseMock();
+    supabase.rpc.mockResolvedValue({ data: true, error: null });
+    mocks.createAdminClient.mockReturnValue(supabase);
+    await expect(submitJob({ userId: 'user-1', tool: 'bg-remove', modelKey: 'wan-i2v', imageUrl: 'https://cdn.example/input.png' }))
+      .rejects.toThrow('Model is not available for this tool');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(mocks.reserveCredits).not.toHaveBeenCalled();
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it("saves the resolved default model and preprocessing choices before provider admission", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    await submitJob({ userId: "user-1", tool: "3d-model", tier: "fast", imageUrl: "https://cdn.example/source.png", skipBgRemove: true, autoEnhance: false });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      model_id: MODELS.triposr.id,
+      original_request: expect.objectContaining({ tool: "3d-model", tier: "fast", modelKey: "triposr", imageUrl: "https://cdn.example/source.png", skipBgRemove: true, autoEnhance: false }),
+    }));
+  });
+
+  it("saves composition context for a later regeneration", async () => {
+    const supabase = createSupabaseMock();
+    mocks.createAdminClient.mockReturnValue(supabase);
+    const promptContext = { kind: "scene" as const, sceneType: "luxury", caption: "mug" };
+    await submitJob({ userId: "user-1", tool: "scene", imageUrl: "https://cdn.example/source.png", promptContext });
+    const insert = supabase.from.mock.results[0].value.insert;
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ original_request: expect.objectContaining({ modelKey: "bria-product-shot", promptContext }) }));
   });
 
   it("reserves before paid 3D preprocessing and charges enhancement per image", async () => {
@@ -154,7 +280,8 @@ describe("submitJob credit ordering", () => {
 
     const expectedCost = MODELS["hunyuan3d-v3"].creditCost + 2 * 4;
     expect(result.creditCost).toBe(expectedCost);
-    expect(mocks.events.slice(0, 2)).toEqual([
+    expect(mocks.events.slice(0, 3)).toEqual([
+      "preflight",
       "job-insert",
       `reserve:${expectedCost}`,
     ]);
@@ -179,6 +306,7 @@ describe("submitJob credit ordering", () => {
     ).rejects.toThrow("TTS provider completed without an audio output");
 
     expect(mocks.events).toEqual([
+      "preflight",
       "job-insert",
       `reserve:${MODELS.omnihuman.creditCost}`,
       "subscribe:fal-ai/minimax/speech-2.8-hd",
@@ -460,7 +588,7 @@ describe("submitJob credit ordering", () => {
       })
     ).rejects.toThrow("Reserved credit mismatch");
 
-    expect(mocks.events).toEqual(["refund"]);
+    expect(mocks.events).toEqual(["preflight", "refund"]);
     expect(mocks.reserveCredits).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
   });

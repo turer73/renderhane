@@ -46,7 +46,7 @@ function createSupabaseMock(claimed = true) {
           then: (onFulfilled, onRejected) =>
             Promise.resolve(result).then(onFulfilled, onRejected),
         };
-        for (const method of ["eq", "is", "in", "contains", "select"]) {
+        for (const method of ["eq", "is", "in", "contains", "select", "abortSignal"]) {
           chain[method] = vi.fn(() => chain);
         }
         chain.maybeSingle = vi.fn().mockResolvedValue(result);
@@ -135,6 +135,52 @@ describe("talking-avatar TTS reconciliation", () => {
       },
     });
     expect(mocks.updates[1]).not.toHaveProperty("status");
+  });
+
+  it("carries the cron deadline through reads, single-winner claim and main admission", async () => {
+    const abortSignal = new AbortController().signal;
+    expect(await reconcileTalkingAvatarTts(acceptedTtsJob(), { abortSignal })).toBe("main_resubmitted");
+    expect(mocks.status).toHaveBeenCalledWith("fal-ai/f5-tts", "fal-tts-1", { abortSignal });
+    expect(mocks.result).toHaveBeenCalledWith("fal-ai/f5-tts", "fal-tts-1", { abortSignal });
+    expect(mocks.submit).toHaveBeenCalledWith(
+      "fal-ai/bytedance/omnihuman/v1.5", expect.objectContaining({ audio_url: "https://fal.media/voice.wav" }),
+      expect.stringContaining("/api/webhook/fal"), { abortSignal },
+    );
+    expect(mocks.updates).toHaveLength(2);
+  });
+
+  it("does not claim or submit after the shared read deadline expires", async () => {
+    const controller = new AbortController();
+    mocks.result.mockImplementationOnce(async () => {
+      controller.abort();
+      return { audio_url: "https://fal.media/voice.wav" };
+    });
+    expect(await reconcileTalkingAvatarTts(acceptedTtsJob(), { abortSignal: controller.signal })).toBe("provider_pending");
+    expect(mocks.updates).toHaveLength(0);
+    expect(mocks.submit).not.toHaveBeenCalled();
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+  });
+
+  it("treats a main admission abort as indeterminate, never a refund or permission to resubmit", async () => {
+    const controller = new AbortController();
+    mocks.submit.mockImplementationOnce(async () => {
+      controller.abort();
+      throw new DOMException("admission timed out", "AbortError");
+    });
+    const original = acceptedTtsJob();
+    expect(await reconcileTalkingAvatarTts(original, { abortSignal: controller.signal })).toBe("main_submission_indeterminate");
+    expect(mocks.updates).toHaveLength(1);
+    const attempted = { ...original, fal_request_id: null, original_request: mocks.updates[0].original_request as Record<string, unknown> };
+    expect(await reconcileTalkingAvatarTts(attempted)).toBe("not_applicable");
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+  });
+
+  it("bounds the atomic failure RPC after definitive TTS failure", async () => {
+    const abortSignal = new AbortController().signal;
+    mocks.status.mockResolvedValueOnce({ status: "COMPLETED", error: "voice rejected" });
+    expect(await reconcileTalkingAvatarTts(acceptedTtsJob(), { abortSignal })).toBe("failed_refunded");
+    expect(mocks.failJobAndRefund).toHaveBeenCalledWith({ jobId: "job-avatar-1", errorMessage: "TTS provider completed with error: voice rejected", abortSignal });
   });
 
   it("does not submit main while the accepted TTS job is still running", async () => {

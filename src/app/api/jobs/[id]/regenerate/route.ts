@@ -1,20 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { submitJob } from "@/lib/jobs/submit";
 import { CreditError } from "@/lib/credits/engine";
-import { MODELS } from "@/lib/fal/models";
+import { buildRegenerationInput, RegenerationInputError } from "@/lib/jobs/regenerate-input";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { ImagePreflightError, imagePreflightErrorBody } from "@/lib/media/image-preflight";
+import { refreshSignedUrl } from "@/lib/supabase/refresh-url";
 import { NextRequest, NextResponse } from "next/server";
-import type { ToolType } from "@/lib/fal/models";
 
 export const maxDuration = 60;
-
-/**
- * jobs.model_id stores the fal endpoint ID (e.g. "fal-ai/triposr"), while
- * MODELS is keyed by short key ("triposr"). Reverse map once for lookups.
- */
-const MODEL_KEY_BY_ID: Record<string, string> = Object.fromEntries(
-  Object.entries(MODELS).map(([key, model]) => [model.id, key])
-);
 
 /**
  * POST /api/jobs/:id/regenerate
@@ -47,7 +40,7 @@ export async function POST(
   // Fetch original job (include original_request + input_params for fallback)
   const { data: job, error: fetchErr } = await supabase
     .from("jobs")
-    .select("id, user_id, tool, model_id, original_request, input_params")
+    .select("id, user_id, project_id, tool, model_id, original_request, input_params")
     .eq("id", id)
     .single();
 
@@ -59,87 +52,41 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const tool = job.tool as ToolType;
   // srt-voiceover orijinal isteği (SRT + ses) bu hattın prompt/image kalıbına
   // uymaz — sessiz fal 422 yerine açık hata dön, kullanıcı Seslendir sekmesine gitsin.
-  if (tool === "srt-voiceover") {
+  if (job.tool === "srt-voiceover") {
     return NextResponse.json(
       { error: "Regenerate is not supported for SRT voiceover — use the Seslendir tab." },
       { status: 400 }
     );
   }
-  const originalReq = (job.original_request ?? {}) as Record<string, unknown>;
-  const hasOriginal = Object.keys(originalReq).length > 0;
-
-  let imageUrl: string | undefined;
-  let imageUrls: string[] | undefined;
-  let prompt: string | undefined;
-  let script: string | undefined;
-  let audioUrl: string | undefined;
-  let tier: "fast" | "standard" | "premium";
-  let autoEnhance = false;
-
-  if (hasOriginal) {
-    // ── Primary path: use original_request (pre-processing, reliable URLs) ──
-    if (typeof originalReq.imageUrl === "string") imageUrl = originalReq.imageUrl;
-    if (Array.isArray(originalReq.imageUrls)) {
-      imageUrls = originalReq.imageUrls.filter((u): u is string => typeof u === "string");
-    }
-    if (typeof originalReq.prompt === "string") prompt = originalReq.prompt;
-    if (typeof originalReq.script === "string") script = originalReq.script;
-    if (typeof originalReq.audioUrl === "string") audioUrl = originalReq.audioUrl;
-    tier = (typeof originalReq.tier === "string" ? originalReq.tier : "standard") as "fast" | "standard" | "premium";
-    if (originalReq.autoEnhance === true) autoEnhance = true;
-  } else {
-    // ── Fallback: extract from input_params (legacy jobs without original_request) ──
-    const modelId = job.model_id as string;
-    const inputParams = (job.input_params ?? {}) as Record<string, unknown>;
-    const model = MODELS[MODEL_KEY_BY_ID[modelId] ?? modelId];
-
-    if (model) {
-      const imgKey = model.imageParamKey;
-      const promptKey = model.promptParamKey;
-
-      if (imgKey && imgKey !== "_unused") {
-        const imgVal = inputParams[imgKey];
-        if (Array.isArray(imgVal)) {
-          imageUrls = imgVal.filter((u): u is string => typeof u === "string");
-        } else if (typeof imgVal === "string" && imgVal) {
-          imageUrl = imgVal;
-        }
-      }
-
-      // Named multi-image params (e.g. Tripo: front_image_url, left_image_url)
-      if (model.namedImageParams) {
-        const urls = model.namedImageParams
-          .map((key) => inputParams[key])
-          .filter((u): u is string => typeof u === "string" && !!u);
-        if (urls.length > 0) {
-          imageUrls = urls;
-          imageUrl = undefined;
-        }
-      }
-
-      if (promptKey && promptKey !== "_unused") {
-        const pVal = inputParams[promptKey];
-        if (typeof pVal === "string" && pVal) prompt = pVal;
-      }
-    }
-
-    tier = reverseLookupTier(modelId);
-  }
-
   try {
+    const replay = buildRegenerationInput(job);
+    // Stored upload links expire after an hour. Re-sign the user's own
+    // original upload (storage RLS limits signing to their folder) so a
+    // regeneration replays the original image instead of a dead link.
+    if (replay.imageUrl) {
+      replay.imageUrl = (await refreshSignedUrl(supabase, replay.imageUrl)) ?? replay.imageUrl;
+    }
+    if (replay.imageUrls) {
+      replay.imageUrls = await Promise.all(
+        replay.imageUrls.map(async (url) => (await refreshSignedUrl(supabase, url)) ?? url)
+      );
+    }
+    if (replay.projectId) {
+      const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("id", replay.projectId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (projectError) return NextResponse.json({ error: "Project verification unavailable" }, { status: 503 });
+      if (!project) return NextResponse.json({ error: "Original project is unavailable" }, { status: 409 });
+    }
     const result = await submitJob({
+      ...replay,
       userId: user.id,
-      tool,
-      tier,
-      imageUrl,
-      imageUrls,
-      prompt,
-      script,
-      audioUrl,
-      autoEnhance,
+      userEmail: user.email,
     });
 
     const reconciliationPending = result.submissionState !== "accepted";
@@ -159,19 +106,18 @@ export async function POST(
       }
     );
   } catch (err) {
+    if (err instanceof RegenerationInputError) {
+      return NextResponse.json({ error: err.message }, { status: 409 });
+    }
+    if (err instanceof ImagePreflightError) {
+      return NextResponse.json(imagePreflightErrorBody(err), { status: 422 });
+    }
     if (err instanceof CreditError && err.code === "INSUFFICIENT") {
       return NextResponse.json({ error: "Yetersiz kredi" }, { status: 402 });
     }
-    const message =
-      err instanceof Error ? err.message : "Yeniden uretim basarisiz";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // The raw message can carry provider detail or database text; keep it
+    // in the server log and show a generic message.
+    console.error("[regenerate] submission failed:", err);
+    return NextResponse.json({ error: "Yeniden üretim başlatılamadı. Lütfen tekrar deneyin." }, { status: 500 });
   }
-}
-
-/** Best-effort reverse lookup for legacy jobs: fal endpoint ID → tier */
-function reverseLookupTier(modelId: string): "fast" | "standard" | "premium" {
-  const modelKey = MODEL_KEY_BY_ID[modelId];
-  const model = modelKey ? MODELS[modelKey] : undefined;
-  if (model) return model.tier;
-  return "standard";
 }

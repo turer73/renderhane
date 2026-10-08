@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   statusSingle: vi.fn(),
   statusUpdate: vi.fn(),
   statusUpdateEq: vi.fn(),
+  statusUpdateSelect: vi.fn(),
   healthInsert: vi.fn(),
 }));
 
@@ -32,9 +33,32 @@ function request(secret = "cron-secret") {
   });
 }
 
+function stubHealthyFal() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ models: [{ endpoint_id: "fal-ai/birefnet/v2" }] }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    )
+  );
+}
+
+function summaryLines(log: { mock: { calls: unknown[][] } }) {
+  return log.mock.calls
+    .map(([line]) => String(line))
+    .filter((line) => line.startsWith("[health] summary "));
+}
+
 describe("GET /api/cron/health", () => {
+  let log: ReturnType<typeof vi.spyOn>;
+  let error: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     process.env.CRON_SECRET = "cron-secret";
     process.env.FAL_KEY = "test-fal-key";
     process.env.ADMIN_EMAILS = "";
@@ -43,7 +67,8 @@ describe("GET /api/cron/health", () => {
       data: { is_healthy: true, consecutive_failures: 0 },
       error: null,
     });
-    mocks.statusUpdateEq.mockResolvedValue({ error: null });
+    mocks.statusUpdateSelect.mockResolvedValue({ data: [{ id: "fal-ai" }], error: null });
+    mocks.statusUpdateEq.mockReturnValue({ select: mocks.statusUpdateSelect });
     mocks.healthInsert.mockResolvedValue({ error: null });
     mocks.statusUpdate.mockReturnValue({ eq: mocks.statusUpdateEq });
 
@@ -65,6 +90,11 @@ describe("GET /api/cron/health", () => {
       }),
     });
     mocks.getResend.mockReturnValue({ emails: { send: mocks.emailSend } });
+  });
+
+  afterEach(() => {
+    log.mockRestore();
+    error.mockRestore();
   });
 
   it("checks authenticated model metadata without opening inference", async () => {
@@ -135,5 +165,66 @@ describe("GET /api/cron/health", () => {
     expect(mocks.statusUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ last_error: "FAL_KEY is not configured" })
     );
+  });
+
+  it("logs exactly one summary line that matches the stored response", async () => {
+    stubHealthyFal();
+
+    const response = await GET(request());
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ healthy: true, stored: true });
+    const lines = summaryLines(log);
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0].slice("[health] summary ".length))).toEqual(body);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("reports an unhealthy provider as 200 once its receipt is stored", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ healthy: false, stored: true });
+  });
+
+  it("returns 503 when the status row is missing, because nothing was recorded", async () => {
+    stubHealthyFal();
+    mocks.statusUpdateSelect.mockResolvedValue({ data: [], error: null });
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({ healthy: true, stored: false });
+    expect(error).toHaveBeenCalledWith("[health] system_status update failed:", "0 rows updated");
+    expect(summaryLines(log)).toHaveLength(1);
+  });
+
+  it("returns 503 when the health log row cannot be stored", async () => {
+    stubHealthyFal();
+    mocks.healthInsert.mockResolvedValue({ error: { message: "insert denied" } });
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({ stored: false });
+    expect(error).toHaveBeenCalledWith("[health] system_health_logs insert failed:", "insert denied");
+  });
+
+  it("writes nothing and sends no alert when the stored state cannot be read", async () => {
+    stubHealthyFal();
+    process.env.ADMIN_EMAILS = "admin@example.com";
+    mocks.statusSingle.mockResolvedValue({ data: null, error: { message: "database unavailable" } });
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({ stored: false, statusChanged: false });
+    expect(error).toHaveBeenCalledWith("[health] system_status read failed:", "database unavailable");
+    expect(mocks.statusUpdate).not.toHaveBeenCalled();
+    expect(mocks.healthInsert).not.toHaveBeenCalled();
+    expect(mocks.emailSend).not.toHaveBeenCalled();
   });
 });

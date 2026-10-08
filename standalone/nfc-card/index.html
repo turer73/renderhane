@@ -1,0 +1,237 @@
+<!doctype html>
+<!--
+  Renderhane NFC bank / invoice card — portable, single-file version.
+
+  Same links as src/app/[locale]/(marketing)/b: the details ride in the URL
+  fragment (#...), so this page needs no server, database or library. Serve it
+  at /tr/b and /en/b on any static host and every tag already written keeps
+  working. See README.md next to this file.
+
+  Keep the field map below in sync with src/lib/nfc/business-card.ts
+  (src/lib/nfc/__tests__/standalone-card.test.ts checks it).
+-->
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Ödeme bilgileri</title>
+<style>
+  :root {
+    --bg: #f7f7fb; --card: #ffffff; --text: #16132b; --muted: #6b6784; --line: #e3e1ee;
+    --primary: #4a2fd6; --on-primary: #ffffff; --tint: #f3f0ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141126; --card: #1c1834; --text: #f1eefc; --muted: #a7a3c0; --line: #352d5c; --primary: #7b63ff; --tint: #251f45; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 576px; margin: 0 auto; padding: 48px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; box-shadow: 0 1px 2px #0000000d; }
+  header { background: var(--primary); color: var(--on-primary); padding: 28px; }
+  .eyebrow { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .12em; opacity: .85; }
+  h1 { margin: 8px 0 0; font-size: 30px; line-height: 1.15; overflow-wrap: anywhere; }
+  header p { margin: 8px 0 0; font-size: 14px; opacity: .85; }
+  ul { list-style: none; margin: 0; padding: 24px; display: grid; gap: 12px; }
+  li.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 16px; }
+  li.row.iban { border-color: var(--primary); background: var(--tint); }
+  .field { min-width: 0; flex: 1; }
+  .label { margin: 0; font-size: 12px; font-weight: 500; color: var(--muted); }
+  .value { margin: 0; font-weight: 500; overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
+  .iban .value { font: 600 18px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .03em; }
+  button { font: inherit; cursor: pointer; }
+  .copy { flex-shrink: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 14px; font-weight: 600; }
+  .copy:hover, .copy:focus-visible { border-color: var(--primary); color: var(--primary); outline: none; }
+  .all { width: 100%; margin-top: 8px; padding: 16px; border: 0; border-radius: 12px; background: var(--primary); color: var(--on-primary); font-weight: 600; }
+  .notes { padding: 0 24px 24px; text-align: center; font-size: 12px; color: var(--muted); }
+  .notes p { margin: 8px 0 0; }
+  .empty { padding: 32px; text-align: center; }
+  .empty h1 { font-size: 24px; }
+  .empty p { color: var(--muted); font-size: 14px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main id="app"><noscript>Bu sayfa bilgileri göstermek için JavaScript gerektirir. / This page needs JavaScript to show the details.</noscript></main>
+<script id="business-fields" type="application/json">
+{
+  "bank": [
+    {"key": "accountName", "param": "n", "label": {"tr": "Alıcı", "en": "Recipient"}, "required": true},
+    {"key": "iban", "param": "i", "label": {"tr": "IBAN", "en": "IBAN"}, "required": true},
+    {"key": "bankName", "param": "b", "label": {"tr": "Banka", "en": "Bank"}},
+    {"key": "branch", "param": "r", "label": {"tr": "Şube", "en": "Branch"}},
+    {"key": "description", "param": "d", "label": {"tr": "Açıklama", "en": "Reference"}}
+  ],
+  "invoice": [
+    {"key": "title", "param": "n", "label": {"tr": "Unvan", "en": "Legal name"}, "required": true},
+    {"key": "taxOffice", "param": "o", "label": {"tr": "Vergi dairesi", "en": "Tax office"}},
+    {"key": "taxNumber", "param": "v", "label": {"tr": "Vergi/T.C. no", "en": "Tax/ID no"}, "required": true},
+    {"key": "address", "param": "a", "label": {"tr": "Adres", "en": "Address"}, "required": true},
+    {"key": "invoiceEmail", "param": "e", "label": {"tr": "E-posta", "en": "Email"}}
+  ]
+}
+</script>
+<script>
+(function () {
+  "use strict";
+  var FIELDS = JSON.parse(document.getElementById("business-fields").textContent);
+  var TITLES = { bank: { tr: "BANKA BİLGİLERİ", en: "BANK DETAILS" }, invoice: { tr: "FATURA BİLGİLERİ", en: "INVOICE DETAILS" } };
+  var TEXT = {
+    tr: {
+      title: "Ödeme bilgileri", hint: "Her bilginin yanındaki düğmeyle kopyalayıp uygulamana yapıştır.",
+      copy: "Kopyala", copied: "Kopyalandı", copyAria: "kopyala", all: "Tümünü kopyala", allDone: "Tümü kopyalandı",
+      announce: "Panoya kopyalandı", failed: "Kopyalanamadı; metne uzun basıp seç.",
+      check: "Ödemeden önce bankanın gösterdiği alıcı adının bu adla aynı olduğunu kontrol et.",
+      privacy: "Bilgiler bağlantının # bölümünde taşınır; sunucuya gönderilmez ve kaydedilmez. Etiketi okutan herkes görebilir.",
+      badTitle: "Bilgiler okunamadı", badText: "Bağlantı eksik veya bozuk. Etiketi yeniden okut ya da gönderenden bilgileri tekrar iste."
+    },
+    en: {
+      title: "Payment details", hint: "Copy each detail with its button and paste it into your app.",
+      copy: "Copy", copied: "Copied", copyAria: "copy", all: "Copy all", allDone: "All copied",
+      announce: "Copied to clipboard", failed: "Could not copy; long-press the text to select it.",
+      check: "Before paying, check that the recipient name your bank shows matches this name.",
+      privacy: "The details travel in the link's # part; they are not sent to the server or stored. Anyone who taps the tag can see them.",
+      badTitle: "Details could not be read", badText: "The link is incomplete or damaged. Tap the tag again or ask the sender for the details."
+    }
+  };
+
+  var locale = /(^|\/)en(\/|$)/.test(location.pathname) ? "en" : "tr";
+  var t = TEXT[locale];
+  var app = document.getElementById("app");
+  document.documentElement.lang = locale;
+  document.title = t.title;
+
+  function clean(value) {
+    return (value || "").replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 500);
+  }
+
+  // Same rules as parseBusinessLandingHash: invoice cards carry t=f, bank cards omit it.
+  function parse(hash) {
+    var params = new URLSearchParams(hash.charAt(0) === "#" ? hash.slice(1) : hash);
+    var kind = params.get("t") === "f" ? "invoice" : "bank";
+    var rows = [];
+    for (var i = 0; i < FIELDS[kind].length; i++) {
+      var def = FIELDS[kind][i];
+      var value = clean(params.get(def.param));
+      if (def.required && !value) return null;
+      if (value) rows.push({ key: def.key, label: def.label[locale], value: value });
+    }
+    return { kind: kind, rows: rows };
+  }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text; // user data is only ever set as text
+    return node;
+  }
+
+  function groupIban(iban) {
+    return iban.replace(/\s+/g, "").replace(/(.{4})(?=.)/g, "$1 ");
+  }
+
+  function copyText(value) {
+    function fallback() {
+      var area = el("textarea");
+      area.value = value;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      area.remove();
+      return ok;
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(value).then(function () { return true; }, fallback);
+    }
+    return Promise.resolve(fallback());
+  }
+
+  var live, timer;
+  function flash(button, doneText, idleText) {
+    clearTimeout(timer);
+    var previous = document.querySelector("[data-done]");
+    if (previous && previous !== button) { previous.textContent = previous.getAttribute("data-idle"); previous.removeAttribute("data-done"); }
+    button.textContent = doneText;
+    button.setAttribute("data-done", "");
+    button.setAttribute("data-idle", idleText);
+    live.textContent = t.announce;
+    timer = setTimeout(function () { button.textContent = idleText; button.removeAttribute("data-done"); live.textContent = ""; }, 2000);
+  }
+
+  function onCopy(button, value, doneText, idleText) {
+    button.addEventListener("click", function () {
+      copyText(value).then(function (ok) {
+        if (ok) flash(button, doneText, idleText); else live.textContent = t.failed;
+      });
+    });
+  }
+
+  function render() {
+    app.textContent = "";
+    live = el("p", "sr");
+    live.setAttribute("aria-live", "polite");
+    var card = parse(location.hash);
+
+    if (!card) {
+      var bad = el("section", "card empty");
+      bad.appendChild(el("h1", null, t.badTitle));
+      bad.appendChild(el("p", null, t.badText));
+      app.appendChild(bad);
+      app.appendChild(live);
+      return;
+    }
+
+    var section = el("section", "card");
+    var header = el("header");
+    header.appendChild(el("p", "eyebrow", TITLES[card.kind][locale]));
+    header.appendChild(el("h1", null, card.rows[0].value));
+    header.appendChild(el("p", null, t.hint));
+    section.appendChild(header);
+
+    var list = el("ul");
+    card.rows.forEach(function (row) {
+      var iban = row.key === "iban";
+      var item = el("li", iban ? "row iban" : "row");
+      var field = el("div", "field");
+      field.appendChild(el("p", "label", row.label));
+      var value = el("p", "value", iban ? groupIban(row.value) : row.value);
+      value.setAttribute("translate", "no");
+      field.appendChild(value);
+      var button = el("button", "copy", t.copy);
+      button.type = "button";
+      button.setAttribute("aria-label", row.label + " " + t.copyAria);
+      onCopy(button, row.value, t.copied, t.copy); // IBAN is copied without the display spaces
+      item.appendChild(field);
+      item.appendChild(button);
+      list.appendChild(item);
+    });
+    var allItem = el("li");
+    var all = el("button", "all", t.all);
+    all.type = "button";
+    var text = [TITLES[card.kind][locale]].concat(card.rows.map(function (row) { return row.label + ": " + row.value; })).join("\n");
+    onCopy(all, text, t.allDone, t.all);
+    allItem.appendChild(all);
+    list.appendChild(allItem);
+    section.appendChild(list);
+
+    var notes = el("div", "notes");
+    if (card.kind === "bank") notes.appendChild(el("p", null, t.check));
+    notes.appendChild(el("p", null, t.privacy));
+    section.appendChild(notes);
+
+    app.appendChild(section);
+    app.appendChild(live);
+  }
+
+  window.addEventListener("hashchange", render);
+  render();
+})();
+</script>
+</body>
+</html>

@@ -89,11 +89,18 @@ export async function GET(request: NextRequest) {
   const responseTime = Date.now() - startTime;
 
   // ── Read current status ──────────────────────────────
-  const { data: current } = await supabase
+  // Every update below derives from the stored state. If it cannot be read,
+  // report the outage instead of writing a guessed failure count.
+  const { data: current, error: readError } = await supabase
     .from("system_status")
     .select("*")
     .eq("id", SERVICE_ID)
     .single();
+
+  if (readError) {
+    console.error("[health] system_status read failed:", readError.message);
+    return respond({ healthy: isHealthy, responseTime, statusChanged: false, stored: false });
+  }
 
   const wasHealthy = current?.is_healthy ?? true;
   const statusChanged = wasHealthy !== isHealthy;
@@ -115,18 +122,30 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  await supabase
+  const { data: updatedRows, error: updateError } = await supabase
     .from("system_status")
     .update(updates)
-    .eq("id", SERVICE_ID);
+    .eq("id", SERVICE_ID)
+    .select("id");
+  // A missing row updates nothing without an error; that is not a receipt.
+  const statusStored = !updateError && updatedRows?.length === 1;
+  if (!statusStored) {
+    console.error(
+      "[health] system_status update failed:",
+      updateError?.message ?? `${updatedRows?.length ?? 0} rows updated`
+    );
+  }
 
   // ── Log health check ─────────────────────────────────
-  await supabase.from("system_health_logs").insert({
+  const { error: logError } = await supabase.from("system_health_logs").insert({
     service: SERVICE_ID,
     status: isHealthy ? "ok" : "error",
     response_time_ms: responseTime,
     error_message: errorMessage,
   });
+  if (logError) {
+    console.error("[health] system_health_logs insert failed:", logError.message);
+  }
 
   // ── Send admin email on status change ────────────────
   if (statusChanged) {
@@ -174,12 +193,29 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    service: SERVICE_ID,
-    check: "platform_model_metadata",
+  return respond({
     healthy: isHealthy,
     responseTime,
     statusChanged,
-    timestamp: new Date().toISOString(),
+    stored: statusStored && !logError,
   });
+}
+
+function respond(result: {
+  healthy: boolean;
+  responseTime: number;
+  statusChanged: boolean;
+  stored: boolean;
+}) {
+  const summary = {
+    service: SERVICE_ID,
+    check: "platform_model_metadata",
+    ...result,
+    timestamp: new Date().toISOString(),
+  };
+  // One line per run, so a scheduled check can be verified from runtime logs.
+  console.log(`[health] summary ${JSON.stringify(summary)}`);
+  // A check whose receipt was not stored did not complete; let the scheduler
+  // see that. Provider health itself is reported by the `healthy` field.
+  return NextResponse.json(summary, { status: result.stored ? 200 : 503 });
 }
