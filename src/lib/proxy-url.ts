@@ -15,15 +15,12 @@ function isFalMedia(hostname: string): boolean {
   return hostname === "fal.media" || hostname.endsWith(".fal.media");
 }
 
-/** Hosts our outputs and uploads are served from. */
-export function isAssetHost(hostname: string): boolean {
-  return PROXY_HOSTS.includes(hostname) || isFalMedia(hostname);
-}
-
 export function proxyUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    if (isAssetHost(parsed.hostname)) {
+    const needsProxy =
+      PROXY_HOSTS.includes(parsed.hostname) || isFalMedia(parsed.hostname);
+    if (needsProxy) {
       return `/api/assets/proxy?url=${encodeURIComponent(url)}`;
     }
   } catch {

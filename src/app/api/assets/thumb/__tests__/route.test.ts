@@ -39,6 +39,12 @@ describe("asset thumbnail endpoint", () => {
     expect(upstream).toHaveBeenCalledWith(ASSET, { headers: { Accept: "image/*" }, redirect: "manual" });
   });
 
+  it("fetches only the object path on the fixed origin", async () => {
+    upstream.mockResolvedValue(new Response(new Uint8Array(await png(200, 200)), { headers: { "Content-Type": "image/png" } }));
+    await GET(request(`${ASSET}?x-id=GetObject#frag`));
+    expect(upstream).toHaveBeenCalledWith(ASSET, { headers: { Accept: "image/*" }, redirect: "manual" });
+  });
+
   it("requires a signed-in user", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null } });
     const result = await GET(request());
@@ -48,8 +54,14 @@ describe("asset thumbnail endpoint", () => {
 
   it.each([
     ["https://evil.example.com/a.png", "160", 403],
-    ["http://assets.renderhane.com/a.png", "160", 400],
-    ["https://assets.renderhane.com:8443/a.png", "160", 400],
+    ["https://v3.fal.media/files/a.png", "160", 403],
+    ["https://assets.renderhane.com.evil.com/a.png", "160", 403],
+    ["http://assets.renderhane.com/a.png", "160", 403],
+    ["https://assets.renderhane.com:8443/a.png", "160", 403],
+    ["https://user:pw@assets.renderhane.com/a.png", "160", 403],
+    ["https://assets.renderhane.com/outputs/a b.png", "160", 400],
+    ["https://assets.renderhane.com/outputs/a%2Fb.png", "160", 400],
+    ["https://assets.renderhane.com/", "160", 400],
     [ASSET, "1200", 400],
     [ASSET, "", 400],
   ])("rejects %s at width %s", async (url, w, status) => {

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
-import { isAssetHost } from "@/lib/proxy-url";
 import { IMAGE_MAX_PIXELS } from "@/lib/media/image-formats";
-import { THUMB_WIDTHS } from "@/lib/thumb-url";
+import { ASSET_ORIGIN, THUMB_WIDTHS } from "@/lib/thumb-url";
 
 /**
  * Thumbnail endpoint: /api/assets/thumb?url=<encoded-asset-url>&w=<80|160>
  *
  * Gallery tiles are 40–80 CSS px, but outputs are often multi-megapixel
- * originals. This fetches the original from our asset hosts, downsizes it to a
+ * originals. This fetches the original from our R2 bucket, downsizes it to a
  * small square WebP and lets the browser cache it.
  *
  * Signed-in only: resizing costs CPU, so it is not open to anonymous callers.
@@ -22,6 +21,8 @@ const RASTER_TYPES = new Set([
 ]);
 const MAX_SOURCE_BYTES = 40 * 1024 * 1024;
 const RESIZE_TIMEOUT_SECONDS = 10;
+// Object keys look like outputs/<user>/<uuid>.png: no dot segments, no encoding tricks.
+const SAFE_PATH = /^\/(?:[A-Za-z0-9_-][A-Za-z0-9._-]*\/)*[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 
 function error(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
@@ -39,17 +40,16 @@ export async function GET(request: NextRequest) {
   } catch {
     return error("Invalid url", 400);
   }
-  if (!isAssetHost(parsed.hostname)) return error("URL host not allowed", 403);
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || (parsed.port && parsed.port !== "443")) {
-    return error("Only https URLs are allowed", 400);
-  }
+  if (parsed.origin !== ASSET_ORIGIN || parsed.username || parsed.password) return error("URL not allowed", 403);
+  if (!SAFE_PATH.test(parsed.pathname)) return error("Invalid asset path", 400);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return error("Unauthorized", 401);
 
-  // Same SSRF hardening as /api/assets/proxy: no redirects past the allowlist.
-  const upstream = await fetch(parsed.toString(), { headers: { Accept: "image/*" }, redirect: "manual" });
+  // Only the object path comes from the caller; the origin is fixed, and
+  // redirects are refused (same rule as /api/assets/proxy).
+  const upstream = await fetch(`${ASSET_ORIGIN}/${parsed.pathname.slice(1)}`, { headers: { Accept: "image/*" }, redirect: "manual" });
   if (upstream.type === "opaqueredirect" || (upstream.status >= 300 && upstream.status < 400)) {
     return error("Upstream redirect not allowed", 502);
   }
