@@ -29,8 +29,14 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { proxyUrl } from "@/lib/proxy-url";
-import { ModelViewer } from "@/components/viewer/model-viewer";
+import dynamic from "next/dynamic";
 import { DownloadMenu } from "@/components/app/download-menu";
+
+// Three.js only loads when a 3D result is opened, not with the workspace.
+const ModelViewer = dynamic(
+  () => import("@/components/viewer/model-viewer").then((m) => m.ModelViewer),
+  { ssr: false }
+);
 
 /** Pick the output type DownloadMenu expects, falling back to URL ext when missing. */
 function resolveOutputType(
@@ -384,7 +390,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     ) : (
                       // Native image is intentional: generated URLs are dynamic and the fallback mutates src.
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={src} alt={`${job.name} #${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                      <img src={src} alt={`${job.name} #${idx + 1}`} width={80} height={80} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                     )}
                     {job.outputType === "glb" && (
                       <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
@@ -400,7 +406,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                       </div>
                     )}
                     {job.status === "processing" && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
+                      <div className="absolute inset-0 bg-primary/10 animate-pulse" />
                     )}
                     {job.status === "completed" && (
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
@@ -467,9 +473,9 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               )}>
                 {/* Native image is intentional for dynamic generated URLs and mutable fallback src. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={job.thumbnails[0]} alt={job.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                <img src={job.thumbnails[0]} alt={job.name} width={40} height={40} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
                 {job.status === "processing" && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-[shimmer_2s_infinite]" />
+                  <div className="absolute inset-0 bg-primary/10 animate-pulse" />
                 )}
               </div>
 

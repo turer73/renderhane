@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   Group as PanelGroup,
   Panel,
@@ -31,6 +31,23 @@ export interface GenerationJob {
   errorMessage: string | null;
 }
 
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+function subscribeDesktop(onChange: () => void) {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/** true/false on the client; null during SSR and hydration, when both layouts render and CSS picks one. */
+function useIsDesktop(): boolean | null {
+  return useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => null
+  );
+}
+
 function getStageLabel(status: string, locale: string): string {
   const isTr = locale === "tr";
   if (status === "completed") return isTr ? "Tamamlandı" : "Completed";
@@ -55,6 +72,9 @@ export function WorkspaceLayout({
 }: WorkspaceLayoutProps) {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "tr";
+  // Only the visible layout stays mounted: two copies of the form, preview and
+  // 3D viewer (one hidden by CSS) doubled every render and WebGL loop.
+  const isDesktop = useIsDesktop();
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobMeta, setActiveJobMeta] = useState<{ name: string; model: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -275,7 +295,7 @@ export function WorkspaceLayout({
     <>
     {/* Smart-prompt transparency banner — what the site auto-composed */}
     {smartPrompt && (
-      <div className="fixed bottom-4 left-1/2 z-50 w-[92%] max-w-xl -translate-x-1/2 rounded-xl border border-primary/30 bg-card/95 px-4 py-3 shadow-lg backdrop-blur animate-in fade-in-0 slide-in-from-bottom-2">
+      <div className="fixed bottom-4 left-1/2 z-50 w-[92%] max-w-xl -translate-x-1/2 rounded-xl border border-primary/30 bg-card px-4 py-3 shadow-lg animate-in fade-in-0 slide-in-from-bottom-2">
         <div className="flex items-start gap-2">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
@@ -295,6 +315,7 @@ export function WorkspaceLayout({
     )}
 
     {/* ═══ Mobile layout (< md) ═══ */}
+    {isDesktop !== true && (
     <div className="flex md:hidden h-full w-full flex-col overflow-y-auto">
       {/* Horizontal tool strip */}
       <ToolIconSidebar
@@ -352,8 +373,10 @@ export function WorkspaceLayout({
         )}
       </div>
     </div>
+    )}
 
     {/* ═══ Desktop layout (≥ md) ═══ */}
+    {isDesktop !== false && (
     <div className="hidden md:flex h-full w-full gap-3 px-2 pb-2">
       {/* Left: Icon Sidebar + Form Panel */}
       <div className="flex w-[344px] flex-none overflow-hidden rounded-2xl border border-border bg-card">
@@ -397,6 +420,7 @@ export function WorkspaceLayout({
         </Panel>
       </PanelGroup>
     </div>
+    )}
     </>
   );
 }
