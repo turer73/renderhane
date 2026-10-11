@@ -30,6 +30,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { proxyUrl } from "@/lib/proxy-url";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { DownloadMenu } from "@/components/app/download-menu";
 
 // Three.js only loads when a 3D result is opened, not with the workspace.
@@ -238,7 +240,12 @@ interface ResultGalleryProps {
   onRefetch?: () => void;
 }
 
+/** The workspace shows only the latest results; the rest live on the Projects page. */
+const GALLERY_LIMIT = 3;
+
 export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefetch }: ResultGalleryProps) {
+  const params = useParams<{ locale: string }>();
+  const locale = params?.locale || "tr";
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewJob, setPreviewJob] = useState<GalleryJob | null>(null);
@@ -286,6 +293,8 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
   const filteredJobs = searchQuery
     ? jobs.filter((j) => j.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : jobs;
+  const visibleJobs = filteredJobs.slice(0, GALLERY_LIMIT);
+  const hiddenCount = filteredJobs.length - visibleJobs.length;
 
   // Tool-specific labels
   const label = activeTool === "image" || activeTool === "ecommerce" ? "görsel" : activeTool === "video" ? "video" : activeTool === "design" ? "tasarım" : activeTool === "batch" ? "iş" : activeTool === "3d-model" ? "proje" : "öğe";
@@ -345,7 +354,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
 
       {/* Job list */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {filteredJobs.map((job) =>
+        {visibleJobs.map((job) =>
           viewMode === "grid" ? (
             /* ═══ Grid card ═══ */
             <div
@@ -537,8 +546,16 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
 
       {/* Footer */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-border text-[10px] text-muted-foreground">
-        <span>{filteredJobs.length} {label}</span>
-        <span>Toplam {filteredJobs.reduce((s, j) => s + j.credits, 0)} kredi</span>
+        <span>
+          {hiddenCount > 0 ? `Son ${visibleJobs.length} / ${filteredJobs.length} ${label}` : `${filteredJobs.length} ${label}`}
+        </span>
+        {hiddenCount > 0 ? (
+          <Link href={`/${locale}/app/projects`} className="font-medium text-primary hover:underline">
+            Tümünü gör →
+          </Link>
+        ) : (
+          <span>Toplam {filteredJobs.reduce((s, j) => s + j.credits, 0)} kredi</span>
+        )}
       </div>
 
       {/* ═══ Preview Modal ═══ */}
