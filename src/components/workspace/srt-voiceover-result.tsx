@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { showToast } from "./workspace-toast";
 import { proxyUrl } from "@/lib/proxy-url";
 import { Play, Square, Download, FileJson, TriangleAlert } from "lucide-react";
+import { useLocaleText } from "@/hooks/use-locale-text";
 
 export interface SrtVoiceoverTrack {
   index: number;
@@ -83,6 +84,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
   const stopRef = useRef(false);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [mixing, setMixing] = useState(false);
+  const l = useLocaleText();
 
   const stopAll = () => {
     stopRef.current = true;
@@ -121,12 +123,12 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     };
     el.onerror = () => {
       liveRef.current.delete(el);
-      showToast(`${tracks[i].index}. replik çalınamadı`, "error");
+      showToast(l(`${tracks[i].index}. replik çalınamadı`, `Could not play line ${tracks[i].index}`), "error");
       setPlayingIndex(null);
     };
     void el.play().catch(() => {
       liveRef.current.delete(el);
-      showToast("Ses çalınamadı", "error");
+      showToast(l("Ses çalınamadı", "Could not play audio"), "error");
       setPlayingIndex(null);
     });
   };
@@ -213,18 +215,18 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
       }
       const blob = encodeWavMono16([rendered.getChannelData(0)], sampleRate);
       downloadBlob(blob, `srt-voiceover-${jobId.slice(0, 8)}.wav`);
-      showToast("Mix indirildi", "success");
+      showToast(l("Mix indirildi", "Mix downloaded"), "success");
     } catch (error) {
       const msg = error instanceof Error ? error.message : "";
       const cue = msg.split(":")[2];
       if (msg.startsWith("stage:fetch")) {
-        showToast(`${cue}. replik indirilemedi (ağ) — tek tek indirmeyi dene`, "error");
+        showToast(l(`${cue}. replik indirilemedi (ağ) — tek tek indirmeyi dene`, `Could not download line ${cue} (network) — try downloading lines one by one`), "error");
       } else if (msg.startsWith("stage:decode")) {
-        showToast(`${cue}. replik sesi çözülemedi — tek tek indirmeyi dene`, "error");
+        showToast(l(`${cue}. replik sesi çözülemedi — tek tek indirmeyi dene`, `Could not decode audio for line ${cue} — try downloading lines one by one`), "error");
       } else if (msg === "stage:context") {
-        showToast("Tarayıcın ses karıştırmayı desteklemiyor", "error");
+        showToast(l("Tarayıcın ses karıştırmayı desteklemiyor", "Your browser does not support audio mixing"), "error");
       } else {
-        showToast("Mix kurulamadı — replikleri tek tek indirin", "error");
+        showToast(l("Mix kurulamadı — replikleri tek tek indirin", "Could not build the mix — download the lines one by one"), "error");
       }
     } finally {
       setMixing(false);
@@ -240,28 +242,28 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
       <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-foreground">
-            Tek dosya • {tracks.length} replik
+            {l(`Tek dosya • ${tracks.length} replik`, `Single file • ${tracks.length} lines`)}
           </span>
-          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">tek parça</Badge>
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-auto">{l("tek parça", "single take")}</Badge>
         </div>
         <audio src={proxyUrl(audioUrl)} controls className="w-full" />
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          Ses {audioDurationMs > 0 ? `${(audioDurationMs / 1000).toFixed(1)}sn` : "?"} • SRT {formatSrtMs(totalMs)}
-          {driftBig && " — süreler farklı, video ile hizalamayı kontrol et"}
+          {l("Ses", "Audio")} {audioDurationMs > 0 ? `${(audioDurationMs / 1000).toFixed(1)}${l("sn", "s")}` : "?"} • SRT {formatSrtMs(totalMs)}
+          {driftBig && l(" — süreler farklı, video ile hizalamayı kontrol et", " — durations differ, check the alignment with your video")}
         </p>
         {fitPasses > 1 && !driftBig && (
           <p className="text-[10px] text-emerald-600 leading-relaxed">
-            Süre SRT&apos;ye oturtuldu.
+            {l("Süre SRT'ye oturtuldu.", "Duration fitted to the SRT.")}
           </p>
         )}
         <div className="flex gap-1.5">
           <Button size="sm" className="h-7 flex-1 text-[11px]" asChild>
-            <a href={proxyUrl(audioUrl)} download={`seslendirme-${jobId.slice(0, 8)}.${audioExt(audioUrl)}`}>
-              <Download className="h-3 w-3 mr-1" /> Ses dosyasını indir
+            <a href={proxyUrl(audioUrl)} download={`${l("seslendirme", "voiceover")}-${jobId.slice(0, 8)}.${audioExt(audioUrl)}`}>
+              <Download className="h-3 w-3 mr-1" /> {l("Ses dosyasını indir", "Download audio file")}
             </a>
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={downloadJson}>
-            <FileJson className="h-3 w-3 mr-1" /> Zaman çizelgesi
+            <FileJson className="h-3 w-3 mr-1" /> {l("Zaman çizelgesi", "Timeline")}
           </Button>
         </div>
       </div>
@@ -272,22 +274,22 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
     <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold text-foreground">
-          {tracks.length} replik • {formatSrtMs(totalMs)}
+          {l(`${tracks.length} replik`, `${tracks.length} lines`)} • {formatSrtMs(totalMs)}
         </span>
         {overflowCount > 0 && (
           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-amber-600 border-amber-300">
             <TriangleAlert className="h-3 w-3 mr-1" />
-            {overflowCount} taşma
+            {l(`${overflowCount} taşma`, `${overflowCount} overflow`)}
           </Badge>
         )}
         <div className="ml-auto flex gap-1.5">
           {playingIndex === null ? (
             <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={playAll}>
-              <Play className="h-3 w-3 mr-1" /> Tümünü çal
+              <Play className="h-3 w-3 mr-1" /> {l("Tümünü çal", "Play all")}
             </Button>
           ) : (
             <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={stopAll}>
-              <Square className="h-3 w-3 mr-1" /> Durdur
+              <Square className="h-3 w-3 mr-1" /> {l("Durdur", "Stop")}
             </Button>
           )}
         </div>
@@ -295,18 +297,21 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
 
       {refitCount > 0 && overflowCount === 0 && (
         <p className="text-[10px] text-emerald-600 leading-relaxed">
-          {refitCount} replik slota oturtmak için otomatik hızlandırıldı — zaman çizelgesi tutuyor.
+          {l(`${refitCount} replik slota oturtmak için otomatik hızlandırıldı — zaman çizelgesi tutuyor.`, `${refitCount} lines were sped up automatically to fit their slots — the timeline holds.`)}
         </p>
       )}
       {refitCount > 0 && overflowCount > 0 && (
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          {refitCount} replik otomatik hızlandırıldı.
+          {l(`${refitCount} replik otomatik hızlandırıldı.`, `${refitCount} lines were sped up automatically.`)}
         </p>
       )}
 
       {overflowCount > 0 && (
         <p className="text-[10px] text-amber-600 leading-relaxed">
-          İşaretli repliklerin sesi SRT slotundan uzun — ses kesilmedi, sonraki repliğe taşabilir. Bu SRT doğal konuşma için yoğun: metni kısaltın veya repliği bölün.
+          {l(
+            "İşaretli repliklerin sesi SRT slotundan uzun — ses kesilmedi, sonraki repliğe taşabilir. Bu SRT doğal konuşma için yoğun: metni kısaltın veya repliği bölün.",
+            "Flagged lines run longer than their SRT slot — the audio was not cut and may spill into the next line. This SRT is dense for natural speech: shorten the text or split the line."
+          )}
         </p>
       )}
 
@@ -314,7 +319,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
         {tracks.map((t, i) => (
           <div
             key={t.index}
-            title={`Slot ${formatSrtMs(t.startMs)} → ${formatSrtMs(t.endMs)}${t.durationMs > 0 ? ` • ses ${(t.durationMs / 1000).toFixed(1)}sn` : ""} • ${t.speed ?? 1}x hız`}
+            title={`Slot ${formatSrtMs(t.startMs)} → ${formatSrtMs(t.endMs)}${t.durationMs > 0 ? l(` • ses ${(t.durationMs / 1000).toFixed(1)}sn`, ` • audio ${(t.durationMs / 1000).toFixed(1)}s`) : ""} • ${t.speed ?? 1}x ${l("hız", "speed")}`}
             className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] ${
               playingIndex === t.index ? "bg-primary/10 border border-primary/30" : "bg-muted/40 border border-transparent"
             }`}
@@ -323,7 +328,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
               type="button"
               onClick={() => playSingle(i)}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 hover:bg-primary/25"
-              title={`${t.index}. repliği çal`}
+              title={l(`${t.index}. repliği çal`, `Play line ${t.index}`)}
             >
               <Play className="h-3 w-3 text-primary" />
             </button>
@@ -341,7 +346,7 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
               href={proxyUrl(t.url)}
               download={`cue-${t.index}.${audioExt(t.url)}`}
               className="shrink-0 text-muted-foreground hover:text-foreground"
-              title="Repliği indir"
+              title={l("Repliği indir", "Download line")}
             >
               <Download className="h-3 w-3" />
             </a>
@@ -351,10 +356,10 @@ export function SrtVoiceoverResult({ tracks, totalMs, overflowCount, refitCount,
 
       <div className="flex gap-1.5">
         <Button size="sm" className="h-7 flex-1 text-[11px]" onClick={() => void downloadMix()} disabled={mixing}>
-          <Download className="h-3 w-3 mr-1" /> {mixing ? "Hazırlanıyor..." : "Miksi indir (WAV)"}
+          <Download className="h-3 w-3 mr-1" /> {mixing ? l("Hazırlanıyor...", "Preparing...") : l("Miksi indir (WAV)", "Download mix (WAV)")}
         </Button>
         <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={downloadJson}>
-          <FileJson className="h-3 w-3 mr-1" /> Zaman çizelgesi
+          <FileJson className="h-3 w-3 mr-1" /> {l("Zaman çizelgesi", "Timeline")}
         </Button>
       </div>
     </div>

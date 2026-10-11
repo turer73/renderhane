@@ -1,7 +1,8 @@
 import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { createRemeshToken } from "@/lib/jobs/remesh-token";
+import { createRemeshToken, REMESH_CREDITS } from "@/lib/jobs/remesh-token";
+import { reserveCredits, refundCredits, confirmSpend } from "@/lib/credits/engine";
 import { NextRequest, NextResponse } from "next/server";
 
 // Remeshing can take 15-30s — extend Vercel function timeout
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
   // Fetch the output record — verify ownership + get URL
   const { data: output, error: fetchError } = await supabase
     .from("outputs")
-    .select("id, type, fal_url, r2_url, user_id")
+    .select("id, job_id, type, fal_url, r2_url, user_id")
     .eq("id", outputId)
     .single();
 
@@ -68,6 +69,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No model URL" }, { status: 400 });
   }
 
+  // Reserve before the paid call; a rejected submission is refunded below.
+  let txId: string;
+  try {
+    txId = await reserveCredits(user.id, REMESH_CREDITS, `remesh [output:${outputId}]`);
+  } catch (error) {
+    if (error instanceof Error && error.name === "CreditError" && (error as { code?: string }).code === "INSUFFICIENT") {
+      return NextResponse.json({ error: "insufficient_credits" }, { status: 402 });
+    }
+    console.error("[remesh] Credit reservation failed:", error);
+    return NextResponse.json({ error: "Could not reserve credits" }, { status: 503 });
+  }
+
   try {
     console.log("[remesh] Submitting to queue:", { outputId, modelUrl });
 
@@ -83,12 +96,27 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // fal accepted the request: settle the charge against the model's job.
+    // If this write fails the reservation stays open and the stuck-jobs cron
+    // refunds it, which errs in the user's favour.
+    try {
+      await confirmSpend(txId, output.job_id);
+    } catch (error) {
+      console.error("[remesh] Failed to confirm spend:", error);
+    }
+
     return NextResponse.json({
       requestId: queueResult.requestId,
+      creditCost: REMESH_CREDITS,
       token: createRemeshToken(user.id, queueResult.requestId),
       status: "processing",
     });
   } catch (error) {
+    try {
+      await refundCredits(txId);
+    } catch (refundError) {
+      console.error("[remesh] Refund after failed submission failed:", refundError);
+    }
     const errMsg = error instanceof Error ? error.message : String(error);
     const falErr = error as { status?: number; body?: { detail?: string } };
     console.error("[remesh] Error:", {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { showToast } from "./workspace-toast";
 import { proxyUrl } from "@/lib/proxy-url";
 import type { GenerationJob } from "./workspace-layout";
+import { useLocaleText } from "@/hooks/use-locale-text";
 
 // Lazy-load 3D viewer (Three.js bundle)
 const ModelViewer = dynamic(
@@ -34,6 +35,7 @@ interface WorkspacePreviewProps {
 export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retrying = false, onVariation }: WorkspacePreviewProps) {
   const params = useParams<{ locale: string }>();
   const isTr = (params?.locale || "tr") === "tr";
+  const l = useLocaleText();
   // Failed state
   if (activeJob?.status === "failed") {
     return (
@@ -45,19 +47,20 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
           <div className="text-center space-y-2">
             <h3 className="text-lg font-semibold text-foreground">{activeJob.name}</h3>
             <p className="text-sm text-destructive font-medium">
-              {activeJob.errorMessage || "Üretim başarısız oldu"}
+              {activeJob.errorMessage || l("Üretim başarısız oldu", "Generation failed")}
             </p>
             <p className="text-xs text-muted-foreground">
-              {isTr
-                ? "Kredi durumu işlem sonucuna göre hesabında güncellenir."
-                : "Your credit balance is updated according to the job result."}
+              {l(
+                "Kredi durumu işlem sonucuna göre hesabında güncellenir.",
+                "Your credit balance is updated according to the job result."
+              )}
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={onRetry} disabled={!onRetry || retrying} aria-busy={retrying}>
             {retrying
               ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
               : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
-            {retrying ? (isTr ? "Gönderiliyor..." : "Submitting...") : (isTr ? "Tekrar Dene" : "Try Again")}
+            {retrying ? l("Gönderiliyor...", "Submitting...") : l("Tekrar Dene", "Try Again")}
           </Button>
         </div>
       </div>
@@ -107,9 +110,10 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
           </div>
 
           <p className="relative z-10 text-xs text-muted-foreground">
-            {isTr
-              ? `${activeJob.credits} kredi • Bu işlem arka planda devam eder`
-              : `${activeJob.credits} credits • This job continues in the background`}
+            {l(
+              `${activeJob.credits} kredi • Bu işlem arka planda devam eder`,
+              `${activeJob.credits} credits • This job continues in the background`
+            )}
           </p>
         </div>
       </div>
@@ -125,7 +129,7 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
 
     const handleDownload = async () => {
       if (!outputUrl) return;
-      showToast("İndirme başlatıldı", "success");
+      showToast(l("İndirme başlatıldı", "Download started"), "success");
       const ext = outputUrl.includes(".glb") ? "glb" : outputUrl.includes(".mp4") ? "mp4" : "png";
       const filename = `${(activeJob.name || "output").replace(/\s+/g, "_")}.${ext}`;
       try {
@@ -155,22 +159,22 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
             <span className="text-[10px] text-muted-foreground">• {activeJob.model}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Tam ekran aç" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-7 w-7" title={l("Tam ekran aç", "Open full screen")} onClick={() => {
               if (outputUrl) window.open(outputUrl, "_blank");
             }}>
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
             {onVariation && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" title="3 varyasyon üret (3× kredi)" onClick={onVariation}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" title={l("3 varyasyon üret (3× kredi)", "Generate 3 variations (3× credits)")} onClick={onVariation}>
                 <Sparkles className="h-3.5 w-3.5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Aynı ayarlarla tekrar üret" onClick={onRetry ?? (() => showToast("Ayarlari ac ve tekrar Uret'e bas", "info"))} disabled={retrying} aria-busy={retrying}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title={l("Aynı ayarlarla tekrar üret", "Regenerate with the same settings")} onClick={onRetry ?? (() => showToast(l("Ayarlari ac ve tekrar Uret'e bas", "Open the settings and press Generate again"), "info"))} disabled={retrying} aria-busy={retrying}>
               {retrying
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <RotateCcw className="h-3.5 w-3.5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="İndir" onClick={handleDownload}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title={l("İndir", "Download")} onClick={handleDownload}>
               <Download className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -231,12 +235,12 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
             {outputUrl ? (
               <>
                 <Download className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">Tıklayarak tam boyut aç</span>
+                <span className="text-[10px] text-muted-foreground">{l("Tıklayarak tam boyut aç", "Click to open full size")}</span>
               </>
             ) : (
               <>
                 <Sparkles className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">Üretim tamamlandı</span>
+                <span className="text-[10px] text-muted-foreground">{l("Üretim tamamlandı", "Generation complete")}</span>
               </>
             )}
           </div>
@@ -244,8 +248,8 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
 
         {/* Bottom info */}
         <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 text-[10px] text-muted-foreground">
-          <span>{activeJob.credits} kredi kullanıldı</span>
-          <span>{isVideo ? "Video" : isGlb ? "GLB 3D Model" : "Görsel"}</span>
+          <span>{l(`${activeJob.credits} kredi kullanıldı`, `${activeJob.credits} credits used`)}</span>
+          <span>{isVideo ? "Video" : isGlb ? "GLB 3D Model" : l("Görsel", "Image")}</span>
         </div>
       </div>
     );

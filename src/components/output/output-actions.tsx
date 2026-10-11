@@ -27,12 +27,12 @@ const TOOL_STYLES: Record<string, { icon: string; color: string; border: string;
 
 /**
  * Tools whose one-click action must name its model: without a modelKey the
- * server picks the standard-tier model, which for 3D (Meshy 6) costs far more
- * than TOOL_CREDITS' first entry. Sending it keeps the shown price and the
- * charge identical.
+ * server picks the standard-tier model, which for 3D (Meshy 6, 55 credits)
+ * costs far more than a one-click action should. Sending it keeps the shown
+ * price and the charge identical. Higher-quality 3D stays in the workspace.
  */
 const ACTION_MODEL_KEYS: Partial<Record<ToolType, string>> = {
-  "3d-model": "meshy-6-image",
+  "3d-model": "trellis-v1",
 };
 
 function actionCost(tool: ToolType): number {

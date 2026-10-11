@@ -2,12 +2,15 @@ import { IMAGE_FORMATS, type ImageFormat, type ImageInputLimits } from "./image-
 import {
   adviseImageFacts,
   checkImageFacts,
+  formatBytesEn,
   formatBytesTr,
+  positionedIssue,
   undecodableImageIssue,
   unreadableImageIssue,
   type ImageFacts,
   type ImageInputIssue,
   type ImagePosition,
+  type LocalizedText,
 } from "./image-limit-check";
 import { probeImage } from "./image-probe";
 
@@ -70,7 +73,7 @@ export interface PreparedImage {
   transform: ImageTransform | null;
   /** Visible quality or transparency loss: show a preview and let the user choose. */
   confirmationReasons: ConfirmationReason[];
-  advisories: string[];
+  advisories: LocalizedText[];
 }
 
 export class ImagePreparationError extends Error {
@@ -105,9 +108,8 @@ function throwIfAborted(signal: AbortSignal | undefined) {
   if (signal?.aborted) throw new ImagePreparationCancelled();
 }
 
-function issueFor(position: ImagePosition | null, code: ImageInputIssue["code"], message: string): ImageInputIssue {
-  const named = position && position.count > 1 ? `${position.index + 1}. görsel: ` : "";
-  return { code, index: position?.index ?? null, message: `${named}${message}` };
+function issueFor(position: ImagePosition | null, code: ImageInputIssue["code"], tr: string, en: string): ImageInputIssue {
+  return positionedIssue(code, position, tr, en);
 }
 
 function candidateFormats(limits: ImageInputLimits, original: ImageFormat, hasAlpha: boolean) {
@@ -152,7 +154,7 @@ export async function prepareImageForLimits(
 
   if (original.size > CLIENT_READ_LIMIT_BYTES) {
     throw new ImagePreparationError([
-      issueFor(position, "too_large", `Dosya ${formatBytesTr(original.size)}; tarayıcıda işlenebilecek en büyük dosya ${formatBytesTr(CLIENT_READ_LIMIT_BYTES)}.`),
+      issueFor(position, "too_large", `Dosya ${formatBytesTr(original.size)}; tarayıcıda işlenebilecek en büyük dosya ${formatBytesTr(CLIENT_READ_LIMIT_BYTES)}.`, `The file is ${formatBytesEn(original.size)}; the largest file the browser can process is ${formatBytesEn(CLIENT_READ_LIMIT_BYTES)}.`),
     ]);
   }
   const probe = probeImage(new Uint8Array(await original.arrayBuffer()));
@@ -172,7 +174,7 @@ export async function prepareImageForLimits(
   const pixels = probe.image.width * probe.image.height;
   if (pixels > CLIENT_DECODE_LIMIT_PIXELS) {
     throw new ImagePreparationError([
-      issueFor(position, "too_many_pixels", `Görsel ${Math.round(pixels / 1_000_000)} megapiksel; tarayıcıda güvenle küçültülemeyecek kadar büyük. Lütfen önce görseli küçültün.`),
+      issueFor(position, "too_many_pixels", `Görsel ${Math.round(pixels / 1_000_000)} megapiksel; tarayıcıda güvenle küçültülemeyecek kadar büyük. Lütfen önce görseli küçültün.`, `The image is ${Math.round(pixels / 1_000_000)} megapixels, too large to shrink safely in the browser. Please downsize it first.`),
     ]);
   }
 
@@ -182,7 +184,7 @@ export async function prepareImageForLimits(
   } catch {
     throwIfAborted(signal);
     throw new ImagePreparationError([
-      issueFor(position, "unsupported_format", `Bu tarayıcı ${IMAGE_FORMATS[probe.image.format].label} görselini açamıyor. Görseli JPEG veya PNG olarak kaydedip tekrar deneyin.`),
+      issueFor(position, "unsupported_format", `Bu tarayıcı ${IMAGE_FORMATS[probe.image.format].label} görselini açamıyor. Görseli JPEG veya PNG olarak kaydedip tekrar deneyin.`, `This browser cannot open ${IMAGE_FORMATS[probe.image.format].label} images. Save the image as JPEG or PNG and try again.`),
     ]);
   }
 
@@ -191,7 +193,7 @@ export async function prepareImageForLimits(
     const { formats, flattens } = candidateFormats(limits, probe.image.format, decoded.hasAlpha);
     if (formats.length === 0) {
       throw new ImagePreparationError([
-        issueFor(position, "unsupported_format", "Bu modelin kabul ettiği biçimlere tarayıcıda dönüştürme yapılamıyor."),
+        issueFor(position, "unsupported_format", "Bu modelin kabul ettiği biçimlere tarayıcıda dönüştürme yapılamıyor.", "The browser cannot convert the image to a format this model accepts."),
       ]);
     }
     const longest = Math.max(decoded.width, decoded.height);
@@ -251,23 +253,32 @@ export async function prepareImageForLimits(
       }
     }
     throw new ImagePreparationError([
-      issueFor(position, "too_large", `Görsel, kalitesi korunarak bu modelin ${formatBytesTr(limits.maxBytes)} sınırına sığdırılamadı. Daha küçük bir görsel seçin.`),
+      issueFor(position, "too_large", `Görsel, kalitesi korunarak bu modelin ${formatBytesTr(limits.maxBytes)} sınırına sığdırılamadı. Daha küçük bir görsel seçin.`, `The image could not be fitted into this model's ${formatBytesEn(limits.maxBytes)} limit without losing quality. Choose a smaller image.`),
     ]);
   } finally {
     decoded.close();
   }
 }
 
-/** Short Turkish description of what the optimizer changed. */
-export function describeTransformTr(transform: ImageTransform): string {
+/** Short description of what the optimizer changed. */
+export function describeTransform(transform: ImageTransform, locale?: string): string {
+  const en = locale === "en";
+  const bytes = en ? formatBytesEn : formatBytesTr;
   const parts: string[] = [];
   if (transform.fromFormat !== transform.toFormat) {
     parts.push(`${IMAGE_FORMATS[transform.fromFormat].label} → ${IMAGE_FORMATS[transform.toFormat].label}`);
   }
   if (transform.scale < 1) {
-    parts.push(`${transform.fromWidth}×${transform.fromHeight} → ${transform.toWidth}×${transform.toHeight} piksel`);
+    parts.push(`${transform.fromWidth}×${transform.fromHeight} → ${transform.toWidth}×${transform.toHeight} ${en ? "pixels" : "piksel"}`);
   }
-  parts.push(`${formatBytesTr(transform.bytesBefore)} → ${formatBytesTr(transform.bytesAfter)}`);
-  if (transform.quality !== null) parts.push(`kalite %${Math.round(transform.quality * 100)}`);
+  parts.push(`${bytes(transform.bytesBefore)} → ${bytes(transform.bytesAfter)}`);
+  if (transform.quality !== null) {
+    const quality = Math.round(transform.quality * 100);
+    parts.push(en ? `quality ${quality}%` : `kalite %${quality}`);
+  }
   return parts.join(" · ");
+}
+
+export function describeTransformTr(transform: ImageTransform): string {
+  return describeTransform(transform, "tr");
 }

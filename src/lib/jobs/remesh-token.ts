@@ -1,6 +1,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
+ * Remesh is a paid fal call. Its fal price is not published on the model page,
+ * so it is charged like the fast 3D model (TripoSR); adjust here if needed.
+ */
+export const REMESH_CREDITS = 4;
+
+/**
  * Remesh runs a paid fal request without a job row, so the status route has no
  * owner to check. The submit route hands the caller a token bound to their user
  * id and the fal request id; status only answers for a matching token.
