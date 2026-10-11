@@ -31,7 +31,9 @@ export interface GenerationJob {
   errorMessage: string | null;
 }
 
-const DESKTOP_QUERY = "(min-width: 768px)";
+// Same as Tailwind's `md` (48rem), so JS and the md:hidden / md:flex classes never
+// disagree when the browser's default font size is not 16px.
+const DESKTOP_QUERY = "(min-width: 48rem)";
 
 function subscribeDesktop(onChange: () => void) {
   const mq = window.matchMedia(DESKTOP_QUERY);
@@ -211,7 +213,7 @@ export function WorkspaceLayout({
       setLastPayload(payload);
       setSmartPrompt(typeof data.composedPrompt === "string" ? data.composedPrompt : null);
 
-      if (window.matchMedia("(max-width: 767px)").matches) {
+      if (!window.matchMedia(DESKTOP_QUERY).matches) {
         setMobileFormOpen(false);
         requestAnimationFrame(() => {
           document.querySelector("[data-mobile-preview]")?.scrollIntoView({
@@ -232,7 +234,7 @@ export function WorkspaceLayout({
   }, [activeJobMeta, refetch]);
 
   const handleStart = useCallback(() => {
-    if (window.matchMedia("(min-width: 768px)").matches) {
+    if (window.matchMedia(DESKTOP_QUERY).matches) {
       const form = desktopFormRef.current;
       form?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       requestAnimationFrame(() => {

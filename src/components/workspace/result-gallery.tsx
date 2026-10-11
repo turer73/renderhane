@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { showToast } from "./workspace-toast";
 import { Input } from "@/components/ui/input";
@@ -242,6 +242,14 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewJob, setPreviewJob] = useState<GalleryJob | null>(null);
+
+  // "x dk önce" labels are computed at render; unchanged polls no longer
+  // re-render the gallery, so tick on our own to keep them current.
+  const [, setClock] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setClock((c) => c + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Convert polled jobs to GalleryJob format, filtered by current tool category
   const jobs: GalleryJob[] = polledJobs
