@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -43,6 +44,14 @@ const JobPollingContext = createContext<JobPollingContextValue | null>(null);
 /** How often we poll when there are active (pending / processing) jobs. */
 const POLL_INTERVAL_MS = 2500;
 
+function sameJobs(a: PolledJob[], b: PolledJob[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((job, i) => {
+    const other = b[i];
+    return (Object.keys(job) as (keyof PolledJob)[]).every((key) => job[key] === other[key]);
+  });
+}
+
 // ─── Provider ───────────────────────────────────────────────
 // Wrap your page with this so every child can read shared job
 // data via `useJobPolling()` — no duplicate network requests.
@@ -66,7 +75,10 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/jobs/status", { signal: controller.signal });
       if (res.ok) {
         const data = await res.json();
-        setJobs(data.jobs ?? []);
+        const next: PolledJob[] = data.jobs ?? [];
+        // Polls usually return the same list; keeping the old array avoids
+        // re-rendering every consumer (the whole workspace) every 2.5s.
+        setJobs((prev) => (sameJobs(prev, next) ? prev : next));
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -120,8 +132,10 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [jobs, fetchJobs]);
 
+  const value = useMemo(() => ({ jobs, loading, refetch: fetchJobs }), [jobs, loading, fetchJobs]);
+
   return (
-    <JobPollingContext.Provider value={{ jobs, loading, refetch: fetchJobs }}>
+    <JobPollingContext.Provider value={value}>
       {children}
     </JobPollingContext.Provider>
   );
