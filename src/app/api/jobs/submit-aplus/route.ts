@@ -4,6 +4,7 @@ import { CreditError } from "@/lib/credits/engine";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { validateImageUrl, autoCreateProject } from "@/lib/jobs/api-helpers";
+import { checkProjectOwnership, projectCheckResponse } from "@/lib/jobs/project-ownership";
 import { APLUS_SCENES, getScenePrompt, APLUS_TOTAL_CREDITS } from "@/lib/fal/aplus-scenes";
 import { preflightAplusImage } from "@/lib/jobs/orchestrate";
 import { ImagePreflightError, imagePreflightErrorBody, type ImageFactsCache } from "@/lib/media/image-preflight";
@@ -39,6 +40,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { imageUrl, projectId } = body;
+
+  if (projectId !== undefined) {
+    const check = await checkProjectOwnership(supabase, projectId, user.id);
+    if (check !== "ok") {
+      const { body: errorBody, status } = projectCheckResponse(check);
+      return NextResponse.json(errorBody, { status });
+    }
+  }
 
   // Validate image URL
   const urlError = validateImageUrl(imageUrl);

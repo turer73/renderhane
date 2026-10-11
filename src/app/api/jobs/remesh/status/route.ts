@@ -1,6 +1,7 @@
 import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { verifyRemeshToken } from "@/lib/jobs/remesh-token";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -12,6 +13,10 @@ export async function GET(request: NextRequest) {
   const requestId = request.nextUrl.searchParams.get("requestId");
   if (!requestId) {
     return NextResponse.json({ error: "requestId required" }, { status: 400 });
+  }
+  // Only the user who started this remesh may read it (token from POST /api/jobs/remesh).
+  if (!verifyRemeshToken(user.id, requestId, request.nextUrl.searchParams.get("token"))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {

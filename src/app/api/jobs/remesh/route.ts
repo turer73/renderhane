@@ -1,6 +1,7 @@
 import { getAIProvider } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { createRemeshToken } from "@/lib/jobs/remesh-token";
 import { NextRequest, NextResponse } from "next/server";
 
 // Remeshing can take 15-30s — extend Vercel function timeout
@@ -18,7 +19,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit
-  const rl = await rateLimit(`remesh:${user.id}`, RATE_LIMITS.jobSubmit);
+  // Remesh costs us a fal call but charges no credits: keep it to a few per hour.
+  const rl = await rateLimit(`remesh:${user.id}`, RATE_LIMITS.remesh);
   if (!rl.success) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       requestId: queueResult.requestId,
+      token: createRemeshToken(user.id, queueResult.requestId),
       status: "processing",
     });
   } catch (error) {

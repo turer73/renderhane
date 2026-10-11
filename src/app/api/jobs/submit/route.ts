@@ -7,6 +7,7 @@ import type { ToolType, ModelTier } from "@/lib/fal/models";
 import { validateJobSubmit } from "@/lib/validations/job-submit";
 import { autoCreateProject } from "@/lib/jobs/api-helpers";
 import { refreshSignedUrl } from "@/lib/supabase/refresh-url";
+import { checkProjectOwnership, projectCheckResponse } from "@/lib/jobs/project-ownership";
 import { getSelectionImageInputLimits } from "@/lib/media/image-input-contract";
 import {
   ImagePreflightError,
@@ -60,6 +61,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { tool, tier, modelKey, projectId, prompt, autoEnhance, skipBgRemove, extraParams, promptContext } = parsed.data;
+
+  if (projectId) {
+    const check = await checkProjectOwnership(supabase, projectId, user.id);
+    if (check !== "ok") {
+      const { body, status } = projectCheckResponse(check);
+      return NextResponse.json(body, { status });
+    }
+  }
 
   // Uploads are signed for an hour and the workspace keeps them for retries and
   // variations. Re-sign the user's own uploads (storage RLS limits signing to
