@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { proxyUrl } from "@/lib/proxy-url";
 import { DownloadMenu } from "@/components/app/download-menu";
+import { useLocaleText } from "@/hooks/use-locale-text";
 
 /* Lazy-load 3D thumbnail — only when GLB outputs exist */
 const ModelThumbnail = dynamic(
@@ -101,23 +102,23 @@ const FILTER_TABS: {
   { key: "design", labelKey: "filterDesign", icon: Palette },
 ];
 
-/** Human-readable tool names (Turkish) */
-const TOOL_LABELS: Record<string, string> = {
-  "3d-model": "3D Model",
-  "bg-remove": "Arka Plan Kaldır",
-  enhance: "Görsel İyileştir",
-  "text-to-image": "AI Görsel",
-  "image-edit": "Görsel Düzenle",
-  "object-removal": "Nesne Sil",
-  inpainting: "Inpainting",
-  video: "Video",
-  "talking-avatar": "Konuşan Avatar",
-  scene: "Sahne Üret",
-  aplus: "A+ İçerik",
-  "virtual-tryon": "Kıyafet Giydirme",
-  logo: "Logo Üret",
-  "qr-code": "QR Kod",
-  "social-kit": "Sosyal Kit",
+/** Human-readable tool names (TR/EN) */
+const TOOL_LABELS: Record<string, { tr: string; en: string }> = {
+  "3d-model": { tr: "3D Model", en: "3D Model" },
+  "bg-remove": { tr: "Arka Plan Kaldır", en: "Remove Background" },
+  enhance: { tr: "Görsel İyileştir", en: "Enhance Image" },
+  "text-to-image": { tr: "AI Görsel", en: "AI Image" },
+  "image-edit": { tr: "Görsel Düzenle", en: "Edit Image" },
+  "object-removal": { tr: "Nesne Sil", en: "Remove Object" },
+  inpainting: { tr: "Inpainting", en: "Inpainting" },
+  video: { tr: "Video", en: "Video" },
+  "talking-avatar": { tr: "Konuşan Avatar", en: "Talking Avatar" },
+  scene: { tr: "Sahne Üret", en: "Generate Scene" },
+  aplus: { tr: "A+ İçerik", en: "A+ Content" },
+  "virtual-tryon": { tr: "Kıyafet Giydirme", en: "Virtual Try-On" },
+  logo: { tr: "Logo Üret", en: "Generate Logo" },
+  "qr-code": { tr: "QR Kod", en: "QR Code" },
+  "social-kit": { tr: "Sosyal Kit", en: "Social Kit" },
 };
 
 // ────────────────────────────────────────────
@@ -143,6 +144,12 @@ export function OutputCatalog({ outputs: initialOutputs, locale }: OutputCatalog
   const t = useTranslations("projects");
   const params = useParams<{ locale: string }>();
   const loc = params.locale || locale;
+  const l = useLocaleText();
+
+  function toolLabelFor(tool: string): string {
+    const label = TOOL_LABELS[tool];
+    return label ? l(label.tr, label.en) : tool;
+  }
 
   // State
   const [outputs, setOutputs] = useState(initialOutputs);
@@ -345,7 +352,7 @@ export function OutputCatalog({ outputs: initialOutputs, locale }: OutputCatalog
         {filteredOutputs.map((output) => {
           const url = getOutputUrl(output);
           const category = TOOL_TO_CATEGORY[output.tool] ?? "design";
-          const toolLabel = TOOL_LABELS[output.tool] ?? output.tool;
+          const toolLabel = toolLabelFor(output.tool);
 
           return (
             <Card
@@ -502,7 +509,7 @@ export function OutputCatalog({ outputs: initialOutputs, locale }: OutputCatalog
                   {deleteTarget.projectName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {TOOL_LABELS[deleteTarget.tool] ?? deleteTarget.tool} &middot;{" "}
+                  {toolLabelFor(deleteTarget.tool)} &middot;{" "}
                   {formatDate(deleteTarget.createdAt)}
                 </p>
               </div>

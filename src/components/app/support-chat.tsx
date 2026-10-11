@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { useLocaleText } from "@/hooks/use-locale-text";
 
 interface SupportChatProps {
   userId: string;
@@ -22,6 +23,7 @@ export function SupportChat({ userId, className }: SupportChatProps) {
     credits,
     fetchCredits,
   } = useSupportAgent({ userId });
+  const l = useLocaleText();
 
   const [input, setInput] = useState("");
 
@@ -39,11 +41,11 @@ export function SupportChat({ userId, className }: SupportChatProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            💬 Destek Asistanı
+            💬 {l("Destek Asistanı", "Support Assistant")}
           </CardTitle>
           {credits !== null && (
             <Badge variant="secondary">
-              Kredi: {credits}
+              {l("Kredi", "Credits")}: {credits}
             </Badge>
           )}
         </div>
@@ -69,7 +71,7 @@ export function SupportChat({ userId, className }: SupportChatProps) {
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   <span className="text-xs opacity-70 mt-1 block">
-                    {message.timestamp.toLocaleTimeString("tr-TR", {
+                    {message.timestamp.toLocaleTimeString(l("tr-TR", "en-US"), {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
@@ -97,12 +99,12 @@ export function SupportChat({ userId, className }: SupportChatProps) {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Mesajınızı yazın..."
+            placeholder={l("Mesajınızı yazın...", "Type your message...")}
             disabled={isLoading}
             className="flex-1"
           />
           <Button type="submit" disabled={isLoading || !input.trim()}>
-            Gönder
+            {l("Gönder", "Send")}
           </Button>
         </form>
 
@@ -113,14 +115,14 @@ export function SupportChat({ userId, className }: SupportChatProps) {
             size="sm"
             onClick={fetchCredits}
           >
-            🔄 Kredi Kontrol
+            🔄 {l("Kredi Kontrol", "Check Credits")}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={clearConversation}
           >
-            🗑️ Temizle
+            🗑️ {l("Temizle", "Clear")}
           </Button>
         </div>
       </CardContent>

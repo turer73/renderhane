@@ -135,7 +135,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     },
     {
       href: `/${locale}/app`,
-      label: "Uygulamaya Dön",
+      label: locale === "tr" ? "Uygulamaya Dön" : "Back to App",
       icon: ArrowLeft,
 
     },

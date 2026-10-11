@@ -15,6 +15,7 @@ import { showToast } from "./workspace-toast";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Settings2, LayoutGrid, Sparkles, X } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useLocaleText, pickLocaleText } from "@/hooks/use-locale-text";
 
 export interface GenerationJob {
   id: string;
@@ -51,11 +52,10 @@ function useIsDesktop(): boolean | null {
 }
 
 function getStageLabel(status: string, locale: string): string {
-  const isTr = locale === "tr";
-  if (status === "completed") return isTr ? "Tamamlandı" : "Completed";
-  if (status === "failed") return isTr ? "Başarısız" : "Failed";
-  if (status === "pending") return isTr ? "Kuyrukta bekliyor" : "Waiting in queue";
-  return isTr ? "Üretim devam ediyor" : "Generation in progress";
+  if (status === "completed") return pickLocaleText(locale, "Tamamlandı", "Completed");
+  if (status === "failed") return pickLocaleText(locale, "Başarısız", "Failed");
+  if (status === "pending") return pickLocaleText(locale, "Kuyrukta bekliyor", "Waiting in queue");
+  return pickLocaleText(locale, "Üretim devam ediyor", "Generation in progress");
 }
 
 interface WorkspaceLayoutProps {
@@ -74,6 +74,7 @@ export function WorkspaceLayout({
 }: WorkspaceLayoutProps) {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "tr";
+  const l = useLocaleText();
   // Only the visible layout stays mounted: two copies of the form, preview and
   // 3D viewer (one hidden by CSS) doubled every render and WebGL loop.
   const isDesktop = useIsDesktop();
@@ -109,11 +110,11 @@ export function WorkspaceLayout({
   // Notify on completion
   useEffect(() => {
     if (polledJob?.status === "completed") {
-      showToast("Üretim tamamlandı!", "success");
+      showToast(l("Üretim tamamlandı!", "Generation complete!"), "success");
     } else if (polledJob?.status === "failed") {
-      showToast(polledJob.error_message || "Üretim başarısız oldu", "error");
+      showToast(polledJob.error_message || l("Üretim başarısız oldu", "Generation failed"), "error");
     }
-  }, [polledJob?.status, polledJob?.error_message]);
+  }, [polledJob?.status, polledJob?.error_message, l]);
 
   // Build GenerationJob from polled data + local meta
   const activeJob: GenerationJob | null = polledJob && activeJobMeta ? {
@@ -131,12 +132,12 @@ export function WorkspaceLayout({
     errorMessage: polledJob.error_message,
   } : submitting ? {
     id: "submitting",
-    name: activeJobMeta?.name ?? "Yeni Proje",
+    name: activeJobMeta?.name ?? l("Yeni Proje", "New Project"),
     model: activeJobMeta?.model ?? "",
     credits: 0,
     status: "pending",
     progress: 0,
-    stage: "İş gönderiliyor...",
+    stage: l("İş gönderiliyor...", "Submitting job..."),
     thumbnail: null,
     outputUrl: null,
     outputType: null,
@@ -182,19 +183,19 @@ export function WorkspaceLayout({
 
       if (res.status === 402) {
         window.dispatchEvent(new CustomEvent("show-upgrade"));
-        showToast("Yetersiz kredi. Lütfen kredi satın al.", "error");
+        showToast(l("Yetersiz kredi. Lütfen kredi satın al.", "Insufficient credits. Please buy credits."), "error");
         clearFailedSubmission();
         return;
       }
 
       if (res.status === 429) {
-        showToast("Çok hızlı! Lütfen biraz bekle.", "error");
+        showToast(l("Çok hızlı! Lütfen biraz bekle.", "Too fast! Please wait a moment."), "error");
         clearFailedSubmission();
         return;
       }
 
       if (!res.ok) {
-        let errorText = "Üretim başlatılamadı. Tekrar dene.";
+        let errorText = l("Üretim başlatılamadı. Tekrar dene.", "Could not start generation. Try again.");
         let errBody: { error?: unknown; code?: unknown; issues?: unknown } | null = null;
         try {
           errBody = await res.json();
@@ -232,12 +233,12 @@ export function WorkspaceLayout({
       // Trigger credit refresh + polling refetch
       window.dispatchEvent(new Event("job-submitted"));
       refetch();
-      showToast("Üretim başlatıldı!", "success");
+      showToast(l("Üretim başlatıldı!", "Generation started!"), "success");
     } catch {
-      showToast("Bağlantı hatası. İnterneti kontrol et.", "error");
+      showToast(l("Bağlantı hatası. İnterneti kontrol et.", "Connection error. Check your internet."), "error");
       clearFailedSubmission();
     }
-  }, [activeJobMeta, refetch]);
+  }, [activeJobMeta, refetch, l]);
 
   const handleStart = useCallback(() => {
     if (window.matchMedia(DESKTOP_QUERY).matches) {
@@ -264,7 +265,7 @@ export function WorkspaceLayout({
   /** Re-run the last successful job with the same parameters (1x). */
   const handleRetry = useCallback(async () => {
     if (!lastPayload) {
-      showToast("Önce bir üretim tamamla", "info");
+      showToast(l("Önce bir üretim tamamla", "Complete a generation first"), "info");
       return;
     }
     if (retryInFlightRef.current) return;
@@ -277,27 +278,30 @@ export function WorkspaceLayout({
       retryInFlightRef.current = false;
       setRetrying(false);
     }
-  }, [lastPayload, handleGenerate]);
+  }, [lastPayload, handleGenerate, l]);
 
   /** Submit 3 parallel variations of the last successful job (different seeds). */
   const handleVariation = useCallback(async () => {
     if (!lastPayload) {
-      showToast("Önce bir üretim tamamla", "info");
+      showToast(l("Önce bir üretim tamamla", "Complete a generation first"), "info");
       return;
     }
     const cost = lastPayload.credits * 3;
     const ok = window.confirm(
-      `3 varyasyon üretilecek (toplam ${cost} kredi). Her biri farklı bir sonuç verecek. Devam edilsin mi?`
+      l(
+        `3 varyasyon üretilecek (toplam ${cost} kredi). Her biri farklı bir sonuç verecek. Devam edilsin mi?`,
+        `3 variations will be generated (${cost} credits total). Each will give a different result. Continue?`
+      )
     );
     if (!ok) return;
 
-    showToast(`${cost} kredi ile 3 varyasyon başlatılıyor...`, "info");
+    showToast(l(`${cost} kredi ile 3 varyasyon başlatılıyor...`, `Starting 3 variations for ${cost} credits...`), "info");
     // Stagger 200ms apart to avoid burst rate limit, but still mostly parallel.
     for (let i = 0; i < 3; i++) {
       if (i > 0) await new Promise((r) => setTimeout(r, 200));
       handleGenerate(lastPayload);
     }
-  }, [lastPayload, handleGenerate]);
+  }, [lastPayload, handleGenerate, l]);
 
   return (
     <>
@@ -307,14 +311,14 @@ export function WorkspaceLayout({
         <div className="flex items-start gap-2">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-foreground">{locale === "tr" ? "AI hazırladı" : "Prepared by AI"}</p>
+            <p className="text-[11px] font-semibold text-foreground">{l("AI hazırladı", "Prepared by AI")}</p>
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-3">{smartPrompt}</p>
           </div>
           <button
             type="button"
             onClick={() => setSmartPrompt(null)}
             className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Kapat"
+            aria-label={l("Kapat", "Close")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -340,7 +344,7 @@ export function WorkspaceLayout({
         >
           <div className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{locale === "tr" ? "Ayarlar" : "Settings"}</span>
+            <span className="text-sm font-medium">{l("Ayarlar", "Settings")}</span>
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileFormOpen && "rotate-180")} />
         </button>
@@ -370,7 +374,7 @@ export function WorkspaceLayout({
         >
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{locale === "tr" ? "Galeri" : "Gallery"}</span>
+            <span className="text-sm font-medium">{l("Galeri", "Gallery")}</span>
           </div>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", mobileGalleryOpen && "rotate-180")} />
         </button>

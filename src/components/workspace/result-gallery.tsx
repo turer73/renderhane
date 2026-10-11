@@ -34,6 +34,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { DownloadMenu } from "@/components/app/download-menu";
+import { useLocaleText, pickLocaleText } from "@/hooks/use-locale-text";
 
 // Three.js only loads when a 3D result is opened, not with the workspace.
 const ModelViewer = dynamic(
@@ -147,25 +148,30 @@ const API_TOOL_TO_CATEGORY: Record<string, string> = {
   "social-kit": "ecommerce",
 };
 
-/** Human-readable tool display names */
-const TOOL_DISPLAY_NAMES: Record<string, string> = {
-  "3d-model": "3D Model",
-  "bg-remove": "Arka Plan Kaldır",
-  "enhance": "Görsel İyileştir",
-  "text-to-image": "AI Görsel",
-  "image-edit": "Görsel Düzenle",
-  "object-removal": "Nesne Sil",
-  "inpainting": "Inpainting",
-  "video": "Video",
-  "talking-avatar": "Konuşan Avatar",
-  "srt-voiceover": "SRT Seslendirme",
-  "scene": "Sahne Üret",
-  "aplus": "A+ İçerik",
-  "virtual-tryon": "Kıyafet Giydirme",
-  "logo": "Logo Üret",
-  "qr-code": "QR Kod",
-  "social-kit": "Sosyal Kit",
+/** Human-readable tool display names (TR/EN) */
+const TOOL_DISPLAY_NAMES: Record<string, { tr: string; en: string }> = {
+  "3d-model": { tr: "3D Model", en: "3D Model" },
+  "bg-remove": { tr: "Arka Plan Kaldır", en: "Remove Background" },
+  "enhance": { tr: "Görsel İyileştir", en: "Enhance Image" },
+  "text-to-image": { tr: "AI Görsel", en: "AI Image" },
+  "image-edit": { tr: "Görsel Düzenle", en: "Edit Image" },
+  "object-removal": { tr: "Nesne Sil", en: "Remove Object" },
+  "inpainting": { tr: "Inpainting", en: "Inpainting" },
+  "video": { tr: "Video", en: "Video" },
+  "talking-avatar": { tr: "Konuşan Avatar", en: "Talking Avatar" },
+  "srt-voiceover": { tr: "SRT Seslendirme", en: "SRT Voiceover" },
+  "scene": { tr: "Sahne Üret", en: "Generate Scene" },
+  "aplus": { tr: "A+ İçerik", en: "A+ Content" },
+  "virtual-tryon": { tr: "Kıyafet Giydirme", en: "Virtual Try-On" },
+  "logo": { tr: "Logo Üret", en: "Generate Logo" },
+  "qr-code": { tr: "QR Kod", en: "QR Code" },
+  "social-kit": { tr: "Sosyal Kit", en: "Social Kit" },
 };
+
+function toolDisplayName(tool: string, locale: string): string {
+  const name = TOOL_DISPLAY_NAMES[tool];
+  return name ? pickLocaleText(locale, name.tr, name.en) : tool;
+}
 
 /** Map raw fal.ai model_id (DB) to friendly display name */
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
@@ -232,20 +238,21 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "fal-ai/heygen/v3/lipsync/precision": "HeyGen Lip-Sync",
 };
 
-function getModelDisplayName(modelId: string | undefined, tool: string): string {
+function getModelDisplayName(modelId: string | undefined, tool: string, locale: string): string {
   if (modelId && MODEL_DISPLAY_NAMES[modelId]) return MODEL_DISPLAY_NAMES[modelId];
-  return TOOL_DISPLAY_NAMES[tool] ?? tool;
+  return toolDisplayName(tool, locale);
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs} sn önce`;
+  if (secs < 60) return pickLocaleText(locale, `${secs} sn önce`, `${secs}s ago`);
   const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins} dk önce`;
+  if (mins < 60) return pickLocaleText(locale, `${mins} dk önce`, `${mins}m ago`);
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} sa önce`;
-  return `${Math.floor(hours / 24)} gün önce`;
+  if (hours < 24) return pickLocaleText(locale, `${hours} sa önce`, `${hours}h ago`);
+  const days = Math.floor(hours / 24);
+  return pickLocaleText(locale, `${days} gün önce`, `${days}d ago`);
 }
 
 interface ResultGalleryProps {
@@ -260,6 +267,7 @@ const GALLERY_LIMIT = 3;
 export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefetch }: ResultGalleryProps) {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "tr";
+  const l = useLocaleText();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewJob, setPreviewJob] = useState<GalleryJob | null>(null);
@@ -290,14 +298,14 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
 
       return {
         id: j.id,
-        name: TOOL_DISPLAY_NAMES[j.tool] ?? j.tool,
+        name: toolDisplayName(j.tool, locale),
         status: j.status === "completed" ? "completed" as const
              : j.status === "failed" ? "failed" as const
              : "processing" as const,
         thumbnails: [thumbUrl],
-        createdAt: timeAgo(j.created_at),
+        createdAt: timeAgo(j.created_at, locale),
         credits: j.credit_cost,
-        model: getModelDisplayName(j.model_id, j.tool),
+        model: getModelDisplayName(j.model_id, j.tool, locale),
         progress: undefined,
         outputUrl: j.output_url,
         outputType: j.output_type,
@@ -311,7 +319,10 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
   const hiddenCount = filteredJobs.length - visibleJobs.length;
 
   // Tool-specific labels
-  const label = activeTool === "image" || activeTool === "ecommerce" ? "görsel" : activeTool === "video" ? "video" : activeTool === "design" ? "tasarım" : activeTool === "batch" ? "iş" : activeTool === "3d-model" ? "proje" : "öğe";
+  const labelTr = activeTool === "image" || activeTool === "ecommerce" ? "görsel" : activeTool === "video" ? "video" : activeTool === "design" ? "tasarım" : activeTool === "batch" ? "iş" : activeTool === "3d-model" ? "proje" : "öğe";
+  const labelEn = activeTool === "image" || activeTool === "ecommerce" ? ["image", "images"] : activeTool === "video" ? ["video", "videos"] : activeTool === "design" ? ["design", "designs"] : activeTool === "batch" ? ["job", "jobs"] : activeTool === "3d-model" ? ["project", "projects"] : ["item", "items"];
+  /** "<n> <noun>" — Turkish keeps the noun singular, English pluralizes. */
+  const countLabel = (n: number) => l(`${n} ${labelTr}`, `${n} ${n === 1 ? labelEn[0] : labelEn[1]}`);
 
   // Empty state for tools with no jobs
   if (jobs.length === 0) {
@@ -322,8 +333,8 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
             <ImageIcon className="h-6 w-6 text-primary/50" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Henüz sonuç yok</p>
-            <p className="text-xs text-muted-foreground/60">Bu araçla üretim yaptığında sonuçlar burada görünecek.</p>
+            <p className="text-sm font-medium text-muted-foreground">{l("Henüz sonuç yok", "No results yet")}</p>
+            <p className="text-xs text-muted-foreground/60">{l("Bu araçla üretim yaptığında sonuçlar burada görünecek.", "Results will appear here once you generate with this tool.")}</p>
           </div>
         </div>
       </div>
@@ -337,13 +348,13 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder={`${jobs.length} ${label} içinde ara...`}
+            placeholder={l(`${jobs.length} ${labelTr} içinde ara...`, `Search ${countLabel(jobs.length)}...`)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-8 pl-8 text-sm bg-background/50"
           />
         </div>
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">{filteredJobs.length} {label}</span>
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">{countLabel(filteredJobs.length)}</span>
       </div>
 
       {/* View toggle */}
@@ -384,12 +395,12 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                   {job.status === "processing" && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 gap-1">
                       <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                      İşleniyor
+                      {l("İşleniyor", "Processing")}
                     </Badge>
                   )}
                   {job.status === "failed" && (
                     <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-                      Başarısız
+                      {l("Başarısız", "Failed")}
                     </Badge>
                   )}
                 </div>
@@ -427,7 +438,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                       <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
                     )}
                     {isJobAudio && (
-                      <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">SES</div>
+                      <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">{l("SES", "AUDIO")}</div>
                     )}
                     {isJobVideo && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -471,7 +482,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               {job.status === "processing" && (
                 <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground" role="status" aria-live="polite">
                   <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                  <span>{activeTool === "image" || activeTool === "ecommerce" ? "Görsel oluşturuluyor..." : activeTool === "video" ? "Video oluşturuluyor..." : activeTool === "design" ? "Tasarım oluşturuluyor..." : activeTool === "batch" ? "Toplu işlem devam ediyor..." : "3D model oluşturuluyor..."}</span>
+                  <span>{activeTool === "image" || activeTool === "ecommerce" ? l("Görsel oluşturuluyor...", "Generating image...") : activeTool === "video" ? l("Video oluşturuluyor...", "Generating video...") : activeTool === "design" ? l("Tasarım oluşturuluyor...", "Generating design...") : activeTool === "batch" ? l("Toplu işlem devam ediyor...", "Batch job in progress...") : l("3D model oluşturuluyor...", "Generating 3D model...")}</span>
                   {job.progress != null && (
                     <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
                       <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${job.progress}%` }} />
@@ -486,7 +497,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                   <span className="text-border">•</span>
                   <span>{job.model}</span>
                 </div>
-                <span>{job.credits} kredi</span>
+                <span>{l(`${job.credits} kredi`, `${job.credits} credits`)}</span>
               </div>
             </div>
           ) : (
@@ -517,7 +528,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     <Loader2 className="h-3 w-3 animate-spin text-primary flex-none" />
                   )}
                   {job.status === "failed" && (
-                    <Badge variant="destructive" className="text-[9px] px-1 py-0 h-3.5 flex-none">Hata</Badge>
+                    <Badge variant="destructive" className="text-[9px] px-1 py-0 h-3.5 flex-none">{l("Hata", "Error")}</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
@@ -528,7 +539,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               </div>
 
               <div className="flex items-center gap-2 flex-none">
-                <span className="text-[10px] text-muted-foreground">{job.credits} kr</span>
+                <span className="text-[10px] text-muted-foreground">{l(`${job.credits} kr`, `${job.credits} cr`)}</span>
                 {job.status === "completed" && (job.outputUrl ?? job.thumbnails[0]) && (
                   job.outputType === "audio" || (job.outputUrl?.includes(".mp3") ?? false) ? (
                     <Button
@@ -561,14 +572,16 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
       {/* Footer */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-border text-[10px] text-muted-foreground">
         <span>
-          {hiddenCount > 0 ? `Son ${visibleJobs.length} / ${filteredJobs.length} ${label}` : `${filteredJobs.length} ${label}`}
+          {hiddenCount > 0
+            ? l(`Son ${visibleJobs.length} / ${filteredJobs.length} ${labelTr}`, `Latest ${visibleJobs.length} of ${countLabel(filteredJobs.length)}`)
+            : countLabel(filteredJobs.length)}
         </span>
         {hiddenCount > 0 ? (
           <Link href={`/${locale}/app/projects`} className="font-medium text-primary hover:underline">
-            Tümünü gör →
+            {l("Tümünü gör →", "View all →")}
           </Link>
         ) : (
-          <span>Toplam {filteredJobs.reduce((s, j) => s + j.credits, 0)} kredi</span>
+          <span>{l(`Toplam ${filteredJobs.reduce((s, j) => s + j.credits, 0)} kredi`, `Total ${filteredJobs.reduce((s, j) => s + j.credits, 0)} credits`)}</span>
         )}
       </div>
 
@@ -580,6 +593,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
 
 /** Full-screen preview overlay — video/image/3D */
 function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }) {
+  const l = useLocaleText();
   const url = job.outputUrl;
   if (!url) return null;
 
@@ -615,7 +629,7 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
             className="h-8 text-xs"
             onClick={() => void downloadFile(url, `${job.name.replace(/\s+/g, "_")}.${getFileExt(url)}`)}
           >
-            <Download className="h-3.5 w-3.5 mr-1.5" /> Sesi indir
+            <Download className="h-3.5 w-3.5 mr-1.5" /> {l("Sesi indir", "Download audio")}
           </Button>
         ) : (
           <DownloadMenu
@@ -644,7 +658,10 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
             {/* Native audio element — no proxy needed for playback */}
             <audio src={url} controls autoPlay className="w-72 max-w-[80vw]" />
             <p className="max-w-xs text-xs text-white/60 leading-relaxed">
-              Kayıtlı ses dosyası. Eski replik-bazlı kayıtlarda yalnızca ilk replik bulunur.
+              {l(
+                "Kayıtlı ses dosyası. Eski replik-bazlı kayıtlarda yalnızca ilk replik bulunur.",
+                "Saved audio file. Older per-line recordings contain only the first line."
+              )}
             </p>
           </div>
         ) : isGlb ? (
@@ -669,27 +686,28 @@ function PreviewModal({ job, onClose }: { job: GalleryJob; onClose: () => void }
 
 /* ═══ Shared dropdown menu ═══ */
 function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch?: () => void; onPreview?: (job: GalleryJob) => void }) {
+  const l = useLocaleText();
   const url = job.outputUrl ?? job.thumbnails[0];
   const hasOutput = job.status === "completed" && !!url;
 
   const handleDownload = async () => {
-    if (!url) { showToast("İndirilebilir dosya yok", "error"); return; }
-    showToast("İndirme başlatıldı", "success");
+    if (!url) { showToast(l("İndirilebilir dosya yok", "No file to download"), "error"); return; }
+    showToast(l("İndirme başlatıldı", "Download started"), "success");
     await downloadFile(url, `${job.name.replace(/\s+/g, "_")}.${getFileExt(url)}`);
   };
 
   const handleCopyLink = async () => {
-    if (!url) { showToast("Kopyalanacak link yok", "error"); return; }
+    if (!url) { showToast(l("Kopyalanacak link yok", "No link to copy"), "error"); return; }
     try {
       await navigator.clipboard.writeText(url);
-      showToast("Link kopyalandı", "success");
+      showToast(l("Link kopyalandı", "Link copied"), "success");
     } catch {
-      showToast("Link kopyalanamadı", "error");
+      showToast(l("Link kopyalanamadı", "Could not copy link"), "error");
     }
   };
 
   const handlePreview = () => {
-    if (!url) { showToast("Önizlenecek dosya yok", "error"); return; }
+    if (!url) { showToast(l("Önizlenecek dosya yok", "No file to preview"), "error"); return; }
     if (onPreview) {
       onPreview(job);
     } else {
@@ -698,7 +716,7 @@ function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch
   };
 
   const handleShare = async () => {
-    if (!url) { showToast("Paylaşılacak dosya yok", "error"); return; }
+    if (!url) { showToast(l("Paylaşılacak dosya yok", "No file to share"), "error"); return; }
     // Web Share API (mobile-friendly)
     if (navigator.share) {
       try {
@@ -711,9 +729,9 @@ function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch
     // Fallback: copy to clipboard
     try {
       await navigator.clipboard.writeText(url);
-      showToast("Link panoya kopyalandı", "success");
+      showToast(l("Link panoya kopyalandı", "Link copied to clipboard"), "success");
     } catch {
-      showToast("Paylaşım başarısız", "error");
+      showToast(l("Paylaşım başarısız", "Sharing failed"), "error");
     }
   };
 
@@ -722,36 +740,36 @@ function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch
       const res = await fetch(`/api/jobs/${job.id}/regenerate`, { method: "POST" });
       if (res.status === 402) {
         window.dispatchEvent(new CustomEvent("show-upgrade"));
-        showToast("Yetersiz kredi", "error");
+        showToast(l("Yetersiz kredi", "Insufficient credits"), "error");
         return;
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        showToast(body?.error ?? "Yeniden üretim başarısız", "error");
+        showToast(body?.error ?? l("Yeniden üretim başarısız", "Regeneration failed"), "error");
         return;
       }
-      showToast("Yeniden üretim başlatıldı!", "success");
+      showToast(l("Yeniden üretim başlatıldı!", "Regeneration started!"), "success");
       window.dispatchEvent(new Event("job-submitted"));
       onRefetch?.();
     } catch {
-      showToast("Bağlantı hatası", "error");
+      showToast(l("Bağlantı hatası", "Connection error"), "error");
     }
   };
 
   const handleDelete = async () => {
     // Deleting removes the job and its output for good; one menu click was enough before.
-    if (!window.confirm("Bu proje ve çıktısı kalıcı olarak silinsin mi?")) return;
+    if (!window.confirm(l("Bu proje ve çıktısı kalıcı olarak silinsin mi?", "Permanently delete this project and its output?"))) return;
     try {
       const res = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        showToast(body?.error ?? "Silme başarısız", "error");
+        showToast(body?.error ?? l("Silme başarısız", "Delete failed"), "error");
         return;
       }
-      showToast("Proje silindi", "success");
+      showToast(l("Proje silindi", "Project deleted"), "success");
       onRefetch?.();
     } catch {
-      showToast("Bağlantı hatası", "error");
+      showToast(l("Bağlantı hatası", "Connection error"), "error");
     }
   };
 
@@ -764,23 +782,23 @@ function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={handlePreview} disabled={!hasOutput}>
-          <Eye className="h-3.5 w-3.5 mr-2" />Önizle
+          <Eye className="h-3.5 w-3.5 mr-2" />{l("Önizle", "Preview")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownload} disabled={!hasOutput}>
-          <Download className="h-3.5 w-3.5 mr-2" />İndir
+          <Download className="h-3.5 w-3.5 mr-2" />{l("İndir", "Download")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopyLink} disabled={!hasOutput}>
-          <Copy className="h-3.5 w-3.5 mr-2" />Linki Kopyala
+          <Copy className="h-3.5 w-3.5 mr-2" />{l("Linki Kopyala", "Copy Link")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleShare} disabled={!hasOutput}>
-          <Share2 className="h-3.5 w-3.5 mr-2" />Paylaş
+          <Share2 className="h-3.5 w-3.5 mr-2" />{l("Paylaş", "Share")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleRegenerate}>
-          <RefreshCw className="h-3.5 w-3.5 mr-2" />Yeniden Üret
+          <RefreshCw className="h-3.5 w-3.5 mr-2" />{l("Yeniden Üret", "Regenerate")}
         </DropdownMenuItem>
         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete} disabled={job.status === "processing"}>
-          <Trash2 className="h-3.5 w-3.5 mr-2" />Sil
+          <Trash2 className="h-3.5 w-3.5 mr-2" />{l("Sil", "Delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
