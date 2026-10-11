@@ -41,8 +41,30 @@ interface JobPollingContextValue {
 
 const JobPollingContext = createContext<JobPollingContextValue | null>(null);
 
-/** How often we poll when there are active (pending / processing) jobs. */
-const POLL_INTERVAL_MS = 2500;
+/** Poll every 2.5s while the newest active job is young, when results usually land. */
+const FAST_POLL_MS = 2500;
+const FAST_POLL_FOR_MS = 10 * 60 * 1000;
+/** Long renders are checked every 30s. */
+const SLOW_POLL_MS = 30_000;
+/**
+ * Jobs still pending after 2h are stuck (the stuck-jobs cron only runs daily),
+ * so they stop driving polls. Returning to the tab or submitting still refetches.
+ */
+const STOP_POLL_AFTER_MS = 2 * 60 * 60 * 1000;
+
+/** Delay until the next poll, or null when no job is worth polling for. */
+export function nextPollDelay(jobs: PolledJob[], now: number): number | null {
+  let youngest = Infinity;
+  for (const job of jobs) {
+    if (job.status !== "pending" && job.status !== "processing") continue;
+    const created = Date.parse(job.created_at);
+    // Unparseable timestamps count as new rather than silently stopping polls.
+    const age = Number.isNaN(created) ? 0 : Math.max(0, now - created);
+    youngest = Math.min(youngest, age);
+  }
+  if (youngest === Infinity || youngest >= STOP_POLL_AFTER_MS) return null;
+  return youngest < FAST_POLL_FOR_MS ? FAST_POLL_MS : SLOW_POLL_MS;
+}
 
 function sameJobs(a: PolledJob[], b: PolledJob[]): boolean {
   if (a.length !== b.length) return false;
@@ -117,19 +139,20 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchJobs]);
 
-  // Auto-poll while there are active jobs (only when tab is visible)
+  // Auto-poll while there are active jobs (only when tab is visible). The delay
+  // is recomputed each tick because unchanged polls keep the same jobs array.
   useEffect(() => {
-    const hasActive = jobs.some(
-      (j) => j.status === "pending" || j.status === "processing"
-    );
-    if (!hasActive) return;
-
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        fetchJobs();
-      }
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      const delay = nextPollDelay(jobs, Date.now());
+      if (delay === null) return;
+      timer = setTimeout(() => {
+        if (document.visibilityState === "visible") fetchJobs();
+        schedule();
+      }, delay);
+    };
+    schedule();
+    return () => clearTimeout(timer);
   }, [jobs, fetchJobs]);
 
   const value = useMemo(() => ({ jobs, loading, refetch: fetchJobs }), [jobs, loading, fetchJobs]);
