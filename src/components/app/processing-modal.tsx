@@ -291,7 +291,7 @@ interface ProcessingJob {
 
 export function ProcessingModal() {
   // Shared polling — reads from the same data as JobStatus
-  const { jobs: polledJobs } = useJobPolling();
+  const { jobs: polledJobs, refetch } = useJobPolling();
   const tDash = useTranslations("dashboard");
   const tTools = useTranslations("tools");
   const tProc = useTranslations("processingModal");
@@ -312,6 +312,9 @@ export function ProcessingModal() {
   const confettiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const outputRetries = useRef(0);
+  const outputRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Re-runs the status effect when a retry finds the same (unchanged) job list.
+  const [outputRetryTick, setOutputRetryTick] = useState(0);
 
   const messages =
     tool
@@ -402,7 +405,14 @@ export function ProcessingModal() {
         const withOutput = completedJobs.find((j) => j.output_url) || completedJobs[0];
 
         if (!withOutput.output_url && outputRetries.current < 3) {
+          // Polling stops once no job is active, so ask again ourselves; the
+          // tick re-runs this effect even when the refetch changes nothing.
           outputRetries.current += 1;
+          if (outputRetryTimeoutRef.current) clearTimeout(outputRetryTimeoutRef.current);
+          outputRetryTimeoutRef.current = setTimeout(() => {
+            refetch();
+            setOutputRetryTick((tick) => tick + 1);
+          }, 2000);
           return;
         }
 
@@ -416,7 +426,7 @@ export function ProcessingModal() {
         setState("failed");
       }
     }
-  }, [polledJobs, state, jobId, multiJobIds]);
+  }, [polledJobs, state, jobId, multiJobIds, refetch, outputRetryTick]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Cleanup timeouts on unmount
@@ -424,6 +434,7 @@ export function ProcessingModal() {
     return () => {
       if (confettiTimeoutRef.current) clearTimeout(confettiTimeoutRef.current);
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      if (outputRetryTimeoutRef.current) clearTimeout(outputRetryTimeoutRef.current);
     };
   }, []);
 

@@ -290,6 +290,68 @@ describe("submitJob credit ordering", () => {
     expect(mocks.events.at(-1)).toBe("submit");
   });
 
+  it("bounds paid preprocessing so a slow model cannot use up the request", async () => {
+    await submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      imageUrls: ["https://cdn.example/a.png"],
+      autoEnhance: true,
+    });
+
+    for (const endpoint of ["fal-ai/birefnet/v2", "fal-ai/aura-sr"]) {
+      expect(mocks.subscribe).toHaveBeenCalledWith(endpoint, expect.anything(), expect.objectContaining({ timeoutMs: 15_000 }));
+    }
+  });
+
+  it("falls back to the original image when preprocessing times out", async () => {
+    mocks.subscribe.mockRejectedValue(new Error("Client timed out waiting for the request to complete after 15000ms"));
+    const result = await submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      imageUrls: ["https://cdn.example/a.png"],
+    });
+
+    expect(result.jobId).toBe("job-1");
+    expect(mocks.events.at(-1)).toBe("submit");
+  });
+
+  it("leaves no failed job behind when the balance is too low", async () => {
+    const supabase = createSupabaseMock();
+    const deleted: Array<{ method: string; args: unknown[] }> = [];
+    const baseFrom = supabase.from;
+    supabase.from = vi.fn(() => {
+      const builder = baseFrom() as Record<string, unknown>;
+      builder.delete = vi.fn(() => {
+        const chain: Record<string, unknown> & PromiseLike<{ error: null }> = {
+          then: (onFulfilled, onRejected) => Promise.resolve({ error: null }).then(onFulfilled, onRejected),
+        };
+        for (const method of ["eq", "is"]) {
+          chain[method] = vi.fn((...args: unknown[]) => { deleted.push({ method, args }); return chain; });
+        }
+        return chain;
+      });
+      return builder;
+    }) as typeof supabase.from;
+    mocks.createAdminClient.mockReturnValue(supabase);
+    const insufficient = Object.assign(new Error("Insufficient credits"), { name: "CreditError", code: "INSUFFICIENT" });
+    mocks.reserveCredits.mockRejectedValueOnce(insufficient);
+
+    await expect(submitJob({
+      userId: "user-1",
+      tool: "3d-model",
+      modelKey: "meshy-v71",
+      imageUrl: "https://cdn.example/source.png",
+    })).rejects.toBe(insufficient);
+
+    expect(deleted).toEqual([
+      { method: "eq", args: ["id", "job-1"] },
+      { method: "eq", args: ["status", "pending"] },
+      { method: "is", args: ["credit_tx_id", null] },
+    ]);
+    expect(mocks.failJobAndRefund).not.toHaveBeenCalled();
+    expect(mocks.events).not.toContain("subscribe:fal-ai/birefnet/v2");
+  });
+
   it("atomically fails a talking-avatar TTS result with no audio output", async () => {
     mocks.subscribe.mockImplementationOnce(async (modelId) => {
       mocks.events.push(`subscribe:${modelId}`);

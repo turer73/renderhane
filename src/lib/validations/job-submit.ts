@@ -72,7 +72,16 @@ export const jobSubmitSchema = z.object({
   autoEnhance: z.boolean().optional(),
   skipBgRemove: z.boolean().optional(),
   extraParams: logoExtraParamsSchema.optional(),
-  promptContext: z.record(z.string(), z.unknown()).optional(),
+  // Structured choices (scene type, A+ template/platform, edit action) the
+  // server composes the final prompt from; see PromptContext.
+  promptContext: z.object({
+    kind: z.enum(["scene", "aplus", "image-edit"]),
+    sceneType: z.string().max(100).optional(),
+    template: z.string().max(100).optional(),
+    platform: z.string().max(100).optional(),
+    action: z.string().max(100).optional(),
+    caption: z.string().max(2000).optional(),
+  }).strict().optional(),
 }).superRefine((data, ctx) => {
   try {
     assertModelForTool(data.tool, data.modelKey);

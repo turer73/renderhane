@@ -17,6 +17,13 @@ import { buildMinimaxInput, isAllowedVoice, DEFAULT_SRT_VOICE } from "@/lib/voic
 import { getImageInputLimits } from "@/lib/media/image-input-contract";
 import { preflightImageInputs, type ImageFactsCache } from "@/lib/media/image-preflight";
 
+/**
+ * Optional preprocessing (birefnet, aura-sr) runs inside the submit request,
+ * whose function limit is 60s. A cold or queued model must not use it all up:
+ * after this long the original image is used instead.
+ */
+const PREPROCESS_TIMEOUT_MS = 15_000;
+
 /** Tools whose final prompt is composed server-side from structured context. */
 const SMART_PROMPT_TOOLS: ToolType[] = ["scene", "aplus", "image-edit"];
 
@@ -30,7 +37,7 @@ async function removeBackgrounds(imageUrls: string[]): Promise<string[]> {
     imageUrls.map(async (url) => {
       const result = await getAIProvider().subscribe("fal-ai/birefnet/v2", {
         image_url: url,
-      });
+      }, { timeoutMs: PREPROCESS_TIMEOUT_MS });
       const output = result.data as { image?: { url?: string } };
       return output.image?.url ?? url;
     })
@@ -52,7 +59,7 @@ async function enhanceImages(imageUrls: string[]): Promise<string[]> {
     imageUrls.map(async (url) => {
       const result = await getAIProvider().subscribe("fal-ai/aura-sr", {
         image_url: url,
-      });
+      }, { timeoutMs: PREPROCESS_TIMEOUT_MS });
       const output = result.data as { image?: { url?: string } };
       return output.image?.url ?? url;
     })
@@ -418,6 +425,22 @@ export async function submitJob(input: SubmitJobInput): Promise<SubmitJobResult>
       }
     }
   } catch (error) {
+    // Nothing was reserved when the balance is too low: drop the pending row so
+    // a refused attempt does not show up as a failed job in the history.
+    const insufficient =
+      !txId &&
+      error instanceof Error &&
+      error.name === "CreditError" &&
+      (error as { code?: string }).code === "INSUFFICIENT";
+    if (insufficient) {
+      const { error: deleteError } = await supabase
+        .from("jobs")
+        .delete()
+        .eq("id", job.id)
+        .eq("status", "pending")
+        .is("credit_tx_id", null);
+      if (!deleteError) throw error;
+    }
     await failDurableJob(
       error instanceof Error ? error.message : "Failed to reserve credits"
     );

@@ -124,6 +124,8 @@ export const RATE_LIMITS = {
   referralInvite: { limit: 5, windowSeconds: 300 },
   /** Blog comments: 5 per minute per user */
   blogComment: { limit: 5, windowSeconds: 60 },
+  /** Remesh (paid fal call, no credit charge): 10 per hour per user */
+  remesh: { limit: 10, windowSeconds: 3600 },
   /** General API: 60 per minute per user */
   general: { limit: 60, windowSeconds: 60 },
 } as const;

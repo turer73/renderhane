@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScenePresets } from "@/components/app/scene-presets";
-import { TOOL_KEYS, TOOL_CREDITS, TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
+import { MODELS, TOOL_KEYS, TOOL_CREDITS, TOOLS_WITH_PROMPT, type ToolType } from "@/lib/fal/models";
 
 const TOOL_STYLES: Record<string, { icon: string; color: string; border: string; hover: string }> = {
   "bg-remove": { icon: "🧹", color: "from-rose-500/10 to-rose-500/5", border: "border-rose-200 dark:border-rose-800", hover: "hover:border-rose-400 dark:hover:border-rose-600" },
@@ -24,6 +24,21 @@ const TOOL_STYLES: Record<string, { icon: string; color: string; border: string;
   "video": { icon: "🎥", color: "from-purple-500/10 to-purple-500/5", border: "border-purple-200 dark:border-purple-800", hover: "hover:border-purple-400 dark:hover:border-purple-600" },
   "aplus": { icon: "⭐", color: "from-cyan-500/10 to-cyan-500/5", border: "border-cyan-200 dark:border-cyan-800", hover: "hover:border-cyan-400 dark:hover:border-cyan-600" },
 };
+
+/**
+ * Tools whose one-click action must name its model: without a modelKey the
+ * server picks the standard-tier model, which for 3D (Meshy 6) costs far more
+ * than TOOL_CREDITS' first entry. Sending it keeps the shown price and the
+ * charge identical.
+ */
+const ACTION_MODEL_KEYS: Partial<Record<ToolType, string>> = {
+  "3d-model": "meshy-6-image",
+};
+
+function actionCost(tool: ToolType): number {
+  const modelKey = ACTION_MODEL_KEYS[tool];
+  return modelKey ? MODELS[modelKey].creditCost : TOOL_CREDITS[tool];
+}
 
 interface ToolOption {
   tool: ToolType;
@@ -58,7 +73,12 @@ export function OutputActions({ imageUrl, tools }: OutputActionsProps) {
 
       const payload: Record<string, unknown> = isAplus
         ? { imageUrl }
-        : { tool, imageUrl, ...(prompt?.trim() ? { prompt: prompt.trim() } : {}) };
+        : {
+            tool,
+            imageUrl,
+            ...(ACTION_MODEL_KEYS[tool] ? { modelKey: ACTION_MODEL_KEYS[tool] } : {}),
+            ...(prompt?.trim() ? { prompt: prompt.trim() } : {}),
+          };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -136,7 +156,7 @@ export function OutputActions({ imageUrl, tools }: OutputActionsProps) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {tools.map(({ tool }) => {
           const toolKey = TOOL_KEYS[tool];
-          const cost = TOOL_CREDITS[tool];
+          const cost = actionCost(tool);
           const isActive = submitting === tool;
           const isDisabled = submitting !== null;
           const style = TOOL_STYLES[tool] || TOOL_STYLES["enhance"];

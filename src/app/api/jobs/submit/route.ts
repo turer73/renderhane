@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type { ToolType, ModelTier } from "@/lib/fal/models";
 import { validateJobSubmit } from "@/lib/validations/job-submit";
 import { autoCreateProject } from "@/lib/jobs/api-helpers";
+import { refreshSignedUrl } from "@/lib/supabase/refresh-url";
+import { checkProjectOwnership, projectCheckResponse } from "@/lib/jobs/project-ownership";
 import { getSelectionImageInputLimits } from "@/lib/media/image-input-contract";
 import {
   ImagePreflightError,
@@ -58,7 +60,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { tool, tier, modelKey, imageUrl, imageUrls, projectId, prompt, autoEnhance, skipBgRemove, extraParams } = parsed.data;
+  const { tool, tier, modelKey, projectId, prompt, autoEnhance, skipBgRemove, extraParams, promptContext } = parsed.data;
+
+  if (projectId) {
+    const check = await checkProjectOwnership(supabase, projectId, user.id);
+    if (check !== "ok") {
+      const { body, status } = projectCheckResponse(check);
+      return NextResponse.json(body, { status });
+    }
+  }
+
+  // Uploads are signed for an hour and the workspace keeps them for retries and
+  // variations. Re-sign the user's own uploads (storage RLS limits signing to
+  // their folder) so an older link still works; other URLs pass through.
+  const imageUrl = parsed.data.imageUrl
+    ? (await refreshSignedUrl(supabase, parsed.data.imageUrl)) ?? parsed.data.imageUrl
+    : undefined;
+  const imageUrls = parsed.data.imageUrls
+    ? await Promise.all(parsed.data.imageUrls.map(async (url) => (await refreshSignedUrl(supabase, url)) ?? url))
+    : undefined;
 
   // Check the images before a project is created; submitJob re-checks them
   // against the routed model from the cached facts without downloading again.
@@ -112,6 +132,7 @@ export async function POST(request: NextRequest) {
       autoEnhance: autoEnhance === true,
       skipBgRemove: skipBgRemove === true,
       extraParams: extraParams as Record<string, unknown> | undefined,
+      promptContext,
       userEmail: user.email,
       imageFactsCache,
     });

@@ -102,7 +102,7 @@ const EDIT_MODELS: PickerModel[] = [
 ];
 
 const TEXT_MODELS: PickerModel[] = [
-  { id: "flux-2-pro", name: "FLUX 2 Pro", credits: 4, time: "~8 sn" },
+  { id: "flux-2-pro", name: "FLUX 2 Pro", credits: 4, time: "~8 sn", modelKey: "flux-pro", tier: "standard" },
   { id: "qwen-image-3", name: "Qwen Image 3 — Tipografi", credits: 5, time: "~12 sn", modelKey: "qwen-image-3", tier: "standard" },
   { id: "gpt-image-25-flare", name: "GPT-Image 2.5 — En İyi Yazı", credits: 8, time: "~15 sn", modelKey: "gpt-image-25-flare", tier: "premium" },
   { id: "nano-banana-pro", name: "Nano Banana Pro — En Kaliteli", credits: 18, time: "~12 sn", modelKey: "nano-banana-pro", tier: "premium" },
@@ -454,9 +454,11 @@ interface ToolFormPanelProps {
   onToolChange?: (tool: string) => void;
   /** Keep the selected tab in sync with the URL. */
   onTabChange?: (tab: string) => void;
+  /** A submission is in flight: generate buttons stay disabled so a second click cannot charge twice. */
+  submitting?: boolean;
 }
 
-export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange, onTabChange }: ToolFormPanelProps) {
+export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange, onTabChange, submitting = false }: ToolFormPanelProps) {
   const [activeTab, setActiveTab] = useState(() => {
     const tabs = DEFAULT_TABS[activeTool];
     if (initialTab && tabs?.some((tab) => tab.id === initialTab)) return initialTab;
@@ -1139,6 +1141,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       showToast("Yükleme devam ediyor, lütfen bekle", "error");
       return;
     }
+    if (imagePrep.busy || modelPhotoPrep.busy) {
+      showToast("Görsel hazırlanıyor, lütfen bekle", "error");
+      return;
+    }
 
     // Build base payload
     const payload: GeneratePayload = {
@@ -1146,7 +1152,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       model: "",
       credits: footerInfo.credits,
       apiTool,
-      imageUrl: uploadedImageUrl ?? undefined,
+      // Text-only tabs never send an image: one uploaded on another tab of the
+      // same tool would otherwise turn text-to-3D/video into image-to-3D/video.
+      imageUrl: needsImage ? uploadedImageUrl ?? undefined : undefined,
       prompt: promptText.trim() || undefined,
     };
 
@@ -1293,11 +1301,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
   /** One-click "Akıllı Üret": the site detects the product type, picks the best
    *  scene preset + Nano Banana Pro, and generates — details chosen by the site. */
   const handleSmartGenerate = () => {
+    if (submitting) return;
     if (!uploadedImageUrl) {
       showToast("Lütfen önce bir ürün görseli yükle", "error");
       return;
     }
-    if (uploading) {
+    if (uploading || imagePrep.busy) {
       showToast("Yükleme devam ediyor, lütfen bekle", "error");
       return;
     }
@@ -1308,7 +1317,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       name: projectName.trim() || `Akıllı ${isAplus ? "A+" : "Sahne"}`,
       model: "Nano Banana Pro",
       credits: 18,
-      apiTool: isAplus ? "aplus" : "scene",
+      // Nano Banana Pro is a scene model; the A+ template still shapes the
+      // prompt through promptContext (the aplus tool only allows Bria).
+      apiTool: "scene",
       imageUrl: uploadedImageUrl,
       modelKey: "nano-banana-pro-edit",
       tier: "premium",
@@ -1484,7 +1495,8 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                       <button
                         type="button"
                         onClick={handleSmartGenerate}
-                        className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary/90"
+                        disabled={submitting}
+                        className="ml-auto disabled:opacity-50 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary/90"
                       >
                         <Sparkles className="h-3 w-3" /> Akıllı Üret
                       </button>
@@ -2892,9 +2904,9 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
           className="w-full h-9 font-semibold"
           size="sm"
           onClick={handleGenerate}
-          disabled={uploading || modelPhotoUploading || srtBusy || avatarBusy || activeTab.startsWith("batch-")}
+          disabled={submitting || uploading || modelPhotoUploading || imagePrep.busy || modelPhotoPrep.busy || srtBusy || avatarBusy || activeTab.startsWith("batch-")}
         >
-          {uploading || modelPhotoUploading || srtBusy || avatarBusy ? (
+          {submitting || uploading || modelPhotoUploading || srtBusy || avatarBusy ? (
             <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4 mr-1.5" />

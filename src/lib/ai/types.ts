@@ -17,6 +17,11 @@ export interface SubscribeOptions {
   onEnqueue?: (requestId: string) => void | Promise<void>;
   /** Optional signed completion webhook for recoverable synchronous calls. */
   webhookUrl?: string;
+  /**
+   * Give up waiting after this many ms: the request is cancelled and the call
+   * rejects. Without it, waiting has no limit (fal's client default).
+   */
+  timeoutMs?: number;
 }
 
 export interface ProviderReadOptions {
