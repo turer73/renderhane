@@ -20,7 +20,7 @@ import {
   rememberPendingIdempotencyKey,
 } from "@/lib/jobs/social-kit-pending";
 import { getImageInputLimits, intersectImageInputLimits } from "@/lib/media/image-input-contract";
-import { limitsSummaryTr, unverifiedLimitsNoteTr, type ImageInputIssue } from "@/lib/media/image-limit-check";
+import { issueMessage, limitsSummary, unverifiedLimitsNote, type ImageInputIssue } from "@/lib/media/image-limit-check";
 import { useImagePreparation } from "@/hooks/use-image-preparation";
 import { ImagePrepareDialog } from "@/components/media/image-prepare-dialog";
 import { ImageInputErrorDialog } from "@/components/media/image-input-error-dialog";
@@ -78,11 +78,13 @@ export default function SocialKitPage() {
       setFile(result.prepared.file);
       setPreview(URL.createObjectURL(result.prepared.file));
     } else if (result.kind === "rejected") {
-      setFieldError(result.issues[0]?.message ?? t("uploadError"));
+      setFieldError(result.issues[0] ? issueMessage(result.issues[0], locale) : t("uploadError"));
     } else if (result.kind === "declined") {
-      setFieldError("Hazırlanan görsel kullanılmadı; yeni görsel yüklenmedi.");
+      setFieldError(locale === "en"
+        ? "The prepared image was not used; no new image was uploaded."
+        : "Hazırlanan görsel kullanılmadı; yeni görsel yüklenmedi.");
     }
-  }, [preview, prepareImage, t]);
+  }, [preview, prepareImage, t, locale]);
 
   async function handleSubmit() {
     if (!file) return;
@@ -229,7 +231,7 @@ export default function SocialKitPage() {
           // Rejected before any claim or charge; show it like a local check.
           const issues = responseBody.issues as ImageInputIssue[];
           showImageIssues(issues);
-          setFieldError(issues[0]?.message ?? null);
+          setFieldError(issues[0] ? issueMessage(issues[0], locale) : null);
         }
         setMessage({
           type: "error",
@@ -397,14 +399,14 @@ export default function SocialKitPage() {
           {imagePrep.busy && (
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>Görsel hazırlanıyor…</span>
-              <button type="button" onClick={imagePrep.cancel} className="ml-auto underline hover:text-foreground">İptal</button>
+              <span>{locale === "tr" ? "Görsel hazırlanıyor…" : "Preparing image…"}</span>
+              <button type="button" onClick={imagePrep.cancel} className="ml-auto underline hover:text-foreground">{locale === "tr" ? "İptal" : "Cancel"}</button>
             </div>
           )}
           {fieldError && <p role="alert" className="mt-3 break-words text-xs text-destructive">{fieldError}</p>}
           <p className="mt-2 break-words text-[11px] text-muted-foreground">
-            {limitsSummaryTr(SOCIAL_KIT_IMAGE_LIMITS)}
-            {unverifiedLimitsNoteTr(SOCIAL_KIT_IMAGE_LIMITS) ? ` — ${unverifiedLimitsNoteTr(SOCIAL_KIT_IMAGE_LIMITS)}` : ""}
+            {limitsSummary(SOCIAL_KIT_IMAGE_LIMITS, locale)}
+            {unverifiedLimitsNote(SOCIAL_KIT_IMAGE_LIMITS, locale) ? ` — ${unverifiedLimitsNote(SOCIAL_KIT_IMAGE_LIMITS, locale)}` : ""}
           </p>
 
           {/* Messages */}

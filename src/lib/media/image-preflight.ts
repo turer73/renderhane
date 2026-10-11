@@ -160,6 +160,12 @@ export function imagePreflightErrorBody(error: ImagePreflightError) {
   return {
     error: error.issues[0]?.message ?? "Görsel bu model için uygun değil.",
     code: IMAGE_INPUT_INVALID,
-    issues: error.issues.map(({ code, index, message, field }) => ({ code, index, message, ...(field ? { field } : {}) })),
+    issues: error.issues.map(({ code, index, message, messageEn, field }) => ({
+      code,
+      index,
+      message,
+      ...(messageEn ? { messageEn } : {}),
+      ...(field ? { field } : {}),
+    })),
   };
 }

@@ -45,13 +45,16 @@ import { MAX_AVATAR_SCRIPT_CHARS, type ModelTier, type ToolType } from "@/lib/fa
 import { getSelectionImageInputLimits, type ImageInputLimits } from "@/lib/media/image-input-contract";
 import {
   checkImageFacts,
-  limitsSummaryTr,
-  unverifiedLimitsNoteTr,
+  issueMessage,
+  limitsSummary,
+  pickText,
+  unverifiedLimitsNote,
   type ImageFacts,
   type ImageInputIssue,
   type ImagePosition,
 } from "@/lib/media/image-limit-check";
-import { describeTransformTr } from "@/lib/media/optimize-image";
+import { describeTransform } from "@/lib/media/optimize-image";
+import { useLocale } from "next-intl";
 import { useImagePreparation } from "@/hooks/use-image-preparation";
 import { ImagePrepareDialog } from "@/components/media/image-prepare-dialog";
 import { ImageInputErrorDialog } from "@/components/media/image-input-error-dialog";
@@ -467,6 +470,7 @@ interface ToolFormPanelProps {
 
 export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange, onTabChange, submitting = false }: ToolFormPanelProps) {
   const l = useLocaleText();
+  const uiLocale = useLocale();
   const [activeTab, setActiveTab] = useState(() => {
     const tabs = DEFAULT_TABS[activeTool];
     if (initialTab && tabs?.some((tab) => tab.id === initialTab)) return initialTab;
@@ -664,7 +668,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       return null; // the server still checks every image
     }
   }, [activeTool, activeTab, selectedModel, selectedVideoModel, currentEditModel, currentSceneModel, currentAvatarModel]);
-  const imageLimitsNote = imageLimits ? unverifiedLimitsNoteTr(imageLimits) : null;
+  const imageLimitsNote = imageLimits ? unverifiedLimitsNote(imageLimits, uiLocale) : null;
   /** The try-on request sends [model photo, garment]; other tabs send one image. */
   const garmentPosition = useMemo<ImagePosition | null>(
     () => (activeTab === "virtual-tryon" ? { index: 1, count: 2 } : null),
@@ -834,17 +838,20 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       originalFileRef.current = original;
       uploadedFactsRef.current = result.prepared.facts;
       const { transform, advisories } = result.prepared;
-      const note = [transform ? l(`Görsel bu model için hazırlandı: ${describeTransformTr(transform)}.`, `Image prepared for this model: ${describeTransformTr(transform)}.`) : null, ...advisories]
+      const note = [
+        transform ? l(`Görsel bu model için hazırlandı: ${describeTransform(transform, "tr")}.`, `Image prepared for this model: ${describeTransform(transform, "en")}.`) : null,
+        ...advisories.map((advisory) => pickText(advisory, uiLocale)),
+      ]
         .filter(Boolean)
         .join(" ");
       setPreparedNote(note || null);
       startUpload(result.prepared.file);
     } else if (result.kind === "rejected") {
-      setImageFieldError(result.issues[0]?.message ?? l("Görsel bu model için uygun değil.", "This image is not suitable for this model."));
+      setImageFieldError(result.issues[0] ? issueMessage(result.issues[0], uiLocale) : l("Görsel bu model için uygun değil.", "This image is not suitable for this model."));
     } else if (result.kind === "declined") {
       setImageFieldError(l("Hazırlanan görsel kullanılmadı; yeni görsel yüklenmedi. Başka bir görsel seçebilirsiniz.", "The prepared image was not used; no new image was uploaded. You can choose another image."));
     }
-  }, [prepareImage, garmentPosition, startUpload, l]);
+  }, [prepareImage, garmentPosition, startUpload, l, uiLocale]);
 
   const handleFile = useCallback((f: File) => {
     // Some pickers report HEIC/AVIF with an empty type; the bytes decide.
@@ -919,10 +926,10 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     // The try-on request sends [model photo, garment]: this is image 1 of 2.
     void prepareModelPhoto(f, imageLimits, { index: 0, count: 2 }).then((result) => {
       if (result.kind === "ready") startModelPhotoUpload(result.prepared.file);
-      else if (result.kind === "rejected") setModelPhotoFieldError(result.issues[0]?.message ?? l("Fotoğraf bu model için uygun değil.", "This photo is not suitable for this model."));
+      else if (result.kind === "rejected") setModelPhotoFieldError(result.issues[0] ? issueMessage(result.issues[0], uiLocale) : l("Fotoğraf bu model için uygun değil.", "This photo is not suitable for this model."));
       else if (result.kind === "declined") setModelPhotoFieldError(l("Hazırlanan fotoğraf kullanılmadı; yeni fotoğraf yüklenmedi.", "The prepared photo was not used; no new photo was uploaded."));
     });
-  }, [imageLimits, prepareModelPhoto, startModelPhotoUpload, l]);
+  }, [imageLimits, prepareModelPhoto, startModelPhotoUpload, l, uiLocale]);
 
   // A server-side rejection (422) is shown like a local one: modal plus a
   // message under the right field. Nothing was charged; inputs stay.
@@ -932,12 +939,12 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
     if (activeTab === "virtual-tryon") {
       const forModelPhoto = issues.find((issue) => issue.index === 0);
       const forGarment = issues.find((issue) => issue.index !== 0);
-      setModelPhotoFieldError(forModelPhoto?.message ?? null);
-      setImageFieldError(forGarment?.message ?? null);
+      setModelPhotoFieldError(forModelPhoto ? issueMessage(forModelPhoto, uiLocale) : null);
+      setImageFieldError(forGarment ? issueMessage(forGarment, uiLocale) : null);
     } else {
-      setImageFieldError(issues[0].message);
+      setImageFieldError(issueMessage(issues[0], uiLocale));
     }
-  }, [activeTab, showImageIssues]);
+  }, [activeTab, showImageIssues, uiLocale]);
 
   useEffect(() => {
     const onImageInputError = (event: Event) => {
@@ -1456,7 +1463,7 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
       ) : null}
       {imageLimits && (
         <p className="mt-1 break-words text-[10px] text-muted-foreground">
-          {l("Bu model:", "This model:")} {limitsSummaryTr(imageLimits)}
+          {l("Bu model:", "This model:")} {limitsSummary(imageLimits, uiLocale)}
           {imageLimitsNote ? ` — ${imageLimitsNote}` : ""}
         </p>
       )}
@@ -1489,14 +1496,14 @@ export function ToolFormPanel({ activeTool, onGenerate, initialTab, onToolChange
                 const suggestionRelevant = suggestion && !(suggestion.group === activeTool && suggestion.tab === activeTab);
                 return (
                   <div className="flex flex-wrap items-center gap-1.5 pt-1 pl-4">
-                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-medium text-primary" title={smart.note}>{smart.label}</span>
+                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-medium text-primary" title={l(smart.note, smart.noteEn)}>{l(smart.label, smart.labelEn)}</span>
                     {suggestionRelevant && (
                       <button
                         type="button"
                         onClick={() => goToTool(suggestion!)}
                         className="rounded border border-primary/30 px-1.5 py-0.5 text-[9px] text-primary hover:bg-primary/10"
                       >
-                        {l("Öneri:", "Suggestion:")} {suggestion!.label} →
+                        {l("Öneri:", "Suggestion:")} {l(suggestion!.label, suggestion!.labelEn)} →
                       </button>
                     )}
                     {showSmartGen && (

@@ -39,20 +39,22 @@ export interface SmartDefaults {
   sceneType: string;
   /** short Turkish rationale shown to the user */
   note: string;
+  /** English rationale for /en */
+  noteEn: string;
 }
 
 export const SMART_DEFAULTS: Record<ProductCategory, SmartDefaults> = {
-  jewelry: { sceneType: "luxury", note: "Takı → lüks, koyu zemin" },
-  cosmetics: { sceneType: "minimal", note: "Kozmetik → minimal, temiz" },
-  apparel: { sceneType: "lifestyle", note: "Giyim → yaşam tarzı" },
-  footwear: { sceneType: "studio", note: "Ayakkabı → stüdyo" },
-  bag: { sceneType: "luxury", note: "Çanta → lüks sahne" },
-  food: { sceneType: "lifestyle", note: "Gıda → sıcak yaşam tarzı" },
-  beverage: { sceneType: "studio", note: "İçecek → stüdyo" },
-  electronics: { sceneType: "minimal", note: "Elektronik → minimal" },
-  furniture: { sceneType: "lifestyle", note: "Mobilya → yaşam tarzı" },
-  toy: { sceneType: "studio", note: "Oyuncak → stüdyo" },
-  generic: { sceneType: "studio", note: "Stüdyo (varsayılan)" },
+  jewelry: { sceneType: "luxury", note: "Takı → lüks, koyu zemin", noteEn: "Jewelry → luxury, dark backdrop" },
+  cosmetics: { sceneType: "minimal", note: "Kozmetik → minimal, temiz", noteEn: "Cosmetics → minimal, clean" },
+  apparel: { sceneType: "lifestyle", note: "Giyim → yaşam tarzı", noteEn: "Apparel → lifestyle" },
+  footwear: { sceneType: "studio", note: "Ayakkabı → stüdyo", noteEn: "Footwear → studio" },
+  bag: { sceneType: "luxury", note: "Çanta → lüks sahne", noteEn: "Bag → luxury scene" },
+  food: { sceneType: "lifestyle", note: "Gıda → sıcak yaşam tarzı", noteEn: "Food → warm lifestyle" },
+  beverage: { sceneType: "studio", note: "İçecek → stüdyo", noteEn: "Beverage → studio" },
+  electronics: { sceneType: "minimal", note: "Elektronik → minimal", noteEn: "Electronics → minimal" },
+  furniture: { sceneType: "lifestyle", note: "Mobilya → yaşam tarzı", noteEn: "Furniture → lifestyle" },
+  toy: { sceneType: "studio", note: "Oyuncak → stüdyo", noteEn: "Toy → studio" },
+  generic: { sceneType: "studio", note: "Stüdyo (varsayılan)", noteEn: "Studio (default)" },
 };
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
@@ -61,20 +63,26 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   furniture: "Mobilya", toy: "Oyuncak", generic: "Ürün",
 };
 
-export function smartDefaultsFor(caption: string, tags: string[]): SmartDefaults & { category: ProductCategory; label: string } {
+export const CATEGORY_LABELS_EN: Record<ProductCategory, string> = {
+  jewelry: "Jewelry", cosmetics: "Cosmetics", apparel: "Apparel", footwear: "Footwear",
+  bag: "Bag", food: "Food", beverage: "Beverage", electronics: "Electronics",
+  furniture: "Furniture", toy: "Toy", generic: "Product",
+};
+
+export function smartDefaultsFor(caption: string, tags: string[]): SmartDefaults & { category: ProductCategory; label: string; labelEn: string } {
   const category = detectProductType(caption, tags);
-  return { category, label: CATEGORY_LABELS[category], ...SMART_DEFAULTS[category] };
+  return { category, label: CATEGORY_LABELS[category], labelEn: CATEGORY_LABELS_EN[category], ...SMART_DEFAULTS[category] };
 }
 
 /** UI navigation target for a suggested tool from the analyze route. */
-export interface ToolTarget { group: string; tab: string; label: string; }
+export interface ToolTarget { group: string; tab: string; label: string; labelEn: string; }
 
 export const TOOL_TARGETS: Record<string, ToolTarget> = {
-  "scene": { group: "ecommerce", tab: "scene", label: "Sahne Üret" },
-  "virtual-tryon": { group: "ecommerce", tab: "virtual-tryon", label: "Kıyafet Giydir" },
-  "bg-remove": { group: "image", tab: "bg-remove", label: "Arkaplan Kaldır" },
-  "enhance": { group: "image", tab: "enhance", label: "Görseli İyileştir" },
-  "talking-avatar": { group: "video", tab: "talking-avatar", label: "Konuşan Avatar" },
+  "scene": { group: "ecommerce", tab: "scene", label: "Sahne Üret", labelEn: "Generate Scene" },
+  "virtual-tryon": { group: "ecommerce", tab: "virtual-tryon", label: "Kıyafet Giydir", labelEn: "Virtual Try-On" },
+  "bg-remove": { group: "image", tab: "bg-remove", label: "Arkaplan Kaldır", labelEn: "Remove Background" },
+  "enhance": { group: "image", tab: "enhance", label: "Görseli İyileştir", labelEn: "Enhance Image" },
+  "talking-avatar": { group: "video", tab: "talking-avatar", label: "Konuşan Avatar", labelEn: "Talking Avatar" },
 };
 
 /** Pick the first suggested tool that maps to a known UI target. */
