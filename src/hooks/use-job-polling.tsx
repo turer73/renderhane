@@ -83,6 +83,9 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const isFetchingRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  // Server clock minus device clock, from the response Date header. Job ages
+  // compare server timestamps, so a wrong device clock must not slow or stop polls.
+  const clockOffsetRef = useRef(0);
 
   const fetchJobs = useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -95,6 +98,8 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
 
     try {
       const res = await fetch("/api/jobs/status", { signal: controller.signal });
+      const serverDate = Date.parse(res.headers.get("date") ?? "");
+      if (!Number.isNaN(serverDate)) clockOffsetRef.current = serverDate - Date.now();
       if (res.ok) {
         const data = await res.json();
         const next: PolledJob[] = data.jobs ?? [];
@@ -144,7 +149,7 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
-      const delay = nextPollDelay(jobs, Date.now());
+      const delay = nextPollDelay(jobs, Date.now() + clockOffsetRef.current);
       if (delay === null) return;
       timer = setTimeout(() => {
         if (document.visibilityState === "visible") fetchJobs();

@@ -139,7 +139,10 @@ export class FalProvider implements AIProvider {
 
     try {
       await options?.onEnqueue?.(requestId);
-      await fal.queue.subscribeToStatus(endpointId, { requestId });
+      await fal.queue.subscribeToStatus(endpointId, {
+        requestId,
+        ...(options?.timeoutMs ? { timeout: options.timeoutMs } : {}),
+      });
       const result = await fal.queue.result(endpointId, { requestId });
       return { data: result.data as T, requestId };
     } catch (error) {

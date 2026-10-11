@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Zap, Sparkles, Crown } from "lucide-react";
+import { Zap, Sparkles, Crown, Loader2 } from "lucide-react";
 
 const PACKAGES = [
   {
@@ -62,6 +62,7 @@ const PACKAGES = [
  */
 export function UpgradeModal() {
   const [open, setOpen] = useState(false);
+  const [loadingPackage, setLoadingPackage] = useState<string | null>(null);
   const params = useParams<{ locale: string }>();
   const locale = params.locale || "tr";
   const tr = locale === "tr";
@@ -73,6 +74,27 @@ export function UpgradeModal() {
     window.addEventListener("show-upgrade", handleShow);
     return () => window.removeEventListener("show-upgrade", handleShow);
   }, []);
+
+  // Same checkout as the credits sheet. The packages used to link to
+  // /app?buy=<key>, which nothing reads: the page reloaded without opening
+  // payment and the workspace lost its ?tool= and form state.
+  async function handleBuy(packageKey: string) {
+    if (loadingPackage) return;
+    setLoadingPackage(packageKey);
+    try {
+      const res = await fetch("/api/payments/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageKey }),
+      });
+      const data = res.ok ? await res.json() : null;
+      if (!data?.paymentPageUrl) throw new Error("No payment page URL");
+      window.location.href = data.paymentPageUrl;
+    } catch {
+      toast.error(tr ? "Ödeme başlatılamadı. Tekrar dene." : "Could not start checkout. Please try again.");
+      setLoadingPackage(null);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -93,11 +115,12 @@ export function UpgradeModal() {
             const Icon = pkg.icon;
             const perCredit = (pkg.price / pkg.credits).toFixed(2);
             return (
-              <Link
+              <button
+                type="button"
                 key={pkg.key}
-                href={`/${locale}/app?buy=${pkg.key}`}
-                onClick={() => setOpen(false)}
-                className={`relative flex items-center gap-4 rounded-xl border-2 p-4 transition-all hover:shadow-md ${pkg.border} ${pkg.bg}`}
+                onClick={() => handleBuy(pkg.key)}
+                disabled={loadingPackage !== null}
+                className={`relative flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-all hover:shadow-md disabled:opacity-60 ${pkg.border} ${pkg.bg}`}
               >
                 {pkg.popular && (
                   <span className="absolute -top-2.5 right-3 rounded-full bg-indigo-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
@@ -116,9 +139,13 @@ export function UpgradeModal() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold">₺{pkg.price}</p>
+                  {loadingPackage === pkg.key ? (
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <p className="text-lg font-bold">₺{pkg.price}</p>
+                  )}
                 </div>
-              </Link>
+              </button>
             );
           })}
         </div>

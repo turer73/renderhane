@@ -81,6 +81,8 @@ export function WorkspaceLayout({
   const [activeJobMeta, setActiveJobMeta] = useState<{ name: string; model: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const retryInFlightRef = useRef(false);
+  // Guards the async gap before `submitting` re-renders the disabled buttons.
+  const submitInFlightRef = useRef(false);
   const desktopFormRef = useRef<HTMLDivElement>(null);
   const [retrying, setRetrying] = useState(false);
   const [mobileFormOpen, setMobileFormOpen] = useState(true);
@@ -146,8 +148,11 @@ export function WorkspaceLayout({
     payload: GeneratePayload,
     preserveActiveJobOnFailure = false
   ) => {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     const previousJobMeta = activeJobMeta;
     const clearFailedSubmission = () => {
+      submitInFlightRef.current = false;
       setSubmitting(false);
       setActiveJobMeta(preserveActiveJobOnFailure ? previousJobMeta : null);
     };
@@ -208,6 +213,7 @@ export function WorkspaceLayout({
       }
 
       const data = await res.json();
+      submitInFlightRef.current = false;
       setActiveJobId(data.jobId);
       setSubmitting(false);
       setLastPayload(payload);
@@ -347,7 +353,7 @@ export function WorkspaceLayout({
               : "hidden"
           )}
         >
-          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} submitting={submitting} />
         </div>
       </div>
 
@@ -387,7 +393,7 @@ export function WorkspaceLayout({
           onToolChange={onToolChange}
         />
         <div ref={desktopFormRef} data-desktop-tool-form className="min-w-0 flex-1">
-          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} />
+          <ToolFormPanel activeTool={activeTool} onGenerate={handleGenerate} initialTab={initialTab} onToolChange={onToolChange} onTabChange={onTabChange} submitting={submitting} />
         </div>
       </div>
 

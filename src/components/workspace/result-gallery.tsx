@@ -739,6 +739,8 @@ function JobDropdown({ job, onRefetch, onPreview }: { job: GalleryJob; onRefetch
   };
 
   const handleDelete = async () => {
+    // Deleting removes the job and its output for good; one menu click was enough before.
+    if (!window.confirm("Bu proje ve çıktısı kalıcı olarak silinsin mi?")) return;
     try {
       const res = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
       if (!res.ok) {

@@ -85,11 +85,13 @@ export async function composeSmartPrompt({ tool, modelKey, ctx, userText }: Comp
   ].join("\n");
 
   try {
+    // Runs inside the 60s submit request; a slow LLM falls back to the
+    // deterministic prompt instead of timing the request out.
     const result = await getAIProvider().subscribe("fal-ai/any-llm", {
       model: COMPOSE_MODEL,
       system_prompt: buildSystemPrompt(ctx, isEdit),
       prompt: userBlock,
-    });
+    }, { timeoutMs: 10_000 });
     const output = (result?.data as { output?: string } | undefined)?.output ?? "";
     const cleaned = output.trim().replace(/^["']|["']$/g, "");
     return cleaned.length >= 8 ? cleaned : fallback;

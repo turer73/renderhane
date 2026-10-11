@@ -72,6 +72,36 @@ describe("POST /api/jobs/submit image preflight", () => {
     expect(mocks.autoCreateProject).toHaveBeenCalledOnce();
   });
 
+  it("forwards the structured prompt context the workspace sends", async () => {
+    const promptContext = { kind: "scene", sceneType: "studio", caption: "a red sneaker" };
+    const response = await submit({ tool: "scene", imageUrl: UPLOAD, promptContext });
+
+    expect(response.status).toBe(200);
+    expect(mocks.submitJob).toHaveBeenCalledWith(expect.objectContaining({ promptContext }));
+  });
+
+  it("rejects unknown prompt context fields", async () => {
+    const response = await submit({ tool: "scene", imageUrl: UPLOAD, promptContext: { kind: "scene", extra: "x" } });
+    expect(response.status).toBe(400);
+    expect(mocks.submitJob).not.toHaveBeenCalled();
+  });
+
+  it("re-signs an expired upload link before checking and submitting it", async () => {
+    const fresh = "https://proj.supabase.co/storage/v1/object/sign/uploads/user-1/shoe.png?token=FRESH";
+    const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: fresh } });
+    mocks.createClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1", email: "user@example.com" } } }) },
+      storage: { from: vi.fn(() => ({ createSignedUrl })) },
+    });
+
+    const response = await submit({ tool: "3d-model", modelKey: "meshy-v71", imageUrls: [UPLOAD] });
+
+    expect(response.status).toBe(200);
+    expect(createSignedUrl).toHaveBeenCalledWith("user-1/shoe.png", 3600);
+    expect(mocks.preflightImageInputs.mock.calls[0][0].urls).toEqual([fresh]);
+    expect(mocks.submitJob).toHaveBeenCalledWith(expect.objectContaining({ imageUrls: [fresh] }));
+  });
+
   it("maps a rejection raised inside submitJob to the same 422 body", async () => {
     mocks.submitJob.mockRejectedValueOnce(
       new ImagePreflightError([{ code: "too_large", index: 0, message: "Dosya 9 MB; bu model en fazla 8 MB kabul ediyor." }])

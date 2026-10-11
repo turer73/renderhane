@@ -30,6 +30,14 @@ describe("FalProvider durable subscribe boundary", () => {
     mocks.result.mockResolvedValue({ data: { image: { url: "https://fal/result.png" } } });
   });
 
+  it("passes a wait limit to status polling only when one is given", async () => {
+    const provider = new FalProvider();
+    await provider.subscribe("fal-ai/birefnet/v2", { image_url: "x" }, { timeoutMs: 15_000 });
+    expect(mocks.subscribeToStatus).toHaveBeenLastCalledWith("fal-ai/birefnet/v2", { requestId: "fal-request-1", timeout: 15_000 });
+    await provider.subscribe("fal-ai/birefnet/v2", { image_url: "x" });
+    expect(mocks.subscribeToStatus).toHaveBeenLastCalledWith("fal-ai/birefnet/v2", { requestId: "fal-request-1" });
+  });
+
   it("forwards read-only abort signals without cancelling or resubmitting a job", async () => {
     const provider = new FalProvider();
     const abortSignal = new AbortController().signal;
