@@ -227,7 +227,7 @@ export function WorkspacePreview({ activeTool, activeJob, onStart, onRetry, retr
           ) : null}
 
           {/* Bottom hint */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-sm border border-border/30">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 border border-border/30">
             {outputUrl ? (
               <>
                 <Download className="h-3 w-3 text-muted-foreground" />
