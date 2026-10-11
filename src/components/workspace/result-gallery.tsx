@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { proxyUrl } from "@/lib/proxy-url";
+import { thumbUrl } from "@/lib/thumb-url";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -83,6 +84,19 @@ function getFileExt(url: string): string {
 
 /** Fallback thumbnail shown when image URL fails to load (expired / deleted) */
 const FALLBACK_THUMB = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect fill="#1a1a2e" width="120" height="120"/><rect x="25" y="25" width="70" height="70" rx="12" fill="#2a2a4a" stroke="#3a3a6a" stroke-width="1.5"/><path d="M50 55 L60 45 L70 55" stroke="#5a5a8a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="60" cy="65" r="2" fill="#5a5a8a"/></svg>')}`;
+
+/** A failed thumbnail falls back to the original image, then to the placeholder. */
+function onThumbError(original: string) {
+  return (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (!img.dataset.triedOriginal && img.getAttribute("src") !== original) {
+      img.dataset.triedOriginal = "1";
+      img.src = original;
+      return;
+    }
+    img.src = FALLBACK_THUMB;
+  };
+}
 
 interface GalleryJob {
   id: string;
@@ -407,7 +421,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
                     ) : (
                       // Native image is intentional: generated URLs are dynamic and the fallback mutates src.
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={src} alt={`${job.name} #${idx + 1}`} width={80} height={80} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                      <img src={thumbUrl(src, 160)} alt={`${job.name} #${idx + 1}`} width={80} height={80} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={onThumbError(src)} />
                     )}
                     {job.outputType === "glb" && (
                       <div className="absolute top-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[8px] font-bold text-white">3D</div>
@@ -490,7 +504,7 @@ export function ResultGallery({ activeTool = "3d-model", polledJobs = [], onRefe
               )}>
                 {/* Native image is intentional for dynamic generated URLs and mutable fallback src. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={job.thumbnails[0]} alt={job.name} width={40} height={40} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_THUMB; }} />
+                <img src={thumbUrl(job.thumbnails[0], 80)} alt={job.name} width={40} height={40} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={onThumbError(job.thumbnails[0])} />
                 {job.status === "processing" && (
                   <div className="absolute inset-0 bg-primary/10 animate-pulse" />
                 )}
