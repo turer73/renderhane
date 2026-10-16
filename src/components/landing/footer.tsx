@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Globe, Mail, SlidersHorizontal } from "lucide-react";
 import { OPEN_COOKIE_SETTINGS_EVENT } from "@/components/cookie-banner";
 import { FREE_TOOLS, freeToolHref } from "@/lib/tools/free-tools";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export function Footer() {
   const t = useTranslations("landing");
@@ -83,11 +84,11 @@ export function Footer() {
               {t("footer.description")}
             </p>
             <a
-              href="mailto:info@renderhane.com"
+              href={`mailto:${CONTACT_EMAIL}`}
               className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-[#a78fff] transition-colors hover:bg-white/10"
             >
               <Mail className="size-3.5" />
-              info@renderhane.com
+              {CONTACT_EMAIL}
             </a>
           </div>
 

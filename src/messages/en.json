@@ -344,7 +344,7 @@
       "contact": "Contact",
       "kvkk": "Data Protection",
       "cookiePolicy": "Cookie Policy",
-      "email": "info@renderhane.com",
+      "email": "render@renderhane.com",
       "allRights": "All rights reserved.",
       "language": "Language",
       "cookieSettings": "Cookie Preferences"
@@ -490,13 +490,13 @@
       "section5Title": "Retention Criteria and Your Controls",
       "section5Content": "Account and transaction records may be kept while the account relationship continues; uploads and outputs until you delete them, close the account, or they are no longer needed. Payment and accounting records are retained for periods required by tax and commercial law; security logs for a proportionate operational period. You can change cookie choices through “Cookie Preferences” in the footer.",
       "section6Title": "Rights and Contact",
-      "section6Content": "To exercise your rights under KVKK Art. 11 or ask a privacy question, write from your registered email address to turgut.urer@gmail.com. Data controller: Turgut Ürer. Address: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye. The KVKK Data Protection Notice explains the application procedure."
+      "section6Content": "To exercise your rights under KVKK Art. 11 or ask a privacy question, write from your registered email address to render@renderhane.com. Data controller: Turgut Ürer. Address: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye. The KVKK Data Protection Notice explains the application procedure."
     },
     "terms": {
       "title": "Terms of Service",
       "intro": "These terms govern the use of the Renderhane platform operated by Turgut Ürer. Mandatory consumer rights remain unaffected.",
       "section1Title": "Provider and Service",
-      "section1Content": "Service provider: Turgut Ürer\nAddress: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye\nEmail: turgut.urer@gmail.com\n\nRenderhane provides AI-assisted tools for visual, video, and 3D content creation. Features, credit cost, and estimated processing time are shown at purchase or before an operation.",
+      "section1Content": "Service provider: Turgut Ürer\nAddress: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye\nEmail: render@renderhane.com\n\nRenderhane provides AI-assisted tools for visual, video, and 3D content creation. Features, credit cost, and estimated processing time are shown at purchase or before an operation.",
       "section2Title": "Account Responsibilities",
       "section2Content": "You must safeguard your account, promptly report unauthorised use, and provide accurate information. You may upload third-party content only when you have the necessary rights and permissions. The platform is not intended for minors to make paid transactions independently; parental or legal representative consent may be required.",
       "section3Title": "Credits, Pricing, and Refunds",
@@ -512,13 +512,13 @@
       "section8Title": "Consumer Rights and Withdrawal",
       "section8Content": "For consumer transactions, Turkish Consumer Protection Law No. 6502 and the Distance Contracts Regulation apply. Provider details, total price, key service characteristics, performance, and withdrawal/refund conditions must be shown before an order. Statutory exceptions may apply to digital services begun before the withdrawal period ends with the consumer's express request and acknowledgement. Such exceptions do not remove remedies for defective or undelivered services.",
       "section9Title": "Requests and Disputes",
-      "section9Content": "Send support, cancellation, or refund requests to turgut.urer@gmail.com. Consumers may apply to the competent Consumer Arbitration Committee or Consumer Court within the applicable monetary thresholds. Turkish law applies, subject to mandatory jurisdiction rules."
+      "section9Content": "Send support, cancellation, or refund requests to render@renderhane.com. Consumers may apply to the competent Consumer Arbitration Committee or Consumer Court within the applicable monetary thresholds. Turkish law applies, subject to mandatory jurisdiction rules."
     },
     "kvkk": {
       "title": "KVKK Data Protection Notice",
       "intro": "Under Turkish Personal Data Protection Law No. 6698 (“KVKK”), your personal data is processed by data controller Turgut Ürer within the scope described below.",
       "section1Title": "Identity of the Data Controller",
-      "section1Content": "Data controller: Turgut Ürer\nAddress: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye\nKVKK application email: turgut.urer@gmail.com\nGeneral contact: info@renderhane.com",
+      "section1Content": "Data controller: Turgut Ürer\nAddress: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye\nKVKK application email: render@renderhane.com\nGeneral contact: render@renderhane.com",
       "section2Title": "Personal Data Processed",
       "section2Content": "Depending on your use, we may process name, surname, email, user and OAuth identifiers, profile photo; uploads and prompts, generated outputs, job and credit history; order and payment status; IP, device/browser, access, error and security logs; cookie/similar technology choices; and support correspondence. Payment-card details are processed by the payment provider and are not stored by Renderhane.",
       "section3Title": "Purposes and Legal Bases",
@@ -532,7 +532,7 @@
       "section7Title": "Data Subject Rights",
       "section7Content": "Under KVKK Art. 11, you may ask whether data is processed; request information; learn the purpose and whether use is consistent with it; know domestic or overseas recipients; request correction; request deletion or destruction under Art. 7; request notification of those operations to recipients; object to an adverse result produced solely by automated analysis; and claim compensation for unlawful processing.",
       "section8Title": "How to Apply",
-      "section8Content": "You may send a written application to Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye, or email turgut.urer@gmail.com from an address you previously provided to Renderhane and that is registered in our systems. Include your name, signature for written applications, identity/contact details, the request, and information reasonably needed to verify it. Do not send an unnecessary copy of your identity document. Applications are answered free of charge within 30 days; the Board tariff may apply where an additional cost is incurred."
+      "section8Content": "You may send a written application to Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/Istanbul, Türkiye, or email render@renderhane.com from an address you previously provided to Renderhane and that is registered in our systems. Include your name, signature for written applications, identity/contact details, the request, and information reasonably needed to verify it. Do not send an unnecessary copy of your identity document. Applications are answered free of charge within 30 days; the Board tariff may apply where an additional cost is incurred."
     },
     "cookiePolicy": {
       "title": "Cookie and Similar Technologies Policy",
@@ -548,7 +548,7 @@
       "section5Title": "Legal Basis and Transfers",
       "section5Content": "Strictly necessary technologies rely, according to their function, on performance of a contract under KVKK Art. 5/2(c) or legitimate interests under Art. 5/2(f). Analytics and advertising technologies rely on prior, specific, and withdrawable consent under Art. 5/1. KVKK Art. 9 also applies where a provider such as Google receives data abroad.",
       "section6Title": "Managing and Withdrawing Choices",
-      "section6Content": "On your first visit, you can “Reject All”, “Manage Preferences”, or “Accept All”. Reopen the panel at any time through “Cookie Preferences” in the footer. Withdrawal applies prospectively, and removable first-party analytics identifiers are cleared. You can also delete third-party identifiers in browser settings.\n\nQuestions: turgut.urer@gmail.com"
+      "section6Content": "On your first visit, you can “Reject All”, “Manage Preferences”, or “Accept All”. Reopen the panel at any time through “Cookie Preferences” in the footer. Withdrawal applies prospectively, and removable first-party analytics identifiers are cleared. You can also delete third-party identifiers in browser settings.\n\nQuestions: render@renderhane.com"
     }
   },
   "about": {

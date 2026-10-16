@@ -344,7 +344,7 @@
       "contact": "İletişim",
       "kvkk": "KVKK Aydınlatma",
       "cookiePolicy": "Çerez Politikası",
-      "email": "info@renderhane.com",
+      "email": "render@renderhane.com",
       "allRights": "Tüm hakları saklıdır.",
       "language": "Dil",
       "cookieSettings": "Çerez Tercihleri"
@@ -490,13 +490,13 @@
       "section5Title": "Saklama Ölçütleri ve Kullanıcı Kontrolü",
       "section5Content": "Hesap ve işlem kayıtları hesap ilişkisi sürerken; yüklenen içerik ve çıktılar kullanıcı tarafından silinene, hesap kapatılana veya hizmet için artık gerekli olmayana kadar tutulabilir. Ödeme ve muhasebe kayıtları ilgili vergi/ticaret mevzuatındaki süreler boyunca; güvenlik kayıtları ise risk ve zamanaşımı ihtiyaçlarıyla ölçülü süre boyunca saklanır. Çerez tercihleri sayfa altındaki “Çerez Tercihleri” düğmesinden değiştirilebilir.",
       "section6Title": "Haklar ve İletişim",
-      "section6Content": "KVKK m.11 kapsamındaki haklarınızı kullanmak veya gizlilik sorusu iletmek için kayıtlı e-posta adresinizden turgut.urer@gmail.com adresine başvurabilirsiniz. Veri sorumlusu: Turgut Ürer. Adres: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul. Ayrıntılı başvuru usulü KVKK Aydınlatma Metni'nde açıklanır."
+      "section6Content": "KVKK m.11 kapsamındaki haklarınızı kullanmak veya gizlilik sorusu iletmek için kayıtlı e-posta adresinizden render@renderhane.com adresine başvurabilirsiniz. Veri sorumlusu: Turgut Ürer. Adres: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul. Ayrıntılı başvuru usulü KVKK Aydınlatma Metni'nde açıklanır."
     },
     "terms": {
       "title": "Kullanım Koşulları",
       "intro": "Bu koşullar, Turgut Ürer tarafından işletilen Renderhane platformunun kullanımını düzenler. Emredici tüketici mevzuatından doğan haklarınız saklıdır.",
       "section1Title": "Hizmet Sağlayıcı ve Hizmet",
-      "section1Content": "Hizmet sağlayıcı: Turgut Ürer\nAdres: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul\nE-posta: turgut.urer@gmail.com\n\nRenderhane; yapay zekâ destekli görsel, video ve 3D içerik üretimi ile ilgili araçlar sunar. Araçların özellikleri, kredi maliyeti ve tahmini işlem süresi satın alma veya işlem ekranında gösterilir.",
+      "section1Content": "Hizmet sağlayıcı: Turgut Ürer\nAdres: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul\nE-posta: render@renderhane.com\n\nRenderhane; yapay zekâ destekli görsel, video ve 3D içerik üretimi ile ilgili araçlar sunar. Araçların özellikleri, kredi maliyeti ve tahmini işlem süresi satın alma veya işlem ekranında gösterilir.",
       "section2Title": "Hesap ve Kullanıcı Sorumluluğu",
       "section2Content": "Hesap bilgilerinizin güvenliğini korumalı, yetkisiz kullanımı gecikmeden bildirmeli ve doğru bilgi vermelisiniz. Başkasına ait içerikleri ancak gerekli hak ve izinlere sahipseniz yükleyebilirsiniz. Platform 18 yaşından küçüklerin tek başına ücretli işlem yapmasına yönelik değildir; gerekli hallerde veli veya yasal temsilci onayı aranır.",
       "section3Title": "Krediler, Fiyat ve İade",
@@ -512,13 +512,13 @@
       "section8Title": "Tüketici Hakları ve Cayma",
       "section8Content": "Tüketici işlemlerinde 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği uygulanır. Sipariş öncesinde sağlayıcı bilgileri, toplam bedel, hizmetin temel nitelikleri, ifa ve cayma/iade koşulları gösterilmelidir. Cayma süresi dolmadan kullanıcının açık onayıyla ifasına başlanan dijital hizmetlerde mevzuattaki istisnalar uygulanabilir. Bu istisna, ayıplı veya hiç sunulmayan hizmetlere ilişkin seçimlik hakları kaldırmaz.",
       "section9Title": "Başvuru ve Uyuşmazlık",
-      "section9Content": "Destek, iptal veya iade talepleri için turgut.urer@gmail.com adresine yazabilirsiniz. Tüketiciler, uygulanabilir parasal sınırlar çerçevesinde ikamet ettikleri yerdeki veya işlemin yapıldığı yerdeki Tüketici Hakem Heyetine ya da Tüketici Mahkemesine başvurabilir. Türk hukuku uygulanır; zorunlu yetki kuralları saklıdır."
+      "section9Content": "Destek, iptal veya iade talepleri için render@renderhane.com adresine yazabilirsiniz. Tüketiciler, uygulanabilir parasal sınırlar çerçevesinde ikamet ettikleri yerdeki veya işlemin yapıldığı yerdeki Tüketici Hakem Heyetine ya da Tüketici Mahkemesine başvurabilir. Türk hukuku uygulanır; zorunlu yetki kuralları saklıdır."
     },
     "kvkk": {
       "title": "KVKK Aydınlatma Metni",
       "intro": "6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca kişisel verileriniz, veri sorumlusu Turgut Ürer tarafından aşağıda açıklanan kapsamda işlenmektedir.",
       "section1Title": "Veri Sorumlusunun Kimliği",
-      "section1Content": "Veri sorumlusu: Turgut Ürer\nAdres: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul\nKVKK başvuru e-postası: turgut.urer@gmail.com\nGenel iletişim: info@renderhane.com",
+      "section1Content": "Veri sorumlusu: Turgut Ürer\nAdres: Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul\nKVKK başvuru e-postası: render@renderhane.com\nGenel iletişim: render@renderhane.com",
       "section2Title": "İşlenen Kişisel Veriler",
       "section2Content": "Hizmeti kullanımınıza göre ad-soyad, e-posta, kullanıcı ve OAuth kimliği, profil fotoğrafı; yüklenen dosya ve istemler, üretilen çıktılar, iş ve kredi hareketleri; sipariş ve ödeme durumu; IP, cihaz/tarayıcı, erişim, hata ve güvenlik kayıtları; çerez/benzeri teknoloji tercihleri ile destek yazışmaları işlenebilir. Kart numarası gibi ödeme aracı verileri ödeme kuruluşu tarafından işlenir ve Renderhane tarafından saklanmaz.",
       "section3Title": "İşleme Amaçları ve Hukuki Sebepler",
@@ -532,7 +532,7 @@
       "section7Title": "İlgili Kişi Hakları",
       "section7Content": "KVKK m.11 uyarınca verilerinizin işlenip işlenmediğini öğrenme; işlenmişse bilgi isteme; amaç ve amaca uygun kullanımı öğrenme; yurt içi/yurt dışı alıcıları bilme; eksik veya yanlış veriyi düzelttirme; m.7 şartlarında silme/yok etme isteme; bu işlemlerin alıcılara bildirilmesini isteme; münhasıran otomatik analiz sonucu aleyhinize çıkan sonuca itiraz etme ve kanuna aykırı işlem nedeniyle zararın giderilmesini isteme haklarına sahipsiniz.",
       "section8Title": "Başvuru Yöntemi",
-      "section8Content": "Başvurunuzu Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul adresine yazılı olarak veya daha önce Renderhane'ye bildirdiğiniz ve sistemde kayıtlı e-posta adresiniz üzerinden turgut.urer@gmail.com adresine iletebilirsiniz. Başvuruda ad-soyad, imza (yazılı başvuruda), kimlik ve iletişim bilgisi, talep konusu ve gerektiğinde doğrulayıcı bilgi bulunmalıdır. Gereksiz kimlik belgesi kopyası göndermeyin. Başvurular en geç 30 gün içinde ücretsiz sonuçlandırılır; ek maliyet doğarsa Kurul tarifesi uygulanabilir."
+      "section8Content": "Başvurunuzu Denizköşkler Mahallesi, Hasan Çelebi Sokak No: 19, Avcılar/İstanbul adresine yazılı olarak veya daha önce Renderhane'ye bildirdiğiniz ve sistemde kayıtlı e-posta adresiniz üzerinden render@renderhane.com adresine iletebilirsiniz. Başvuruda ad-soyad, imza (yazılı başvuruda), kimlik ve iletişim bilgisi, talep konusu ve gerektiğinde doğrulayıcı bilgi bulunmalıdır. Gereksiz kimlik belgesi kopyası göndermeyin. Başvurular en geç 30 gün içinde ücretsiz sonuçlandırılır; ek maliyet doğarsa Kurul tarifesi uygulanabilir."
     },
     "cookiePolicy": {
       "title": "Çerez ve Benzeri Teknolojiler Politikası",
@@ -548,7 +548,7 @@
       "section5Title": "Hukuki Dayanak ve Aktarım",
       "section5Content": "Kesinlikle gerekli teknolojiler, somut işlevine göre KVKK m.5/2(c) kapsamındaki sözleşmenin ifası veya m.5/2(f) kapsamındaki meşru menfaat sebebine dayanır. Analitik ve reklam teknolojileri KVKK m.5/1 kapsamında önceden verilen, belirli ve geri alınabilir açık rızaya dayanır. Google gibi yurt dışındaki sağlayıcılara aktarım söz konusu olduğunda KVKK m.9 hükümleri ayrıca uygulanır.",
       "section6Title": "Tercihleri Yönetme ve Geri Alma",
-      "section6Content": "İlk ziyarette “Tümünü Reddet”, “Tercihleri Yönet” ve “Tümünü Kabul Et” seçenekleri sunulur. Sayfa altındaki “Çerez Tercihleri” düğmesiyle seçiminizi istediğiniz zaman değiştirebilirsiniz. Geri alma geleceğe etkili olur; mümkün olan birinci taraf analitik tanımlayıcıları silinir. Üçüncü taraf tanımlayıcılarını tarayıcı ayarlarından da silebilirsiniz.\n\nSorularınız için: turgut.urer@gmail.com"
+      "section6Content": "İlk ziyarette “Tümünü Reddet”, “Tercihleri Yönet” ve “Tümünü Kabul Et” seçenekleri sunulur. Sayfa altındaki “Çerez Tercihleri” düğmesiyle seçiminizi istediğiniz zaman değiştirebilirsiniz. Geri alma geleceğe etkili olur; mümkün olan birinci taraf analitik tanımlayıcıları silinir. Üçüncü taraf tanımlayıcılarını tarayıcı ayarlarından da silebilirsiniz.\n\nSorularınız için: render@renderhane.com"
     }
   },
   "about": {
