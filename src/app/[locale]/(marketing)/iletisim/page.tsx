@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { Footer } from "@/components/landing/footer";
 import { Button } from "@/components/ui/button";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -10,7 +11,6 @@ interface PageProps {
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.renderhane.com";
-const CONTACT_EMAIL = "info@renderhane.com";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
